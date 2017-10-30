@@ -1,12 +1,26 @@
 package other
 
+import (
+	"net/http"
+	"net/url"
+
+	"bitbucket.org/exonch/resource-manager/server/model"
+)
+
 type Mailer interface {
-	SendNamespaceCreated(user User, label string, tariff Tariff) error
-	SendNamespaceDeleted(user User, label string) error
+	SendNamespaceCreated(user model.User, label string, tariff model.Tariff) error
+	SendNamespaceDeleted(user model.User, label string) error
 }
 
-func (ml Mailer) SendNamespaceCreated(user User, label string, tariff Tariff) error {
+type mailerHTTP struct {
+	c *http.Client
+	u *url.URL
 }
 
-func (ml Mailer) SendNamespaceDeleted(user User, label string) error {
+func (ml mailerHTTP) SendNamespaceCreated(user model.User, label string, tariff model.Tariff) error {
+	return nil
+}
+
+func (ml mailerHTTP) SendNamespaceDeleted(user model.User, label string) error {
+	return nil
 }
