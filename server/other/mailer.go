@@ -17,6 +17,13 @@ type mailerHTTP struct {
 	u *url.URL
 }
 
+func NewMailer(u *url.URL) Mailer {
+	return mailerHTTP{
+		c: http.DefaultClient,
+		u: u,
+	}
+}
+
 func (ml mailerHTTP) SendNamespaceCreated(user model.User, label string, tariff model.Tariff) error {
 	return nil
 }

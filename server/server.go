@@ -2,16 +2,24 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"net/url"
+	"time"
 
 	"bitbucket.org/exonch/resource-manager/server/model"
 	"bitbucket.org/exonch/resource-manager/server/other"
 	"bitbucket.org/exonch/resource-manager/util/cache"
-	//"github.com/sirupsen/logrus"
+
+	"github.com/sirupsen/logrus"
+	//uuid "github.com/satori/go.uuid"
 )
+
+var _ = logrus.StandardLogger()
 
 type ResourceManagerInterface interface {
 	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string) error
+	//DeleteNamespace(ctx context.Context, userID, nsLabel string) error
 }
 
 type ResourceManager struct {
@@ -25,7 +33,7 @@ type ResourceManager struct {
 }
 
 // TODO
-//var _ ResourceManagerInterface = &ResourceManager{}
+var _ ResourceManagerInterface = &ResourceManager{}
 
 // TODO: arguments must be the respective interfaces
 // from the "other" module.
@@ -35,23 +43,29 @@ func (rm *ResourceManager) Initialize(b, k, m, v *url.URL, dbDSN string) error {
 	rm.mailer = other.NewMailer(m)
 	rm.volumesvc = other.NewVolumeSvc(v)
 
+	var err error
 	rm.db.con, err = sql.Open("postgres", dbDSN)
 	if err != nil {
 		return err
 	}
-	rm.db.initialize()
+	if err = rm.db.initialize(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string) error {
+	var err error
 	var resourceID string = rm.newResourceID("namespace", userID, nsLabel)
 	var billingID string
-	var errKube, errBilling, errMailer string
-	var cpuQuota, memQuota int
+	var errKube, errBilling error
+	var cpuQuota, memQuota uint
 
-	cpuQuota, memQuota, error = rm.getTariffQuotaByID(ctx, tariffID)
+	cpuQuota, memQuota, err = rm.getNSTariffQuota(ctx, tariffID)
+	if err != nil {
+		return newError("cannot get tariff quota: %v", err)
+	}
 
-	var rollbackID string = uuid.NewV4().String() + "-" + ctx.Value("request-id").(string)
-	rm.rollbackQueueNew(rollbackID)
 	ctx, cancelf := context.WithCancel(ctx)
 	//ctx = context.WithTimeout(ctx, time.Second*2)
 
@@ -60,57 +74,69 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 		errKube = rm.kube.CreateNamespace(ctx, resourceID, cpuQuota, memQuota)
 		if errKube != nil {
 			cancelf()
-		} else {
-			rm.rollbackQueueAdd(rollbackID, "namespace", resourceID)
 		}
 		waitch <- struct{}{}
 	}()
 	go func() {
-		billingID, errBilling = rm.billing.Subscribe(ctx, userID, tariffID, resourceID)
+		billingID, errBilling = rm.billing.Subscribe(ctx /*, userID, tariffID, resourceID*/)
 		if errBilling != nil {
 			cancelf()
-		} else {
-			rm.rollbackQueueAdd(rollbackID, "billing-sub", resourceID)
 		}
 		waitch <- struct{}{}
 	}()
 	<-waitch
 	<-waitch
 
-	if errKube == nil && errBilling == nil {
-		go rm.rollbackQueueCancel(rollbackID)
-	} else {
-		go rm.rollbackQueueExecute(rollbackID)
+	go func() {
+		if errKube == nil {
+			rm.kube.DeleteNamespace(context.Background(), resourceID)
+		}
+		if errBilling == nil {
+			rm.billing.Unsubscribe(context.Background() /*, userID, billingID*/)
+		}
+	}()
+
+	var errstr string
+	if errKube != nil {
+		errstr = errstr + fmt.Sprintf("kube api error: %v; ", err)
 	}
+	if errBilling != nil {
+		errstr = errstr + fmt.Sprintf("billing error: %v; ", errBilling)
+	}
+	if errstr != "" {
+		err = newOtherServiceError("%s", errstr)
+	}
+	return err
 }
 
-func (rm *ResourceManager) newResourceID(seed ...string) {
+func (rm *ResourceManager) newResourceID(seed ...string) string {
 	// hash of strigs.Join(seed, ",") concat with some constant salt (probably from DB)
+	return ""
 }
 
-func (rm *ResourceManager) getTariffQuotaByID(ctx context.Context, id string) (cpu, mem int, err error) {
-	var tariff model.Tariff
+func (rm *ResourceManager) getNSTariffQuota(ctx context.Context, id string) (cpu, mem uint, err error) {
+	var nstariff model.NamespaceTariff
 
 	if rm.tariffCache == nil {
 		rm.tariffCache = cache.NewTimed(time.Second * 10)
 	}
 
 	if tmp, cached := rm.tariffCache.Get(id); cached && tmp != nil {
-		tariff = tmp.(model.Tariff)
+		nstariff = tmp.(model.NamespaceTariff)
 	} else {
-		tariff, err = rm.billing.GetTariffByID(ctx, tariffID)
+		nstariff, err = rm.billing.GetNamespaceTariff(ctx, id)
 		if err != nil {
 			return
 		}
-		rm.tariffCache.Set(id, tariff)
+		rm.tariffCache.Set(id, nstariff)
 	}
 
-	if tariff.CpuLimit == nil || tariff.MemoryLimit == nil {
-		rm.tariffCache.Unset(id)
-		return newError(fmt.Sprintf("malformed tariff in response: %#v", tariff))
+	if nstariff.CpuLimit == nil || nstariff.MemoryLimit == nil {
+		err = newError("malformed tariff in response: %#v", nstariff)
+		return
 	}
 
-	cpu = *tariff.CpuLimit
-	mem = *tariff.MemLimit
+	cpu = uint(*nstariff.CpuLimit)
+	mem = uint(*nstariff.MemoryLimit)
 	return
 }

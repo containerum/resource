@@ -3,21 +3,22 @@ package server
 import (
 	"database/sql"
 	"os"
-	"fmt"
-	
+
+	_ "github.com/lib/pq"
 	"github.com/mattes/migrate"
 	mig_postgres "github.com/mattes/migrate/database/postgres"
+	_ "github.com/mattes/migrate/source/file"
 )
 
 /*
 type Resource struct {
-	ID string
+	ID   string
 	Type string
 }
 
 type Namespace struct {
-	ID string
-	Label string
+	ID       string
+	Label    string
 	Resource *Resource
 
 	CpuLim uint64
@@ -25,51 +26,16 @@ type Namespace struct {
 }
 
 type Volume struct {
-	ID string
-	Label string
+	ID       string
+	Label    string
 	Resource *Resource
 }
 
 type Access struct {
-	Resource *Resource
-	UserID string
+	Resource    *Resource
+	UserID      string
 	AccessLevel string
 }
-*/
-/*
-CREATE TABLE resources (
-	resource varchar UNIQUE PRIMARY KEY,
-	resource_type varchar NOT NULL,
-	tariff_id varchar NOT NULL
-);
-
-CREATE TABLE namespaces (
-	namespace_id varchar UNIQUE PRIMARY KEY,
-	resource_id varchar NOT NULL REFERENCES resources,
-	namespace_label varchar NOT NULL,
-	cpu int NOT NULL,
-	memory int NOT NULL
-);
-
-CREATE TABLE volumes (
-	volume_id varchar UNIQUE PRIMARY KEY,
-	resource_id varchar NOT NULL REFERENCES resources,
-	volume_label varchar NOT NULL,
-	size int NOT NULL
-);
-
-CREATE TABLE accesses (
-	user_id varchar NOT NULL,
-	resource_id varchar REFERENCES resources,
-	access varchar NOT NULL
-);
-
-CREATE TABLE log (
-	t timestamp NOT NULL DEFAULT statement_timestamp(),
-	action varchar NOT NULL,
-	obj_type varchar NOT NULL,
-	obj_id varchar NOT NULL
-);
 */
 
 type resourceManagerDB struct {
@@ -92,7 +58,7 @@ func (db resourceManagerDB) initialize() error {
 	}
 	if err = mig.Up(); err != nil {
 		if err != migrate.ErrNoChange {
-			return fmt.Errorf("cannot run migration: %v", err)
+			return newError("cannot run migration: %v", err)
 		}
 	}
 	return nil

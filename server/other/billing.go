@@ -9,9 +9,9 @@ import (
 )
 
 type Billing interface {
-	Subscribe(ctx context.Context, userID, tariffID, resourceID string) error
-	Unsubscribe(ctx context.Context, resourceID string) error
-	GetTariffByID(ctx context.Context, id string) (model.Tariff, error) // ...ByLabel?
+	Subscribe(ctx context.Context) (billingID string, err error)
+	Unsubscribe(ctx context.Context) error
+	GetNamespaceTariff(ctx context.Context, id string) (model.NamespaceTariff, error)
 }
 
 type billingHTTP struct {
@@ -25,14 +25,14 @@ func NewBilling(u *url.URL) (b billingHTTP) {
 	return
 }
 
-func (b billingHTTP) Subscribe(trfLabel string, resType string, resLabel string, userID string) error {
+func (b billingHTTP) Subscribe(ctx context.Context) (string, error) {
+	return "", nil
+}
+
+func (b billingHTTP) Unsubscribe(ctx context.Context) error {
 	return nil
 }
 
-func (b billingHTTP) Unsubscribe(resID string) error {
-	return nil
-}
-
-func (b billingHTTP) GetTariffByID(resID string) (model.Tariff, error) {
-	return model.Tariff{}, nil
+func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
+	return model.NamespaceTariff{}, nil
 }

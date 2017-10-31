@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"os"
+	"time"
 
 	"bitbucket.org/exonch/resource-manager/server"
 
@@ -15,10 +17,29 @@ func main() {
 		dbaddress  = os.Getenv("DB_ADDRESS")
 	)
 	srv := &server.ResourceManager{}
-	err := srv.Initialize(nil, nil, nil, nil,
-		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/resource_manager?sslmode=disable")
+	err := srv.Initialize(
+		&url.URL{
+			Scheme: "http",
+			Host:   "localhost:1007",
+		},
+		&url.URL{
+			Scheme: "http",
+			Host:   "localhost:1212",
+		},
+		nil,
+		nil,
+		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/resource_manager?sslmode=disable",
+	)
 	if err != nil {
 		logrus.Fatalf("srv.Initialize error: %v", err)
 	}
-	logrus.Infof("ok")
+
+	gin := httpapi.NewGinEngine(srv)
+	for {
+		err = gin.Run(":1213")
+		if err != nil {
+			logrus.Errorf("gin error: %v", err)
+		}
+		time.Sleep(time.Second)
+	}
 }
