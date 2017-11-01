@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"bitbucket.org/exonch/resource-manager/server"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -9,8 +11,9 @@ func CreateNamespace(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceManagerInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	userRole := c.MustGet("user-role").(string)
-	tokenID := c.MustGet("token-id").(string)
+	//userRole := c.MustGet("user-role").(string)
+	//tokenID := c.MustGet("token-id").(string)
+	tariffID := c.MustGet("tariff-id").(string)
 	nsLabel := c.Param("namespace")
 
 	logger.Infof("creating namespace %s", nsLabel)
@@ -27,8 +30,8 @@ func DeleteNamespace(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceManagerInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	userRole := c.MustGet("user-role").(string)
-	tokenID := c.MustGet("token-id").(string)
+	//userRole := c.MustGet("user-role").(string)
+	//tokenID := c.MustGet("token-id").(string)
 	nsLabel := c.Param("namespace")
 
 	logger.Infof("deleting namespace %s", nsLabel)

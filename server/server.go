@@ -15,11 +15,9 @@ import (
 	//uuid "github.com/satori/go.uuid"
 )
 
-var _ = logrus.StandardLogger()
-
 type ResourceManagerInterface interface {
-	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string) error
-	//DeleteNamespace(ctx context.Context, userID, nsLabel string) error
+	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error
+	DeleteNamespace(ctx context.Context, userID, nsLabel string) error
 }
 
 type ResourceManager struct {
@@ -54,16 +52,25 @@ func (rm *ResourceManager) Initialize(b, k, m, v *url.URL, dbDSN string) error {
 	return nil
 }
 
-func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string) error {
+func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
 	var err error
 	var resourceID string = rm.newResourceID("namespace", userID, nsLabel)
 	var billingID string
 	var errKube, errBilling error
-	var cpuQuota, memQuota uint
+	var tariff model.NamespaceTariff
 
-	cpuQuota, memQuota, err = rm.getNSTariffQuota(ctx, tariffID)
+	tariff, err = rm.getNSTariff(ctx, tariffID)
 	if err != nil {
 		return newError("cannot get tariff quota: %v", err)
+	}
+
+	if !*tariff.IsActive {
+		return newPermissionError("cannot subscribe to inactive tariff")
+	}
+	if !adminAction {
+		if !*tariff.IsPublic {
+			return newPermissionError("tariff unavailable")
+		}
 	}
 
 	ctx, cancelf := context.WithCancel(ctx)
@@ -71,7 +78,7 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 
 	waitch := make(chan struct{})
 	go func() {
-		errKube = rm.kube.CreateNamespace(ctx, resourceID, cpuQuota, memQuota)
+		errKube = rm.kube.CreateNamespace(ctx, resourceID, *tariff.CpuLimit, *t.MemoryLimit)
 		if errKube != nil {
 			cancelf()
 		}
@@ -109,34 +116,40 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 	return err
 }
 
-func (rm *ResourceManager) newResourceID(seed ...string) string {
+func (rm *ResourceManager) newResourceID(seeds ...string) string {
 	// hash of strigs.Join(seed, ",") concat with some constant salt (probably from DB)
-	return ""
+	in := []byte{0xAB, 0xBA}
+	for i := range seeds {
+		in = append(in, []byte(seeds[i])...)
+	}
+	h := sha256.Sum(in)[:]
+	return fmt.Sprintf("%x", h)
 }
 
-func (rm *ResourceManager) getNSTariffQuota(ctx context.Context, id string) (cpu, mem uint, err error) {
-	var nstariff model.NamespaceTariff
-
+func (rm *ResourceManager) getNSTariff(ctx context.Context, id string) (t model.NamespaceTariff, err error) {
 	if rm.tariffCache == nil {
 		rm.tariffCache = cache.NewTimed(time.Second * 10)
 	}
 
 	if tmp, cached := rm.tariffCache.Get(id); cached && tmp != nil {
-		nstariff = tmp.(model.NamespaceTariff)
+		t = tmp.(model.NamespaceTariff)
 	} else {
-		nstariff, err = rm.billing.GetNamespaceTariff(ctx, id)
+		t, err = rm.billing.GetNamespaceTariff(ctx, id)
 		if err != nil {
 			return
 		}
-		rm.tariffCache.Set(id, nstariff)
+		rm.tariffCache.Set(id, t)
 	}
 
-	if nstariff.CpuLimit == nil || nstariff.MemoryLimit == nil {
-		err = newError("malformed tariff in response: %#v", nstariff)
+	if t.CpuLimit == nil || t.MemoryLimit == nil {
+		err = newError("malformed tariff in response: %#v", t)
 		return
 	}
 
-	cpu = uint(*nstariff.CpuLimit)
-	mem = uint(*nstariff.MemoryLimit)
 	return
+}
+
+func (rm *ResourceManager) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
+	ctx, cancelf := context.WithCancel(ctx)
+	
 }

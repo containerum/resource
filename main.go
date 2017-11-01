@@ -1,11 +1,12 @@
 package main
 
 import (
-	"context"
 	"os"
 	"time"
+	"net/url"
 
 	"bitbucket.org/exonch/resource-manager/server"
+	"bitbucket.org/exonch/resource-manager/httpapi"
 
 	"github.com/sirupsen/logrus"
 )

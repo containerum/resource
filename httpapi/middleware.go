@@ -5,11 +5,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	uuid "github.com/satori/go.uuid"
 )
 
 var logger = logrus.New()
 
-func initializeContext(srv server.ResourceManagerInterface) {
+func initializeContext(srv server.ResourceManagerInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := uuid.NewV4().String()
 		c.Header("x-request-id", requestID)

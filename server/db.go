@@ -11,11 +11,6 @@ import (
 )
 
 /*
-type Resource struct {
-	ID   string
-	Type string
-}
-
 type Namespace struct {
 	ID       string
 	Label    string
@@ -23,12 +18,6 @@ type Namespace struct {
 
 	CpuLim uint64
 	MemLim uint64
-}
-
-type Volume struct {
-	ID       string
-	Label    string
-	Resource *Resource
 }
 
 type Access struct {
