@@ -8,6 +8,8 @@ type OtherServiceError string
 
 type Error string
 
+type PermissionError string
+
 func newOtherServiceError(f string, args ...interface{}) OtherServiceError {
 	return OtherServiceError(fmt.Sprintf(f, args...))
 }
@@ -21,5 +23,13 @@ func newError(f string, args ...interface{}) Error {
 }
 
 func (e Error) Error() string {
+	return string(e)
+}
+
+func newPermissionError(f string, args ...interface{}) PermissionError {
+	return PermissionError(fmt.Sprintf(f, args...))
+}
+
+func (e PermissionError) Error() string {
 	return string(e)
 }

@@ -14,9 +14,12 @@ func NewGinEngine(srv server.ResourceManagerInterface) *gin.Engine {
 	g.Use(gin.LoggerWithWriter(os.Stderr))
 	g.Use(initializeContext(srv))
 	g.Use(parseHeaders)
+	g.Use(adminAction)
 
 	g.POST("/namespace/:namespace", CreateNamespace)
 	g.DELETE("/namespace/:namespace", DeleteNamespace)
+	g.GET("/namespace", ListNamespaces)
+	//g.GET("/namespace/:namespace", GetNamespace)
 
 	return g
 }

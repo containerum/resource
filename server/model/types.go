@@ -36,6 +36,9 @@ type NamespaceTariff struct {
 	InternalServices *int       `json:"internal_services,omitempty"`
 	Description      *string    `json:"description,omitempty"`
 	CreatedAt        *time.Time `json:"created_at,omitempty"`
+
+	IsActive  *bool    `json:"is_active,omitempty"`
+	IsPublic  *bool    `json:"is_public,omitempty"`
 }
 
 type Resource struct {

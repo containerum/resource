@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"net/url"
@@ -12,12 +13,15 @@ import (
 	"bitbucket.org/exonch/resource-manager/util/cache"
 
 	"github.com/sirupsen/logrus"
-	//uuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
+
+var _ = logrus.StandardLogger()
 
 type ResourceManagerInterface interface {
 	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error
 	DeleteNamespace(ctx context.Context, userID, nsLabel string) error
+	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error)
 }
 
 type ResourceManager struct {
@@ -55,7 +59,7 @@ func (rm *ResourceManager) Initialize(b, k, m, v *url.URL, dbDSN string) error {
 func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
 	var err error
 	var resourceID string = rm.newResourceID("namespace", userID, nsLabel)
-	var billingID string
+	//var billingID string
 	var errKube, errBilling error
 	var tariff model.NamespaceTariff
 
@@ -77,20 +81,21 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 	//ctx = context.WithTimeout(ctx, time.Second*2)
 
 	waitch := make(chan struct{})
-	go func() {
-		errKube = rm.kube.CreateNamespace(ctx, resourceID, *tariff.CpuLimit, *t.MemoryLimit)
+	{
+		errKube = rm.kube.CreateNamespace(ctx, resourceID, uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit))
 		if errKube != nil {
 			cancelf()
 		}
 		waitch <- struct{}{}
-	}()
-	go func() {
-		billingID, errBilling = rm.billing.Subscribe(ctx /*, userID, tariffID, resourceID*/)
+	}
+	{
+		logrus.Warnf("would subscribe user %q to tariff %q", userID, tariffID)
+		//errBilling = rm.billing.Subscribe(ctx, userID, tariffID, resourceID)
 		if errBilling != nil {
 			cancelf()
 		}
 		waitch <- struct{}{}
-	}()
+	}
 	<-waitch
 	<-waitch
 
@@ -99,7 +104,8 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 			rm.kube.DeleteNamespace(context.Background(), resourceID)
 		}
 		if errBilling == nil {
-			rm.billing.Unsubscribe(context.Background() /*, userID, billingID*/)
+			logrus.Warnf("would unsubscribe user %q from tariff %q", userID, tariffID)
+			//rm.billing.Unsubscribe(context.Background(), userID, billingID)
 		}
 	}()
 
@@ -116,13 +122,33 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 	return err
 }
 
+func (rm *ResourceManager) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (rm *ResourceManager) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
+	userUUID, err := uuid.FromString(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id %q: %v", userID, err)
+	}
+	namespaces, err := rm.db.namespaceList(&userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("database: %v", err)
+	}
+	if !adminAction {
+		for i := range namespaces {
+			namespaces[i].ID = nil
+		}
+	}
+	return namespaces, nil
+}
+
 func (rm *ResourceManager) newResourceID(seeds ...string) string {
-	// hash of strigs.Join(seed, ",") concat with some constant salt (probably from DB)
 	in := []byte{0xAB, 0xBA}
 	for i := range seeds {
 		in = append(in, []byte(seeds[i])...)
 	}
-	h := sha256.Sum(in)[:]
+	h := sha256.Sum256(in)
 	return fmt.Sprintf("%x", h)
 }
 
@@ -147,9 +173,4 @@ func (rm *ResourceManager) getNSTariff(ctx context.Context, id string) (t model.
 	}
 
 	return
-}
-
-func (rm *ResourceManager) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
-	ctx, cancelf := context.WithCancel(ctx)
-	
 }

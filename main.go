@@ -1,12 +1,12 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"time"
-	"net/url"
 
-	"bitbucket.org/exonch/resource-manager/server"
 	"bitbucket.org/exonch/resource-manager/httpapi"
+	"bitbucket.org/exonch/resource-manager/server"
 
 	"github.com/sirupsen/logrus"
 )
@@ -29,7 +29,7 @@ func main() {
 		},
 		nil,
 		nil,
-		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/resource_manager?sslmode=disable",
+		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/resource_service?sslmode=disable",
 	)
 	if err != nil {
 		logrus.Fatalf("srv.Initialize error: %v", err)

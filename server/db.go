@@ -8,24 +8,8 @@ import (
 	"github.com/mattes/migrate"
 	mig_postgres "github.com/mattes/migrate/database/postgres"
 	_ "github.com/mattes/migrate/source/file"
+	uuid "github.com/satori/go.uuid"
 )
-
-/*
-type Namespace struct {
-	ID       string
-	Label    string
-	Resource *Resource
-
-	CpuLim uint64
-	MemLim uint64
-}
-
-type Access struct {
-	Resource    *Resource
-	UserID      string
-	AccessLevel string
-}
-*/
 
 type resourceManagerDB struct {
 	con *sql.DB
@@ -96,7 +80,7 @@ func (db resourceManagerDB) namespaceCreate(resourceID, nsID string, nsLabel *st
 
 func (db resourceManagerDB) namespaceDelete(nsID string) error {
 	_, err := db.con.Exec(
-		"DELETE FROM namespaces WHERE namespace_id = ?",
+		"DELETE FROM namespaces WHERE id = ?",
 		nsID,
 	)
 	if err != nil {
@@ -104,6 +88,48 @@ func (db resourceManagerDB) namespaceDelete(nsID string) error {
 	}
 	db.log("delete", "namespace", nsID)
 	return nil
+}
+
+func (db resourceManagerDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err error) {
+	var rows *sql.Rows
+	if userID == nil {
+		rows, err = db.con.Query(
+			"SELECT (id, label, user_id, create_time, ram, cpu, max_ext_svc, max_int_svc, max_traffic, deleted, delete_time, tariff_id)"+
+				" FROM namespaces",
+		)
+	} else {
+		rows, err = db.con.Query(
+			"SELECT (id, label, user_id, create_time, ram, cpu, max_ext_svc, max_int_svc, max_traffic, deleted, delete_time, tariff_id)"+
+				" FROM namespaces WHERE user_id = CAST($1 AS uuid)",
+			*userID,
+		)
+	}
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ns Namespace
+		err = rows.Scan(
+			&ns.ID,
+			&ns.Label,
+			&ns.UserID,
+			&ns.CreateTime,
+			&ns.RAM,
+			&ns.CPU,
+			&ns.MaxExtService,
+			&ns.MaxIntService,
+			&ns.MaxTraffic,
+			&ns.Deleted,
+			&ns.DeleteTime,
+			&ns.TariffID,
+		)
+		if err != nil {
+			return
+		}
+		nss = append(nss, ns)
+	}
+	return
 }
 
 func (db resourceManagerDB) roleAdd(resourceID, userID, role string) error {

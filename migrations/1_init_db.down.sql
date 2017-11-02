@@ -1,5 +1,5 @@
-DROP TABLE resources;
 DROP TABLE namespaces;
-DROP TABLE volumes;
-DROP TABLE accesses;
+DROP TYPE ResourceKind;
+DROP TYPE PermStatus;
+DROP TABLE permissions;
 DROP TABLE log;

@@ -1,13 +1,13 @@
 package other
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
-	"fmt"
 )
 
 type Kube interface {
@@ -34,7 +34,7 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 		RawQuery: fmt.Sprintf("cpu=%d&memory=%d", cpu, memory),
 	}
 	var ns = map[string]interface{}{
-		"kind": "Namespace",
+		"kind":       "Namespace",
 		"apiVersion": "v1",
 		"metadata": map[string]interface{}{
 			"name": name,
@@ -73,7 +73,7 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 
 func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	refURL := &url.URL{
-		Path:     "/api/v1/namespaces",
+		Path: "/api/v1/namespaces",
 	}
 	req, _ := http.NewRequest("DELETE", kub.u.ResolveReference(refURL).String(), nil)
 	req = req.WithContext(ctx)
@@ -81,7 +81,7 @@ func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	if err != nil {
 		return fmt.Errorf("http error: %v", err)
 	}
-	
+
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
@@ -103,6 +103,6 @@ func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	if resp.StatusCode/100 != 2 {
 		return fmt.Errorf("kube api error: http status %s", resp.Status)
 	}
-	
+
 	return nil
 }
