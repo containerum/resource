@@ -3,7 +3,7 @@ package httpapi
 import (
 	"os"
 
-	"bitbucket.org/exonch/resource-manager/server"
+	"bitbucket.org/exonch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
 )

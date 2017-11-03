@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"time"
 
-	"bitbucket.org/exonch/resource-manager/server/model"
-	"bitbucket.org/exonch/resource-manager/server/other"
-	"bitbucket.org/exonch/resource-manager/util/cache"
+	"bitbucket.org/exonch/resource-service/server/model"
+	"bitbucket.org/exonch/resource-service/server/other"
+	"bitbucket.org/exonch/resource-service/util/cache"
 
 	"github.com/sirupsen/logrus"
 	uuid "github.com/satori/go.uuid"

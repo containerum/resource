@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"bitbucket.org/exonch/resource-manager/server/model"
+	"bitbucket.org/exonch/resource-service/server/model"
 )
 
 type Mailer interface {

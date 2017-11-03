@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"net/url"
 
-	"bitbucket.org/exonch/resource-manager/server/model"
+	"bitbucket.org/exonch/resource-service/server/model"
 )
 
 type Billing interface {
 	Subscribe(ctx context.Context, tariffLabel, resType, resLabel, userID string) (err error)
-	Unsubscribe(ctx context.Context) error
+	Unsubscribe(ctx context.Context, resourceID string) error
 	GetNamespaceTariff(ctx context.Context, id string) (model.NamespaceTariff, error)
 }
 
