@@ -10,7 +10,7 @@ import (
 
 var logger = logrus.New()
 
-func initializeContext(srv server.ResourceManagerInterface) gin.HandlerFunc {
+func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := uuid.NewV4().String()
 		c.Header("x-request-id", requestID)

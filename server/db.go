@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/mattes/migrate"
@@ -11,11 +12,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type resourceManagerDB struct {
+type resourceSvcDB struct {
 	con *sql.DB
 }
 
-func (db resourceManagerDB) initialize() error {
+func (db resourceSvcDB) initialize() error {
 	err := db.con.Ping()
 	if err != nil {
 		return err
@@ -37,7 +38,7 @@ func (db resourceManagerDB) initialize() error {
 	return nil
 }
 
-func (db resourceManagerDB) log(action, objType, objID string) {
+func (db resourceSvcDB) log(action, objType, objID string) {
 	db.con.Exec(
 		"INSERT INTO log (action, obj_type, obj_id)"+
 			" VALUES (?,?,?)",
@@ -47,21 +48,7 @@ func (db resourceManagerDB) log(action, objType, objID string) {
 	)
 }
 
-func (db resourceManagerDB) resourceCreate(resID string, resType string, tariffID string) error {
-	_, err := db.con.Exec(
-		"INSERT INTO resources (?, ?, ?)",
-		resID,
-		resType,
-		tariffID,
-	)
-	if err != nil {
-		return err
-	}
-	db.log("create", "resource", resID)
-	return nil
-}
-
-func (db resourceManagerDB) namespaceCreate(resourceID, nsID string, nsLabel *string, cpuQuota, memQuota *int) error {
+func (db resourceSvcDB) namespaceCreate(resourceID, nsID string, nsLabel *string, cpuQuota, memQuota *int) error {
 	_, err := db.con.Exec(
 		"INSERT INTO namespaces (namespace_id, resource_id, namespace_label, cpu, memory)"+
 			" VALUES (?,?,?,?,?)",
@@ -78,7 +65,7 @@ func (db resourceManagerDB) namespaceCreate(resourceID, nsID string, nsLabel *st
 	return nil
 }
 
-func (db resourceManagerDB) namespaceDelete(nsID string) error {
+func (db resourceSvcDB) namespaceDelete(nsID string) error {
 	_, err := db.con.Exec(
 		"DELETE FROM namespaces WHERE id = ?",
 		nsID,
@@ -90,7 +77,7 @@ func (db resourceManagerDB) namespaceDelete(nsID string) error {
 	return nil
 }
 
-func (db resourceManagerDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err error) {
+func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err error) {
 	var rows *sql.Rows
 	if userID == nil {
 		rows, err = db.con.Query(
@@ -108,6 +95,7 @@ func (db resourceManagerDB) namespaceList(userID *uuid.UUID) (nss []Namespace, e
 		return
 	}
 	defer rows.Close()
+	nss = make([]Namespace, 0)
 	for rows.Next() {
 		var ns Namespace
 		err = rows.Scan(
@@ -132,12 +120,30 @@ func (db resourceManagerDB) namespaceList(userID *uuid.UUID) (nss []Namespace, e
 	return
 }
 
-func (db resourceManagerDB) roleAdd(resourceID, userID, role string) error {
-	db.log("create", "resource", resourceID)
+func (db resourceSvcDB) permCreate(resourceKind string, resourceUUID, ownerUserUUID uuid.UUID) error {
+	permUUID := uuid.NewV4()
+	_, err := db.con.Exec(
+		"INSERT INTO permissions(id, kind, resource_id, user_id, status_main, limited, status_change_time)"+
+			" VALUES($1, $2, $3, $4, $5, $6, $7)",
+		permUUID,
+		resourceKind,
+		resourceUUID,
+		ownerUserUUID,
+		"owner",
+		false,
+		time.Now(),
+	)
+	if err != nil {
+		return err
+	}
+	db.log("create", "permission", permUUID.String())
 	return nil
 }
 
-func (db resourceManagerDB) roleDelete(resourceID, userID, role string) error {
-	db.log("create", "resource", resourceID)
+func (db resourceSvcDB) permCheck(resourceUUID, userUUID uuid.UUID, perm string) error {
+	return nil
+}
+
+func (db resourceSvcDB) permSetLimited(limited bool) error {
 	return nil
 }

@@ -15,7 +15,7 @@ type volumeSvcHTTP struct {
 	u *url.URL
 }
 
-func NewVolumeSvc(u *url.URL) VolumeSvc {
+func NewVolumeSvcHTTP(u *url.URL) VolumeSvc {
 	return volumeSvcHTTP{
 		c: http.DefaultClient,
 		u: u,

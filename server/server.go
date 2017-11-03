@@ -2,11 +2,11 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"net/url"
 	"time"
+	"strings"
 
 	"bitbucket.org/exonch/resource-service/server/model"
 	"bitbucket.org/exonch/resource-service/server/other"
@@ -18,32 +18,34 @@ import (
 
 var _ = logrus.StandardLogger()
 
-type ResourceManagerInterface interface {
+type ResourceSvcInterface interface {
 	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error
 	DeleteNamespace(ctx context.Context, userID, nsLabel string) error
 	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error)
 }
 
-type ResourceManager struct {
+type ResourceSvc struct {
+	authsvc   other.AuthSvc
 	billing   other.Billing
 	mailer    other.Mailer
 	kube      other.Kube
 	volumesvc other.VolumeSvc
 
-	db          resourceManagerDB
+	db          resourceSvcDB
 	tariffCache cache.Cache
 }
 
 // TODO
-var _ ResourceManagerInterface = &ResourceManager{}
+var _ ResourceSvcInterface = &ResourceSvc{}
 
 // TODO: arguments must be the respective interfaces
 // from the "other" module.
-func (rm *ResourceManager) Initialize(b, k, m, v *url.URL, dbDSN string) error {
-	rm.billing = other.NewBilling(b)
+func (rm *ResourceSvc) Initialize(a, b, k, m, v *url.URL, dbDSN string) error {
+	rm.authsvc = other.NewAuthSvcStub(a)
+	rm.billing = other.NewBillingStub(b)
 	rm.kube = other.NewKube(k)
-	rm.mailer = other.NewMailer(m)
-	rm.volumesvc = other.NewVolumeSvc(v)
+	rm.mailer = other.NewMailerHTTP(m)
+	rm.volumesvc = other.NewVolumeSvcHTTP(v)
 
 	var err error
 	rm.db.con, err = sql.Open("postgres", dbDSN)
@@ -56,16 +58,21 @@ func (rm *ResourceManager) Initialize(b, k, m, v *url.URL, dbDSN string) error {
 	return nil
 }
 
-func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
+func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
 	var err error
-	var resourceID string = rm.newResourceID("namespace", userID, nsLabel)
-	//var billingID string
+	var resourceUUID uuid.UUID = uuid.NewV4()
+	var userUUID uuid.UUID
 	var errKube, errBilling error
 	var tariff model.NamespaceTariff
 
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		return newError("invalid user ID, not a UUID: %v", err)
+	}
+
 	tariff, err = rm.getNSTariff(ctx, tariffID)
 	if err != nil {
-		return newError("cannot get tariff quota: %v", err)
+		return newOtherServiceError("cannot get tariff quota: %v", err)
 	}
 
 	if !*tariff.IsActive {
@@ -77,63 +84,69 @@ func (rm *ResourceManager) CreateNamespace(ctx context.Context, userID, nsLabel,
 		}
 	}
 
-	ctx, cancelf := context.WithCancel(ctx)
-	//ctx = context.WithTimeout(ctx, time.Second*2)
+	err = rm.db.permCreate("Namespace", resourceUUID, userUUID)
+	if err != nil {
+		return newError("database error")
+	}
 
+	ctx, cancelf := context.WithCancel(ctx)
 	waitch := make(chan struct{})
-	{
-		errKube = rm.kube.CreateNamespace(ctx, resourceID, uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit))
+	go func() {
+		errKube = rm.kube.CreateNamespace(ctx, resourceUUID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit))
 		if errKube != nil {
 			cancelf()
 		}
 		waitch <- struct{}{}
-	}
-	{
-		logrus.Warnf("would subscribe user %q to tariff %q", userID, tariffID)
-		//errBilling = rm.billing.Subscribe(ctx, userID, tariffID, resourceID)
+	}()
+	go func() {
+		errBilling = rm.billing.Subscribe(ctx, userID, tariffID, resourceUUID.String())
 		if errBilling != nil {
 			cancelf()
 		}
 		waitch <- struct{}{}
-	}
+	}()
 	<-waitch
 	<-waitch
 
 	go func() {
 		if errKube == nil {
-			rm.kube.DeleteNamespace(context.Background(), resourceID)
+			rm.kube.DeleteNamespace(context.Background(), resourceUUID.String())
 		}
 		if errBilling == nil {
 			logrus.Warnf("would unsubscribe user %q from tariff %q", userID, tariffID)
-			//rm.billing.Unsubscribe(context.Background(), userID, billingID)
+			rm.billing.Unsubscribe(context.Background(), userID, resourceUUID.String())
 		}
 	}()
 
-	var errstr string
+	var errs []string
 	if errKube != nil {
-		errstr = errstr + fmt.Sprintf("kube api error: %v; ", err)
+		errs = append(errs, fmt.Sprintf("kube api error: %v", errKube))
 	}
 	if errBilling != nil {
-		errstr = errstr + fmt.Sprintf("billing error: %v; ", errBilling)
+		errs = append(errs, fmt.Sprintf("billing error: %v", errBilling))
 	}
-	if errstr != "" {
-		err = newOtherServiceError("%s", errstr)
+	if len(errs) > 0 {
+		err = newOtherServiceError("%s", strings.Join(errs, "; "))
+		return err
 	}
-	return err
+
+	go rm.mailer.SendNamespaceCreated(model.User{ID: &userID}, nsLabel, model.Tariff{ID: &tariffID})
+	go rm.authsvc.UpdateUserAccess(userID)
+	return nil
 }
 
-func (rm *ResourceManager) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
+func (rm *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (rm *ResourceManager) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
+func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
 	userUUID, err := uuid.FromString(userID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user id %q: %v", userID, err)
+		return nil, newError("invalid user id %q: %v", userID, err)
 	}
 	namespaces, err := rm.db.namespaceList(&userUUID)
 	if err != nil {
-		return nil, fmt.Errorf("database: %v", err)
+		return nil, newError("database: %v", err)
 	}
 	if !adminAction {
 		for i := range namespaces {
@@ -143,16 +156,7 @@ func (rm *ResourceManager) ListNamespaces(ctx context.Context, userID string, ad
 	return namespaces, nil
 }
 
-func (rm *ResourceManager) newResourceID(seeds ...string) string {
-	in := []byte{0xAB, 0xBA}
-	for i := range seeds {
-		in = append(in, []byte(seeds[i])...)
-	}
-	h := sha256.Sum256(in)
-	return fmt.Sprintf("%x", h)
-}
-
-func (rm *ResourceManager) getNSTariff(ctx context.Context, id string) (t model.NamespaceTariff, err error) {
+func (rm *ResourceSvc) getNSTariff(ctx context.Context, id string) (t model.NamespaceTariff, err error) {
 	if rm.tariffCache == nil {
 		rm.tariffCache = cache.NewTimed(time.Second * 10)
 	}

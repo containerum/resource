@@ -17,8 +17,9 @@ func main() {
 		dbpassword = os.Getenv("DB_PASSWORD")
 		dbaddress  = os.Getenv("DB_ADDRESS")
 	)
-	srv := &server.ResourceManager{}
+	srv := &server.ResourceSvc{}
 	err := srv.Initialize(
+		nil,
 		&url.URL{
 			Scheme: "http",
 			Host:   "localhost:1007",

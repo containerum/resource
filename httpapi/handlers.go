@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"encoding/json"
+
 	"bitbucket.org/exonch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
@@ -8,19 +10,33 @@ import (
 )
 
 func CreateNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceManagerInterface)
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	//userRole := c.MustGet("user-role").(string)
-	//tokenID := c.MustGet("token-id").(string)
-	tariffID := c.MustGet("tariff-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
-	nsLabel := c.Param("namespace")
-
-	logger.Infof("creating namespace %s", nsLabel)
-	err := srv.CreateNamespace(c.Request.Context(), userID, nsLabel, tariffID, adminAction)
+	var reqData struct {
+		TariffID string `json:"tariff-id"`
+		Label    string `json:"label"`
+	}
+	data, err := c.GetRawData()
 	if err != nil {
-		logger.Errorf("failed to create namespace %s: %v", nsLabel, err)
+		logger.Warnf("gin.Context.GetRawData: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+		})
+	}
+	err = json.Unmarshal(data, &reqData)
+	if err != nil {
+		logger.Warnf("cannot unmarshal request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+		})
+	}
+
+	logger.Infof("creating namespace %s", reqData.Label)
+	err = srv.CreateNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
+	if err != nil {
+		logger.Errorf("failed to create namespace %s: %v", reqData.Label, err)
 		c.AbortWithStatusJSON(500, map[string]string{
 			"error": "0x03",
 		})
@@ -28,11 +44,9 @@ func CreateNamespace(c *gin.Context) {
 }
 
 func DeleteNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceManagerInterface)
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	//userRole := c.MustGet("user-role").(string)
-	//tokenID := c.MustGet("token-id").(string)
 	nsLabel := c.Param("namespace")
 
 	logger.Infof("deleting namespace %s", nsLabel)
@@ -46,7 +60,7 @@ func DeleteNamespace(c *gin.Context) {
 }
 
 func ListNamespaces(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceManagerInterface)
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)

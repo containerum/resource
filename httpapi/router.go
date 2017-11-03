@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewGinEngine(srv server.ResourceManagerInterface) *gin.Engine {
+func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
 	g := gin.New()
 	g.Use(gin.Recovery())
 	g.Use(gin.LoggerWithWriter(os.Stderr))
@@ -16,7 +16,7 @@ func NewGinEngine(srv server.ResourceManagerInterface) *gin.Engine {
 	g.Use(parseHeaders)
 	g.Use(adminAction)
 
-	g.POST("/namespace/:namespace", CreateNamespace)
+	g.POST("/namespace", CreateNamespace)
 	g.DELETE("/namespace/:namespace", DeleteNamespace)
 	g.GET("/namespace", ListNamespaces)
 	//g.GET("/namespace/:namespace", GetNamespace)
