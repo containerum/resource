@@ -76,3 +76,22 @@ func ListNamespaces(c *gin.Context) {
 	}
 	c.IndentedJSON(200, nss)
 }
+
+func GetNamespace(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	adminAction := c.MustGet("admin-action").(bool)
+	nsLabel := c.Param("namespace")
+
+	logger.Infof("getting namespace %s", nsLabel)
+	nss, err := srv.GetNamespace(c.Request.Context(), userID, nsLabel, adminAction)
+	if err != nil {
+		logger.Errorf("failed to get namespace %s: %v", nsLabel, err)
+		c.AbortWithStatusJSON(500, map[string]string{
+			"error": "0x03",
+		})
+		return
+	}
+	c.IndentedJSON(200, nss)
+}

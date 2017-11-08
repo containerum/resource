@@ -19,7 +19,7 @@ func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
 	g.POST("/namespace", CreateNamespace)
 	g.DELETE("/namespace/:namespace", DeleteNamespace)
 	g.GET("/namespace", ListNamespaces)
-	//g.GET("/namespace/:namespace", GetNamespace)
+	g.GET("/namespace/:namespace", GetNamespace)
 
 	return g
 }

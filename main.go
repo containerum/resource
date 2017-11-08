@@ -16,7 +16,12 @@ func main() {
 		dbuser     = os.Getenv("DB_USER")
 		dbpassword = os.Getenv("DB_PASSWORD")
 		dbaddress  = os.Getenv("DB_ADDRESS")
+		dbname     = os.Getenv("DB_NAME")
 	)
+	if dbname == "" {
+		dbname = "resource_service"
+	}
+
 	srv := &server.ResourceSvc{}
 	err := srv.Initialize(
 		nil,
@@ -30,7 +35,7 @@ func main() {
 		},
 		nil,
 		nil,
-		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/resource_service?sslmode=disable",
+		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/"+dbname+"?sslmode=disable",
 	)
 	if err != nil {
 		logrus.Fatalf("srv.Initialize error: %v", err)

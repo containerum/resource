@@ -10,8 +10,8 @@ import (
 
 	"bitbucket.org/exonch/resource-service/server/model"
 
-	"github.com/sirupsen/logrus"
 	uuid "github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type Billing interface {
@@ -72,25 +72,25 @@ func NewBillingStub(_ ...interface{}) Billing {
 }
 
 func (billingStub) Subscribe(ctx context.Context, userID, tariffID, resourceID string) error {
-	logrus.Warnf("billingStub.Subscribe(%v, %v, %v, %v)", ctx, userID, tariffID, resourceID)
+	logrus.Warnf("billingStub.Subscribe(%v, %v, %v)", userID, tariffID, resourceID)
 	return nil
 }
 
 func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) error {
-	logrus.Warnf("billingStub.Unsubscribe(%v, %v, %v)", ctx, userID, resourceID)
+	logrus.Warnf("billingStub.Unsubscribe(%v, %v)", userID, resourceID)
 	return nil
 }
 
 var someUUID = uuid.NewV4()
 
 func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
-	logrus.Warnf("billingStub.GetNamespaceTariff(%v, %v)", ctx, tariffID)
+	logrus.Warnf("billingStub.GetNamespaceTariff(%v)", tariffID)
 	nt := model.NamespaceTariff{
-		ID: new(uuid.UUID),
-		CpuLimit: new(int),
+		ID:          new(uuid.UUID),
+		CpuLimit:    new(int),
 		MemoryLimit: new(int),
-		IsActive: new(bool),
-		IsPublic: new(bool),
+		IsActive:    new(bool),
+		IsPublic:    new(bool),
 	}
 	*nt.ID = someUUID
 	*nt.CpuLimit = 20

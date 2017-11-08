@@ -3,6 +3,7 @@ package other
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,7 +12,7 @@ import (
 )
 
 type Kube interface {
-	CreateNamespace(ctx context.Context, name string, cpu, memory uint) error
+	CreateNamespace(ctx context.Context, name string, cpu, memory uint, label, access string) error
 	DeleteNamespace(ctx context.Context, name string) error
 }
 
@@ -28,7 +29,7 @@ func NewKube(u *url.URL) Kube {
 	return k
 }
 
-func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory uint) error {
+func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory uint, label, access string) error {
 	refURL := &url.URL{
 		Path:     "/api/v1/namespaces",
 		RawQuery: fmt.Sprintf("cpu=%d&memory=%d", cpu, memory),
@@ -43,6 +44,15 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 	nsBytes, _ := json.Marshal(ns)
 	nsBuffer := bytes.NewReader(nsBytes)
 	req, _ := http.NewRequest("POST", kub.u.ResolveReference(refURL).String(), nsBuffer)
+	xUserNamespaceBytes, _ := json.Marshal([]interface{}{
+		map[string]string{
+			"id":     name,
+			"label":  label,
+			"access": access,
+		},
+	})
+	xUserNamespaceBase64 := base64.StdEncoding.EncodeToString(xUserNamespaceBytes)
+	req.Header.Set("x-user-namespace", xUserNamespaceBase64)
 	req = req.WithContext(ctx)
 	resp, err := kub.c.Do(req)
 	if err != nil {

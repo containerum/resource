@@ -24,3 +24,6 @@ type Namespace struct {
 
 type Volume struct {
 }
+
+type Service struct {
+}

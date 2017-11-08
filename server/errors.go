@@ -4,11 +4,16 @@ import (
 	"fmt"
 )
 
-type OtherServiceError string
+type (
+	OtherServiceError string
+	Error             string
+	PermissionError   string
+	BadInputError     string
+)
 
-type Error string
-
-type PermissionError string
+var (
+	NoSuchResource = Error("no such resource")
+)
 
 func newOtherServiceError(f string, args ...interface{}) OtherServiceError {
 	return OtherServiceError(fmt.Sprintf(f, args...))
@@ -33,3 +38,19 @@ func newPermissionError(f string, args ...interface{}) PermissionError {
 func (e PermissionError) Error() string {
 	return string(e)
 }
+
+func newBadInputError(f string, args ...interface{}) BadInputError {
+	return BadInputError(fmt.Sprintf(f, args...))
+}
+
+func (e BadInputError) Error() string {
+	return string(e)
+}
+
+//func newNoObjectError(f string, args ...interface{}) NoObjectError {
+//	return NoObjectError(fmt.Sprintf(f, args...))
+//}
+//
+////func (e NoObjectError) Error() string {
+//	return string(e)
+//}
