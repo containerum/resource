@@ -3,7 +3,6 @@ SELECT uuid_generate_v4() as check_uuid_extension;
 CREATE TABLE namespaces (
 	id uuid NOT NULL,
 	label varchar NOT NULL,
-	user_id uuid NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
 	ram int NOT NULL,
 	cpu int NOT NULL,
@@ -36,11 +35,15 @@ CREATE TABLE permissions (
 	kind ResourceKind NOT NULL,
 	resource_id uuid NOT NULL,
 	user_id uuid NOT NULL,
+	owner_user_id uuid NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
-	status_main PermStatus NOT NULL,
-	limited boolean NOT NULL DEFAULT false,
-	status_limited PermStatus NULL,
-	status_change_time timestamp NOT NULL
+	status PermStatus NOT NULL,
+	limited boolean,
+	status_change_time timestamp NOT NULL DEFAULT statement_timestamp()
+
+	UNIQUE (resource_id, user_id),
+	CHECK user_id=owner_user_id AND limited IS NOT NULL,
+	CHECK user_id!=owner_user_id AND limited IS NULL,
 );
 
 CREATE TABLE log (

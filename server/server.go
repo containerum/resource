@@ -16,8 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var _ = logrus.StandardLogger()
-
 type ResourceSvcInterface interface {
 	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error
 	DeleteNamespace(ctx context.Context, userID, nsLabel string) error
@@ -91,11 +89,19 @@ func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		}
 	}
 
-	err = rm.db.namespaceCreate(resourceUUDI
+	err = rm.db.namespaceCreate(resourceUUID, nsLabel, tariff)
+	if err != nil {
+		return newError("database: creating namespace: %v", err)
+	}
 
 	err = rm.db.permCreate("Namespace", resourceUUID, userUUID)
 	if err != nil {
-		return newError("database error")
+		return newError("database: creating permission: %v", err)
+	}
+
+	ns, err := rm.db.namespaceGet(userUUID, nsLabel)
+	if err != nil {
+		return newError("database: getting namespace: %v", err)
 	}
 
 	ctx, cancelf := context.WithCancel(ctx)
@@ -140,15 +146,31 @@ func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 			return err
 		}
 	} else {
-		go rm.mailer.SendNamespaceCreated(model.User{ID: &userID}, nsLabel, model.Tariff{ID: &tariffID})
-		go rm.authsvc.UpdateUserAccess(userID)
+		go func() {
+			if err := rm.mailer.SendNamespaceCreated(userID, ns); err != nil {
+				logrus.Warnf("mailer error: %v", err)
+			}
+		}()
+		go func() {
+			if err := rm.authsvc.UpdateUserAccess(userID); err != nil {
+				logrus.Warnf("auth error: %v", err)
+			}
+		}()
 	}
 
 	return nil
 }
 
 func (rm *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
-	return fmt.Errorf("not implemented")
+	var err error
+	var userUUID uuid.UUID
+
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		return newBadInputError("invalid user id: %v", err)
+	}
+
+	//perm, err := 
 }
 
 func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
