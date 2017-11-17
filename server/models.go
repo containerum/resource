@@ -9,9 +9,8 @@ import (
 
 type Namespace struct {
 	ID            *uuid.UUID `json:"id,omitempty"`
-	Label         *string    `json:"label,omitempty"`
-	UserID        *uuid.UUID `json:"user_id,omitempty"`
 	CreateTime    *time.Time `json:"create_time,omitempty"`
+	//UserID        *uuid.UUID `json:"user_id,omitempty"`
 	RAM           *int       `json:"ram,omitempty"`
 	CPU           *int       `json:"cpu,omitempty"`
 	MaxExtService *int       `json:"max_ext_service,omitempty"`

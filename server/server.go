@@ -47,7 +47,7 @@ var _ ResourceSvcInterface = &ResourceSvc{}
 // from the "other" module.
 func (rm *ResourceSvc) Initialize(a, b, k, m, v *url.URL, dbDSN string) error {
 	rm.authsvc = other.NewAuthSvcStub(a)
-	rm.billing = other.NewBillingStub(b)
+	rm.billing = other.NewBillingStub()
 	rm.kube = other.NewKube(k)
 	rm.mailer = other.NewMailerHTTP(m)
 	rm.volumesvc = other.NewVolumeSvcHTTP(v)
@@ -94,7 +94,7 @@ func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		return newError("database: creating namespace: %v", err)
 	}
 
-	err = rm.db.permCreate("Namespace", resourceUUID, userUUID)
+	err = rm.db.permCreateOwner("Namespace", resourceUUID, userUUID)
 	if err != nil {
 		return newError("database: creating permission: %v", err)
 	}
@@ -147,7 +147,7 @@ func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		}
 	} else {
 		go func() {
-			if err := rm.mailer.SendNamespaceCreated(userID, ns); err != nil {
+			if err := rm.mailer.SendNamespaceCreated(userID, nsLabel); err != nil {
 				logrus.Warnf("mailer error: %v", err)
 			}
 		}()
@@ -161,7 +161,7 @@ func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	return nil
 }
 
-func (rm *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
+func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	var err error
 	var userUUID uuid.UUID
 
@@ -170,7 +170,9 @@ func (rm *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		return newBadInputError("invalid user id: %v", err)
 	}
 
-	//perm, err := 
+	ns, err := rs.db.namespaceGet(userUUID, nsLabel)
+
+	perm, err := rs.permFetch(
 }
 
 func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {

@@ -4,7 +4,7 @@ import (
 	//"bytes"
 	"context"
 	//"encoding/json"
-	//"fmt"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -57,7 +57,7 @@ func (b billingHTTP) Subscribe(ctx context.Context, userID, tariffID, resourceID
 }
 
 func (b billingHTTP) Unsubscribe(ctx context.Context, userID, resourceID string) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
@@ -67,24 +67,26 @@ func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (m
 type billingStub struct {
 }
 
-func NewBillingStub(_ ...interface{}) Billing {
+func NewBillingStub() Billing {
 	return billingStub{}
 }
 
 func (billingStub) Subscribe(ctx context.Context, userID, tariffID, resourceID string) error {
-	logrus.Warnf("billingStub.Subscribe(%v, %v, %v)", userID, tariffID, resourceID)
+	logrus.Warnf("Billing.Subscribe userID=%s tariffID=%s resourceID=%s",
+		userID, tariffID, resourceID)
 	return nil
 }
 
 func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) error {
-	logrus.Warnf("billingStub.Unsubscribe(%v, %v)", userID, resourceID)
+	logrus.Warnf("Billing.Unsubscribe userID=%s resourceID=%s",
+		userID, resourceID)
 	return nil
 }
 
 var someUUID = uuid.NewV4()
 
 func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
-	logrus.Warnf("billingStub.GetNamespaceTariff(%v)", tariffID)
+	logrus.Infof("Billing.GetNamespaceTariff tariffID=%s", tariffID)
 	nt := model.NamespaceTariff{
 		ID:          new(uuid.UUID),
 		CpuLimit:    new(int),

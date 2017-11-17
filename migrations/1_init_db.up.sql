@@ -2,7 +2,6 @@ SELECT uuid_generate_v4() as check_uuid_extension;
 
 CREATE TABLE namespaces (
 	id uuid NOT NULL,
-	label varchar NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
 	ram int NOT NULL,
 	cpu int NOT NULL,
@@ -22,7 +21,7 @@ CREATE TYPE ResourceKind AS ENUM (
 	'Domain'
 );
 
-CREATE TYPE PermStatus AS ENUM (
+CREATE TYPE AccessLevel AS ENUM (
 	'none',
 	'owner',
 	'read',
@@ -30,16 +29,17 @@ CREATE TYPE PermStatus AS ENUM (
 	'readdelete'
 );
 
-CREATE TABLE permissions (
+CREATE TABLE accesses (
 	id uuid NOT NULL,
+	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
 	kind ResourceKind NOT NULL,
 	resource_id uuid NOT NULL,
+	resource_label varchar NOT NULL,
 	user_id uuid NOT NULL,
 	owner_user_id uuid NOT NULL,
-	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
-	status PermStatus NOT NULL,
+	access_level AccessLevel NOT NULL,
 	limited boolean,
-	status_change_time timestamp NOT NULL DEFAULT statement_timestamp()
+	access_level_change_time timestamp NOT NULL DEFAULT statement_timestamp()
 
 	UNIQUE (resource_id, user_id),
 	CHECK user_id=owner_user_id AND limited IS NOT NULL,
