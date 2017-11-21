@@ -72,13 +72,13 @@ func NewBillingStub() Billing {
 }
 
 func (billingStub) Subscribe(ctx context.Context, userID, tariffID, resourceID string) error {
-	logrus.Warnf("Billing.Subscribe userID=%s tariffID=%s resourceID=%s",
+	logrus.Infof("billingStub.Subscribe userID=%s tariffID=%s resourceID=%s",
 		userID, tariffID, resourceID)
 	return nil
 }
 
 func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) error {
-	logrus.Warnf("Billing.Unsubscribe userID=%s resourceID=%s",
+	logrus.Infof("billingStub.Unsubscribe userID=%s resourceID=%s",
 		userID, resourceID)
 	return nil
 }
@@ -88,15 +88,23 @@ var someUUID = uuid.NewV4()
 func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
 	logrus.Infof("Billing.GetNamespaceTariff tariffID=%s", tariffID)
 	nt := model.NamespaceTariff{
-		ID:          new(uuid.UUID),
-		CpuLimit:    new(int),
-		MemoryLimit: new(int),
-		IsActive:    new(bool),
-		IsPublic:    new(bool),
+		ID:               new(uuid.UUID),
+		TariffID:         new(uuid.UUID),
+		CpuLimit:         new(int),
+		MemoryLimit:      new(int),
+		Traffic:          new(int),
+		ExternalServices: new(int),
+		InternalServices: new(int),
+		IsActive:         new(bool),
+		IsPublic:         new(bool),
 	}
 	*nt.ID = someUUID
+	*nt.TariffID = uuid.FromStringOrNil("4ba712aa-c3c4-4b52-aa06-d659959991a2")
 	*nt.CpuLimit = 20
 	*nt.MemoryLimit = 512
+	*nt.Traffic = 1000
+	*nt.ExternalServices = 10
+	*nt.InternalServices = 100
 	*nt.IsActive = true
 	*nt.IsPublic = true
 	return nt, nil

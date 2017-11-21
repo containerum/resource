@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/sirupsen/logrus"
 )
 
 type AuthSvc interface {
@@ -33,5 +35,6 @@ func NewAuthSvcStub(...interface{}) AuthSvc {
 }
 
 func (authSvcStub) UpdateUserAccess(userID string) error {
+	logrus.Infof("authSvcStub.UpdateUserAccess userID=%s", userID)
 	return nil
 }

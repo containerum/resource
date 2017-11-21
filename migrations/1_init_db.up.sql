@@ -10,7 +10,9 @@ CREATE TABLE namespaces (
 	max_traffic int NOT NULL,
 	deleted boolean NOT NULL DEFAULT false,
 	delete_time timestamp NULL,
-	tariff_id uuid NOT NULL
+	tariff_id uuid NOT NULL,
+
+	UNIQUE (id)
 );
 
 CREATE TYPE ResourceKind AS ENUM (
@@ -39,11 +41,11 @@ CREATE TABLE accesses (
 	owner_user_id uuid NOT NULL,
 	access_level AccessLevel NOT NULL,
 	limited boolean,
-	access_level_change_time timestamp NOT NULL DEFAULT statement_timestamp()
+	access_level_change_time timestamp NOT NULL DEFAULT statement_timestamp(),
 
 	UNIQUE (resource_id, user_id),
-	CHECK user_id=owner_user_id AND limited IS NOT NULL,
-	CHECK user_id!=owner_user_id AND limited IS NULL,
+	CHECK ( user_id = owner_user_id AND limited IS NOT NULL ),
+	CHECK ( user_id != owner_user_id AND limited IS NULL )
 );
 
 CREATE TABLE log (

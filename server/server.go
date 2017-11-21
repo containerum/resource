@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	//"fmt"
 	"net/url"
-	"strings"
+	//"strings"
 	"time"
 
 	"bitbucket.org/exonch/resource-service/server/model"
@@ -19,9 +19,10 @@ import (
 type ResourceSvcInterface interface {
 	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error
 	DeleteNamespace(ctx context.Context, userID, nsLabel string) error
+	//RenameNamespace(ctx context.Context, userID, labelOld, labelNew string) error
 	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error)
 	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (Namespace, error)
-	ChangeAccessToNamespace(ownerUserID, nsLabel string, otherUserID, accessLevel string) error
+	ChangeAccess(ownerUserID, resKind, resLabel string, otherUserID, accessLevel string) error
 	LockAccessToNamespace(ownerUserID, nsLabel string, lockState bool) error
 
 	//CreateExtService(ctx context.Context, userID, svLabel string, adminAction bool) (Service, error)
@@ -46,11 +47,11 @@ var _ ResourceSvcInterface = &ResourceSvc{}
 // TODO: arguments must be the respective interfaces
 // from the "other" module.
 func (rm *ResourceSvc) Initialize(a, b, k, m, v *url.URL, dbDSN string) error {
-	rm.authsvc = other.NewAuthSvcStub(a)
+	rm.authsvc = other.NewAuthSvcStub()
 	rm.billing = other.NewBillingStub()
-	rm.kube = other.NewKube(k)
-	rm.mailer = other.NewMailerHTTP(m)
-	rm.volumesvc = other.NewVolumeSvcHTTP(v)
+	rm.kube = other.NewKubeStub()
+	rm.mailer = other.NewMailerStub()
+	rm.volumesvc = other.NewVolumeSvcStub()
 
 	var err error
 	rm.db.con, err = sql.Open("postgres", dbDSN)
@@ -63,19 +64,19 @@ func (rm *ResourceSvc) Initialize(a, b, k, m, v *url.URL, dbDSN string) error {
 	return nil
 }
 
-func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
+func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
 	var err error
-	var resourceUUID uuid.UUID = uuid.NewV4()
-	var userUUID uuid.UUID
-	var errKube, errBilling error
+	var nsUUID, userUUID uuid.UUID
 	var tariff model.NamespaceTariff
+
+	var rbNamespaceCreation bool
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
-		return newError("invalid user ID, not a UUID: %v", err)
+		return newBadInputError("invalid user ID, not a UUID: %v", err)
 	}
 
-	tariff, err = rm.getNSTariff(ctx, tariffID)
+	tariff, err = rs.getNSTariff(ctx, tariffID)
 	if err != nil {
 		return newOtherServiceError("cannot get tariff quota: %v", err)
 	}
@@ -89,74 +90,48 @@ func (rm *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		}
 	}
 
-	err = rm.db.namespaceCreate(resourceUUID, nsLabel, tariff)
+	nsUUID, err = rs.db.namespaceCreate(tariff)
 	if err != nil {
 		return newError("database: creating namespace: %v", err)
 	}
 
-	err = rm.db.permCreateOwner("Namespace", resourceUUID, userUUID)
+	err = rs.db.permCreateOwner("Namespace", nsUUID, nsLabel, userUUID)
 	if err != nil {
 		return newError("database: creating permission: %v", err)
 	}
 
-	ns, err := rm.db.namespaceGet(userUUID, nsLabel)
+	err = rs.kube.CreateNamespace(ctx, nsUUID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), nsLabel, "owner")
 	if err != nil {
-		return newError("database: getting namespace: %v", err)
+		return newOtherServiceError("cannot create namespace at kube api: %v", err)
 	}
+	rbNamespaceCreation = true
 
-	ctx, cancelf := context.WithCancel(ctx)
-	waitch := make(chan struct{})
-	go func() {
-		errKube = rm.kube.CreateNamespace(ctx, resourceUUID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit),
-			nsLabel, "owner")
-		if errKube != nil {
-			cancelf()
+	defer func() {
+		if rbNamespaceCreation {
+			rs.kube.DeleteNamespace(context.Background(), nsUUID.String())
+			if _, permUUID, _, err := rs.db.permGet(userUUID, "Namespace", nsLabel); err == nil {
+				rs.db.permDelete(permUUID)
+			}
+			rs.db.namespaceDelete(nsUUID)
 		}
-		waitch <- struct{}{}
+	}()
+
+	err = rs.billing.Subscribe(ctx, userID, tariffID, nsUUID.String())
+	if err != nil {
+		return newOtherServiceError("cannot subscribe user to tariff: %v", err)
+	}
+	rbNamespaceCreation = false
+
+	go func() {
+		if err := rs.mailer.SendNamespaceCreated(userID, nsLabel); err != nil {
+			logrus.Warnf("mailer error: %v", err)
+		}
 	}()
 	go func() {
-		errBilling = rm.billing.Subscribe(ctx, userID, tariffID, resourceUUID.String())
-		if errBilling != nil {
-			cancelf()
+		if err := rs.authsvc.UpdateUserAccess(userID); err != nil {
+			logrus.Warnf("auth error: %v", err)
 		}
-		waitch <- struct{}{}
 	}()
-	<-waitch
-	<-waitch
-
-	if errKube != nil || errBilling != nil {
-		go func() {
-			if errKube == nil {
-				rm.kube.DeleteNamespace(context.Background(), resourceUUID.String())
-			}
-			if errBilling == nil {
-				logrus.Warnf("would unsubscribe user %q from tariff %q", userID, tariffID)
-				rm.billing.Unsubscribe(context.Background(), userID, resourceUUID.String())
-			}
-		}()
-		var errs []string
-		if errKube != nil {
-			errs = append(errs, fmt.Sprintf("kube api error: %v", errKube))
-		}
-		if errBilling != nil {
-			errs = append(errs, fmt.Sprintf("billing error: %v", errBilling))
-		}
-		if len(errs) > 0 {
-			err = newOtherServiceError("%s", strings.Join(errs, "; "))
-			return err
-		}
-	} else {
-		go func() {
-			if err := rm.mailer.SendNamespaceCreated(userID, nsLabel); err != nil {
-				logrus.Warnf("mailer error: %v", err)
-			}
-		}()
-		go func() {
-			if err := rm.authsvc.UpdateUserAccess(userID); err != nil {
-				logrus.Warnf("auth error: %v", err)
-			}
-		}()
-	}
 
 	return nil
 }
@@ -170,9 +145,52 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		return newBadInputError("invalid user id: %v", err)
 	}
 
-	ns, err := rs.db.namespaceGet(userUUID, nsLabel)
+	nsUUID, permUUID, lvl, err := rs.db.permGet(userUUID, "Namespace", nsLabel)
+	if err != nil {
+		if err == NoSuchResource {
+			return err
+		}
+		return newError("database: fetch access level: %v", err)
+	}
 
-	perm, err := rs.permFetch(
+	if !permCheck(lvl, "delete") {
+		return newPermissionError("permission denied")
+	}
+
+	_, err = rs.db.namespaceGet(userUUID, nsLabel)
+	if err != nil {
+		if err == NoSuchResource {
+			return err
+		}
+		return newError("database: %v", err)
+	}
+
+	err = rs.db.permDelete(permUUID)
+	if err != nil {
+		return newError("database: delete access %s: %v", permUUID, err)
+	}
+
+	err = rs.billing.Unsubscribe(ctx, userID, nsUUID.String())
+	if err != nil {
+		return newOtherServiceError("cannot unsubscribe from billing: %v", err)
+	}
+
+	err = rs.authsvc.UpdateUserAccess(userID)
+	if err != nil {
+		logrus.Warnf("auth svc error: update user access: %v", err)
+	}
+
+	err = rs.kube.DeleteNamespace(ctx, nsUUID.String())
+	if err != nil {
+		logrus.Warnf("kube api error: delete namespace: %v", err)
+	}
+
+	err = rs.db.namespaceDelete(nsUUID)
+	if err != nil {
+		logrus.Errorf("database: %v", err)
+	}
+
+	return nil
 }
 
 func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
@@ -209,9 +227,8 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 	return
 }
 
-// ChangeAccessToNamespace adds or removes access to ownerUserID's resource for
-// otherUserID.
-func (rs *ResourceSvc) ChangeAccessToNamespace(ownerUserID, nsLabel string, otherUserID, permOther string) error {
+// ChangeAccess adds or removes access to ownerUserID's resource for otherUserID.
+func (rs *ResourceSvc) ChangeAccess(ownerUserID, resKind, resLabel string, otherUserID, permOther string) error {
 	ownerUserUUID, err := uuid.FromString(ownerUserID)
 	if err != nil {
 		return newBadInputError("invalid ownerUserID: %v", err)
@@ -220,31 +237,41 @@ func (rs *ResourceSvc) ChangeAccessToNamespace(ownerUserID, nsLabel string, othe
 	if err != nil {
 		return newBadInputError("invalid otherUserID: %v", err)
 	}
-	ns, err := rs.db.namespaceGet(ownerUserUUID, nsLabel)
-	if err != nil {
-		switch err.(type) {
-		case Error:
-			return err
-		default:
-			return newError("database: %v", err)
-		}
-	}
 
-	perm, err := rs.db.permFetch(*ns.ID, ownerUserUUID)
+	resUUID, _, lvl, err := rs.db.permGet(ownerUserUUID, resKind, resLabel)
 	if err != nil {
-		return newError("database: %v", err)
+		if err == NoSuchResource {
+			return err
+		}
+		return newError("database: fetch access: %v", err)
 	}
-	if permCheck(perm, "owner") == false {
+	if lvl != "owner" {
 		return newPermissionError("permission denied")
 	}
 
-	if err = rs.db.permSetOtherUser(*ns.ID, otherUserUUID, permOther); err != nil {
-		switch err.(type) {
-		case Error, BadInputError:
-			return err
-		default:
+	_, _, permUUID, lvl, err := rs.db.permGetByResourceID(resUUID, otherUserUUID)
+	if err != nil {
+		err = rs.db.permGrant(resUUID, resLabel, ownerUserUUID, otherUserUUID, permOther)
+		if err != nil {
 			return newError("database: %v", err)
 		}
+	} else {
+		if permOther == "none" {
+			err = rs.db.permDelete(permUUID)
+			if err != nil {
+				return newError("deleting access level: %v", err)
+			}
+		} else {
+			err = rs.db.permSetLevel(permUUID, permOther)
+			if err != nil {
+				return newError("setting access level: %v", err)
+			}
+		}
+	}
+
+	err = rs.authsvc.UpdateUserAccess(otherUserID)
+	if err != nil {
+		logrus.Warnf("auth svc error: failed to update user access: %v", err)
 	}
 
 	return nil
@@ -255,24 +282,16 @@ func (rs *ResourceSvc) LockAccessToNamespace(ownerUserID, nsLabel string, lockSt
 	if err != nil {
 		return newBadInputError("invalid owner user id: %v", err)
 	}
-	ns, err := rs.db.namespaceGet(ownerUserUUID, nsLabel)
+
+	_, permUUID, lvl, err := rs.db.permGet(ownerUserUUID, "Namespace", nsLabel)
 	if err != nil {
-		switch err.(type) {
-		case Error:
-			return err
-		default:
-			return newError("database: %v", err)
-		}
+		return newError("database: get access level: %v", err)
 	}
-	perm, err := rs.db.permFetch(*ns.ID, ownerUserUUID)
-	if err != nil {
-		return newError("database: %v", err)
-	}
-	if permCheck(perm, "owner") == false {
+	if lvl != "owner" {
 		return newPermissionError("permission denied")
 	}
 
-	if err = rs.db.permSetLimited(*ns.ID, lockState); err != nil {
+	if err = rs.db.permSetLimited(permUUID, lockState); err != nil {
 		return newError("database: %v", err)
 	}
 

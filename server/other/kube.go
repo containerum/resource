@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Kube interface {
@@ -21,7 +23,7 @@ type kube struct {
 	u *url.URL
 }
 
-func NewKube(u *url.URL) Kube {
+func NewKubeHTTP(u *url.URL) Kube {
 	k := &kube{
 		c: http.DefaultClient,
 		u: u,
@@ -114,5 +116,22 @@ func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 		return fmt.Errorf("kube api error: http status %s", resp.Status)
 	}
 
+	return nil
+}
+
+type kubeStub struct{}
+
+func NewKubeStub() Kube {
+	return kubeStub{}
+}
+
+func (kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory uint, label, access string) error {
+	logrus.Infof("kubeStub.CreateNamespace name=%s cpu=%d memory=%d label=%s access=%s",
+		name, cpu, memory, label, access)
+	return nil
+}
+
+func (kubeStub) DeleteNamespace(_ context.Context, name string) error {
+	logrus.Infof("kubeStub.DeleteNamespace name=%s", name)
 	return nil
 }

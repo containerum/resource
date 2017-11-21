@@ -3,6 +3,7 @@ package other
 import (
 	"net/http"
 	"net/url"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,11 +26,25 @@ func NewMailerHTTP(u *url.URL) Mailer {
 }
 
 func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string) error {
-	logrus.Warnf("Mailer.SendNamespaceCreated userID=%s nsLabel=%s", userID, nsLabel)
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string) error {
-	logrus.Warnf("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s", userID, nsLabel)
+	return fmt.Errorf("not implemented")
+}
+
+type mailerStub struct{}
+
+func NewMailerStub() Mailer {
+	return mailerStub{}
+}
+
+func (mailerStub) SendNamespaceCreated(userID, nsLabel string) error {
+	logrus.Infof("Mailer.SendNamespaceCreated userID=%s nsLabel=%s", userID, nsLabel)
+	return nil
+}
+
+func (mailerStub) SendNamespaceDeleted(userID, nsLabel string) error {
+	logrus.Infof("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s", userID, nsLabel)
 	return nil
 }

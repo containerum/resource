@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"time"
 
@@ -53,7 +54,7 @@ func (db resourceSvcDB) log(action, objType, objID string) {
 
 func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff) (nsUUID uuid.UUID, err error) {
 	nsUUID = uuid.NewV4()
-	_, err = tx.Exec(
+	_, err = db.con.Exec(
 		"INSERT INTO namespaces (id,ram,cpu,max_ext_svc,max_int_svc,max_traffic,tariff_id)"+
 			" VALUES ($1,$2,$3,$4,$5,$6,$7)",
 		nsUUID,
@@ -75,7 +76,7 @@ func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff) (nsUUID uu
 
 func (db resourceSvcDB) namespaceDelete(nsID uuid.UUID) (err error) {
 	_, err = db.con.Exec(
-		"DELETE FROM namespaces WHERE id = $1",
+		`UPDATE namespaces SET deleted=true WHERE id=$1`,
 		nsID,
 	)
 	if err != nil {
@@ -89,13 +90,36 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 	var rows *sql.Rows
 	if userID == nil {
 		rows, err = db.con.Query(
-			"SELECT (id,label,user_id,create_time,ram,cpu,max_ext_svc,max_int_svc,max_traffic,deleted,delete_time,tariff_id)" +
-				" FROM namespaces WHERE deleted = false",
+			`SELECT (
+				n.id,
+				n.create_time,
+				NULL,
+				n.ram,
+				n.cpu,
+				n.max_ext_svc,
+				n.max_int_svc,
+				n.max_traffic,
+				n.deleted,
+				n.delete_time,
+				n.tariff_id
+			) FROM namespaces n WHERE deleted = false`,
 		)
 	} else {
 		rows, err = db.con.Query(
-			"SELECT (id,label,user_id,create_time,ram,cpu,max_ext_svc,max_int_svc,max_traffic,deleted,delete_time,tariff_id)"+
-				" FROM namespaces WHERE user_id=$1 AND deleted = false",
+			`SELECT (
+				n.id,
+				n.create_time,
+				a.resource_label,
+				n.ram,
+				n.cpu,
+				n.max_ext_svc,
+				n.max_int_svc,
+				n.max_traffic,
+				n.deleted,
+				n.delete_time,
+				n.tariff_id
+			) FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+			WHERE a.user_id=$1 AND n.deleted=false`,
 			*userID,
 		)
 	}
@@ -108,9 +132,8 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 		var ns Namespace
 		err = rows.Scan(
 			&ns.ID,
-			&ns.Label,
-			&ns.UserID,
 			&ns.CreateTime,
+			&ns.Label,
 			&ns.RAM,
 			&ns.CPU,
 			&ns.MaxExtService,
@@ -128,18 +151,24 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 	return
 }
 
-func (db resourceSvcDB) namespaceGet(nsID uuid.UUID) (ns Namespace, err error) {
-	ns.ID = new(uuid.UUID)
+func (db resourceSvcDB) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err error) {
 	err = db.con.QueryRow(
-		"SELECT (id,label,user_id,create_time,ram,cpu,max_ext_svc,max_int_svc,"+
-			"max_traffic,deleted,delete_time,tariff_id)"+
-			" FROM namespaces WHERE user_id = $1 AND label = $2 AND deleted = false",
-		owner,
-		label,
+		`SELECT (
+			id,
+			create_time,
+			ram,
+			cpu,
+			max_ext_svc,
+			max_int_svc,
+			max_traffic,
+			deleted,
+			delete_time,
+			tariff_id
+		) FROM namespaces
+		WHERE id=$1 AND deleted=false`,
+		nsID,
 	).Scan(
 		&ns.ID,
-		&ns.Label,
-		&ns.UserID,
 		&ns.CreateTime,
 		&ns.RAM,
 		&ns.CPU,
@@ -150,15 +179,51 @@ func (db resourceSvcDB) namespaceGet(nsID uuid.UUID) (ns Namespace, err error) {
 		&ns.DeleteTime,
 		&ns.TariffID,
 	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = NoSuchResource
-		}
+	if err == sql.ErrNoRows {
+		err = NoSuchResource
 	}
 	return
 }
 
-func (db resourceSvcDB) permCreateOwner(resKind string, resUUID, resLabel string, ownerUUID uuid.UUID) error {
+func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespace, err error) {
+	err = db.con.QueryRow(
+		`SELECT (
+			n.id,
+			n.create_time,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic,
+			n.deleted,
+			n.delete_time,
+			n.tariff_id
+		) FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.kind='Namespace'
+			AND n.deleted=false`,
+		userID,
+		label,
+	).Scan(
+		&ns.ID,
+		&ns.CreateTime,
+		&ns.RAM,
+		&ns.CPU,
+		&ns.MaxExtService,
+		&ns.MaxIntService,
+		&ns.MaxTraffic,
+		&ns.Deleted,
+		&ns.DeleteTime,
+		&ns.TariffID,
+	)
+	if err == sql.ErrNoRows {
+		err = NoSuchResource
+	}
+	ns.Label = new(string)
+	*ns.Label = label
+	return
+}
+
+func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLabel string, ownerUUID uuid.UUID) error {
 	permUUID := uuid.NewV4()
 	_, err := db.con.Exec(
 		"INSERT INTO accesses(id,kind,resource_id,resource_label,user_id,owner_user_id,"+
@@ -176,45 +241,77 @@ func (db resourceSvcDB) permCreateOwner(resKind string, resUUID, resLabel string
 	if err != nil {
 		return err
 	}
-	db.log("create", "permission", permUUID.String())
+	db.log("create", "access", permUUID.String())
 	return nil
 }
 
-func (db resourceSvcDB) permFetch(userUUID uuid.UUID, resKind, resLabel string) (resUUID uuid.UUID, lvl string, err error) {
+func (db resourceSvcDB) permGet(userID uuid.UUID, resKind, resLabel string) (resID, permID uuid.UUID, lvl string, err error) {
 	var limited bool
-	var ownerUUID uuid.UUID
+	var ownerID uuid.UUID
 
 	defer func() {
 		if err == sql.ErrNoRows {
 			err = NoSuchResource
 		}
 		if err != nil {
-			resUUID = uuid.Nil
+			resID = uuid.Nil
 			lvl = ""
 		}
 	}()
 
 	err = db.con.QueryRow(
-		"SELECT (resource_id, access_level, owner_user_id) FROM accesses"+
+		"SELECT (id, resource_id, access_level, owner_user_id) FROM accesses"+
 			" WHERE kind=$1 AND resource_label=$2 AND user_id=$3",
 		resKind,
 		resLabel,
-		userUUID,
-	).Scan(&resUUID, &lvl, &ownerUUID)
+		userID,
+	).Scan(&permID, &resID, &lvl, &ownerID)
 	if err != nil {
 		return
 	}
 
 	err = db.con.QueryRow(
-		"SELECT (limited) FROM accesses WHERE user_id=$1 AND resource_id=$2",
-		ownerUUID,
-		resUUID
+		"SELECT (limited) FROM accesses WHERE user_id=$1 AND resource_id=$2 AND limited IS NOT NULL",
+		ownerID,
+		resID,
 	).Scan(&limited)
 	if err != nil {
 		return
 	}
 
-	if limited {
+	if limited && ownerID != userID {
+		lvl = "none"
+	}
+	return
+}
+
+func (db resourceSvcDB) permGetByResourceID(resID, userID uuid.UUID) (resKind, resLabel string, permID uuid.UUID, lvl string, err error) {
+	var ownerID uuid.UUID
+
+	err = db.con.QueryRow(
+		`SELECT (id, kind, resource_label, access_level, owner_user_id)
+		FROM accesses
+		WHERE resource_id=$1 AND user_id=$2`,
+		resID,
+		userID,
+	).Scan(&permID, &resKind, &resLabel, &lvl, &ownerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = newError("no such access level record")
+		}
+		return
+	}
+
+	var limited bool
+	err = db.con.QueryRow(
+		`SELECT (limited) FROM accesses WHERE resource_id=$1 AND user_id=$2`,
+		resID,
+		ownerID,
+	).Scan(&limited)
+	if err != nil {
+		return
+	}
+	if limited && ownerID != userID {
 		lvl = "none"
 	}
 	return
@@ -278,43 +375,49 @@ func (db resourceSvcDB) permGrant(resID uuid.UUID, resLabel string, ownerID, oth
 		return err
 	}
 
-	db.log("grant", "permission", permID.String())
+	db.log("grant", "access", permID.String())
 	return nil
 }
 
-func (db resourceSvcDB) permRevoke(resID, otherUserID uuid.UUID) error {
-	var permID uuid.UUID
-	err := db.con.QueryRow(
-		"SELECT id FROM permissions WHERE resource_id=$1, user_id=$2",
-		resID,
-		otherUserID,
-	).Scan(&permID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = NoSuchResource
-		}
-		return err
-	}
-
+func (db resourceSvcDB) permSetLevel(permID uuid.UUID, lvl string) (err error) {
 	_, err = db.con.Exec(
-		"DELETE FROM permissions WHERE resource_id=$1, user_id=$2",
-		resID,
-		otherUserID,
+		`UPDATE accesses SET access_level=$1 WHERE id=$2`,
+		lvl,
+		permID,
 	)
 	if err != nil {
-		return err
+		return
 	}
-	db.log("revoke", "permission", permID.String())
+
+	db.log("setlevel", "access", permID.String())
 	return nil
 }
 
-func (db resourceSvcDB) permSetLimited(resourceUUID uuid.UUID, limited bool) error {
-	_, err := db.con.Exec(
-		"UPDATE permissions SET limited=$1 WHERE resource_id=$2 AND user_id=owner_user_id",
+func (db resourceSvcDB) permSetLimited(permID uuid.UUID, limited bool) (err error) {
+	_, err = db.con.Exec(
+		"UPDATE accesses SET limited=$1 WHERE id=$2",
 		limited,
-		resourceUUID,
+		permID,
 	)
-	return err
+	if err != nil {
+		return
+	}
+
+	db.log("setlimited", "access", permID.String())
+	return
+}
+
+func (db resourceSvcDB) permDelete(permID uuid.UUID) (err error) {
+	_, err = db.con.Exec(
+		`DELETE FROM accesses WHERE id=$1`,
+		permID,
+	)
+	if err != nil {
+		return
+	}
+
+	db.log("delete", "access", permID.String())
+	return
 }
 
 func permCheck(perm, needed string) bool {
@@ -340,3 +443,10 @@ func permCheck(perm, needed string) bool {
 	logrus.Errorf("unreachable in db.go:/permCheck")
 	return false
 }
+
+/*
+func (db resourceSvcDB) extSvcCreate()
+func (db resourceSvcDB) extSvcDelete()
+func (db resourceSvcDB) extSvcList()
+func (db resourceSvcDB) extSvcGet()
+*/
