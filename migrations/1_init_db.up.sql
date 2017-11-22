@@ -1,5 +1,6 @@
 SELECT uuid_generate_v4() as check_uuid_extension;
 
+BEGIN TRANSACTION;
 CREATE TABLE namespaces (
 	id uuid NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
@@ -44,8 +45,8 @@ CREATE TABLE accesses (
 	access_level_change_time timestamp NOT NULL DEFAULT statement_timestamp(),
 
 	UNIQUE (resource_id, user_id),
-	CHECK ( user_id = owner_user_id AND limited IS NOT NULL ),
-	CHECK ( user_id != owner_user_id AND limited IS NULL )
+	CHECK ( user_id = owner_user_id AND limited IS NOT NULL OR user_id <> owner_user_id ),
+	CHECK ( user_id != owner_user_id AND limited IS NULL OR user_id = owner_user_id )
 );
 
 CREATE TABLE log (
@@ -54,3 +55,4 @@ CREATE TABLE log (
 	obj_type varchar NOT NULL,
 	obj_id varchar NOT NULL
 );
+COMMIT TRANSACTION;

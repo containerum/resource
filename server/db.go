@@ -90,7 +90,7 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 	var rows *sql.Rows
 	if userID == nil {
 		rows, err = db.con.Query(
-			`SELECT (
+			`SELECT
 				n.id,
 				n.create_time,
 				NULL,
@@ -102,11 +102,11 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 				n.deleted,
 				n.delete_time,
 				n.tariff_id
-			) FROM namespaces n WHERE deleted = false`,
+			FROM namespaces n WHERE deleted = false`,
 		)
 	} else {
 		rows, err = db.con.Query(
-			`SELECT (
+			`SELECT
 				n.id,
 				n.create_time,
 				a.resource_label,
@@ -118,7 +118,7 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 				n.deleted,
 				n.delete_time,
 				n.tariff_id
-			) FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+			FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
 			WHERE a.user_id=$1 AND n.deleted=false`,
 			*userID,
 		)
@@ -153,7 +153,7 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 
 func (db resourceSvcDB) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err error) {
 	err = db.con.QueryRow(
-		`SELECT (
+		`SELECT
 			id,
 			create_time,
 			ram,
@@ -164,7 +164,7 @@ func (db resourceSvcDB) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err erro
 			deleted,
 			delete_time,
 			tariff_id
-		) FROM namespaces
+		FROM namespaces
 		WHERE id=$1 AND deleted=false`,
 		nsID,
 	).Scan(
@@ -187,7 +187,7 @@ func (db resourceSvcDB) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err erro
 
 func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespace, err error) {
 	err = db.con.QueryRow(
-		`SELECT (
+		`SELECT
 			n.id,
 			n.create_time,
 			n.ram,
@@ -198,7 +198,7 @@ func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespa
 			n.deleted,
 			n.delete_time,
 			n.tariff_id
-		) FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
 		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.kind='Namespace'
 			AND n.deleted=false`,
 		userID,
@@ -226,9 +226,17 @@ func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespa
 func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLabel string, ownerUUID uuid.UUID) error {
 	permUUID := uuid.NewV4()
 	_, err := db.con.Exec(
-		"INSERT INTO accesses(id,kind,resource_id,resource_label,user_id,owner_user_id,"+
-			"access_level,access_level_change_time)"+
-			" VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+		`INSERT INTO accesses(
+			id,
+			kind,
+			resource_id,
+			resource_label,
+			user_id,
+			owner_user_id,
+			access_level,
+			access_level_change_time,
+			limited)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
 		permUUID,
 		resKind,
 		resUUID,
@@ -237,6 +245,7 @@ func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLa
 		ownerUUID,
 		"owner",
 		time.Now(),
+		false,
 	)
 	if err != nil {
 		return err
@@ -260,7 +269,7 @@ func (db resourceSvcDB) permGet(userID uuid.UUID, resKind, resLabel string) (res
 	}()
 
 	err = db.con.QueryRow(
-		"SELECT (id, resource_id, access_level, owner_user_id) FROM accesses"+
+		"SELECT id, resource_id, access_level, owner_user_id FROM accesses"+
 			" WHERE kind=$1 AND resource_label=$2 AND user_id=$3",
 		resKind,
 		resLabel,
@@ -271,7 +280,7 @@ func (db resourceSvcDB) permGet(userID uuid.UUID, resKind, resLabel string) (res
 	}
 
 	err = db.con.QueryRow(
-		"SELECT (limited) FROM accesses WHERE user_id=$1 AND resource_id=$2 AND limited IS NOT NULL",
+		"SELECT limited FROM accesses WHERE user_id=$1 AND resource_id=$2 AND limited IS NOT NULL",
 		ownerID,
 		resID,
 	).Scan(&limited)
@@ -289,7 +298,7 @@ func (db resourceSvcDB) permGetByResourceID(resID, userID uuid.UUID) (resKind, r
 	var ownerID uuid.UUID
 
 	err = db.con.QueryRow(
-		`SELECT (id, kind, resource_label, access_level, owner_user_id)
+		`SELECT id, kind, resource_label, access_level, owner_user_id
 		FROM accesses
 		WHERE resource_id=$1 AND user_id=$2`,
 		resID,
@@ -304,7 +313,7 @@ func (db resourceSvcDB) permGetByResourceID(resID, userID uuid.UUID) (resKind, r
 
 	var limited bool
 	err = db.con.QueryRow(
-		`SELECT (limited) FROM accesses WHERE resource_id=$1 AND user_id=$2`,
+		`SELECT limited FROM accesses WHERE resource_id=$1 AND user_id=$2`,
 		resID,
 		ownerID,
 	).Scan(&limited)

@@ -99,7 +99,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 		IsPublic:         new(bool),
 	}
 	*nt.ID = someUUID
-	*nt.TariffID = uuid.FromStringOrNil("4ba712aa-c3c4-4b52-aa06-d659959991a2")
+	*nt.TariffID = uuid.FromStringOrNil(tariffID)
 	*nt.CpuLimit = 20
 	*nt.MemoryLimit = 512
 	*nt.Traffic = 1000

@@ -69,7 +69,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	var nsUUID, userUUID uuid.UUID
 	var tariff model.NamespaceTariff
 
-	var rbNamespaceCreation bool
+	var rbNamespaceCreation, rbNamespaceDB bool
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
@@ -94,6 +94,13 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	if err != nil {
 		return newError("database: creating namespace: %v", err)
 	}
+	rbNamespaceDB = true
+
+	defer func() {
+		if rbNamespaceDB {
+			rs.db.namespaceDelete(nsUUID)
+		}
+	}()
 
 	err = rs.db.permCreateOwner("Namespace", nsUUID, nsLabel, userUUID)
 	if err != nil {
@@ -121,6 +128,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		return newOtherServiceError("cannot subscribe user to tariff: %v", err)
 	}
 	rbNamespaceCreation = false
+	rbNamespaceDB = false
 
 	go func() {
 		if err := rs.mailer.SendNamespaceCreated(userID, nsLabel); err != nil {
