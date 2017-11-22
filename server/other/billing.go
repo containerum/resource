@@ -17,7 +17,9 @@ import (
 type Billing interface {
 	Subscribe(ctx context.Context, userID, tariffID, resourceID string) error
 	Unsubscribe(ctx context.Context, userID, resourceID string) error
+
 	GetNamespaceTariff(ctx context.Context, id string) (model.NamespaceTariff, error)
+	GetVolumeTariff(ctx context.Context, id string) (model.VolumeTariff, error)
 }
 
 type billingHTTP struct {
@@ -108,4 +110,25 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 	*nt.IsActive = true
 	*nt.IsPublic = true
 	return nt, nil
+}
+
+var someUUID2 = uuid.NewV4()
+
+func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.VolumeTariff, error) {
+	logrus.Infof("Billing.GetVolumeTariff tariffID=%s", tariffID)
+	vt := model.VolumeTariff{
+		ID:            new(uuid.UUID),
+		TariffID:      new(uuid.UUID),
+		StorageLimit:  new(int),
+		ReplicasLimit: new(int),
+		IsActive:      new(bool),
+		IsPublic:      new(bool),
+	}
+	*vt.ID = someUUID2
+	*vt.TariffID = uuid.FromStringOrNil(tariffID)
+	*vt.StorageLimit = 5
+	*vt.ReplicasLimit = 2
+	*vt.IsActive = true
+	*vt.IsPublic = true
+	return vt, nil
 }

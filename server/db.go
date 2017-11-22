@@ -453,9 +453,133 @@ func permCheck(perm, needed string) bool {
 	return false
 }
 
-/*
-func (db resourceSvcDB) extSvcCreate()
-func (db resourceSvcDB) extSvcDelete()
-func (db resourceSvcDB) extSvcList()
-func (db resourceSvcDB) extSvcGet()
-*/
+func (db resourceSvcDB) volumeCreate(volumeID uuid.UUID, tariff model.VolumeTariff) (err error) {
+	_, err = db.con.Exec(
+		`INSERT INTO volumes(id,tariff_id,capacity,replicas)
+		VALUES ($1,$2,$3,$4)`,
+		volumeID,
+		tariff.TariffID,
+		tariff.StorageLimit,
+		tariff.ReplicasLimit,
+	)
+	if err != nil {
+		return
+	}
+
+	db.log("create", "volume", volumeID.String())
+	return
+}
+
+func (db resourceSvcDB) volumeDelete(volumeID uuid.UUID) (err error) {
+	_, err = db.con.Exec(
+		`UPDATE volumes SET deleted=true, delete_time=statement_timestamp() WHERE id=$1`,
+		volumeID,
+	)
+	if err != nil {
+		return
+	}
+	db.log("delete", "volume", volumeID.String())
+	return
+}
+
+func (db resourceSvcDB) volumeList(userID *uuid.UUID) (vols []Volume, err error) {
+	var rows *sql.Rows
+	if userID == nil {
+		rows, err = db.con.Query(
+			`SELECT
+				id,
+				create_time,
+				tariff_id,
+				delete_time,
+				capacity,
+				replicas,
+				NULL
+			FROM volumes`,
+		)
+	} else {
+		rows, err = db.con.Query(
+			`SELECT
+				v.id,
+				v.create_time,
+				v.tariff_id,
+				v.delete_time,
+				v.capacity,
+				v.replicas,
+				a.resource_label
+			FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
+			WHERE a.user_id=$1 AND a.kind='Volume'`,
+			*userID,
+		)
+	}
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	vols = make([]Volume, 0)
+	for rows.Next() {
+		var v Volume
+		err = rows.Scan(
+			&v.ID,
+			&v.CreateTime,
+			&v.TariffID,
+			&v.DeleteTime,
+			&v.Storage,
+			&v.Replicas,
+			&v.Label,
+		)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (db resourceSvcDB) volumeGet(userID uuid.UUID, label string) (v Volume, err error) {
+	err = db.con.QueryRow(
+		`SELECT
+			v.id,
+			v.create_time,
+			v.tariff_id,
+			v.capacity,
+			v.replicas,
+			a.resource_label
+		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
+		WHERE a.user_id=$1 AND v.deleted=false AND a.kind='Volume'`,
+		userID,
+		label,
+	).Scan(
+		&v.ID,
+		&v.CreateTime,
+		&v.TariffID,
+		&v.Storage,
+		&v.Replicas,
+		&v.Label,
+	)
+	if err == sql.ErrNoRows {
+		err = NoSuchResource
+	}
+	return
+}
+
+func (db resourceSvcDB) volumeGetByID(volID uuid.UUID) (v Volume, err error) {
+	err = db.con.QueryRow(
+		`SELECT
+			id,
+			create_time,
+			tariff_id,
+			capacity,
+			replicas
+		WHERE id=$1`,
+		volID,
+	).Scan(
+		&v.ID,
+		&v.CreateTime,
+		&v.TariffID,
+		&v.Storage,
+		&v.Replicas,
+	)
+	if err == sql.ErrNoRows {
+		err = NoSuchResource
+	}
+	return
+}

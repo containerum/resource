@@ -22,6 +22,14 @@ type Namespace struct {
 }
 
 type Volume struct {
+	ID         *uuid.UUID `json:"id,omitempty"`
+	CreateTime *time.Time `json:"create_time,omitempty"`
+	Label      *string    `json:"label,omitempty"`
+	Storage    *int       `json:"storage,omitempty"`
+	Replicas   *int       `json:"replicas,omitempty"`
+	Deleted    *bool      `json:"deleted,omitempty"`
+	DeleteTime *time.Time `json:"delete_time,omitempty"`
+	TariffID   *uuid.UUID `json:"tariff_id,omitempty"`
 }
 
 type Service struct {

@@ -41,6 +41,18 @@ type NamespaceTariff struct {
 	IsPublic *bool `json:"is_public,omitempty"`
 }
 
+type VolumeTariff struct {
+	ID            *uuid.UUID `json:"id,omitempty"`
+	TariffID      *uuid.UUID `json:"tariff_id,omitempty"`
+	StorageLimit  *int       `json:"storage_limit,omitempty"`
+	ReplicasLimit *int       `json:"replicas_limit,omitempty"`
+	Description   *string    `json:"description,omitempty"`
+	CreatedAt     *time.Time `json:"created_at,omitempty"`
+
+	IsActive *bool `json:"is_active,omitempty"`
+	IsPublic *bool `json:"is_public,omitempty"`
+}
+
 type Resource struct {
 	ResourceID *uuid.UUID `json:"resource_id,omitempty"`
 	UserID     *string    `json:"user_id,omitempty"`

@@ -22,12 +22,13 @@ type ResourceSvcInterface interface {
 	//RenameNamespace(ctx context.Context, userID, labelOld, labelNew string) error
 	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error)
 	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (Namespace, error)
-	ChangeAccess(ownerUserID, resKind, resLabel string, otherUserID, accessLevel string) error
-	LockAccessToNamespace(ownerUserID, nsLabel string, lockState bool) error
 
-	//CreateExtService(ctx context.Context, userID, svLabel string, adminAction bool) (Service, error)
-	//DeleteExtService(ctx context.Context, userID, svLabel string, adminAction bool) error
-	//ListExtServices(ctx context.Context, userID string, adminAction bool) error
+	ChangeAccess(ownerUserID, resKind, resLabel string, otherUserID, accessLevel string) error
+	LockAccess(ownerUserID, resKind, resLabel string, lockState bool) error
+
+	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
+	//DeleteVolume(ctx context.Context, userID, vLabel string, adminAction bool) error
+	//ListVolumes(ctx context.Context, userID string, adminAction bool) ([]Volume, error)
 }
 
 type ResourceSvc struct {
@@ -285,13 +286,13 @@ func (rs *ResourceSvc) ChangeAccess(ownerUserID, resKind, resLabel string, other
 	return nil
 }
 
-func (rs *ResourceSvc) LockAccessToNamespace(ownerUserID, nsLabel string, lockState bool) error {
+func (rs *ResourceSvc) LockAccess(ownerUserID, resKind, resLabel string, lockState bool) error {
 	ownerUserUUID, err := uuid.FromString(ownerUserID)
 	if err != nil {
 		return newBadInputError("invalid owner user id: %v", err)
 	}
 
-	_, permUUID, lvl, err := rs.db.permGet(ownerUserUUID, "Namespace", nsLabel)
+	_, permUUID, lvl, err := rs.db.permGet(ownerUserUUID, resKind, resLabel)
 	if err != nil {
 		return newError("database: get access level: %v", err)
 	}
@@ -321,10 +322,41 @@ func (rm *ResourceSvc) getNSTariff(ctx context.Context, id string) (t model.Name
 		rm.tariffCache.Set(id, t)
 	}
 
-	if t.CpuLimit == nil || t.MemoryLimit == nil {
-		err = newError("malformed tariff in response: %#v", t)
-		return
+	return
+}
+
+func (rs *ResourceSvc) getVolumeTariff(ctx context.Context, id string) (t model.VolumeTariff, err error) {
+	if rs.tariffCache == nil {
+		rs.tariffCache = cache.NewTimed(time.Second * 10)
+	}
+
+	if tmp, cached := rs.tariffCache.Get(id); cached && tmp != nil {
+		t = tmp.(model.VolumeTariff)
+	} else {
+		t, err = rs.billing.GetVolumeTariff(ctx, id)
+		if err != nil {
+			return
+		}
+		rs.tariffCache.Set(id, t)
 	}
 
 	return
+}
+
+func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID string, adminAction bool) error {
+	var err error
+	var userUUID uuid.UUID
+	var vol Volume
+	var tariff model.VolumeTariff
+	var rbVolumeDB, rbVolumeCreation bool
+
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		return newBadInputError("invalid user id: %v", err)
+	}
+
+	tariff, err = rs.getVolumeTariff(ctx, tariffID)
+
+	err = rs.db.volumeCreate(uuid.NewV4(), tariff)
+	//...
 }
