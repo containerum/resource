@@ -12,30 +12,23 @@ import (
 )
 
 func main() {
-	var (
-		dbuser     = os.Getenv("DB_USER")
-		dbpassword = os.Getenv("DB_PASSWORD")
-		dbaddress  = os.Getenv("DB_ADDRESS")
-		dbname     = os.Getenv("DB_NAME")
-	)
-	if dbname == "" {
-		dbname = "resource_service"
-	}
-
 	srv := &server.ResourceSvc{}
 	err := srv.Initialize(
-		nil,
 		&url.URL{
 			Scheme: "http",
-			Host:   "localhost:1007",
+			Host:   os.Getenv("AUTH_ADDR"),
 		},
 		&url.URL{
 			Scheme: "http",
-			Host:   "localhost:1212",
+			Host:   os.Getenv("BILLING_ADDR"),
+		},
+		&url.URL{
+			Scheme: "http",
+			Host:   os.Getenv("KUBE_ADDR"),
 		},
 		nil,
 		nil,
-		"postgres://"+dbuser+":"+dbpassword+"@"+dbaddress+"/"+dbname+"?sslmode=disable",
+		os.Getenv("DB_URL"),
 	)
 	if err != nil {
 		logrus.Fatalf("srv.Initialize error: %v", err)

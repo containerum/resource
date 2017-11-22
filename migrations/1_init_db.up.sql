@@ -45,6 +45,7 @@ CREATE TABLE accesses (
 	access_level_change_time timestamp NOT NULL DEFAULT statement_timestamp(),
 
 	UNIQUE (resource_id, user_id),
+	UNIQUE (user_id, kind, resource_label),
 	CHECK ( user_id = owner_user_id AND limited IS NOT NULL OR user_id <> owner_user_id ),
 	CHECK ( user_id != owner_user_id AND limited IS NULL OR user_id = owner_user_id )
 );
