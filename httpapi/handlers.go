@@ -95,3 +95,73 @@ func GetNamespace(c *gin.Context) {
 	}
 	c.IndentedJSON(200, nss)
 }
+
+func CreateVolume(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	adminAction := c.MustGet("admin-action").(bool)
+
+	var reqData struct {
+		TariffID string `json:"tariff-id"`
+		Label    string `json:"label"`
+	}
+	data, err := c.GetRawData()
+	if err != nil {
+		logger.Warnf("gin.Context.GetRawData: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+		})
+	}
+	err = json.Unmarshal(data, &reqData)
+	if err != nil {
+		logger.Warnf("cannot unmarshal request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+		})
+	}
+
+	logger.Infof("creating volume %s", reqData.Label)
+	err = srv.CreateVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
+	if err != nil {
+		logger.Warnf("failed to create volume %s: %v", reqData.Label, err)
+		c.AbortWithStatusJSON(500, map[string]string{
+			"error": "0x03",
+		})
+	}
+}
+
+func DeleteVolume(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("volume")
+
+	logger.Infof("deleting volume %s", label)
+	err := srv.DeleteVolume(c.Request.Context(), userID, label)
+	if err != nil {
+		logger.Errorf("failed to delete volume %s: %v", label, err)
+		c.AbortWithStatusJSON(500, map[string]string{
+			"error": "0x03",
+		})
+	}
+}
+
+func ListVolumes(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	adminAction := c.MustGet("admin-action").(bool)
+
+	logger.Infof("listing volumes")
+	vols, err := srv.ListVolumes(c.Request.Context(), userID, adminAction)
+	if err != nil {
+		logger.Errorf("failed to list volumes: %v", err)
+		c.AbortWithStatusJSON(500, map[string]string{
+			"error": "0x03",
+		})
+		return
+	}
+	c.IndentedJSON(200, vols)
+}
+

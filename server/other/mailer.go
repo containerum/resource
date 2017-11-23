@@ -11,6 +11,9 @@ import (
 type Mailer interface {
 	SendNamespaceCreated(userID, nsLabel string) error
 	SendNamespaceDeleted(userID, nsLabel string) error
+
+	SendVolumeCreated(userID, nsLabel string) error
+	SendVolumeDeleted(userID, nsLabel string) error
 }
 
 type mailerHTTP struct {
@@ -33,6 +36,14 @@ func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string) error {
 	return fmt.Errorf("not implemented")
 }
 
+func (ml mailerHTTP) SendVolumeCreated(userID, nsLabel string) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (ml mailerHTTP) SendVolumeDeleted(userID, nsLabel string) error {
+	return fmt.Errorf("not implemented")
+}
+
 type mailerStub struct{}
 
 func NewMailerStub() Mailer {
@@ -46,5 +57,15 @@ func (mailerStub) SendNamespaceCreated(userID, nsLabel string) error {
 
 func (mailerStub) SendNamespaceDeleted(userID, nsLabel string) error {
 	logrus.Infof("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s", userID, nsLabel)
+	return nil
+}
+
+func (mailerStub) SendVolumeCreated(userID, label string) error {
+	logrus.Infof("Mailer.SendVolumeCreated userID=%s label=%s", userID, label)
+	return nil
+}
+
+func (mailerStub) SendVolumeDeleted(userID, label string) error {
+	logrus.Infof("Mailer.SendVolumeDeleted userID=%s label=%s", userID, label)
 	return nil
 }

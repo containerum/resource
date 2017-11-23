@@ -21,5 +21,9 @@ func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
 	g.GET("/namespace", ListNamespaces)
 	g.GET("/namespace/:namespace", GetNamespace)
 
+	g.POST("/volume", CreateVolume)
+	g.DELETE("/volume/:volume", DeleteVolume)
+	g.GET("/volume", ListVolumes)
+
 	return g
 }

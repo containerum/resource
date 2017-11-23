@@ -223,9 +223,9 @@ func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespa
 	return
 }
 
-func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLabel string, ownerUUID uuid.UUID) error {
-	permUUID := uuid.NewV4()
-	_, err := db.con.Exec(
+func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLabel string, ownerUUID uuid.UUID) (permUUID uuid.UUID, err error) {
+	permUUID = uuid.NewV4()
+	_, err = db.con.Exec(
 		`INSERT INTO accesses(
 			id,
 			kind,
@@ -248,10 +248,10 @@ func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLa
 		false,
 	)
 	if err != nil {
-		return err
+		return
 	}
 	db.log("create", "access", permUUID.String())
-	return nil
+	return
 }
 
 func (db resourceSvcDB) permGet(userID uuid.UUID, resKind, resLabel string) (resID, permID uuid.UUID, lvl string, err error) {
