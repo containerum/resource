@@ -530,6 +530,7 @@ func (db resourceSvcDB) volumeList(userID *uuid.UUID) (vols []Volume, err error)
 		if err != nil {
 			return
 		}
+		vols = append(vols, v)
 	}
 	return
 }
