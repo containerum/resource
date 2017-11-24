@@ -1,0 +1,39 @@
+[submodule "vendor/github.com/gin-contrib/sse"]
+	path = vendor/github.com/gin-contrib/sse
+	url = https://github.com/gin-contrib/sse
+[submodule "vendor/github.com/gin-gonic/gin"]
+	path = vendor/github.com/gin-gonic/gin
+	url = https://github.com/gin-gonic/gin
+[submodule "vendor/github.com/golang/protobuf"]
+	path = vendor/github.com/golang/protobuf
+	url = https://github.com/golang/protobuf
+[submodule "vendor/github.com/lib/pq"]
+	path = vendor/github.com/lib/pq
+	url = https://github.com/lib/pq
+[submodule "vendor/github.com/mattes/migrate"]
+	path = vendor/github.com/mattes/migrate
+	url = https://github.com/mattes/migrate
+[submodule "vendor/github.com/mattn/go-isatty"]
+	path = vendor/github.com/mattn/go-isatty
+	url = https://github.com/mattn/go-isatty
+[submodule "vendor/github.com/satori/go.uuid"]
+	path = vendor/github.com/satori/go.uuid
+	url = https://github.com/satori/go.uuid
+[submodule "vendor/github.com/sirupsen/logrus"]
+	path = vendor/github.com/sirupsen/logrus
+	url = https://github.com/sirupsen/logrus
+[submodule "vendor/github.com/ugorji/go"]
+	path = vendor/github.com/ugorji/go
+	url = https://github.com/ugorji/go
+[submodule "vendor/golang.org/x/crypto"]
+	path = vendor/golang.org/x/crypto
+	url = https://go.googlesource.com/crypto
+[submodule "vendor/golang.org/x/sys"]
+	path = vendor/golang.org/x/sys
+	url = https://go.googlesource.com/sys
+[submodule "vendor/gopkg.in/go-playground/validator.v8"]
+	path = vendor/gopkg.in/go-playground/validator.v8
+	url = https://gopkg.in/go-playground/validator.v8
+[submodule "vendor/gopkg.in/yaml.v2"]
+	path = vendor/gopkg.in/yaml.v2
+	url = https://gopkg.in/yaml.v2

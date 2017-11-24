@@ -30,7 +30,7 @@ func (db resourceSvcDB) initialize() error {
 	if err != nil {
 		return newError("what the fuck is this: %v", err)
 	}
-	mig, err := migrate.NewWithDatabaseInstance(os.Getenv("MIGRATION_DIR"), "postgres", inst)
+	mig, err := migrate.NewWithDatabaseInstance(os.Getenv("MIGRATION_URL"), "postgres", inst)
 	if err != nil {
 		return newError("cannot create migration: %v", err)
 	}
