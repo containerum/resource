@@ -26,7 +26,10 @@ func main() {
 			Scheme: "http",
 			Host:   os.Getenv("KUBE_ADDR"),
 		},
-		nil,
+		&url.URL{
+			Scheme: "http",
+			Host:   os.Getenv("MAILER_ADDR"),
+		},
 		nil,
 		os.Getenv("DB_URL"),
 	)

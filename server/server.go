@@ -51,7 +51,7 @@ func (rm *ResourceSvc) Initialize(a, b, k, m, v *url.URL, dbDSN string) error {
 	rm.authsvc = other.NewAuthSvcStub()
 	rm.billing = other.NewBillingStub()
 	rm.kube = other.NewKubeStub()
-	rm.mailer = other.NewMailerStub()
+	rm.mailer = other.NewMailerHTTP(m)
 	rm.volumesvc = other.NewVolumeSvcStub()
 
 	var err error
@@ -196,6 +196,12 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	if err != nil {
 		logrus.Errorf("database: %v", err)
 	}
+
+	go func() {
+		if err := rs.mailer.SendNamespaceDeleted(userID, nsLabel); err != nil {
+			logrus.Warnf("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s error: %v", userID, nsLabel, err)
+		}
+	}()
 
 	return nil
 }
