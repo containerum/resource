@@ -37,8 +37,9 @@ type NamespaceTariff struct {
 	Description      *string    `json:"description,omitempty"`
 	CreatedAt        *time.Time `json:"created_at,omitempty"`
 
-	IsActive *bool `json:"is_active,omitempty"`
-	IsPublic *bool `json:"is_public,omitempty"`
+	IsActive *bool    `json:"is_active,omitempty"`
+	IsPublic *bool    `json:"is_public,omitempty"`
+	Price    *big.Rat `json:"price,omitempty"`
 }
 
 type VolumeTariff struct {
@@ -49,8 +50,9 @@ type VolumeTariff struct {
 	Description   *string    `json:"description,omitempty"`
 	CreatedAt     *time.Time `json:"created_at,omitempty"`
 
-	IsActive *bool `json:"is_active,omitempty"`
-	IsPublic *bool `json:"is_public,omitempty"`
+	IsActive *bool    `json:"is_active,omitempty"`
+	IsPublic *bool    `json:"is_public,omitempty"`
+	Price    *big.Rat `json:"price,omitempty"`
 }
 
 type Resource struct {

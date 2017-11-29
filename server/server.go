@@ -130,7 +130,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	rbNamespaceDB = false
 
 	go func() {
-		if err := rs.mailer.SendNamespaceCreated(userID, nsLabel); err != nil {
+		if err := rs.mailer.SendNamespaceCreated(userID, nsLabel, tariff); err != nil {
 			logrus.Warnf("mailer error: %v", err)
 		}
 	}()
@@ -146,6 +146,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	var err error
 	var userUUID uuid.UUID
+	var ns Namespace
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
@@ -164,7 +165,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		return newPermissionError("permission denied")
 	}
 
-	_, err = rs.db.namespaceGet(userUUID, nsLabel)
+	ns, err = rs.db.namespaceGet(userUUID, nsLabel)
 	if err != nil {
 		if err == NoSuchResource {
 			return err
@@ -198,7 +199,12 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	}
 
 	go func() {
-		if err := rs.mailer.SendNamespaceDeleted(userID, nsLabel); err != nil {
+		tariff, err := rs.getNSTariff(context.TODO(), ns.TariffID.String())
+		if err != nil {
+			logrus.Warnf("failed to get namespace tariff %s: %v", ns.TariffID.String(), err)
+			return
+		}
+		if err = rs.mailer.SendNamespaceDeleted(userID, nsLabel, tariff); err != nil {
 			logrus.Warnf("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s error: %v", userID, nsLabel, err)
 		}
 	}()
@@ -401,7 +407,9 @@ func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID
 	rbAuthSvc = false
 
 	go func() {
-		rs.mailer.SendVolumeCreated(userID, label)
+		if err := rs.mailer.SendVolumeCreated(userID, label, tariff); err != nil {
+			logrus.Warnf("mailer error: send volume created: %v", err)
+		}
 	}()
 
 	return nil
@@ -410,6 +418,7 @@ func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID
 func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (err error) {
 	var permUUID, userUUID, volUUID uuid.UUID
 	var accessLevel string
+	var vol Volume
 
 	volUUID, permUUID, accessLevel, err = rs.db.permGet(userUUID, "Volume", label)
 	if err != nil {
@@ -417,6 +426,10 @@ func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (
 	}
 	if !permCheck(accessLevel, "delete") {
 		return newPermissionError("permission denied")
+	}
+
+	if vol, err = rs.db.volumeGetByID(volUUID); err != nil {
+		return newError("database: get volume: %v", err)
 	}
 
 	if err = rs.billing.Unsubscribe(ctx, userID, volUUID.String()); err != nil {
@@ -447,7 +460,14 @@ func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (
 	}
 
 	go func() {
-		rs.mailer.SendVolumeCreated(userID, label)
+		tariff, err := rs.getVolumeTariff(context.TODO(), vol.TariffID.String())
+		if err != nil {
+			logrus.Warnf("cannot get volume tariff %s: %v", vol.TariffID.String(), err)
+			return
+		}
+		if err := rs.mailer.SendVolumeDeleted(userID, label, tariff); err != nil {
+			logrus.Warnf("mailer error: send volume deleted: %v", err)
+		}
 	}()
 
 	return
