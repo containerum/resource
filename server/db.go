@@ -16,11 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type resourceSvcDB struct {
+type resourceSvcDBOld struct {
 	con *sql.DB
 }
 
-func (db resourceSvcDB) initialize() error {
+func (db resourceSvcDBOld) initialize() error {
 	err := db.con.Ping()
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (db resourceSvcDB) initialize() error {
 	return nil
 }
 
-func (db resourceSvcDB) log(action, objType, objID string) {
+func (db resourceSvcDBOld) log(action, objType, objID string) {
 	db.con.Exec(
 		"INSERT INTO log (action, obj_type, obj_id)"+
 			" VALUES ($1,$2,$3)",
@@ -52,7 +52,7 @@ func (db resourceSvcDB) log(action, objType, objID string) {
 	)
 }
 
-func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff) (nsUUID uuid.UUID, err error) {
+func (db resourceSvcDBOld) namespaceCreate(tariff model.NamespaceTariff) (nsUUID uuid.UUID, err error) {
 	nsUUID = uuid.NewV4()
 	_, err = db.con.Exec(
 		"INSERT INTO namespaces (id,ram,cpu,max_ext_svc,max_int_svc,max_traffic,tariff_id)"+
@@ -74,7 +74,7 @@ func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff) (nsUUID uu
 	return
 }
 
-func (db resourceSvcDB) namespaceDelete(nsID uuid.UUID) (err error) {
+func (db resourceSvcDBOld) namespaceDelete(nsID uuid.UUID) (err error) {
 	_, err = db.con.Exec(
 		`UPDATE namespaces SET deleted=true, delete_time=statement_timestamp() WHERE id=$1`,
 		nsID,
@@ -86,7 +86,7 @@ func (db resourceSvcDB) namespaceDelete(nsID uuid.UUID) (err error) {
 	return
 }
 
-func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err error) {
+func (db resourceSvcDBOld) namespaceList(userID *uuid.UUID) (nss []Namespace, err error) {
 	var rows *sql.Rows
 	if userID == nil {
 		rows, err = db.con.Query(
@@ -151,7 +151,7 @@ func (db resourceSvcDB) namespaceList(userID *uuid.UUID) (nss []Namespace, err e
 	return
 }
 
-func (db resourceSvcDB) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err error) {
+func (db resourceSvcDBOld) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err error) {
 	err = db.con.QueryRow(
 		`SELECT
 			id,
@@ -180,12 +180,12 @@ func (db resourceSvcDB) namespaceGetByID(nsID uuid.UUID) (ns Namespace, err erro
 		&ns.TariffID,
 	)
 	if err == sql.ErrNoRows {
-		err = NoSuchResource
+		err = ErrNoSuchResource
 	}
 	return
 }
 
-func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespace, err error) {
+func (db resourceSvcDBOld) namespaceGet(userID uuid.UUID, label string) (ns Namespace, err error) {
 	err = db.con.QueryRow(
 		`SELECT
 			n.id,
@@ -216,14 +216,14 @@ func (db resourceSvcDB) namespaceGet(userID uuid.UUID, label string) (ns Namespa
 		&ns.TariffID,
 	)
 	if err == sql.ErrNoRows {
-		err = NoSuchResource
+		err = ErrNoSuchResource
 	}
 	ns.Label = new(string)
 	*ns.Label = label
 	return
 }
 
-func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLabel string, ownerUUID uuid.UUID) (permUUID uuid.UUID, err error) {
+func (db resourceSvcDBOld) permCreateOwner(resKind string, resUUID uuid.UUID, resLabel string, ownerUUID uuid.UUID) (permUUID uuid.UUID, err error) {
 	permUUID = uuid.NewV4()
 	_, err = db.con.Exec(
 		`INSERT INTO accesses(
@@ -254,13 +254,13 @@ func (db resourceSvcDB) permCreateOwner(resKind string, resUUID uuid.UUID, resLa
 	return
 }
 
-func (db resourceSvcDB) permGet(userID uuid.UUID, resKind, resLabel string) (resID, permID uuid.UUID, lvl string, err error) {
+func (db resourceSvcDBOld) permGet(userID uuid.UUID, resKind, resLabel string) (resID, permID uuid.UUID, lvl string, err error) {
 	var limited bool
 	var ownerID uuid.UUID
 
 	defer func() {
 		if err == sql.ErrNoRows {
-			err = NoSuchResource
+			err = ErrNoSuchResource
 		}
 		if err != nil {
 			resID = uuid.Nil
@@ -294,7 +294,7 @@ func (db resourceSvcDB) permGet(userID uuid.UUID, resKind, resLabel string) (res
 	return
 }
 
-func (db resourceSvcDB) permGetByResourceID(resID, userID uuid.UUID) (resKind, resLabel string, permID uuid.UUID, lvl string, err error) {
+func (db resourceSvcDBOld) permGetByResourceID(resID, userID uuid.UUID) (resKind, resLabel string, permID uuid.UUID, lvl string, err error) {
 	var ownerID uuid.UUID
 
 	err = db.con.QueryRow(
@@ -326,12 +326,12 @@ func (db resourceSvcDB) permGetByResourceID(resID, userID uuid.UUID) (resKind, r
 	return
 }
 
-func (db resourceSvcDB) permGrant(resID uuid.UUID, resLabel string, ownerID, otherUserID uuid.UUID, perm string) (err error) {
+func (db resourceSvcDBOld) permGrant(resID uuid.UUID, resLabel string, ownerID, otherUserID uuid.UUID, perm string) (err error) {
 	var resKind string
 
 	defer func() {
 		if err == sql.ErrNoRows {
-			err = NoSuchResource
+			err = ErrNoSuchResource
 		}
 	}()
 
@@ -385,7 +385,7 @@ func (db resourceSvcDB) permGrant(resID uuid.UUID, resLabel string, ownerID, oth
 	return nil
 }
 
-func (db resourceSvcDB) permSetLevel(permID uuid.UUID, lvl string) (err error) {
+func (db resourceSvcDBOld) permSetLevel(permID uuid.UUID, lvl string) (err error) {
 	_, err = db.con.Exec(
 		`UPDATE accesses SET access_level=$1 WHERE id=$2`,
 		lvl,
@@ -399,7 +399,7 @@ func (db resourceSvcDB) permSetLevel(permID uuid.UUID, lvl string) (err error) {
 	return nil
 }
 
-func (db resourceSvcDB) permSetLimited(permID uuid.UUID, limited bool) (err error) {
+func (db resourceSvcDBOld) permSetLimited(permID uuid.UUID, limited bool) (err error) {
 	_, err = db.con.Exec(
 		"UPDATE accesses SET limited=$1 WHERE id=$2",
 		limited,
@@ -413,7 +413,7 @@ func (db resourceSvcDB) permSetLimited(permID uuid.UUID, limited bool) (err erro
 	return
 }
 
-func (db resourceSvcDB) permDelete(permID uuid.UUID) (err error) {
+func (db resourceSvcDBOld) permDelete(permID uuid.UUID) (err error) {
 	_, err = db.con.Exec(
 		`DELETE FROM accesses WHERE id=$1`,
 		permID,
@@ -450,7 +450,7 @@ func permCheck(perm, needed string) bool {
 	return false
 }
 
-func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff) (volumeID uuid.UUID, err error) {
+func (db resourceSvcDBOld) volumeCreate(tariff model.VolumeTariff) (volumeID uuid.UUID, err error) {
 	volumeID = uuid.NewV4()
 	_, err = db.con.Exec(
 		`INSERT INTO volumes(id,tariff_id,capacity,replicas)
@@ -468,7 +468,7 @@ func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff) (volumeID uuid.U
 	return
 }
 
-func (db resourceSvcDB) volumeDelete(volumeID uuid.UUID) (err error) {
+func (db resourceSvcDBOld) volumeDelete(volumeID uuid.UUID) (err error) {
 	_, err = db.con.Exec(
 		`UPDATE volumes SET deleted=true, delete_time=statement_timestamp() WHERE id=$1`,
 		volumeID,
@@ -480,7 +480,7 @@ func (db resourceSvcDB) volumeDelete(volumeID uuid.UUID) (err error) {
 	return
 }
 
-func (db resourceSvcDB) volumeList(userID *uuid.UUID) (vols []Volume, err error) {
+func (db resourceSvcDBOld) volumeList(userID *uuid.UUID) (vols []Volume, err error) {
 	var rows *sql.Rows
 	if userID == nil {
 		rows, err = db.con.Query(
@@ -533,7 +533,7 @@ func (db resourceSvcDB) volumeList(userID *uuid.UUID) (vols []Volume, err error)
 	return
 }
 
-func (db resourceSvcDB) volumeGet(userID uuid.UUID, label string) (v Volume, err error) {
+func (db resourceSvcDBOld) volumeGet(userID uuid.UUID, label string) (v Volume, err error) {
 	err = db.con.QueryRow(
 		`SELECT
 			v.id,
@@ -555,12 +555,12 @@ func (db resourceSvcDB) volumeGet(userID uuid.UUID, label string) (v Volume, err
 		&v.Label,
 	)
 	if err == sql.ErrNoRows {
-		err = NoSuchResource
+		err = ErrNoSuchResource
 	}
 	return
 }
 
-func (db resourceSvcDB) volumeGetByID(volID uuid.UUID) (v Volume, err error) {
+func (db resourceSvcDBOld) volumeGetByID(volID uuid.UUID) (v Volume, err error) {
 	err = db.con.QueryRow(
 		`SELECT
 			id,
@@ -578,7 +578,134 @@ func (db resourceSvcDB) volumeGetByID(volID uuid.UUID) (v Volume, err error) {
 		&v.Replicas,
 	)
 	if err == sql.ErrNoRows {
-		err = NoSuchResource
+		err = ErrNoSuchResource
 	}
 	return
 }
+
+type dbTransaction struct {
+	tx *sql.Tx
+}
+
+func (t dbTransaction) Commit() error {
+	if t.tx != nil {
+		return t.tx.Commit()
+	}
+	return nil
+}
+
+func (t dbTransaction) Rollback() error {
+	if t.tx != nil {
+		return t.tx.Rollback()
+	}
+	return nil
+}
+
+type resourceSelector struct {
+	id uuid.UUID
+	user uuid.UUID
+	label string
+}
+
+type resourceSvcDB struct {
+	con *sql.DB
+}
+
+func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff, user uuid.UUID, label string) (tr dbTransaction, nsID uuid.UUID, err error) {
+	defer func() {
+		if err != nil {
+			if tr.tx != nil {
+				tr.tx.Rollback()
+				tr.tx = nil
+			}
+		}
+	}()
+
+	nsID = uuid.NewV4()
+	{
+		var count int
+		err = db.con.QueryRow(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`, user, label).Scan(&count)
+		if err != nil {
+			return
+		}
+		if count > 0 {
+			return ErrResourceExists
+		}
+	}
+
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		return
+	}
+
+	_, err = tr.tx.Exec(
+		`INSERT INTO namespaces (
+			id,
+			ram,
+			cpu,
+			max_ext_svc,
+			max_int_svc,
+			max_traffic,
+			tariff_id
+		) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		nsID,
+		tariff.MemoryLimit,
+		tariff.CpuLimit,
+		tariff.ExternalServices,
+		tariff.InternalServices,
+		tariff.Traffic,
+		tariff.TariffID,
+	)
+	if err != nil {
+		return
+	}
+
+	_, err = tr.tx.Exec(
+		`INSERT INTO accesses(
+			id,
+			kind,
+			resource_id,
+			resource_label,
+			user_id,
+			owner_user_id,
+			access_level,
+			access_level_change_time,
+			limited)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		uuid.NewV4(),
+		"Namespace",
+		nsID,
+		label,
+		user,
+		user,
+		"owner",
+		time.Now(),
+		false,
+	)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err error) {
+	nss = make([]Namespace)
+	var rows *sql.Rows
+	rows, err = db.con.Query(
+		`SELECT 
+}
+
+func (db resourceSvcDB) namespaceRename(user uuid.UUID, oldname, newname string) (err error) {}
+func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr dbTransaction, err error) {}
+func (db resourceSvcDB) namespaceSetLimited(owner uuid.UUID, ownerLabel string, limited bool) (err error) {}
+func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) {}
+
+func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff, user uuid.UUID, label string) (tr dbTransaction, volID uuid.UUID, err error) {}
+func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) (err error) {}
+func (db resourceSvcDB) volumeRename(user uuid.UUID, oldname, newname string) (err error) {}
+func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr dbTransaction, err error) {}
+func (db resourceSvcDB) volumeSetLimited(owner uuid.UUID, ownerLabel string, limited bool) (err error) {}
+func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) () {}
+
+func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}) {}

@@ -145,7 +145,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 
 	nsUUID, permUUID, lvl, err := rs.db.permGet(userUUID, "Namespace", nsLabel)
 	if err != nil {
-		if err == NoSuchResource {
+		if err == ErrNoSuchResource {
 			return err
 		}
 		return newError("database: fetch access level: %v", err)
@@ -247,7 +247,7 @@ func (rs *ResourceSvc) ChangeAccess(ownerUserID, resKind, resLabel string, other
 
 	resUUID, _, lvl, err := rs.db.permGet(ownerUserUUID, resKind, resLabel)
 	if err != nil {
-		if err == NoSuchResource {
+		if err == ErrNoSuchResource {
 			return err
 		}
 		return newError("database: fetch access: %v", err)

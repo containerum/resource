@@ -12,7 +12,9 @@ type (
 )
 
 var (
-	NoSuchResource = Error("no such resource")
+	ErrNoSuchResource = Error("no such resource")
+	ErrAlreadyExists = Error("already exists")
+	ErrDenied = PermissionError("denied")
 )
 
 func newOtherServiceError(f string, args ...interface{}) OtherServiceError {
