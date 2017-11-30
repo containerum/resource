@@ -132,3 +132,31 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 	*vt.IsPublic = true
 	return vt, nil
 }
+
+type BillingError struct {
+	ErrCode string
+	Error string
+	Cause error
+}
+
+func (e BillingError) Error() string {
+	if e.Cause != nil {
+		return fmt.Sprintf("%s: %s: %v", e.ErrCode, e.Error, e.Cause)
+	} else {
+		return fmt.Sprintf("%s: %s", e.ErrCode, e.Error)
+	}
+}
+
+func (e BillingError) IsAlreadySubscribed() bool {
+	if e.ErrCode == "ALREADY_SUBSCRIBED" {
+		return true
+	}
+	return false
+}
+
+func (e BillingError) IsAlreadyUnsubscribed() bool {
+	if e.ErrCode == "NOT_SUBSCRIBED" {
+		return true
+	}
+	return false
+}

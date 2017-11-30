@@ -76,7 +76,7 @@ func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff) (nsUUID uu
 
 func (db resourceSvcDB) namespaceDelete(nsID uuid.UUID) (err error) {
 	_, err = db.con.Exec(
-		`UPDATE namespaces SET deleted=true WHERE id=$1`,
+		`UPDATE namespaces SET deleted=true, delete_time=statement_timestamp() WHERE id=$1`,
 		nsID,
 	)
 	if err != nil {
@@ -353,10 +353,7 @@ func (db resourceSvcDB) permGrant(resID uuid.UUID, resLabel string, ownerID, oth
 		resID,
 		ownerID,
 	).Scan(&ownerAccLevel)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = NoSuchResource
-		}
+	if err != nil && err != sql.ErrNoRows {
 		return
 	}
 	if ownerAccLevel != "owner" {
@@ -453,7 +450,8 @@ func permCheck(perm, needed string) bool {
 	return false
 }
 
-func (db resourceSvcDB) volumeCreate(volumeID uuid.UUID, tariff model.VolumeTariff) (err error) {
+func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff) (volumeID uuid.UUID, err error) {
+	volumeID = uuid.NewV4()
 	_, err = db.con.Exec(
 		`INSERT INTO volumes(id,tariff_id,capacity,replicas)
 		VALUES ($1,$2,$3,$4)`,
