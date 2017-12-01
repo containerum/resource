@@ -135,8 +135,8 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 
 type BillingError struct {
 	ErrCode string
-	Error string
-	Cause error
+	Cause   error
+	error   string
 }
 
 func (e BillingError) Error() string {

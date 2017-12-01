@@ -91,13 +91,10 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		}
 	}
 
-	nsUUID, err = rs.db.namespaceCreate(tariff)
+	var tr dbTransaction
+	tr, nsUUID, err = rs.db.namespaceCreate(tariff, userUUID, nsLabel)
 	if err != nil {
-		return newError("database: creating namespace: %v", err)
-	}
-	permUUID, err = rs.db.permCreateOwner("Namespace", nsUUID, nsLabel, userUUID)
-	if err != nil {
-		return newError("database: creating permission: %v", err)
+		return newError("database: %v", err)
 	}
 
 	err = rs.kube.CreateNamespace(ctx, nsUUID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), nsLabel, "owner")
@@ -108,8 +105,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	defer func() {
 		if rbNamespaceCreation {
 			rs.kube.DeleteNamespace(context.Background(), nsUUID.String())
-			rs.db.permDelete(permUUID)
-			rs.db.namespaceDelete(nsUUID)
+			tr.Rollback()
 		}
 	}()
 
@@ -118,6 +114,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		return newOtherServiceError("billing error: subscribe: %v", err)
 	}
 	rbNamespaceCreation = false
+	tr.Commit()
 
 	go func() {
 		if err := rs.mailer.SendNamespaceCreated(userID, nsLabel, tariff); err != nil {
@@ -137,53 +134,47 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	var err error
 	var userUUID uuid.UUID
 	var ns Namespace
+	var fail bool
+	var tr *dbTransaction
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
 		return newBadInputError("invalid user ID, not a UUID: %v", err)
 	}
 
-	nsUUID, permUUID, lvl, err := rs.db.permGet(userUUID, "Namespace", nsLabel)
+	tr, err = rs.db.namespaceDelete(userID, nsLabel)
 	if err != nil {
-		if err == ErrNoSuchResource {
+		if err == ErrDenied || err == ErrNoSuchResource {
 			return err
+		} else if _, ok := err.(Error); ok {
+			return err
+		} else {
+			return newError("database: %v", err)
 		}
-		return newError("database: fetch access level: %v", err)
 	}
-
-	if !permCheck(lvl, "delete") {
-		return newPermissionError("permission denied")
-	}
-
-	ns, err = rs.db.namespaceGet(userUUID, nsLabel)
-	if err != nil {
-		return newError("database: get namespace: %v", err)
-	}
+	defer tr.Rollback()
 
 	err = rs.billing.Unsubscribe(ctx, userID, nsUUID.String())
 	if err != nil {
 		// TODO: don't fail in the "already unsubscribed" case
+		//fail = true
 		return newOtherServiceError("billing error: unsubscribe %v", err)
 	}
 
 	err = rs.authsvc.UpdateUserAccess(userID)
 	if err != nil {
+		fail = true
 		logrus.Warnf("auth svc error: update user access: %v", err)
 	}
 
 	err = rs.kube.DeleteNamespace(ctx, nsUUID.String())
 	if err != nil {
+		fail = true
 		logrus.Warnf("kube api error: delete namespace: %v", err)
 	}
 
-	err = rs.db.permDelete(permUUID)
-	if err != nil {
-		return newError("database: delete access %s: %v", permUUID, err)
-	}
-
-	err = rs.db.namespaceDelete(nsUUID)
-	if err != nil {
-		logrus.Errorf("database: %v", err)
+	if !fail {
+		tr.Commit()
 	}
 
 	go func() {
