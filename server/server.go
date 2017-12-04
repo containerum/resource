@@ -94,9 +94,11 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	if err != nil {
 		return newError("database: %v", err)
 	}
+	defer tr.Rollback()
 
 	err = rs.kube.CreateNamespace(ctx, nsUUID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), nsLabel, "owner")
 	if err != nil {
+		// TODO: don't fail if already exists
 		return newOtherServiceError("kube api error: create namespace: %v", err)
 	}
 	err = rs.billing.Subscribe(ctx, userID, tariffID, nsUUID.String())
@@ -121,8 +123,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 
 func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	var err error
-	var userUUID uuid.UUID
-	var ns Namespace
+	var userUUID, nsUUID, nsTariffUUID uuid.UUID
 	var fail bool
 	var tr *dbTransaction
 
@@ -131,7 +132,24 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		return newBadInputError("invalid user ID, not a UUID: %v", err)
 	}
 
-	tr, err = rs.db.namespaceDelete(userID, nsLabel)
+	{
+		var nss []Namespace
+		nss, err = rs.db.namespaceList(userUUID)
+		if err != nil {
+			return newError("database: %v", err)
+		}
+		for i, ns := range nss {
+			if ns.Label == nsLabel && ns.ID != nil && ns.TariffID != nil {
+				nsUUID = *ns.ID
+				nsTariffUUID = *ns.TariffID
+			}
+		}
+		if nsUUID == uuid.Nil || nsTariffUUID == uuid.Nil {
+			return ErrNoSuchResource
+		}
+	}
+
+	tr, err = rs.db.namespaceDelete(userUUID, nsLabel)
 	if err != nil {
 		if err == ErrDenied || err == ErrNoSuchResource {
 			return err
