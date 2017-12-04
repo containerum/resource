@@ -70,8 +70,6 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	var nsUUID, userUUID, permUUID uuid.UUID
 	var tariff model.NamespaceTariff
 
-	var rbNamespaceCreation bool
-
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
 		return newBadInputError("invalid user ID, not a UUID: %v", err)
@@ -91,7 +89,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		}
 	}
 
-	var tr dbTransaction
+	var tr *dbTransaction
 	tr, nsUUID, err = rs.db.namespaceCreate(tariff, userUUID, nsLabel)
 	if err != nil {
 		return newError("database: %v", err)
@@ -101,19 +99,10 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	if err != nil {
 		return newOtherServiceError("kube api error: create namespace: %v", err)
 	}
-	rbNamespaceCreation = true
-	defer func() {
-		if rbNamespaceCreation {
-			rs.kube.DeleteNamespace(context.Background(), nsUUID.String())
-			tr.Rollback()
-		}
-	}()
-
 	err = rs.billing.Subscribe(ctx, userID, tariffID, nsUUID.String())
 	if err != nil {
 		return newOtherServiceError("billing error: subscribe: %v", err)
 	}
-	rbNamespaceCreation = false
 	tr.Commit()
 
 	go func() {
