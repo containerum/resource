@@ -5,6 +5,7 @@ import (
 	"context"
 	//"encoding/json"
 	"fmt"
+	//"math/big"
 	"net/http"
 	"net/url"
 
@@ -99,6 +100,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 		InternalServices: new(int),
 		IsActive:         new(bool),
 		IsPublic:         new(bool),
+		//Price:            new(big.Rat),
 	}
 	*nt.ID = someUUID
 	*nt.TariffID = uuid.FromStringOrNil(tariffID)
@@ -109,6 +111,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 	*nt.InternalServices = 100
 	*nt.IsActive = true
 	*nt.IsPublic = true
+	//nt.Price.SetFrac64(11, 10)
 	return nt, nil
 }
 

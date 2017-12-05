@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"regexp"
+
 	"bitbucket.org/exonch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +11,7 @@ import (
 )
 
 var logger = logrus.New()
+var DNSLabel = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?`)
 
 func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -65,4 +68,33 @@ func adminAction(c *gin.Context) {
 	}
 
 	c.Set("logger", logger)
+}
+
+func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
+	code = 500
+	obj = make(map[string]interface{})
+
+	switch err {
+	case server.ErrNoSuchResource:
+		code = 404
+	case server.ErrAlreadyExists:
+		code = 422
+	case server.ErrDenied:
+		code = 401
+	default:
+		switch err.(type) {
+		case server.Error:
+			code = 500
+		case server.BadInputError:
+			code = 400
+		case server.OtherServiceError:
+			code = 503
+		case server.PermissionError:
+			code = 401
+		}
+	}
+
+	obj["error"] = "0x03"
+
+	return
 }

@@ -22,16 +22,16 @@ type ResourceSvcInterface interface {
 	RenameNamespace(ctx context.Context, userID, labelOld, labelNew string) error
 	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error)
 	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (Namespace, error)
+	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
+	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
 
 	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
 	DeleteVolume(ctx context.Context, userID, vLabel string) error
 	RenameVolume(ctx context.Context, userID, labelOld, labelNew string) error
 	ListVolumes(ctx context.Context, userID string, adminAction bool) ([]Volume, error)
 	GetVolume(ctx context.Context, userID, label string, adminAction bool) (Volume, error)
-
-	ChangeAccess(ownerUserID, resKind, resLabel string, otherUserID, accessLevel string) error
-	LockAccess(ownerUserID, resKind, resLabel string, lockState bool) error
-
+	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
+	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 }
 
 type ResourceSvc struct {
@@ -111,11 +111,13 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	tr.Commit()
 
 	go func() {
+		defer keepCalmAndDontPanic("CreateNamespace/mailer")
 		if err := rs.mailer.SendNamespaceCreated(userID, nsLabel, tariff); err != nil {
 			logrus.Warnf("mailer error: %v", err)
 		}
 	}()
 	go func() {
+		defer keepCalmAndDontPanic("CreateNamespace/authsvc")
 		if err := rs.authsvc.UpdateUserAccess(userID); err != nil {
 			logrus.Warnf("auth svc error: %v", err)
 		}
@@ -188,6 +190,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	}
 
 	go func() {
+		defer keepCalmAndDontPanic("DeleteNamespace/mailer")
 		tariff, err := rs.getNSTariff(context.TODO(), nsTariffUUID.String())
 		if err != nil {
 			logrus.Warnf("failed to get namespace tariff %s: %v", nsTariffUUID.String(), err)
@@ -263,8 +266,7 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 	return
 }
 
-// ChangeAccess adds or removes access to ownerUserID's resource for otherUserID.
-func (rs *ResourceSvc) ChangeAccess(ownerUserID, resKind, resLabel string, otherUserID, permOther string) error {
+func (rs *ResourceSvc) ChangeNamespaceAccess(ctx context.Context, ownerUserID, label string, otherUserID, access string) error {
 	var tr *dbTransaction
 	var err error
 
@@ -277,14 +279,7 @@ func (rs *ResourceSvc) ChangeAccess(ownerUserID, resKind, resLabel string, other
 		return newBadInputError("invalid other user ID, not a UUID: %v", err)
 	}
 
-	switch resKind {
-	case "Namespace":
-		tr, err = rs.db.namespaceSetAccess(ownerUserUUID, resLabel, otherUserUUID, permOther)
-	case "Volume":
-		tr, err = rs.db.volumeSetAccess(ownerUserUUID, resLabel, otherUserUUID, permOther)
-	default:
-		return newBadInputError("invalid resource kind")
-	}
+	tr, err = rs.db.namespaceSetAccess(ownerUserUUID, label, otherUserUUID, access)
 	if err != nil {
 		return newError("database, set access: %v", err)
 	}
@@ -299,29 +294,22 @@ func (rs *ResourceSvc) ChangeAccess(ownerUserID, resKind, resLabel string, other
 	return nil
 }
 
-func (rs *ResourceSvc) LockAccess(ownerUserID, resKind, resLabel string, lockState bool) error {
+func (rs *ResourceSvc) LockNamespace(ctx context.Context, userID, label string, lockState bool) error {
 	var tr *dbTransaction
 	var err error
 
-	ownerUserUUID, err := uuid.FromString(ownerUserID)
+	userUUID, err := uuid.FromString(userID)
 	if err != nil {
 		return newBadInputError("invalid user ID, not a UUID: %v", err)
 	}
 
-	switch resKind {
-	case "Namespace":
-		tr, err = rs.db.namespaceSetLimited(ownerUserUUID, resLabel, lockState)
-	case "Volume":
-		tr, err = rs.db.volumeSetLimited(ownerUserUUID, resLabel, lockState)
-	default:
-		return newBadInputError("invalid resource kind")
-	}
+	tr, err = rs.db.namespaceSetLimited(userUUID, label, lockState)
 	if err != nil {
 		return newError("database, set limited: %v", err)
 	}
 	defer tr.Rollback()
 
-	err = rs.authsvc.UpdateUserAccess(ownerUserID)
+	err = rs.authsvc.UpdateUserAccess(userID)
 	if err != nil {
 		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
 	}
@@ -403,6 +391,7 @@ func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID
 
 	// Non-critical commands to other services
 	go func() {
+		defer keepCalmAndDontPanic("CreateVolume/mailer")
 		if err := rs.mailer.SendVolumeCreated(userID, label, tariff); err != nil {
 			logrus.Warnf("mailer error: send volume created: %v", err)
 		}
@@ -470,6 +459,7 @@ func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (
 	tr.Commit()
 
 	go func() {
+		defer keepCalmAndDontPanic("DeleteVolume/mailer")
 		tariff, err := rs.getVolumeTariff(context.TODO(), vol.TariffID.String())
 		if err != nil {
 			logrus.Warnf("failed to get volume tariff %s: %v", vol.TariffID.String(), err)
@@ -543,4 +533,62 @@ func (rs *ResourceSvc) RenameVolume(ctx context.Context, userID, labelOld, label
 	tr.Commit()
 
 	return nil
+}
+
+func (rs *ResourceSvc) ChangeVolumeAccess(ctx context.Context, ownerUserID, label string, otherUserID, access string) error {
+	var tr *dbTransaction
+	var err error
+
+	ownerUserUUID, err := uuid.FromString(ownerUserID)
+	if err != nil {
+		return newBadInputError("invalid owner user ID, not a UUID: %v", err)
+	}
+	otherUserUUID, err := uuid.FromString(otherUserID)
+	if err != nil {
+		return newBadInputError("invalid other user ID, not a UUID: %v", err)
+	}
+
+	tr, err = rs.db.volumeSetAccess(ownerUserUUID, label, otherUserUUID, access)
+	if err != nil {
+		return newError("database, set access: %v", err)
+	}
+	defer tr.Rollback()
+
+	err = rs.authsvc.UpdateUserAccess(otherUserID)
+	if err != nil {
+		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
+	}
+	tr.Commit()
+
+	return nil
+}
+
+func (rs *ResourceSvc) LockVolume(ctx context.Context, userID, label string, lockState bool) error {
+	var tr *dbTransaction
+	var err error
+
+	userUUID, err := uuid.FromString(userID)
+	if err != nil {
+		return newBadInputError("invalid user ID, not a UUID: %v", err)
+	}
+
+	tr, err = rs.db.volumeSetLimited(userUUID, label, lockState)
+	if err != nil {
+		return newError("database, set limited: %v", err)
+	}
+	defer tr.Rollback()
+
+	err = rs.authsvc.UpdateUserAccess(userID)
+	if err != nil {
+		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
+	}
+	tr.Commit()
+
+	return nil
+}
+
+func keepCalmAndDontPanic(tag string) {
+	if r := recover(); r != nil {
+		logrus.Errorf("%s: caught panic: %v", tag, r)
+	}
 }

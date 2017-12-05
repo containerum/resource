@@ -167,7 +167,7 @@ func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff, user uuid.
 func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err error) {
 	var rows *sql.Rows
 	rows, err = db.con.Query(
-		`SELECT (
+		`SELECT
 			n.id,
 			n.create_time,
 			a.resource_label,
@@ -179,7 +179,7 @@ func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err erro
 			n.deleted,
 			n.delete_time,
 			n.tariff_id
-		) FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
 		WHERE a.user_id=$1`,
 		user,
 	)
@@ -424,14 +424,14 @@ func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff, user uuid.UUID, 
 func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 	var rows *sql.Rows
 	rows, err = db.con.Query(
-		`SELECT (
+		`SELECT
 			v.id,
 			v.create_time,
 			a.resource_label,
 			v.deleted,
 			v.delete_time,
 			v.tariff_id
-		) FROM volumes v INNER JOIN accesses a ON a.resource_id=n.id
+		FROM volumes v INNER JOIN accesses a ON a.resource_id=n.id
 		WHERE a.user_id=$1`,
 		user,
 	)

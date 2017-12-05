@@ -19,6 +19,8 @@ type Namespace struct {
 	Deleted       *bool      `json:"deleted,omitempty"`
 	DeleteTime    *time.Time `json:"delete_time,omitempty"`
 	TariffID      *uuid.UUID `json:"tariff_id,omitempty"`
+
+	Volumes []Volume `json:"volumes,omitempty"`
 }
 
 type Volume struct {
