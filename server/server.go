@@ -8,9 +8,9 @@ import (
 	//"strings"
 	"time"
 
-	"bitbucket.org/exonch/resource-service/server/model"
-	"bitbucket.org/exonch/resource-service/server/other"
-	"bitbucket.org/exonch/resource-service/util/cache"
+	"git.containerum.net/ch/resource-service/server/model"
+	"git.containerum.net/ch/resource-service/server/other"
+	"git.containerum.net/ch/resource-service/util/cache"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"

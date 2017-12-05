@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"bitbucket.org/exonch/resource-service/httpapi"
-	"bitbucket.org/exonch/resource-service/server"
+	"git.containerum.net/ch/resource-service/httpapi"
+	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/sirupsen/logrus"
 )

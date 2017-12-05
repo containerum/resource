@@ -3,7 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 
-	"bitbucket.org/exonch/resource-service/server"
+	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
