@@ -9,15 +9,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type CreateResourceRequest struct {
+	TariffID string `json:"tariff-id"`
+	Label    string `json:"label"`
+}
+
+type RenameResourceRequest struct {
+	New string `json:"label"`
+}
+
+type SetResourceLockRequest struct {
+	Lock *bool `json:"lock"`
+}
+
+type SetResourceAccessRequest struct {
+	UserID string `json:"user_id"`
+	Access string `json:"access"`
+}
+
 func CreateNamespace(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
-	var reqData struct {
-		TariffID string `json:"tariff-id"`
-		Label    string `json:"label"`
-	}
+
+	var reqData CreateResourceRequest
 	data, err := c.GetRawData()
 	if err != nil {
 		logger.Warnf("gin.Context.GetRawData: %v", err)
@@ -101,10 +117,7 @@ func RenameNamespace(c *gin.Context) {
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
 
-	var reqData struct {
-		New string `json:"label"`
-	}
-
+	var reqData RenameResourceRequest
 	data, err := c.GetRawData()
 	if err != nil {
 		logger.Warnf("gin.Context.GetRawData: %v", err)
@@ -144,10 +157,7 @@ func SetNamespaceLock(c *gin.Context) {
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
 
-	var reqData struct {
-		Lock *bool `json:"lock"`
-	}
-
+	var reqData SetResourceLockRequest
 	data, err := c.GetRawData()
 	if err != nil {
 		logger.Warnf("gin.Context.GetRawData: %v", err)
@@ -186,11 +196,7 @@ func SetNamespaceAccess(c *gin.Context) {
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
 
-	var reqData struct {
-		UserID string `json:"user_id"`
-		Access string `json:"access"`
-	}
-
+	var reqData SetResourceAccessRequest
 	data, err := c.GetRawData()
 	if err != nil {
 		logger.Warnf("gin.Context.GetRawData: %v", err)
@@ -222,10 +228,7 @@ func CreateVolume(c *gin.Context) {
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 
-	var reqData struct {
-		TariffID string `json:"tariff-id"`
-		Label    string `json:"label"`
-	}
+	var reqData CreateResourceRequest
 	data, err := c.GetRawData()
 	if err != nil {
 		logger.Warnf("gin.Context.GetRawData: %v", err)
