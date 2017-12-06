@@ -29,6 +29,7 @@ type Volume struct {
 	Label      *string    `json:"label,omitempty"`
 	Storage    *int       `json:"storage,omitempty"`
 	Replicas   *int       `json:"replicas,omitempty"`
+	Persistent *bool      `json:"persistent,omitempty"`
 	Deleted    *bool      `json:"deleted,omitempty"`
 	DeleteTime *time.Time `json:"delete_time,omitempty"`
 	TariffID   *uuid.UUID `json:"tariff_id,omitempty"`

@@ -428,11 +428,13 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 			v.id,
 			v.create_time,
 			a.resource_label,
+			v.capacity,
+			v.replicas,
 			v.deleted,
 			v.delete_time,
 			v.tariff_id
-		FROM volumes v INNER JOIN accesses a ON a.resource_id=n.id
-		WHERE a.user_id=$1`,
+		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
+		WHERE a.user_id=$1 AND a.kind='Volume'`,
 		user,
 	)
 	if err != nil {

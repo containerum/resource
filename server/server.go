@@ -3,9 +3,6 @@ package server
 import (
 	"context"
 	"database/sql"
-	//"fmt"
-	"net/url"
-	//"strings"
 	"time"
 
 	"bitbucket.org/exonch/resource-service/server/model"
@@ -50,12 +47,12 @@ var _ ResourceSvcInterface = &ResourceSvc{}
 
 // TODO: arguments must be the respective interfaces
 // from the "other" module.
-func (rm *ResourceSvc) Initialize(a, b, k, m, v *url.URL, dbDSN string) error {
-	rm.authsvc = other.NewAuthSvcStub()
-	rm.billing = other.NewBillingStub()
-	rm.kube = other.NewKubeStub()
-	rm.mailer = other.NewMailerHTTP(m)
-	rm.volumesvc = other.NewVolumeSvcStub()
+func (rm *ResourceSvc) Initialize(a other.AuthSvc, b other.Billing, k other.Kube, m other.Mailer, v other.VolumeSvc, dbDSN string) error {
+	rm.authsvc = a
+	rm.billing = b
+	rm.kube = k
+	rm.mailer = m
+	rm.volumesvc = v
 
 	var err error
 	rm.db.con, err = sql.Open("postgres", dbDSN)
@@ -108,6 +105,15 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	if err != nil {
 		return newOtherServiceError("billing error: subscribe: %v", err)
 	}
+
+	if tariff.VV != nil && tariff.VV.TariffID != nil {
+		err = rs.CreateVolume(ctx, userID, nsLabel+"-volume", tariff.VV.TariffID.String(), adminAction)
+		if err != nil {
+			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to create associated volume: %v <%[1]T>", err)
+			return err
+		}
+	}
+
 	tr.Commit()
 
 	go func() {
