@@ -53,9 +53,8 @@ func CreateNamespace(c *gin.Context) {
 	err = srv.CreateNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
 	if err != nil {
 		logger.Errorf("failed to create namespace %s: %v", reqData.Label, err)
-		c.AbortWithStatusJSON(500, map[string]string{
-			"error": "0x03",
-		})
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
@@ -84,9 +83,8 @@ func ListNamespaces(c *gin.Context) {
 	nss, err := srv.ListNamespaces(c.Request.Context(), userID, adminAction)
 	if err != nil {
 		logger.Errorf("failed to list namespaces: %v", err)
-		c.AbortWithStatusJSON(500, map[string]string{
-			"error": "0x03",
-		})
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
 		return
 	}
 	c.IndentedJSON(200, nss)
@@ -103,9 +101,8 @@ func GetNamespace(c *gin.Context) {
 	nss, err := srv.GetNamespace(c.Request.Context(), userID, nsLabel, adminAction)
 	if err != nil {
 		logger.Errorf("failed to get namespace %s: %v", nsLabel, err)
-		c.AbortWithStatusJSON(500, map[string]string{
-			"error": "0x03",
-		})
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
 		return
 	}
 	c.IndentedJSON(200, nss)
@@ -248,9 +245,8 @@ func CreateVolume(c *gin.Context) {
 	err = srv.CreateVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
 	if err != nil {
 		logger.Warnf("failed to create volume %s: %v", reqData.Label, err)
-		c.AbortWithStatusJSON(500, map[string]string{
-			"error": "0x03",
-		})
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
@@ -264,9 +260,8 @@ func DeleteVolume(c *gin.Context) {
 	err := srv.DeleteVolume(c.Request.Context(), userID, label)
 	if err != nil {
 		logger.Errorf("failed to delete volume %s: %v", label, err)
-		c.AbortWithStatusJSON(500, map[string]string{
-			"error": "0x03",
-		})
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
@@ -280,9 +275,8 @@ func ListVolumes(c *gin.Context) {
 	vols, err := srv.ListVolumes(c.Request.Context(), userID, adminAction)
 	if err != nil {
 		logger.Errorf("failed to list volumes: %v", err)
-		c.AbortWithStatusJSON(500, map[string]string{
-			"error": "0x03",
-		})
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
 		return
 	}
 	c.IndentedJSON(200, vols)
