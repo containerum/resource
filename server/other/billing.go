@@ -164,6 +164,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 		IsActive:         new(bool),
 		IsPublic:         new(bool),
 		Price:            new(big.Rat),
+		VV:               new(model.VolumeTariff),
 	}
 	*nt.ID = someUUID
 	*nt.TariffID = uuid.FromStringOrNil(tariffID)
@@ -175,6 +176,23 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 	*nt.IsActive = true
 	*nt.IsPublic = true
 	nt.Price.SetFrac64(11, 10)
+	{
+		*nt.VV = model.VolumeTariff{
+			ID:            new(uuid.UUID),
+			TariffID:      new(uuid.UUID),
+			StorageLimit:  new(int),
+			ReplicasLimit: new(int),
+			IsActive:      new(bool),
+			IsPublic:      new(bool),
+			Price:         new(big.Rat),
+		}
+		*nt.VV.ID = uuid.FromStringOrNil("e1eab7c4-31d4-4eba-9daf-5a4e77413594")
+		*nt.VV.TariffID = uuid.FromStringOrNil(tariffID[:len(tariffID)-4]+"1112")
+		*nt.VV.StorageLimit = 2
+		*nt.VV.ReplicasLimit = 1
+		*nt.VV.IsActive = true
+		*nt.VV.IsPublic = true
+	}
 	return nt, nil
 }
 
@@ -189,6 +207,7 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 		ReplicasLimit: new(int),
 		IsActive:      new(bool),
 		IsPublic:      new(bool),
+		Price:         new(big.Rat),
 	}
 	*vt.ID = someUUID2
 	*vt.TariffID = uuid.FromStringOrNil(tariffID)
@@ -196,6 +215,7 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 	*vt.ReplicasLimit = 2
 	*vt.IsActive = true
 	*vt.IsPublic = true
+	vt.Price.SetFrac64(9, 10)
 	return vt, nil
 }
 

@@ -62,6 +62,14 @@ func (t *dbTransaction) Rollback() error {
 	return nil
 }
 
+// resourceSvcDB is the database interface of the resource service.
+//
+// Assuming correct usage of returned dbTransaction objects,
+// all methods of this type should ideally:
+//  - Transition database from one valid state to another.
+//  - Do so concurrently.
+//
+// BUG: the above requirement doesn't hold.
 type resourceSvcDB struct {
 	con *sql.DB
 }
@@ -170,17 +178,19 @@ func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err erro
 		`SELECT
 			n.id,
 			n.create_time,
+			n.deleted,
+			n.delete_time,
+			n.tariff_id,
+			a.access_level,
+			a.access_level_change_time,
 			a.resource_label,
 			n.ram,
 			n.cpu,
 			n.max_ext_svc,
 			n.max_int_svc,
-			n.max_traffic,
-			n.deleted,
-			n.delete_time,
-			n.tariff_id
+			n.max_traffic
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
-		WHERE a.user_id=$1`,
+		WHERE a.user_id=$1 AND a.kind='Namespace'`,
 		user,
 	)
 	if err != nil {
@@ -192,15 +202,17 @@ func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err erro
 		err = rows.Scan(
 			&ns.ID,
 			&ns.CreateTime,
+			&ns.Deleted,
+			&ns.DeleteTime,
+			&ns.TariffID,
+			&ns.Access,
+			&ns.AccessChangeTime,
 			&ns.Label,
 			&ns.RAM,
 			&ns.CPU,
 			&ns.MaxExtService,
 			&ns.MaxIntService,
 			&ns.MaxTraffic,
-			&ns.Deleted,
-			&ns.DeleteTime,
-			&ns.TariffID,
 		)
 		if err != nil {
 			return
@@ -333,7 +345,7 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 		resID,
 	)
 	if err != nil {
-		err = fmt.Errorf("UPDATE namespaces ... : <%T> %[1]v", err)
+		err = fmt.Errorf("UPDATE namespaces ... : %[1]v <%[1]T>", err)
 		return
 	}
 	if owner == user {
@@ -348,6 +360,71 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 		}
 	}
 
+	return
+}
+
+func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID uuid.UUID) (tr *dbTransaction, err error) {
+	defer func() {
+		if err != nil {
+			tr.Rollback()
+		}
+	}()
+	tr = new(dbTransaction)
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		return
+	}
+	_, err = tr.tx.Exec(
+		`INSERT INTO namespace_volume (ns_id, vol_id)
+		VALUES ($1,$2)`,
+		nsID,
+		vID,
+	)
+	return
+}
+
+func (db resourceSvcDB) namespaceVolumeListAssoc(nsID uuid.UUID) (vl []Volume, err error) {
+	var rows *sql.Rows
+	rows, err = db.con.Query(
+		`SELECT nv.vol_id,
+			v.create_time,
+			v.deleted,
+			v.delete_time,
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas
+		FROM namespace_volume nv
+			INNER JOIN accesses a ON a.resource_id = nv.vol_id
+			INNER JOIN volumes v ON v.id = nv.vol_id
+		WHERE nv.ns_id=$1`,
+		nsID,
+	)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var v Volume
+		err = rows.Scan(
+			&v.ID,
+			&v.CreateTime,
+			&v.Deleted,
+			&v.DeleteTime,
+			&v.TariffID,
+			&v.Label,
+			&v.Access,
+			&v.AccessChangeTime,
+			&v.Storage,
+			&v.Replicas,
+		)
+		if err != nil {
+			return
+		}
+		vl = append(vl, v)
+	}
 	return
 }
 
@@ -427,12 +504,14 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 		`SELECT
 			v.id,
 			v.create_time,
-			a.resource_label,
-			v.capacity,
-			v.replicas,
 			v.deleted,
 			v.delete_time,
-			v.tariff_id
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas
 		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
 		WHERE a.user_id=$1 AND a.kind='Volume'`,
 		user,
@@ -446,12 +525,14 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 		err = rows.Scan(
 			&vol.ID,
 			&vol.CreateTime,
-			&vol.Label,
-			&vol.Storage,
-			&vol.Replicas,
 			&vol.Deleted,
 			&vol.DeleteTime,
 			&vol.TariffID,
+			&vol.Label,
+			&vol.Access,
+			&vol.AccessChangeTime,
+			&vol.Storage,
+			&vol.Replicas,
 		)
 		if err != nil {
 			return
@@ -581,15 +662,17 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 	}()
 
 	_, err = tr.tx.Exec(
-		`UPDATE volumes SET deleted=true, delete_time=statement_timestamp() WHERE id=$1`,
+		`UPDATE volumes SET deleted=true, delete_time=statement_timestamp()
+		WHERE id=$1`,
 		resID,
 	)
 	if err != nil {
-		err = fmt.Errorf("UPDATE volumes ... : <%T> %[1]v", err)
+		err = fmt.Errorf("UPDATE volumes ... : %[1]v <%[1]T>", err)
 		return
 	}
+
 	if owner == user {
-		_, err = tr.tx.Exec(`DELETE FROM volumes WHERE resource_id=$1`, resID)
+		_, err = tr.tx.Exec(`DELETE FROM volumes WHERE id=$1`, resID)
 		if err != nil {
 			return
 		}

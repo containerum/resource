@@ -107,11 +107,25 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	}
 
 	if tariff.VV != nil && tariff.VV.TariffID != nil {
-		err = rs.CreateVolume(ctx, userID, nsLabel+"-volume", tariff.VV.TariffID.String(), adminAction)
+		err = rs.CreateVolume(context.TODO(), userID, nsLabel+"-volume", tariff.VV.TariffID.String(), adminAction)
 		if err != nil {
-			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to create associated volume: %v <%[1]T>", err)
-			return err
+			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to create volume: %v <%[1]T>", userID, nsLabel, err)
+			return newError("create volume: %[1]v <%[1]T>", err)
 		}
+		var vol Volume
+		vol, err = rs.GetVolume(context.TODO(), userID, nsLabel+"-volume", true)
+		if err != nil {
+			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to get new volume: %v <%[1]T>", userID, nsLabel, err)
+			return newError("get volume: %[1]v <%[1]T>", err)
+		}
+		var trVol *dbTransaction
+		trVol, err = rs.db.namespaceVolumeAssociate(nsUUID, *vol.ID)
+		if err != nil {
+			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to associate namespace and volume: %v",
+				userID, nsLabel, err)
+			return newError("database: associate volume: %v", err)
+		}
+		trVol.Commit()
 	}
 
 	tr.Commit()
@@ -135,8 +149,9 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	var err error
 	var userUUID, nsUUID, nsTariffUUID uuid.UUID
-	var fail bool
+	//var fail bool
 	var tr *dbTransaction
+	var avols []Volume
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
@@ -172,6 +187,18 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	}
 	defer tr.Rollback()
 
+	avols, err = rs.db.namespaceVolumeListAssoc(nsUUID)
+	if err != nil {
+		return newError("database: list associated volumes: %v", err)
+	}
+	for i := range avols {
+		logrus.Infof("ResourceSvc.DeleteNamespace: deleting volume userID=%q label=%q", userID, *avols[i].Label)
+		err = rs.DeleteVolume(context.TODO(), userID, *avols[i].Label)
+		if err != nil {
+			return newError("delete volume: %[1]v <%[1]T>", err)
+		}
+	}
+
 	err = rs.billing.Unsubscribe(ctx, userID, nsUUID.String())
 	if err != nil {
 		// TODO: don't fail in the "already unsubscribed" case
@@ -181,18 +208,14 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 
 	err = rs.authsvc.UpdateUserAccess(userID)
 	if err != nil {
-		fail = true
+		//fail = true
 		logrus.Warnf("auth svc error: update user access: %v", err)
 	}
 
 	err = rs.kube.DeleteNamespace(ctx, nsUUID.String())
 	if err != nil {
-		fail = true
+		//fail = true
 		logrus.Warnf("kube api error: delete namespace: %v", err)
-	}
-
-	if !fail {
-		tr.Commit()
 	}
 
 	go func() {
@@ -206,6 +229,8 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 			logrus.Warnf("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s error: %v", userID, nsLabel, err)
 		}
 	}()
+
+	tr.Commit()
 
 	return nil
 }
@@ -236,10 +261,23 @@ func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminA
 	if err != nil {
 		return nil, newError("database: list namespaces: %v", err)
 	}
+	for i, ns := range namespaces {
+		namespaces[i].Volumes, err = rm.db.namespaceVolumeListAssoc(*ns.ID)
+		if err != nil {
+			return nil, newError("database: list associated volumes for ns %s: %v", *ns.ID, err)
+		}
+	}
+
 	if !adminAction {
 		for i := range namespaces {
 			namespaces[i].ID = nil
+			for j := range namespaces[i].Volumes {
+				namespaces[i].Volumes[j].ID = nil
+			}
 		}
+	}
+	if namespaces == nil {
+		namespaces = []Namespace{}
 	}
 	return namespaces, nil
 }
@@ -266,8 +304,18 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 		err = ErrNoSuchResource
 		return
 	}
+
+	ns.Volumes, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
+	if err != nil {
+		err = newError("database: list associated volumes for ns %s: %v", *ns.ID, err)
+		return
+	}
+
 	if !adminAction {
 		ns.ID = nil
+		for i := range ns.Volumes {
+			ns.Volumes[i].ID = nil
+		}
 	}
 	return
 }
@@ -407,7 +455,7 @@ func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID
 }
 
 func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (err error) {
-	var userUUID, volUUID uuid.UUID
+	var userUUID uuid.UUID
 	var vol Volume
 	var tr *dbTransaction
 
@@ -426,7 +474,7 @@ func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (
 		}
 		for i := range vols {
 			if *vols[i].Label == label {
-				volUUID = *vols[i].ID
+				vol = vols[i]
 				break
 			}
 		}
@@ -443,7 +491,7 @@ func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (
 	}
 	defer tr.Rollback()
 
-	if err = rs.billing.Unsubscribe(ctx, userID, volUUID.String()); err != nil {
+	if err = rs.billing.Unsubscribe(ctx, userID, vol.ID.String()); err != nil {
 		// TODO:
 		//var canContinue bool
 		//if errBilling, ok := err.(other.BillingError); ok {
@@ -493,6 +541,9 @@ func (rs *ResourceSvc) ListVolumes(ctx context.Context, userID string, adminActi
 		for i := range volList {
 			volList[i].ID = nil
 		}
+	}
+	if volList == nil {
+		volList = []Volume{}
 	}
 	return
 }
