@@ -7,9 +7,9 @@ FROM scratch
 COPY --from=builder /bin/resource-service /
 COPY --from=builder /go/src/bitbucket.org/exonch/resource-service/migrations /migration
 ENV MIGRATION_URL="file:///migration" \
+    DB_URL="postgres://user:password@localhost:5432/resource_service?sslmode=disable" \
     AUTH_ADDR="localhost:1001" \
     BILLING_ADDR="localhost:1002" \
-    KUBE_ADDR="localhost:1003" \
-    DB_URL="postgres://user:password@localhost:5432/resource_service?sslmode=disable"
+    KUBE_ADDR="localhost:1003"
 EXPOSE 1213
 ENTRYPOINT ["/resource-service"]
