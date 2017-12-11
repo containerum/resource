@@ -83,7 +83,7 @@ func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
 		code = 401
 	default:
 		switch err.(type) {
-		case server.Error:
+		case server.Err:
 			code = 500
 		case server.BadInputError:
 			code = 400
