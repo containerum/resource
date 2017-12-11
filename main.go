@@ -12,12 +12,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const Version = "0.0.1"
+
 func main() {
 	var authSvc other.AuthSvc
 	var billingSvc other.Billing
 	var kubeSvc other.Kube
 	var mailerSvc other.Mailer
 	var volumeSvc other.VolumeSvc
+
+	logrus.Infof("starting resource-service version %s", Version)
 
 	opmode := os.Getenv("MODE")
 	switch opmode {
