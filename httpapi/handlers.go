@@ -174,7 +174,7 @@ func SetNamespaceLock(c *gin.Context) {
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
 		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error":"0x03",
+			"error": "0x03",
 		})
 		return
 	}
@@ -280,4 +280,133 @@ func ListVolumes(c *gin.Context) {
 		return
 	}
 	c.IndentedJSON(200, vols)
+}
+
+func GetVolume(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	adminAction := c.MustGet("admin-action").(bool)
+	label := c.Param("volume")
+
+	logger.Infof("getting volume %s", label)
+	vols, err := srv.GetVolume(c.Request.Context(), userID, label, adminAction)
+	if err != nil {
+		logger.Errorf("failed to get volume %s: %v", label, err)
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
+		return
+	}
+	c.IndentedJSON(200, vols)
+}
+
+func RenameVolume(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("volume")
+
+	var reqData RenameResourceRequest
+	data, err := c.GetRawData()
+	if err != nil {
+		logger.Warnf("gin.Context.GetRawData: %v", err)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+	err = json.Unmarshal(data, &reqData)
+	if err != nil {
+		logger.Warnf("failed to unmarshal request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
+		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error":   "0x03",
+			"errcode": "BAD_INPUT",
+		})
+		return
+	}
+
+	err = srv.RenameVolume(c.Request.Context(), userID, label, reqData.New)
+	if err != nil {
+		logger.Errorf("failed to rename volume %s into %s: %v", label, reqData.New, err)
+		status, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(status, respObj)
+	}
+}
+
+func SetVolumeLock(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("volume")
+
+	var reqData SetResourceLockRequest
+	data, err := c.GetRawData()
+	if err != nil {
+		logger.Warnf("gin.Context.GetRawData: %v", err)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+	err = json.Unmarshal(data, &reqData)
+	if err != nil {
+		logger.Warnf("failed to unmarshal request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+	if reqData.Lock == nil {
+		logger.Warnf("invalid input: missing field \"lock\"")
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+
+	err = srv.LockVolume(c.Request.Context(), userID, label, *reqData.Lock)
+	if err != nil {
+		logger.Errorf("failed to lock access to volume %s: %v", err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+	}
+}
+
+func SetVolumeAccess(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("volume")
+
+	var reqData SetResourceAccessRequest
+	data, err := c.GetRawData()
+	if err != nil {
+		logger.Warnf("gin.Context.GetRawData: %v", err)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+	err = json.Unmarshal(data, &reqData)
+	if err != nil {
+		logger.Warnf("failed to unmarshal request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]interface{}{
+			"error": "0x03",
+		})
+		return
+	}
+
+	err = srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
+	if err != nil {
+		logger.Errorf("failed to lock access to volume %s: %v", err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+	}
 }

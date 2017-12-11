@@ -27,6 +27,10 @@ func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
 	g.POST("/volume", CreateVolume)
 	g.DELETE("/volume/:volume", DeleteVolume)
 	g.GET("/volume", ListVolumes)
+	g.GET("/volume/:volume", GetVolume)
+	g.PUT("/volume/:volume/name", RenameVolume)
+	g.PUT("/volume/:volume/lock", SetVolumeLock)
+	g.PUT("/volume/:volume/access", SetVolumeAccess)
 
 	return g
 }
