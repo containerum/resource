@@ -72,3 +72,7 @@ func newPermissionError(f string, args ...interface{}) PermissionError {
 func newBadInputError(f string, args ...interface{}) BadInputError {
 	return BadInputError{newError(f, args...)}
 }
+
+func newDBError(f string, args ...interface{}) dbError {
+	return dbError{newError(f, args...)}
+}

@@ -33,7 +33,7 @@ func NewKubeHTTP(u *url.URL) Kube {
 
 func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory uint, label, access string) error {
 	refURL := &url.URL{
-		Path:     "/api/v1/namespaces",
+		Path:     "api/v1/namespaces",
 		RawQuery: fmt.Sprintf("cpu=%d&memory=%d", cpu, memory),
 	}
 	var ns = map[string]interface{}{
@@ -85,9 +85,18 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 
 func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	refURL := &url.URL{
-		Path: "/api/v1/namespaces",
+		Path: "api/v1/namespaces/"+url.PathEscape(name),
 	}
 	req, _ := http.NewRequest("DELETE", kub.u.ResolveReference(refURL).String(), nil)
+	xUserNamespaceBytes, _ := json.Marshal([]interface{}{
+		map[string]string{
+			"id":     name,
+			"label":  "unknown",
+			"access": "owner",
+		},
+	})
+	xUserNamespaceBase64 := base64.StdEncoding.EncodeToString(xUserNamespaceBytes)
+	req.Header.Set("x-user-namespace", xUserNamespaceBase64)
 	req = req.WithContext(ctx)
 	resp, err := kub.c.Do(req)
 	if err != nil {

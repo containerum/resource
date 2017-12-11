@@ -92,7 +92,13 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	var tr *dbTransaction
 	tr, nsUUID, err = rs.db.namespaceCreate(tariff, userUUID, nsLabel)
 	if err != nil {
-		return newError("database: %v", err)
+		switch err.(type) {
+		case dbError:
+			return newError("database: create namespace: %v", err)
+		default:
+			return err
+		}
+		
 	}
 	defer tr.Rollback()
 
