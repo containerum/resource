@@ -149,7 +149,6 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	var err error
 	var userUUID, nsUUID, nsTariffUUID uuid.UUID
-	//var fail bool
 	var tr *dbTransaction
 	var avols []Volume
 
@@ -175,11 +174,26 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		}
 	}
 
+	// Delete volumes
+	{
+		avols, err = rs.db.namespaceVolumeListAssoc(nsUUID)
+		if err != nil {
+			return newError("database: list associated volumes: %v", err)
+		}
+		for _, avol := range avols {
+			logrus.Infof("ResourceSvc.DeleteNamespace: deleting volume userID=%q label=%q", userID, *avol.Label)
+			err = rs.DeleteVolume(context.TODO(), userID, *avol.Label)
+			if err != nil {
+				return newError("delete volume: %[1]v <%[1]T>", err)
+			}
+		}
+	}
+
 	tr, err = rs.db.namespaceDelete(userUUID, nsLabel)
 	if err != nil {
 		if err == ErrDenied || err == ErrNoSuchResource {
 			return err
-		} else if _, ok := err.(Error); ok {
+		} else if _, ok := err.(Err); ok {
 			return err
 		} else {
 			return newError("database: %v", err)
@@ -187,28 +201,14 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	}
 	defer tr.Rollback()
 
-	avols, err = rs.db.namespaceVolumeListAssoc(nsUUID)
-	if err != nil {
-		return newError("database: list associated volumes: %v", err)
-	}
-	for i := range avols {
-		logrus.Infof("ResourceSvc.DeleteNamespace: deleting volume userID=%q label=%q", userID, *avols[i].Label)
-		err = rs.DeleteVolume(context.TODO(), userID, *avols[i].Label)
-		if err != nil {
-			return newError("delete volume: %[1]v <%[1]T>", err)
-		}
-	}
-
 	err = rs.billing.Unsubscribe(ctx, userID, nsUUID.String())
 	if err != nil {
 		// TODO: don't fail in the "already unsubscribed" case
-		//fail = true
 		return newOtherServiceError("billing error: unsubscribe %v", err)
 	}
 
 	err = rs.authsvc.UpdateUserAccess(userID)
 	if err != nil {
-		//fail = true
 		logrus.Warnf("auth svc error: update user access: %v", err)
 	}
 

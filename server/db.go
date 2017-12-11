@@ -704,10 +704,6 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 			return
 		}
 
-		_, err = tr.tx.Exec(`DELETE FROM volumes WHERE id=$1`, resID)
-		if err != nil {
-			return
-		}
 		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
 			return
