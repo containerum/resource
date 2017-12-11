@@ -45,7 +45,7 @@ type dbTransaction struct {
 }
 
 func (t *dbTransaction) Commit() error {
-	if t.tx != nil {
+	if t != nil && t.tx != nil {
 		err := t.tx.Commit()
 		t.tx = nil
 		return err
@@ -54,7 +54,7 @@ func (t *dbTransaction) Commit() error {
 }
 
 func (t *dbTransaction) Rollback() error {
-	if t.tx != nil {
+	if t != nil && t.tx != nil {
 		err := t.tx.Rollback()
 		t.tx = nil
 		return err
@@ -297,6 +297,7 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 	var limited bool
 	var owner uuid.UUID
 	var resID uuid.UUID
+	var subVolsCnt int
 
 	err = db.con.QueryRow(
 		`SELECT access_level, owner_user_id, resource_id
@@ -315,7 +316,14 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 		}
 		return
 	}
-	err = db.con.QueryRow(`SELECT limited FROM accesses WHERE resource_id=$1 AND user_id=$2 AND kind='Namespace'`, resID, owner).Scan(&limited)
+
+	err = db.con.QueryRow(
+		`SELECT limited
+		FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND kind='Namespace'`,
+		resID,
+		owner,
+	).Scan(&limited)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = newError("database consistency error (namespaceDelete, SELECT limited FROM accesses ...)")
@@ -330,6 +338,22 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 		return
 	}
 
+	if owner == user {
+		err = db.con.QueryRow(
+			`SELECT count(nv.*)
+			FROM namespace_volume nv
+			WHERE nv.ns_id=$1`,
+			resID,
+		).Scan(&subVolsCnt)
+		if err != nil {
+			return
+		}
+		if subVolsCnt > 0 {
+			err = newPermissionError("cannot delete, namespace has associated volumes")
+			return
+		}
+	}
+
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	if err != nil {
@@ -340,15 +364,17 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 			tr.Rollback()
 		}
 	}()
-	_, err = tr.tx.Exec(
-		`UPDATE namespaces SET deleted=true, delete_time=statement_timestamp() WHERE id=$1`,
-		resID,
-	)
-	if err != nil {
-		err = fmt.Errorf("UPDATE namespaces ... : %[1]v <%[1]T>", err)
-		return
-	}
 	if owner == user {
+		_, err = tr.tx.Exec(
+			`UPDATE namespaces
+			SET deleted=true, delete_time=statement_timestamp()
+			WHERE id=$1`,
+			resID,
+		)
+		if err != nil {
+			err = fmt.Errorf("UPDATE namespaces ... : %[1]v <%[1]T>", err)
+			return
+		}
 		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
 			return
@@ -635,7 +661,13 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 		}
 		return
 	}
-	err = db.con.QueryRow(`SELECT limited FROM accesses WHERE resource_id=$1 AND user_id=$2 AND kind='Volume'`, resID, owner).Scan(&limited)
+	err = db.con.QueryRow(
+		`SELECT limited
+		FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND kind='Volume'`,
+		resID,
+		owner,
+	).Scan(&limited)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = newError("database consistency error (volumeDelete, SELECT limited FROM accesses ...)")
@@ -661,18 +693,26 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 		}
 	}()
 
-	_, err = tr.tx.Exec(
-		`UPDATE volumes SET deleted=true, delete_time=statement_timestamp()
-		WHERE id=$1`,
-		resID,
-	)
-	if err != nil {
-		err = fmt.Errorf("UPDATE volumes ... : %[1]v <%[1]T>", err)
-		return
-	}
-
 	if owner == user {
+		_, err = tr.tx.Exec(
+			`UPDATE volumes SET deleted=true, delete_time=statement_timestamp()
+			WHERE id=$1`,
+			resID,
+		)
+		if err != nil {
+			err = fmt.Errorf("UPDATE volumes ... : %[1]v <%[1]T>", err)
+			return
+		}
+
 		_, err = tr.tx.Exec(`DELETE FROM volumes WHERE id=$1`, resID)
+		if err != nil {
+			return
+		}
+		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
+		if err != nil {
+			return
+		}
+		_, err = tr.tx.Exec(`DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
 		if err != nil {
 			return
 		}
