@@ -126,6 +126,10 @@ func main() {
 		logrus.Fatalf("environment MODE is neither debug, nor release")
 	}
 
+	if os.Getenv("LISTEN_ADDR") == "" {
+		logrus.Fatalf("environment LISTEN_ADDR is not specified")
+	}
+
 	srv := &server.ResourceSvc{}
 	err := srv.Initialize(
 		authSvc,
@@ -141,7 +145,7 @@ func main() {
 
 	gin := httpapi.NewGinEngine(srv)
 	for {
-		err = gin.Run(":1213")
+		err = gin.Run(os.Getenv("LISTEN_ADDR"))
 		if err != nil {
 			logrus.Errorf("gin error: %v", err)
 		}
