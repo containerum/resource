@@ -13,6 +13,7 @@ import (
 )
 
 const Version = "0.0.1"
+const BuildTime = "unspecified"
 
 func main() {
 	var authSvc other.AuthSvc
@@ -21,7 +22,7 @@ func main() {
 	var mailerSvc other.Mailer
 	var volumeSvc other.VolumeSvc
 
-	logrus.Infof("starting resource-service version %s", Version)
+	logrus.Infof("starting resource-service version %s build time %s", Version, BuildTime)
 
 	opmode := os.Getenv("MODE")
 	switch opmode {

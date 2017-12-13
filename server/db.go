@@ -722,6 +722,7 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 	return
 }
 
+// byID is supposed to fetch any kind of model by searching all models for the id.
 func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
 	return nil, fmt.Errorf("not implemented")
 }
