@@ -28,6 +28,10 @@ func (as authSvcHTTP) UpdateUserAccess(userID string) error {
 	return fmt.Errorf("not implemented")
 }
 
+func (a authSvcHTTP) String() string {
+	return fmt.Sprintf("ch-auth http client: url=%v", a.u)
+}
+
 type authSvcStub struct{}
 
 func NewAuthSvcStub(...interface{}) AuthSvc {
@@ -37,4 +41,8 @@ func NewAuthSvcStub(...interface{}) AuthSvc {
 func (authSvcStub) UpdateUserAccess(userID string) error {
 	logrus.Infof("authSvcStub.UpdateUserAccess userID=%s", userID)
 	return nil
+}
+
+func (authSvcStub) String() string {
+	return "ch-auth client dummy"
 }

@@ -130,6 +130,10 @@ func (b billingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (vt m
 	return
 }
 
+func (b billingHTTP) String() string {
+	return fmt.Sprintf("billing http client: url=%v", b.u)
+}
+
 type billingStub struct {
 }
 
@@ -217,6 +221,10 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 	*vt.IsPublic = true
 	vt.Price.SetFrac64(9, 10)
 	return vt, nil
+}
+
+func (billingStub) String() string {
+	return "billing service dummy"
 }
 
 type BillingError struct {

@@ -128,6 +128,10 @@ func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	return nil
 }
 
+func (k kube) String() string {
+	return fmt.Sprintf("kube api http client: url=%v", k.u)
+}
+
 type kubeStub struct{}
 
 func NewKubeStub() Kube {
@@ -143,4 +147,8 @@ func (kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory uint
 func (kubeStub) DeleteNamespace(_ context.Context, name string) error {
 	logrus.Infof("kubeStub.DeleteNamespace name=%s", name)
 	return nil
+}
+
+func (kubeStub) String() string {
+	return "kube api dummy"
 }

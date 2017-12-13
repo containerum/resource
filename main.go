@@ -131,6 +131,15 @@ func main() {
 		logrus.Fatalf("environment LISTEN_ADDR is not specified")
 	}
 
+	logrus.Infof("authSvc %v", authSvc)
+	logrus.Infof("billingSvc %v", billingSvc)
+	logrus.Infof("kubeSvc %v", kubeSvc)
+	logrus.Infof("mailerSvc %v", mailerSvc)
+	logrus.Infof("volumeSvc %v", volumeSvc)
+	logrus.Infof("database url=%s", os.Getenv("DB_URL"))
+	logrus.Infof("database migrations url=%s", os.Getenv("MIGRATION_URL"))
+	logrus.Infof("listen address %s", os.Getenv("LISTEN_ADDR"))
+
 	srv := &server.ResourceSvc{}
 	err := srv.Initialize(
 		authSvc,

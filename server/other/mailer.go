@@ -124,6 +124,10 @@ func (ml mailerHTTP) SendVolumeDeleted(userID, volLabel string, t model.VolumeTa
 	return nil
 }
 
+func (m mailerHTTP) String() string {
+	return fmt.Sprintf("mail service http client: url=%v", m.u)
+}
+
 type mailerStub struct{}
 
 func NewMailerStub() Mailer {
@@ -148,4 +152,8 @@ func (mailerStub) SendVolumeCreated(userID, label string, t model.VolumeTariff) 
 func (mailerStub) SendVolumeDeleted(userID, label string, t model.VolumeTariff) error {
 	logrus.Infof("Mailer.SendVolumeDeleted userID=%s label=%s tariff=%+v", userID, label, t)
 	return nil
+}
+
+func (mailerStub) String() string {
+	return "mail service dummy"
 }
