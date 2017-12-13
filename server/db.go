@@ -586,11 +586,12 @@ func (db resourceSvcDB) volumeRename(user uuid.UUID, oldname, newname string) (t
 
 func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
 	var resID uuid.UUID
+	var permID uuid.UUID
 
-	// check if the owner is really owner and get the resource_id
+	// get resource id
 	err = db.con.QueryRow(
 		`SELECT resource_id FROM accesses
-		WHERE user_id=owner_user_id AND user_id=$1 AND resource_label=$2 AND kind='Volume'`,
+		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
 		owner,
 		ownerLabel,
 	).Scan(&resID)
@@ -598,6 +599,32 @@ func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, ownerLabel string, othe
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		}
+		return
+	}
+
+	// check if owner really owns resource
+	err = db.con.QueryRow(
+		`SELECT 1 FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND user_id=owner_user_id`,
+		resID,
+		owner,
+	).Scan(new(int))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrDenied
+		}
+		return
+	}
+
+	// decide if we need to INSERT or UPDATE a row
+	err = db.con.QueryRow(
+		`SELECT id FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND kind='Volume'`,
+		resID,
+		other,
+	).Scan(&permID)
+	if err != nil && err != sql.ErrNoRows {
+		err = dbError{Err{err, "", err.Error()}}
 		return
 	}
 
@@ -612,13 +639,36 @@ func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, ownerLabel string, othe
 		}
 	}()
 
-	_, err = tr.tx.Exec(
-		`UPDATE accesses SET access_level=$1, access_level_change_time=statement_timestamp()
-		WHERE resource_id=$2 AND user_id=$3`,
-		access,
-		resID,
-		other,
-	)
+	if permID == uuid.Nil {
+		_, err = tr.tx.Exec(
+			`INSERT INTO accesses(
+				id,
+				kind,
+				resource_id,
+				resource_label,
+				user_id,
+				owner_user_id,
+				access_level
+			)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+			uuid.NewV4(),
+			"Volume",
+			resID,
+			uuid.NewV4().String(), //FIXME
+			other,
+			owner,
+			access,
+		)
+	} else {
+		_, err = tr.tx.Exec(
+			`UPDATE accesses
+			SET access_level=$1, access_level_change_time=statement_timestamp()
+			WHERE resource_id=$2 AND user_id=$3`,
+			access,
+			resID,
+			other,
+		)
+	}
 	return
 }
 
