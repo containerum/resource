@@ -1,56 +1,23 @@
 package httpapi
 
 import (
-	"encoding/json"
-
 	"bitbucket.org/exonch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
-type CreateResourceRequest struct {
-	TariffID string `json:"tariff-id"`
-	Label    string `json:"label"`
-}
-
-type RenameResourceRequest struct {
-	New string `json:"label"`
-}
-
-type SetResourceLockRequest struct {
-	Lock *bool `json:"lock"`
-}
-
-type SetResourceAccessRequest struct {
-	UserID string `json:"user_id"`
-	Access string `json:"access"`
-}
+// *** NAMESPACES ***
 
 func CreateNamespace(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
-
-	var reqData CreateResourceRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
-		})
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("cannot unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
-		})
-	}
+	reqData := c.MustGet("request-data").(CreateResourceRequest)
 
 	logger.Infof("creating namespace %s", reqData.Label)
-	err = srv.CreateNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
+	err := srv.CreateNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
 	if err != nil {
 		logger.Errorf("failed to create namespace %s: %v", reqData.Label, err)
 		status, respObj := serverErrorResponse(err)
@@ -113,24 +80,8 @@ func RenameNamespace(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
+	reqData := c.MustGet("request-data").(RenameResourceRequest)
 
-	var reqData RenameResourceRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("failed to unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
 	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
 		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
 		c.AbortWithStatusJSON(400, map[string]interface{}{
@@ -140,7 +91,8 @@ func RenameNamespace(c *gin.Context) {
 		return
 	}
 
-	err = srv.RenameNamespace(c.Request.Context(), userID, nsLabel, reqData.New)
+	logger.Infof("renaming namespace %s to %s user %s", nsLabel, reqData.New, userID)
+	err := srv.RenameNamespace(c.Request.Context(), userID, nsLabel, reqData.New)
 	if err != nil {
 		logger.Errorf("failed to rename namespace %s into %s: %v", nsLabel, reqData.New, err)
 		status, respObj := serverErrorResponse(err)
@@ -153,33 +105,23 @@ func SetNamespaceLock(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
+	reqData := c.MustGet("request-data").(SetResourceLockRequest)
 
-	var reqData SetResourceLockRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("failed to unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
 		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
+			"error":   "0x03",
+			"errcode": "BAD_INPUT",
 		})
 		return
 	}
 
-	err = srv.LockNamespace(c.Request.Context(), userID, nsLabel, *reqData.Lock)
+	if *reqData.Lock {
+		logger.Infof("locking namespace %s user %s", nsLabel, userID)
+	} else {
+		logger.Infof("unlocking namespace %s user %s", nsLabel, userID)
+	}
+	err := srv.LockNamespace(c.Request.Context(), userID, nsLabel, *reqData.Lock)
 	if err != nil {
 		logger.Errorf("failed to lock access to namespace %s: %v", err)
 		code, respObj := serverErrorResponse(err)
@@ -192,26 +134,11 @@ func SetNamespaceAccess(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
+	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
 
-	var reqData SetResourceAccessRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("failed to unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-
-	err = srv.ChangeNamespaceAccess(c.Request.Context(), userID, nsLabel, reqData.UserID, reqData.Access)
+	logger.Infof("setting access level %s to user %s on namespace %s of user %s",
+		reqData.Access, reqData.UserID, nsLabel, userID)
+	err := srv.ChangeNamespaceAccess(c.Request.Context(), userID, nsLabel, reqData.UserID, reqData.Access)
 	if err != nil {
 		logger.Errorf("failed to lock access to namespace %s: %v", err)
 		code, respObj := serverErrorResponse(err)
@@ -219,30 +146,17 @@ func SetNamespaceAccess(c *gin.Context) {
 	}
 }
 
+// *** VOLUMES ***
+
 func CreateVolume(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
-
-	var reqData CreateResourceRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
-		})
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("cannot unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
-		})
-	}
+	reqData := c.MustGet("request-data").(CreateResourceRequest)
 
 	logger.Infof("creating volume %s", reqData.Label)
-	err = srv.CreateVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
+	err := srv.CreateVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
 	if err != nil {
 		logger.Warnf("failed to create volume %s: %v", reqData.Label, err)
 		status, respObj := serverErrorResponse(err)
@@ -305,24 +219,8 @@ func RenameVolume(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
+	reqData := c.MustGet("request-data").(RenameResourceRequest)
 
-	var reqData RenameResourceRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("failed to unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
 	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
 		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
 		c.AbortWithStatusJSON(400, map[string]interface{}{
@@ -332,7 +230,8 @@ func RenameVolume(c *gin.Context) {
 		return
 	}
 
-	err = srv.RenameVolume(c.Request.Context(), userID, label, reqData.New)
+	logger.Infof("rename volume %s to %s user %s", label, reqData.New, userID)
+	err := srv.RenameVolume(c.Request.Context(), userID, label, reqData.New)
 	if err != nil {
 		logger.Errorf("failed to rename volume %s into %s: %v", label, reqData.New, err)
 		status, respObj := serverErrorResponse(err)
@@ -345,24 +244,8 @@ func SetVolumeLock(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
+	reqData := c.MustGet("request-data").(SetResourceLockRequest)
 
-	var reqData SetResourceLockRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("failed to unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
 		c.AbortWithStatusJSON(400, map[string]interface{}{
@@ -371,7 +254,12 @@ func SetVolumeLock(c *gin.Context) {
 		return
 	}
 
-	err = srv.LockVolume(c.Request.Context(), userID, label, *reqData.Lock)
+	if *reqData.Lock {
+		logger.Infof("lock volume %s user %s", label, userID)
+	} else {
+		logger.Infof("unlock volume %s user %s", label, userID)
+	}
+	err := srv.LockVolume(c.Request.Context(), userID, label, *reqData.Lock)
 	if err != nil {
 		logger.Errorf("failed to lock access to volume %s: %v", err)
 		code, respObj := serverErrorResponse(err)
@@ -384,26 +272,11 @@ func SetVolumeAccess(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
+	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
 
-	var reqData SetResourceAccessRequest
-	data, err := c.GetRawData()
-	if err != nil {
-		logger.Warnf("gin.Context.GetRawData: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-	err = json.Unmarshal(data, &reqData)
-	if err != nil {
-		logger.Warnf("failed to unmarshal request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
-		return
-	}
-
-	err = srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
+	logger.Infof("set access: level=%s target-user=%s user=%s label=%s",
+		reqData.Access, reqData.UserID, userID, label)
+	err := srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
 		logger.Errorf("failed to lock access to volume %s: %v", err)
 		code, respObj := serverErrorResponse(err)
