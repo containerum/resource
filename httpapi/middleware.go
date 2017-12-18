@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"regexp"
+
 	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +11,25 @@ import (
 )
 
 var logger = logrus.New()
+var DNSLabel = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?`)
+
+type CreateResourceRequest struct {
+	TariffID string `json:"tariff-id"`
+	Label    string `json:"label"`
+}
+
+type RenameResourceRequest struct {
+	New string `json:"label"`
+}
+
+type SetResourceLockRequest struct {
+	Lock *bool `json:"lock"`
+}
+
+type SetResourceAccessRequest struct {
+	UserID string `json:"user_id"`
+	Access string `json:"access"`
+}
 
 func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -65,4 +86,93 @@ func adminAction(c *gin.Context) {
 	}
 
 	c.Set("logger", logger)
+}
+
+func parseCreateResourceReq(c *gin.Context) {
+	var req CreateResourceRequest
+	log := c.MustGet("logger").(*logrus.Entry)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Infof("failed to json-bind request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+			"errcode": "BAD_INPUT",
+		})
+	}
+	log = log.WithField("request-data-type", "CreateResourceRequest")
+	c.Set("request-data", req)
+	c.Set("logger", log)
+}
+
+func parseRenameReq(c *gin.Context) {
+	var req RenameResourceRequest
+	log := c.MustGet("logger").(*logrus.Entry)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Infof("failed to json-bind request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+			"errcode": "BAD_INPUT",
+		})
+	}
+	log = log.WithField("request-data-type", "RenameResourceRequest")
+	c.Set("request-data", req)
+	c.Set("logger", log)
+}
+
+func parseLockReq(c *gin.Context) {
+	var req SetResourceLockRequest
+	log := c.MustGet("logger").(*logrus.Entry)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Infof("failed to json-bind request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+			"errcode": "BAD_INPUT",
+		})
+	}
+	log = log.WithField("request-data-type", "SetResourceLockRequest")
+	c.Set("request-data", req)
+	c.Set("logger", log)
+}
+
+func parseSetAccessReq(c *gin.Context) {
+	var req SetResourceAccessRequest
+	log := c.MustGet("logger").(*logrus.Entry)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Infof("failed to json-bind request data: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": "0x03",
+			"errcode": "BAD_INPUT",
+		})
+	}
+	log = log.WithField("request-data-type", "SetResourceAccessRequest")
+	c.Set("request-data", req)
+	c.Set("logger", log)
+}
+
+func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
+	code = 500
+	obj = make(map[string]interface{})
+
+	switch err {
+	case server.ErrNoSuchResource:
+		code = 404
+	case server.ErrAlreadyExists:
+		code = 422
+	case server.ErrDenied:
+		code = 401
+	default:
+		switch err.(type) {
+		case server.Err:
+			code = 500
+		case server.BadInputError:
+			code = 400
+		case server.OtherServiceError:
+			code = 503
+		case server.PermissionError:
+			code = 401
+		}
+	}
+
+	obj["error"] = "0x03"
+
+	return
 }

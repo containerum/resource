@@ -1,0 +1,4 @@
+BEGIN TRANSACTION;
+DROP TABLE namespace_volume;
+ALTER TABLE volumes DROP COLUMN is_persistent;
+COMMIT TRANSACTION;

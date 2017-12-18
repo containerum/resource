@@ -28,29 +28,35 @@ type Tariff struct {
 type NamespaceTariff struct {
 	ID               *uuid.UUID `json:"id,omitempty"`
 	TariffID         *uuid.UUID `json:"tariff_id,omitempty"`
+	Description      *string    `json:"description,omitempty"`
+	CreatedAt        *time.Time `json:"created_at,omitempty"`
+
 	CpuLimit         *int       `json:"cpu_limit,omitempty"`
 	MemoryLimit      *int       `json:"memory_limit,omitempty"`
 	Traffic          *int       `json:"traffic,omitempty"`
 	TrafficPrice     *big.Rat   `json:"traffic_price,omitempty"`
 	ExternalServices *int       `json:"external_services,omitempty"`
 	InternalServices *int       `json:"internal_services,omitempty"`
-	Description      *string    `json:"description,omitempty"`
-	CreatedAt        *time.Time `json:"created_at,omitempty"`
 
-	IsActive *bool `json:"is_active,omitempty"`
-	IsPublic *bool `json:"is_public,omitempty"`
+	VV *VolumeTariff `json:"VV,omitempty"`
+
+	IsActive *bool    `json:"is_active,omitempty"`
+	IsPublic *bool    `json:"is_public,omitempty"`
+	Price    *big.Rat `json:"price,omitempty"`
 }
 
 type VolumeTariff struct {
 	ID            *uuid.UUID `json:"id,omitempty"`
 	TariffID      *uuid.UUID `json:"tariff_id,omitempty"`
-	StorageLimit  *int       `json:"storage_limit,omitempty"`
-	ReplicasLimit *int       `json:"replicas_limit,omitempty"`
 	Description   *string    `json:"description,omitempty"`
 	CreatedAt     *time.Time `json:"created_at,omitempty"`
 
-	IsActive *bool `json:"is_active,omitempty"`
-	IsPublic *bool `json:"is_public,omitempty"`
+	StorageLimit  *int       `json:"storage_limit,omitempty"`
+	ReplicasLimit *int       `json:"replicas_limit,omitempty"`
+
+	IsActive *bool    `json:"is_active,omitempty"`
+	IsPublic *bool    `json:"is_public,omitempty"`
+	Price    *big.Rat `json:"price,omitempty"`
 }
 
 type Resource struct {

@@ -1,0 +1,5 @@
+BEGIN TRANSACTION;
+DROP TABLE deployments;
+DROP TABLE deployment_volume;
+DROP TABLE containers;
+COMMIT TRANSACTION;

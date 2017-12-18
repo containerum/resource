@@ -16,14 +16,21 @@ func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
 	g.Use(parseHeaders)
 	g.Use(adminAction)
 
-	g.POST("/namespace", CreateNamespace)
+	g.POST("/namespace", parseCreateResourceReq, CreateNamespace)
 	g.DELETE("/namespace/:namespace", DeleteNamespace)
 	g.GET("/namespace", ListNamespaces)
 	g.GET("/namespace/:namespace", GetNamespace)
+	g.PUT("/namespace/:namespace/name", parseRenameReq, RenameNamespace)
+	g.PUT("/namespace/:namespace/lock", parseLockReq, SetNamespaceLock)
+	g.PUT("/namespace/:namespace/access", parseSetAccessReq, SetNamespaceAccess)
 
-	g.POST("/volume", CreateVolume)
+	g.POST("/volume", parseCreateResourceReq, CreateVolume)
 	g.DELETE("/volume/:volume", DeleteVolume)
 	g.GET("/volume", ListVolumes)
+	g.GET("/volume/:volume", GetVolume)
+	g.PUT("/volume/:volume/name", parseRenameReq, RenameVolume)
+	g.PUT("/volume/:volume/lock", parseLockReq, SetVolumeLock)
+	g.PUT("/volume/:volume/access", parseSetAccessReq, SetVolumeAccess)
 
 	return g
 }
