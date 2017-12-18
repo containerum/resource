@@ -1,7 +1,9 @@
 package httpapi
 
 import (
-	"bitbucket.org/exonch/resource-service/server"
+	"encoding/json"
+
+	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

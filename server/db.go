@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"bitbucket.org/exonch/resource-service/server/model"
+	"git.containerum.net/ch/resource-service/server/model"
 
 	_ "github.com/lib/pq"
 	"github.com/mattes/migrate"
