@@ -7,7 +7,7 @@ import (
 
 	"git.containerum.net/ch/resource-service/httpapi"
 	"git.containerum.net/ch/resource-service/server"
-	"git.containerum.net/exonch/resource-service/server/other"
+	"git.containerum.net/ch/resource-service/server/other"
 
 	"github.com/sirupsen/logrus"
 )

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"bitbucket.org/exonch/resource-service/server/model"
+	"git.containerum.net/ch/resource-service/server/model"
 
 	"github.com/sirupsen/logrus"
 )

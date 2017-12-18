@@ -1,8 +1,6 @@
 package httpapi
 
 import (
-	"encoding/json"
-
 	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
