@@ -148,6 +148,16 @@ func parseSetAccessReq(c *gin.Context) {
 	c.Set("logger", log)
 }
 
+func rejectUnprivileged(c *gin.Context) {
+	admin := c.MustGet("admin-action").(bool)
+	if !admin {
+		c.AbortWithStatusJSON(401, map[string]string{
+			"errcode": "PERMISSION_DENIED",
+			"error":   "denied",
+		})
+	}
+}
+
 func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
 	code = 500
 	obj = make(map[string]interface{})
@@ -155,20 +165,27 @@ func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
 	switch err {
 	case server.ErrNoSuchResource:
 		code = 404
+		obj["errcode"] = server.ErrNoSuchResource.ErrCode
 	case server.ErrAlreadyExists:
 		code = 422
+		obj["errcode"] = server.ErrAlreadyExists.ErrCode
 	case server.ErrDenied:
 		code = 401
+		obj["errcode"] = server.ErrDenied.ErrCode
 	default:
-		switch err.(type) {
+		switch etyped := err.(type) {
 		case server.Err:
 			code = 500
+			obj["errcode"] = etyped.Err.ErrCode
 		case server.BadInputError:
 			code = 400
+			obj["errcode"] = etyped.Err.ErrCode
 		case server.OtherServiceError:
 			code = 503
+			obj["errcode"] = etyped.Err.ErrCode
 		case server.PermissionError:
 			code = 401
+			obj["errcode"] = etyped.Err.ErrCode
 		}
 	}
 

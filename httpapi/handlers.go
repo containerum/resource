@@ -285,3 +285,51 @@ func SetVolumeAccess(c *gin.Context) {
 		c.AbortWithStatusJSON(code, respObj)
 	}
 }
+
+func ListAllNamespaces(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	count, err := strconv.Atoi(c.Query("count"))
+	if err != nil {
+		logger.Warnf("invalid integer in QP count: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": err.Error(),
+			"errcode": "BAD_INPUT",
+		})
+		return
+	}
+
+	logger.Info("list all namespaces")
+	res, err := srv.ListAllNamespaces(c.Request.Context(), c.Query("after"), count)
+	if err != nil {
+		logger.Errorf("failed to list all namespaces: %v", err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.IndentedJSON(200, list)
+}
+
+func ListAllVolumes(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	count, err := strconv.Atoi(c.Query("count"))
+	if err != nil {
+		logger.Warnf("invalid integer in QP count: %v", err)
+		c.AbortWithStatusJSON(400, map[string]string{
+			"error": err.Error(),
+			"errcode": "BAD_INPUT",
+		})
+		return
+	}
+
+	logger.Info("list all volumes")
+	res, err := srv.ListAllVolumes(c.Request.Context(), c.Query("after"), count)
+	if err != nil {
+		logger.Errorf("failed to list all volumes: %v", err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.IndentedJSON(200, list)
+}

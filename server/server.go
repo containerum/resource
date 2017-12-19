@@ -29,6 +29,9 @@ type ResourceSvcInterface interface {
 	GetVolume(ctx context.Context, userID, label string, adminAction bool) (Volume, error)
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
+
+	ListAllNamespaces(ctx context.Context, afterID string, count int) ([]Namespace, error)
+	ListAllVolumes(ctx context.Context, afterID string, count int) ([]Volume, error)
 }
 
 type ResourceSvc struct {
@@ -654,4 +657,50 @@ func keepCalmAndDontPanic(tag string) {
 	if r := recover(); r != nil {
 		logrus.Errorf("%s: caught panic: %v", tag, r)
 	}
+}
+
+// ListAllNamespaces doesn't ask for authorization,
+// frontend must bother with that.
+func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context, afterID stirng, count uint) ([]Namespace, error) {
+	var afterUUID uuid.UUID
+
+	if afterID != "" {
+		afterUUID, err := uuid.FromString(afterID)
+		if err != nil {
+			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
+		}
+	}
+	ctx = context.WithTimeout(ctx, time.Second / 2)
+	nslist, err := rs.db.namespaceListAll(ctx, afterUUID, count)
+	if err != nil {
+		switch err.(type) {
+		case dbError:
+			return nil, newError("database: %v", err)
+		default:
+			return nil, err
+		}
+	}
+	return nslist, nil
+}
+
+func (rs *ResourceSvc) ListAllVolumes(ctx context.Context, afterID stirng, count int) ([]Volume, error) {
+	var afterUUID uuid.UUID
+
+	if afterID != "" {
+		afterUUID, err := uuid.FromString(afterID)
+		if err != nil {
+			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
+		}
+	}
+	ctx = context.WithTimeout(ctx, time.Second / 2)
+	vlist, err := rs.db.volumeListAll(ctx, afterUUID, count)
+	if err != nil {
+		switch err.(type) {
+		case dbError:
+			return nil, newError("database: %v", err)
+		default:
+			return nil, err
+		}
+	}
+	return vlist, nil
 }

@@ -776,3 +776,118 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
+func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, count uint) (nslist []Namespace, err error) {
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			n.id,
+			n.create_time,
+			n.deleted,
+			n.delete_time,
+			n.tariff_id,
+			a.access_level,
+			a.access_level_change_time,
+			a.resource_label,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic
+		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		WHERE a.kind='Namespace' AND n.id >= $1
+		ORDER BY n.id LIMIT $2`,
+		after,
+		count,
+	)
+	if err != nil {
+		// Doesn not matter if context was canceled, it is an error
+		// if this method doesn't return at least one result.
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+
+	for rows.Next() {
+		var ns Namespace
+		err = rows.Scan(
+			&ns.ID,
+			&ns.CreateTime,
+			&ns.Deleted,
+			&ns.DeleteTime,
+			&ns.TariffID,
+			&ns.Access,
+			&ns.AccessChangeTime,
+			&ns.Label,
+			&ns.RAM,
+			&ns.CPU,
+			&ns.MaxExtService,
+			&ns.MaxIntService,
+			&ns.MaxTraffic,
+		)
+		if err != nil {
+			if ctx.Err() == context.Canceled && len(nslist) > 0 {
+				err = nil
+				return
+			}
+			err = dbError{Err{err, "", err.Error()}}
+			nslist = nil
+			return
+		}
+		nslist = append(nslist, ns)
+	}
+	return
+}
+
+func (db resourceSvcDB) volumeListAll(after uuid.UUID, count uint) (vlist []Volume, err error) {
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			v.id,
+			v.create_time,
+			v.deleted,
+			v.delete_time,
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas
+		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
+		WHERE a.kind='Volume' AND v.id >= $1
+		ORDER BY v.id LIMIT $2`,
+		after,
+		count,
+	)
+	if err != nil {
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+	for rows.Next() {
+		var v Volume
+		err = rows.Scan(
+			&v.ID,
+			&v.CreateTime,
+			&v.Deleted,
+			&v.DeleteTime,
+			&v.TariffID,
+			&v.Label,
+			&v.Access,
+			&v.AccessChangeTime,
+			&v.Storage,
+			&v.Replicas,
+		)
+		if err != nil {
+			if ctx.Err() == context.Canceled && len(vlist) > 0 {
+				err = nil
+				return
+			}
+			err = dbError{Err{err, "", err.Error()}}
+			vlist = nil
+			return
+		}
+		vlist = append(vlist, v)
+	}
+	return
+}
