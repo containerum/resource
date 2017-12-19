@@ -1,0 +1,46 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: "resource-service"
+    access: "true"
+    group: local
+  name: resource-service
+  namespace: hosting
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "resource-service"
+      access: "true"
+      group: local
+  template:
+    metadata:
+      labels:
+        app: "resource-service"
+        access: "true"
+        group: local
+    spec:
+      containers:
+      - image: ${IMAGE}
+        name: resource-service
+        env:
+        - name: AUTH_ADDR
+          value: "${AUTH_ADDR}"
+        - name: KUBE_ADDR
+          value: "${KUBE_ADDR}"
+        - name: MAILER_ADDR
+          value: "${MAILER_ADDR}"
+        - name: MODE
+          value: "${MODE}"
+        - name: LISTEN_ADDR
+          value: "${LISTEN_ADDR}"
+        - name: DB_URL
+          value: "${DB_URL}"
+      nodeSelector:
+        role: master
+      imagePullSecrets:
+      - name: gitlab-registry
