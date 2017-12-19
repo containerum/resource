@@ -433,6 +433,9 @@ func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID
 
 	// Create records in our db and prepare rollbacks
 	if tr, _, err = rs.db.volumeCreate(tariff, userUUID, label); err != nil {
+		if err == ErrAlreadyExists || err == ErrDenied {
+			return err
+		}
 		return newError("database: create volume: %v", err)
 	}
 	defer tr.Rollback()

@@ -53,6 +53,7 @@ type VolumeTariff struct {
 
 	StorageLimit  *int       `json:"storage_limit,omitempty"`
 	ReplicasLimit *int       `json:"replicas_limit,omitempty"`
+	IsPersistent  *bool      `json:"is_persistent,omitempty"`
 
 	IsActive *bool    `json:"is_active,omitempty"`
 	IsPublic *bool    `json:"is_public,omitempty"`

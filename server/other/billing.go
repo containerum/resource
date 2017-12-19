@@ -212,6 +212,7 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 		IsActive:      new(bool),
 		IsPublic:      new(bool),
 		Price:         new(big.Rat),
+		IsPersistent:  new(bool),
 	}
 	*vt.ID = someUUID2
 	*vt.TariffID = uuid.FromStringOrNil(tariffID)
@@ -220,6 +221,7 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 	*vt.IsActive = true
 	*vt.IsPublic = true
 	vt.Price.SetFrac64(9, 10)
+	*vt.IsPersistent = false
 	return vt, nil
 }
 
