@@ -799,7 +799,8 @@ func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, c
 			n.cpu,
 			n.max_ext_svc,
 			n.max_int_svc,
-			n.max_traffic
+			n.max_traffic,
+			a.user_id
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
 		WHERE a.kind='Namespace' AND n.id >= $1
 		ORDER BY n.id LIMIT $2`,
@@ -829,6 +830,7 @@ func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, c
 			&ns.MaxExtService,
 			&ns.MaxIntService,
 			&ns.MaxTraffic,
+			&ns.UserID,
 		)
 		if err != nil {
 			if ctx.Err() == context.Canceled && len(nslist) > 0 {
@@ -858,7 +860,8 @@ func (db resourceSvcDB) volumeListAll(ctx context.Context, after uuid.UUID, coun
 			a.access_level,
 			a.access_level_change_time,
 			v.capacity,
-			v.replicas
+			v.replicas,
+			a.user_id
 		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
 		WHERE a.kind='Volume' AND v.id >= $1
 		ORDER BY v.id LIMIT $2`,
@@ -882,6 +885,7 @@ func (db resourceSvcDB) volumeListAll(ctx context.Context, after uuid.UUID, coun
 			&v.AccessChangeTime,
 			&v.Storage,
 			&v.Replicas,
+			&v.UserID,
 		)
 		if err != nil {
 			if ctx.Err() == context.Canceled && len(vlist) > 0 {

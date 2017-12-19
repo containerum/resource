@@ -12,6 +12,7 @@ type Namespace struct {
 	CreateTime       *time.Time   `json:"create_time,omitempty"`
 	Deleted          *bool        `json:"deleted,omitempty"`
 	DeleteTime       *time.Time   `json:"delete_time,omitempty"`
+	UserID           *uuid.UUID   `json:"user_id,omitempty"`
 	TariffID         *uuid.UUID   `json:"tariff_id,omitempty"`
 	Label            *string      `json:"label,omitempty"`
 	Access           *AccessLevel `json:"access,omitempty"`
@@ -31,6 +32,7 @@ type Volume struct {
 	CreateTime       *time.Time   `json:"create_time,omitempty"`
 	Deleted          *bool        `json:"deleted,omitempty"`
 	DeleteTime       *time.Time   `json:"delete_time,omitempty"`
+	UserID           *uuid.UUID   `json:"user_id,omitempty"`
 	TariffID         *uuid.UUID   `json:"tariff_id,omitempty"`
 	Label            *string      `json:"label,omitempty"`
 	Access           *AccessLevel `json:"access,omitempty"`
