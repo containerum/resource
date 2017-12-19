@@ -681,6 +681,9 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context, afterID string, co
 			return nil, err
 		}
 	}
+	if nslist == nil {
+		nslist = []Namespace{}
+	}
 	return nslist, nil
 }
 
@@ -703,6 +706,9 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context, afterID string, count
 		default:
 			return nil, err
 		}
+	}
+	if vlist == nil {
+		vlist = []Volume{}
 	}
 	return vlist, nil
 }
