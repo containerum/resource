@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -839,7 +840,7 @@ func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, c
 	return
 }
 
-func (db resourceSvcDB) volumeListAll(after uuid.UUID, count uint) (vlist []Volume, err error) {
+func (db resourceSvcDB) volumeListAll(ctx context.Context, after uuid.UUID, count uint) (vlist []Volume, err error) {
 	var rows *sql.Rows
 	rows, err = db.con.QueryContext(
 		ctx,

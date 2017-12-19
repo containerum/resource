@@ -1,6 +1,9 @@
 package httpapi
 
 import (
+	"errors"
+	"strconv"
+
 	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
@@ -288,6 +291,9 @@ func ListAllNamespaces(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	count, err := strconv.Atoi(c.Query("count"))
+	if count < 0 && err == nil {
+		err = errors.New("less than zero")
+	}
 	if err != nil {
 		logger.Warnf("invalid integer in QP count: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
@@ -298,20 +304,23 @@ func ListAllNamespaces(c *gin.Context) {
 	}
 
 	logger.Info("list all namespaces")
-	res, err := srv.ListAllNamespaces(c.Request.Context(), c.Query("after"), count)
+	res, err := srv.ListAllNamespaces(c.Request.Context(), c.Query("after"), uint(count))
 	if err != nil {
 		logger.Errorf("failed to list all namespaces: %v", err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 		return
 	}
-	c.IndentedJSON(200, list)
+	c.IndentedJSON(200, res)
 }
 
 func ListAllVolumes(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	count, err := strconv.Atoi(c.Query("count"))
+	if count < 0 && err == nil {
+		err = errors.New("less than zero")
+	}
 	if err != nil {
 		logger.Warnf("invalid integer in QP count: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
@@ -322,12 +331,12 @@ func ListAllVolumes(c *gin.Context) {
 	}
 
 	logger.Info("list all volumes")
-	res, err := srv.ListAllVolumes(c.Request.Context(), c.Query("after"), count)
+	res, err := srv.ListAllVolumes(c.Request.Context(), c.Query("after"), uint(count))
 	if err != nil {
 		logger.Errorf("failed to list all volumes: %v", err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 		return
 	}
-	c.IndentedJSON(200, list)
+	c.IndentedJSON(200, res)
 }

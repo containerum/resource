@@ -176,7 +176,7 @@ func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
 		switch etyped := err.(type) {
 		case server.Err:
 			code = 500
-			obj["errcode"] = etyped.Err.ErrCode
+			obj["errcode"] = etyped.ErrCode
 		case server.BadInputError:
 			code = 400
 			obj["errcode"] = etyped.Err.ErrCode

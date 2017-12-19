@@ -30,8 +30,8 @@ type ResourceSvcInterface interface {
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 
-	ListAllNamespaces(ctx context.Context, afterID string, count int) ([]Namespace, error)
-	ListAllVolumes(ctx context.Context, afterID string, count int) ([]Volume, error)
+	ListAllNamespaces(ctx context.Context, afterID string, count uint) ([]Namespace, error)
+	ListAllVolumes(ctx context.Context, afterID string, count uint) ([]Volume, error)
 }
 
 type ResourceSvc struct {
@@ -661,16 +661,17 @@ func keepCalmAndDontPanic(tag string) {
 
 // ListAllNamespaces doesn't ask for authorization,
 // frontend must bother with that.
-func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context, afterID stirng, count uint) ([]Namespace, error) {
+func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context, afterID string, count uint) ([]Namespace, error) {
 	var afterUUID uuid.UUID
+	var err error
 
 	if afterID != "" {
-		afterUUID, err := uuid.FromString(afterID)
+		afterUUID, err = uuid.FromString(afterID)
 		if err != nil {
 			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
 		}
 	}
-	ctx = context.WithTimeout(ctx, time.Second / 2)
+	ctx, _ = context.WithTimeout(ctx, time.Second / 2)
 	nslist, err := rs.db.namespaceListAll(ctx, afterUUID, count)
 	if err != nil {
 		switch err.(type) {
@@ -683,16 +684,17 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context, afterID stirng, co
 	return nslist, nil
 }
 
-func (rs *ResourceSvc) ListAllVolumes(ctx context.Context, afterID stirng, count int) ([]Volume, error) {
+func (rs *ResourceSvc) ListAllVolumes(ctx context.Context, afterID string, count uint) ([]Volume, error) {
 	var afterUUID uuid.UUID
+	var err error
 
 	if afterID != "" {
-		afterUUID, err := uuid.FromString(afterID)
+		afterUUID, err = uuid.FromString(afterID)
 		if err != nil {
 			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
 		}
 	}
-	ctx = context.WithTimeout(ctx, time.Second / 2)
+	ctx, _ = context.WithTimeout(ctx, time.Second / 2)
 	vlist, err := rs.db.volumeListAll(ctx, afterUUID, count)
 	if err != nil {
 		switch err.(type) {
