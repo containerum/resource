@@ -782,7 +782,15 @@ func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, count uint) (nslist []Namespace, err error) {
+func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
+	var direction string = ctx.Value("direction").(string)
+	direction = strings.ToUpper(direction)
+	switch direction {
+	case "ASC", "DESC":
+	default:
+		return nil, BadInputError{Err{nil, "", "invalid sorting direction"}}
+	}
+
 	var rows *sql.Rows
 	rows, err = db.con.QueryContext(
 		ctx,
@@ -802,10 +810,11 @@ func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, c
 			n.max_traffic,
 			a.user_id
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
-		WHERE a.kind='Namespace' AND n.id >= $1
-		ORDER BY n.id LIMIT $2`,
+		WHERE a.kind='Namespace' AND n.create_time >= $1
+		ORDER BY n.create_time $3 LIMIT $2`,
 		after,
 		count,
+		direction,
 	)
 	if err != nil {
 		// Doesn not matter if context was canceled, it is an error
@@ -814,37 +823,131 @@ func (db resourceSvcDB) namespaceListAll(ctx context.Context, after uuid.UUID, c
 		return
 	}
 
-	for rows.Next() {
-		var ns Namespace
-		err = rows.Scan(
-			&ns.ID,
-			&ns.CreateTime,
-			&ns.Deleted,
-			&ns.DeleteTime,
-			&ns.TariffID,
-			&ns.Access,
-			&ns.AccessChangeTime,
-			&ns.Label,
-			&ns.RAM,
-			&ns.CPU,
-			&ns.MaxExtService,
-			&ns.MaxIntService,
-			&ns.MaxTraffic,
-			&ns.UserID,
-		)
-		if err != nil {
-			if ctx.Err() == context.Canceled && len(nslist) > 0 {
-				err = nil
+	go func() {
+		defer close(nsch)
+		defer rows.Close()
+		loop:
+		for rows.Next() {
+			var ns Namespace
+			err = rows.Scan(
+				&ns.ID,
+				&ns.CreateTime,
+				&ns.Deleted,
+				&ns.DeleteTime,
+				&ns.TariffID,
+				&ns.Access,
+				&ns.AccessChangeTime,
+				&ns.Label,
+				&ns.RAM,
+				&ns.CPU,
+				&ns.MaxExtService,
+				&ns.MaxIntService,
+				&ns.MaxTraffic,
+				&ns.UserID,
+			)
+			if err != nil {
+				if ctx.Err() == context.Canceled && len(nslist) > 0 {
+					err = nil
+					return
+				}
+				err = dbError{Err{err, "", err.Error()}}
+				nslist = nil
 				return
 			}
-			err = dbError{Err{err, "", err.Error()}}
-			nslist = nil
-			return
+			select {
+			case <-ctx.Done():
+				break loop
+			case nsch <- ns:
+			}
 		}
-		nslist = append(nslist, ns)
-	}
+	}()
+
 	return
 }
+
+func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.UUID, count uint) (nsch <-chan Namespace, err error) {
+	var direction string = ctx.Value("direction").(string)
+	direction = strings.ToUpper(direction)
+	switch direction {
+	case "ASC", "DESC":
+	default:
+		return nil, BadInputError{Err{nil, "", "invalid sorting direction"}}
+	}
+
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			n.id,
+			n.create_time,
+			n.deleted,
+			n.delete_time,
+			n.tariff_id,
+			a.access_level,
+			a.access_level_change_time,
+			a.resource_label,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic,
+			a.user_id
+		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		WHERE a.kind='Namespace' AND a.owner_user_id=a.user_id AND a.user_id >= $1
+		ORDER BY a.user_id $3 LIMIT $2`,
+		after,
+		count,
+		direction,
+	)
+	if err != nil {
+		// Doesn not matter if context was canceled, it is an error
+		// if this method doesn't return at least one result.
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+
+	go func() {
+		defer close(nsch)
+		defer rows.Close()
+	loop:
+		for rows.Next() {
+			var ns Namespace
+			err = rows.Scan(
+				&ns.ID,
+				&ns.CreateTime,
+				&ns.Deleted,
+				&ns.DeleteTime,
+				&ns.TariffID,
+				&ns.Access,
+				&ns.AccessChangeTime,
+				&ns.Label,
+				&ns.RAM,
+				&ns.CPU,
+				&ns.MaxExtService,
+				&ns.MaxIntService,
+				&ns.MaxTraffic,
+				&ns.UserID,
+			)
+			if err != nil {
+				if ctx.Err() == context.Canceled && len(nslist) > 0 {
+					err = nil
+					return
+				}
+				err = dbError{Err{err, "", err.Error()}}
+				nslist = nil
+				return
+			}
+			select {
+			case <-ctx.Done():
+				break loop
+			case nsch <- ns:
+			}
+		}
+	}()
+
+	return
+}
+
 
 func (db resourceSvcDB) volumeListAll(ctx context.Context, after uuid.UUID, count uint) (vlist []Volume, err error) {
 	var rows *sql.Rows
