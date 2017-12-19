@@ -485,12 +485,14 @@ func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff, user uuid.UUID, 
 			id,
 			capacity,
 			replicas,
-			tariff_id
-		) VALUES ($1,$2,$3,$4)`,
+			tariff_id,
+			is_persistent
+		) VALUES ($1,$2,$3,$4,$5)`,
 		volID,
 		tariff.StorageLimit,
 		tariff.ReplicasLimit,
 		tariff.TariffID,
+		tariff.IsPersistent,
 	)
 	if err != nil {
 		return
@@ -538,7 +540,8 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 			a.access_level,
 			a.access_level_change_time,
 			v.capacity,
-			v.replicas
+			v.replicas,
+			v.is_persistent
 		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
 		WHERE a.user_id=$1 AND a.kind='Volume'`,
 		user,
@@ -560,6 +563,7 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 			&vol.AccessChangeTime,
 			&vol.Storage,
 			&vol.Replicas,
+			&vol.Persistent,
 		)
 		if err != nil {
 			return
