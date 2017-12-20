@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"git.containerum.net/ch/resource-service/server/model"
@@ -31,6 +32,18 @@ type ResourceSvcInterface interface {
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 
+	// ListAll… methods don't ask for authorization, the frontend must bother with that.
+	// Obviously, the required access level is implied to be 'admin'.
+	//
+	// Context varialbes queried:
+	//    sort-by (string enum: "time", "owner_user_id")
+	//    sort-direction (string enum: "asc", "desc")
+	//    after-time (time.Time)
+	//    after-user (UUID)
+	//    count (uint)
+	//    limited (bool)
+	//    deleted (bool)
+	//
 	ListAllNamespaces(ctx context.Context) (<-chan Namespace, error)
 	ListAllVolumes(ctx context.Context) (<-chan Volume, error)
 }
@@ -102,7 +115,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		default:
 			return err
 		}
-		
+
 	}
 	defer tr.Rollback()
 
@@ -663,23 +676,12 @@ func keepCalmAndDontPanic(tag string) {
 	}
 }
 
-// ListAllNamespaces doesn't ask for authorization, frontend must bother with that.
-// Obviously, the required access level must be admin.
-//
-// Context varialbes queried:
-//    sort-by (string: "time", "owner_user_id")
-//    sort-direction (string: "asc", "desc")
-//    after (time.Time or string (UUID))
-//    count (uint)
-//    limited (bool)
-//    deleted (bool)
-//
 func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace, error) {
 	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- Namespace, input <-chan Namespace) {
 		defer cancel()
 		defer close(output)
 		for count >= 0 {
-			ns, ok := <- input
+			ns, ok := <-input
 			if ok {
 				output <- ns
 			} else {
@@ -705,15 +707,17 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 			}
 		}
 	}
+	//var insertVolumes = func(output chan<- Namespace, input <-chan Namespace){}
 	var err error
 	var ok bool
 	var CS <-chan Namespace
 	var C1, C2 chan Namespace
-	var sortBy string // "create_time" or "owner_user_id"
+	var sortBy, sortDir string // "create_time" or "owner_user_id"
 	var afterTime time.Time
 	var afterUser uuid.UUID
 	var count uint
 	var x interface{}
+	var str string
 
 	C1 = make(chan Namespace)
 	C1save := C1
@@ -727,34 +731,59 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 
 	if x = ctx.Value("sort-direction"); x == nil {
 		ctx = context.WithValue(ctx, "sort-direction", "ASC")
-	}
-
-	if x = ctx.Value("after-time"); x != nil {
-		if _, ok = x.(time.Time); ok {
-			afterTime = x.(time.Time)
+	} else if sortDir, ok = x.(string); !ok {
+		return nil, BadInputError{Err{nil, "INTERNAL", `context value "sort-direction" was not string`}}
+	} else {
+		sortDir = strings.ToUpper(sortDir)
+		switch sortDir {
+		case "ASC", "DESC":
+		default:
+			return nil, BadInputError{Err{
+				nil,
+				"INTERNAL",
+				`context value "sort-direction" was neither of: ASC, DESC`,
+			}}
 		}
 	}
 
+	if x = ctx.Value("after-time"); x != nil {
+		if _, ok = x.(time.Time); !ok {
+			return nil, BadInputError{Err{
+				nil,
+				"",
+				``,
+			}}
+		}
+		afterTime = x.(time.Time)
+	}
+
 	if x = ctx.Value("after-user"); x != nil {
-		if s, ok := x.(string); ok {
-			if afterUser, err = uuid.FromString(s); err != nil {
-				return nil, BadInputError{
-					Err{
-						err,
-						"",
-						fmt.Sprintf("invalid afterID, not a UUID: %v", err),
-					},
-				}
-			}
-		} else {
-			return nil, BadInputError{Err{err, "", `context value "after-user" was not string`}}
+		if str, ok = x.(string); !ok {
+			return nil, BadInputError{Err{
+				nil,
+				"",
+				`context value "after-user" was not string`,
+			}}
+		}
+		if afterUser, err = uuid.FromString(str); err != nil {
+			return nil, BadInputError{Err{
+				err,
+				"",
+				fmt.Sprintf("invalid context value after-user: cannot parse UUID: %v", err),
+			}}
 		}
 	}
 
 	if x = ctx.Value("count"); x != nil {
 		count = 20
 	} else if count, ok = x.(uint); !ok {
-		return nil, BadInputError{Err{nil, "INTERNAL", `context value "count" was not uint`}}
+		return nil, BadInputError{
+			Err{
+				nil,
+				"INTERNAL",
+				`context value "count" was not uint`,
+			},
+		}
 	}
 
 	var ctxCancel context.CancelFunc
@@ -789,7 +818,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	case "owner_user_id":
 		CS, err = rs.db.namespaceListAllByOwner(ctx, afterUser, count)
 	default:
-		return nil, BadInputError{Err{nil, "", "unknown sort key: "+sortBy}}
+		return nil, BadInputError{Err{nil, "", "unknown sort key: " + sortBy}}
 	}
 	if err != nil {
 		switch err.(type) {
@@ -811,27 +840,4 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 
 func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error) {
 	return nil, Err{nil, "INTERNAL", `not implemented`}
-//	var afterUUID uuid.UUID
-//	var err error
-//
-//	if afterID != "" {
-//		afterUUID, err = uuid.FromString(afterID)
-//		if err != nil {
-//			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
-//		}
-//	}
-//	ctx, _ = context.WithTimeout(ctx, time.Second / 2)
-//	vlist, err := rs.db.volumeListAll(ctx, afterUUID, count)
-//	if err != nil {
-//		switch err.(type) {
-//		case dbError:
-//			return nil, newError("database: %v", err)
-//		default:
-//			return nil, err
-//		}
-//	}
-//	if vlist == nil {
-//		vlist = []Volume{}
-//	}
-//	return vlist, nil
 }

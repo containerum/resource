@@ -312,14 +312,24 @@ func ListAllNamespaces(c *gin.Context) {
 	ctx = context.WithValue(ctx, "after", c.Query("after"))
 
 	logger.Info("list all namespaces")
-	res, err := srv.ListAllNamespaces(ctx)
+	nsch, err := srv.ListAllNamespaces(ctx)
 	if err != nil {
 		logger.Errorf("failed to list all namespaces: %v", err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 		return
 	}
-	c.IndentedJSON(200, res)
+	c.String(200, "[\n")
+	firstIter := true
+	for ns := range nsch {
+		if !firstIter {
+			c.String(200, ",\n")
+		} else {
+			firstIter = !firstIter
+		}
+		c.IndentedJSON(200, ns)
+	}
+	c.String(200, "\n]")
 }
 
 func ListAllVolumes(c *gin.Context) {

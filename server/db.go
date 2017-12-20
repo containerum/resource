@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"git.containerum.net/ch/resource-service/server/model"
@@ -784,14 +783,7 @@ func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
 }
 
 func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
-	var direction string = ctx.Value("sort-direction").(string)
-	direction = strings.ToUpper(direction)
-	switch direction {
-	case "ASC", "DESC":
-	default:
-		return nil, BadInputError{Err{nil, "", "invalid sorting direction"}}
-	}
-
+	var direction string = ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
 	var rows *sql.Rows
 	rows, err = db.con.QueryContext(
 		ctx,
@@ -812,10 +804,9 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 			a.user_id
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
 		WHERE a.kind='Namespace' AND n.create_time > $1
-		ORDER BY n.create_time $3 LIMIT $2`,
+		ORDER BY n.create_time `+direction+` LIMIT $2`,
 		after,
 		count,
-		direction,
 	)
 	if err != nil {
 		// Doesn not matter if context was canceled, it is an error
@@ -833,13 +824,6 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 
 func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.UUID, count uint) (nsch <-chan Namespace, err error) {
 	var direction string = ctx.Value("sort-direction").(string)
-	direction = strings.ToUpper(direction)
-	switch direction {
-	case "ASC", "DESC":
-	default:
-		return nil, BadInputError{Err{nil, "", "invalid sorting direction"}}
-	}
-
 	var rows *sql.Rows
 	rows, err = db.con.QueryContext(
 		ctx,
@@ -860,7 +844,7 @@ func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.
 			a.user_id
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
 		WHERE a.kind='Namespace' AND a.owner_user_id=a.user_id AND a.user_id > $1
-		ORDER BY a.user_id $3 LIMIT $2`,
+		ORDER BY a.user_id `+direction+` LIMIT $2`,
 		after,
 		count,
 		direction,
