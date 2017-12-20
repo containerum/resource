@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"context"
 	"strconv"
 
 	"git.containerum.net/ch/resource-service/server"
@@ -303,8 +304,15 @@ func ListAllNamespaces(c *gin.Context) {
 		return
 	}
 
+	ctx := context.WithValue(c.Request.Context(), "count", uint(count))
+	ctx = context.WithValue(ctx, "sort-by", c.Query("sort-by"))
+	ctx = context.WithValue(ctx, "sort-direction", c.Query("order"))
+	switch c.Query("sort-by") {
+	}
+	ctx = context.WithValue(ctx, "after", c.Query("after"))
+
 	logger.Info("list all namespaces")
-	res, err := srv.ListAllNamespaces(c.Request.Context(), c.Query("after"), uint(count))
+	res, err := srv.ListAllNamespaces(ctx)
 	if err != nil {
 		logger.Errorf("failed to list all namespaces: %v", err)
 		code, respObj := serverErrorResponse(err)
@@ -330,8 +338,12 @@ func ListAllVolumes(c *gin.Context) {
 		return
 	}
 
+	ctx := context.WithValue(c.Request.Context(), "count", uint(count))
+	ctx = context.WithValue(ctx, "sort-by", c.Query("sort-by"))
+	ctx = context.WithValue(ctx, "sort-direction", c.Query("order"))
+
 	logger.Info("list all volumes")
-	res, err := srv.ListAllVolumes(c.Request.Context(), c.Query("after"), uint(count))
+	res, err := srv.ListAllVolumes(ctx)
 	if err != nil {
 		logger.Errorf("failed to list all volumes: %v", err)
 		code, respObj := serverErrorResponse(err)

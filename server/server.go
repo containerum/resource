@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"git.containerum.net/ch/resource-service/server/model"
@@ -30,8 +31,8 @@ type ResourceSvcInterface interface {
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 
-	ListAllNamespaces(ctx context.Context, sortBy, after string, count uint) ([]Namespace, error)
-	ListAllVolumes(ctx context.Context, sortBy, after string, count uint) ([]Volume, error)
+	ListAllNamespaces(ctx context.Context) (<-chan Namespace, error)
+	ListAllVolumes(ctx context.Context) (<-chan Volume, error)
 }
 
 type ResourceSvc struct {
@@ -662,49 +663,175 @@ func keepCalmAndDontPanic(tag string) {
 	}
 }
 
-// ListAllNamespaces doesn't ask for authorization,
-// frontend must bother with that.
-func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context, count uint) ([]Namespace, error) {
-	var err error
-
-	ctx, _ = context.WithTimeout(ctx, time.Second / 2)
-	nslist, err := rs.db.namespaceListAll(ctx, afterUUID, count)
-	if err != nil {
-		switch err.(type) {
-		case dbError:
-			return nil, newError("database: %v", err)
-		default:
-			return nil, err
+// ListAllNamespaces doesn't ask for authorization, frontend must bother with that.
+// Obviously, the required access level must be admin.
+//
+// Context varialbes queried:
+//    sort-by (string: "time", "owner_user_id")
+//    sort-direction (string: "asc", "desc")
+//    after (time.Time or string (UUID))
+//    count (uint)
+//    limited (bool)
+//    deleted (bool)
+//
+func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace, error) {
+	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- Namespace, input <-chan Namespace) {
+		defer cancel()
+		defer close(output)
+		for count >= 0 {
+			ns, ok := <- input
+			if ok {
+				output <- ns
+			} else {
+				return
+			}
+			count--
 		}
 	}
-	if nslist == nil {
-		nslist = []Namespace{}
+	var filterLimited = func(lim bool, output chan<- Namespace, input <-chan Namespace) {
+		defer close(output)
+		for ns := range input {
+			// TODO
+			output <- ns
+		}
 	}
-	return nslist, nil
+	var filterDeleted = func(del bool, output chan<- Namespace, input <-chan Namespace) {
+		defer close(output)
+		for ns := range input {
+			if del && ns.Deleted != nil && *ns.Deleted {
+				output <- ns
+			} else if !del && ns.Deleted != nil && !*ns.Deleted {
+				output <- ns
+			}
+		}
+	}
+	var err error
+	var ok bool
+	var CS <-chan Namespace
+	var C1, C2 chan Namespace
+	var sortBy string // "create_time" or "owner_user_id"
+	var afterTime time.Time
+	var afterUser uuid.UUID
+	var count uint
+	var x interface{}
+
+	C1 = make(chan Namespace)
+	C1save := C1
+	C2 = make(chan Namespace)
+
+	if x = ctx.Value("sort-by"); x == nil {
+		sortBy = "create_time"
+	} else if sortBy, ok = x.(string); !ok {
+		return nil, BadInputError{Err{nil, "INTERNAL", `context value "sort-by" was not string`}}
+	}
+
+	if x = ctx.Value("sort-direction"); x == nil {
+		ctx = context.WithValue(ctx, "sort-direction", "ASC")
+	}
+
+	if x = ctx.Value("after-time"); x != nil {
+		if _, ok = x.(time.Time); ok {
+			afterTime = x.(time.Time)
+		}
+	}
+
+	if x = ctx.Value("after-user"); x != nil {
+		if s, ok := x.(string); ok {
+			if afterUser, err = uuid.FromString(s); err != nil {
+				return nil, BadInputError{
+					Err{
+						err,
+						"",
+						fmt.Sprintf("invalid afterID, not a UUID: %v", err),
+					},
+				}
+			}
+		} else {
+			return nil, BadInputError{Err{err, "", `context value "after-user" was not string`}}
+		}
+	}
+
+	if x = ctx.Value("count"); x != nil {
+		count = 20
+	} else if count, ok = x.(uint); !ok {
+		return nil, BadInputError{Err{nil, "INTERNAL", `context value "count" was not uint`}}
+	}
+
+	var ctxCancel context.CancelFunc
+	ctx, ctxCancel = context.WithCancel(ctx)
+	go filterCount(count, ctxCancel, C2, C1)
+	C1 = C2
+	C2 = make(chan Namespace)
+
+	if x = ctx.Value("limited"); x != nil {
+		var b bool
+		if b, ok = x.(bool); !ok {
+			return nil, BadInputError{Err{nil, "INTERNAL", `context value "limited" was not bool`}}
+		}
+		go filterLimited(b, C2, C1)
+		C1 = C2
+		C2 = make(chan Namespace)
+	}
+
+	if x = ctx.Value("deleted"); x != nil {
+		var b bool
+		if b, ok = x.(bool); !ok {
+			return nil, BadInputError{Err{nil, "INTERNAL", `context value "deleted" was not bool`}}
+		}
+		go filterDeleted(b, C2, C1)
+		C1 = C2
+		C2 = make(chan Namespace)
+	}
+
+	switch sortBy {
+	case "time":
+		CS, err = rs.db.namespaceListAllByTime(ctx, afterTime, count)
+	case "owner_user_id":
+		CS, err = rs.db.namespaceListAllByOwner(ctx, afterUser, count)
+	default:
+		return nil, BadInputError{Err{nil, "", "unknown sort key: "+sortBy}}
+	}
+	if err != nil {
+		switch err.(type) {
+		case BadInputError, Err, PermissionError:
+			return nil, err
+		default:
+			return nil, Err{err, "", fmt.Sprintf("database: %v", err)}
+		}
+	}
+	go func() {
+		defer close(C1save)
+		for ns := range CS {
+			C1save <- ns
+		}
+	}()
+
+	return C1, nil
 }
 
-func (rs *ResourceSvc) ListAllVolumes(ctx context.Context, after string, count uint) ([]Volume, error) {
-	var afterUUID uuid.UUID
-	var err error
-
-	if afterID != "" {
-		afterUUID, err = uuid.FromString(afterID)
-		if err != nil {
-			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
-		}
-	}
-	ctx, _ = context.WithTimeout(ctx, time.Second / 2)
-	vlist, err := rs.db.volumeListAll(ctx, afterUUID, count)
-	if err != nil {
-		switch err.(type) {
-		case dbError:
-			return nil, newError("database: %v", err)
-		default:
-			return nil, err
-		}
-	}
-	if vlist == nil {
-		vlist = []Volume{}
-	}
-	return vlist, nil
+func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error) {
+	return nil, Err{nil, "INTERNAL", `not implemented`}
+//	var afterUUID uuid.UUID
+//	var err error
+//
+//	if afterID != "" {
+//		afterUUID, err = uuid.FromString(afterID)
+//		if err != nil {
+//			return nil, newBadInputError("invalid afterID, not a UUID: %v", err)
+//		}
+//	}
+//	ctx, _ = context.WithTimeout(ctx, time.Second / 2)
+//	vlist, err := rs.db.volumeListAll(ctx, afterUUID, count)
+//	if err != nil {
+//		switch err.(type) {
+//		case dbError:
+//			return nil, newError("database: %v", err)
+//		default:
+//			return nil, err
+//		}
+//	}
+//	if vlist == nil {
+//		vlist = []Volume{}
+//	}
+//	return vlist, nil
 }

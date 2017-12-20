@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"git.containerum.net/ch/resource-service/server/model"
@@ -783,7 +784,7 @@ func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
 }
 
 func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
-	var direction string = ctx.Value("direction").(string)
+	var direction string = ctx.Value("sort-direction").(string)
 	direction = strings.ToUpper(direction)
 	switch direction {
 	case "ASC", "DESC":
@@ -810,7 +811,7 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 			n.max_traffic,
 			a.user_id
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
-		WHERE a.kind='Namespace' AND n.create_time >= $1
+		WHERE a.kind='Namespace' AND n.create_time > $1
 		ORDER BY n.create_time $3 LIMIT $2`,
 		after,
 		count,
@@ -823,50 +824,15 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 		return
 	}
 
-	go func() {
-		defer close(nsch)
-		defer rows.Close()
-		loop:
-		for rows.Next() {
-			var ns Namespace
-			err = rows.Scan(
-				&ns.ID,
-				&ns.CreateTime,
-				&ns.Deleted,
-				&ns.DeleteTime,
-				&ns.TariffID,
-				&ns.Access,
-				&ns.AccessChangeTime,
-				&ns.Label,
-				&ns.RAM,
-				&ns.CPU,
-				&ns.MaxExtService,
-				&ns.MaxIntService,
-				&ns.MaxTraffic,
-				&ns.UserID,
-			)
-			if err != nil {
-				if ctx.Err() == context.Canceled && len(nslist) > 0 {
-					err = nil
-					return
-				}
-				err = dbError{Err{err, "", err.Error()}}
-				nslist = nil
-				return
-			}
-			select {
-			case <-ctx.Done():
-				break loop
-			case nsch <- ns:
-			}
-		}
-	}()
+	nsch2 := make(chan Namespace)
+	nsch = nsch2
+	go streamNamespaces(ctx, nsch2, rows)
 
 	return
 }
 
 func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.UUID, count uint) (nsch <-chan Namespace, err error) {
-	var direction string = ctx.Value("direction").(string)
+	var direction string = ctx.Value("sort-direction").(string)
 	direction = strings.ToUpper(direction)
 	switch direction {
 	case "ASC", "DESC":
@@ -893,7 +859,7 @@ func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.
 			n.max_traffic,
 			a.user_id
 		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
-		WHERE a.kind='Namespace' AND a.owner_user_id=a.user_id AND a.user_id >= $1
+		WHERE a.kind='Namespace' AND a.owner_user_id=a.user_id AND a.user_id > $1
 		ORDER BY a.user_id $3 LIMIT $2`,
 		after,
 		count,
@@ -906,75 +872,52 @@ func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.
 		return
 	}
 
-	go func() {
-		defer close(nsch)
-		defer rows.Close()
-	loop:
-		for rows.Next() {
-			var ns Namespace
-			err = rows.Scan(
-				&ns.ID,
-				&ns.CreateTime,
-				&ns.Deleted,
-				&ns.DeleteTime,
-				&ns.TariffID,
-				&ns.Access,
-				&ns.AccessChangeTime,
-				&ns.Label,
-				&ns.RAM,
-				&ns.CPU,
-				&ns.MaxExtService,
-				&ns.MaxIntService,
-				&ns.MaxTraffic,
-				&ns.UserID,
-			)
-			if err != nil {
-				if ctx.Err() == context.Canceled && len(nslist) > 0 {
-					err = nil
-					return
-				}
-				err = dbError{Err{err, "", err.Error()}}
-				nslist = nil
-				return
-			}
-			select {
-			case <-ctx.Done():
-				break loop
-			case nsch <- ns:
-			}
-		}
-	}()
+	nsch2 := make(chan Namespace)
+	nsch = nsch2
+	go streamNamespaces(ctx, nsch2, rows)
 
 	return
 }
 
-
-func (db resourceSvcDB) volumeListAll(ctx context.Context, after uuid.UUID, count uint) (vlist []Volume, err error) {
-	var rows *sql.Rows
-	rows, err = db.con.QueryContext(
-		ctx,
-		`SELECT
-			v.id,
-			v.create_time,
-			v.deleted,
-			v.delete_time,
-			v.tariff_id,
-			a.resource_label,
-			a.access_level,
-			a.access_level_change_time,
-			v.capacity,
-			v.replicas,
-			a.user_id
-		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
-		WHERE a.kind='Volume' AND v.id >= $1
-		ORDER BY v.id LIMIT $2`,
-		after,
-		count,
-	)
-	if err != nil {
-		err = dbError{Err{err, "", err.Error()}}
-		return
+func streamNamespaces(ctx context.Context, ch chan<- Namespace, rows *sql.Rows) {
+	var err error
+	defer close(ch)
+	defer rows.Close()
+loop:
+	for rows.Next() {
+		var ns Namespace
+		err = rows.Scan(
+			&ns.ID,
+			&ns.CreateTime,
+			&ns.Deleted,
+			&ns.DeleteTime,
+			&ns.TariffID,
+			&ns.Access,
+			&ns.AccessChangeTime,
+			&ns.Label,
+			&ns.RAM,
+			&ns.CPU,
+			&ns.MaxExtService,
+			&ns.MaxIntService,
+			&ns.MaxTraffic,
+			&ns.UserID,
+		)
+		if err != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			break loop
+		case ch <- ns:
+		}
 	}
+}
+
+func streamVolumes(ctx context.Context, ch chan<- Volume, rows *sql.Rows) {
+	var err error
+	defer close(ch)
+	defer rows.Close()
+loop:
 	for rows.Next() {
 		var v Volume
 		err = rows.Scan(
@@ -991,15 +934,43 @@ func (db resourceSvcDB) volumeListAll(ctx context.Context, after uuid.UUID, coun
 			&v.UserID,
 		)
 		if err != nil {
-			if ctx.Err() == context.Canceled && len(vlist) > 0 {
-				err = nil
-				return
-			}
-			err = dbError{Err{err, "", err.Error()}}
-			vlist = nil
 			return
 		}
-		vlist = append(vlist, v)
+		select {
+		case <-ctx.Done():
+			break loop
+		case ch <- v:
+		}
 	}
+}
+
+func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after uuid.UUID, count uint) (vch chan Volume, err error) {
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			v.id,
+			v.create_time,
+			v.deleted,
+			v.delete_time,
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas,
+			a.user_id
+		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
+		WHERE a.kind='Volume' AND v.id > $1
+		ORDER BY v.id LIMIT $2`,
+		after,
+		count,
+	)
+	if err != nil {
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+	vch = make(chan Volume)
+	go streamVolumes(ctx, vch, rows)
 	return
 }
