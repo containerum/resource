@@ -1,8 +1,8 @@
 package httpapi
 
 import (
-	"errors"
 	"context"
+	"errors"
 	"strconv"
 
 	"git.containerum.net/ch/resource-service/server"
@@ -298,7 +298,7 @@ func ListAllNamespaces(c *gin.Context) {
 	if err != nil {
 		logger.Warnf("invalid integer in QP count: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": err.Error(),
+			"error":   err.Error(),
 			"errcode": "BAD_INPUT",
 		})
 		return
@@ -342,7 +342,7 @@ func ListAllVolumes(c *gin.Context) {
 	if err != nil {
 		logger.Warnf("invalid integer in QP count: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": err.Error(),
+			"error":   err.Error(),
 			"errcode": "BAD_INPUT",
 		})
 		return

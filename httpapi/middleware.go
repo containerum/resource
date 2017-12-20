@@ -94,7 +94,7 @@ func parseCreateResourceReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
@@ -109,7 +109,7 @@ func parseRenameReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
@@ -124,7 +124,7 @@ func parseLockReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
@@ -139,7 +139,7 @@ func parseSetAccessReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
