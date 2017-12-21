@@ -76,3 +76,16 @@ func newBadInputError(f string, args ...interface{}) BadInputError {
 func newDBError(f string, args ...interface{}) dbError {
 	return dbError{newError(f, args...)}
 }
+
+func dbErrorWrap(cause error) error {
+	switch cause.(type) {
+	case Err, dbError, PermissionError, BadInputError:
+		return cause
+	default:
+		return dbError{Err{
+			cause,
+			"INTERNAL",
+			cause.Error(),
+		}}
+	}
+}

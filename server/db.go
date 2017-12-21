@@ -256,12 +256,18 @@ func (db resourceSvcDB) namespaceSetLimited(owner uuid.UUID, ownerLabel string, 
 }
 
 func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
+	var resID, permID uuid.UUID
 
-	// check if the owner is really owner and get the resource_id
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	// get resource id
 	err = db.con.QueryRow(
 		`SELECT resource_id FROM accesses
-		WHERE user_id=owner_user_id AND user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
+		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
 		owner,
 		ownerLabel,
 	).Scan(&resID)
@@ -269,6 +275,33 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		}
+		return
+	}
+
+	// check if the owner is really owner
+	err = db.con.QueryRow(
+		`SELECT 1 FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND owner_user_id=user_id AND kind='Namespace'`,
+		resID,
+		owner,
+	).Scan(new(int))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrDenied
+		}
+		return
+	}
+
+	// decide on UPDATE v INSERT
+	err = db.con.QueryRow(
+		`SELECT id FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND kind='Namespace'`,
+		resID,
+		other,
+	).Scan(&permID)
+	if err == sql.ErrNoRows {
+		permID = uuid.Nil
+	} else if err != nil {
 		return
 	}
 
@@ -283,13 +316,34 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 		}
 	}()
 
-	_, err = tr.tx.Exec(
-		`UPDATE accesses SET access_level=$1, access_level_change_time=statement_timestamp()
-		WHERE resource_id=$2 AND user_id=$3`,
-		access,
-		resID,
-		other,
-	)
+	if permID == uuid.Nil {
+		_, err = tr.tx.Exec(
+			`INSERT INTO accesses (
+				id,
+				kind,
+				resource_id,
+				resource_label,
+				user_id,
+				owner_user_id,
+				access_level)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+			uuid.NewV4(),
+			"Namespace",
+			resID,
+			uuid.NewV4().String(), // TODO
+			other,
+			owner,
+			access,
+		)
+	} else {
+		_, err = tr.tx.Exec(
+			`UPDATE accesses SET access_level=$1, access_level_change_time=statement_timestamp()
+			WHERE resource_id=$2 AND user_id=$3`,
+			access,
+			resID,
+			other,
+		)
+	}
 	return
 }
 
