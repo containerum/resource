@@ -869,9 +869,11 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 		return
 	}
 
+	nsch1 := make(chan Namespace)
 	nsch2 := make(chan Namespace)
 	nsch = nsch2
-	go streamNamespaces(ctx, nsch2, rows)
+	go streamNamespaces(ctx, nsch1, rows)
+	go streamNSAddVolumes(ctx, db.con, nsch2, nsch1)
 
 	return
 }
@@ -910,9 +912,11 @@ func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.
 		return
 	}
 
+	nsch1 := make(chan Namespace)
 	nsch2 := make(chan Namespace)
 	nsch = nsch2
 	go streamNamespaces(ctx, nsch2, rows)
+	go streamNSAddVolumes(ctx, db.con, nsch2, nsch1)
 
 	return
 }
@@ -949,6 +953,62 @@ loop:
 		case ch <- ns:
 		}
 	}
+}
+
+func streamNSAddVolumes(ctx context.Context, con *sql.DB, out chan<- Namespace, in <-chan Namespace) {
+	log := logrus.StandardLogger().
+		WithField("function", "streamNSAddVolumes").
+		WithField("module", "git.containerum.net/ch/resource-service/server")
+	for ns := range in {
+		var rowsv *sql.Rows
+		var err error
+		rowsv, err = con.QueryContext(
+			ctx,
+			`SELECT
+				v.id,
+				v.create_time,
+				v.deleted,
+				v.delete_time,
+				v.tariff_id,
+				a.resource_label,
+				a.access_level,
+				a.access_level_change_time,
+				v.capacity,
+				v.replicas
+			FROM volumes v
+				INNER JOIN namespace_volume nv ON v.id = nv.vol_id
+				INNER JOIN accesses a ON a.resource_id = v.id
+			WHERE nv.ns_id=$1`,
+			ns.ID,
+		)
+		if err != nil {
+			log.Errorf("namespace volumes sql failed: %v", err)
+			goto sendns
+		}
+		for rowsv.Next() {
+			var v Volume
+			err = rowsv.Scan(
+				&v.ID,
+				&v.CreateTime,
+				&v.Deleted,
+				&v.DeleteTime,
+				&v.TariffID,
+				&v.Label,
+				&v.Access,
+				&v.AccessChangeTime,
+				&v.Storage,
+				&v.Replicas,
+			)
+			if err != nil {
+				break
+			}
+			ns.Volumes = append(ns.Volumes, v)
+		}
+		rowsv.Close()
+	sendns:
+		out <- ns
+	}
+	close(out)
 }
 
 func streamVolumes(ctx context.Context, ch chan<- Volume, rows *sql.Rows) {
