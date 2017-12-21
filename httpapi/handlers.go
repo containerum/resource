@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strconv"
 
 	"git.containerum.net/ch/resource-service/server"
@@ -108,7 +108,7 @@ func SetNamespaceLock(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	nsLabel := c.Param("namespace")
+	label := c.Param("namespace")
 	reqData := c.MustGet("request-data").(SetResourceLockRequest)
 
 	if reqData.Lock == nil {
@@ -121,13 +121,13 @@ func SetNamespaceLock(c *gin.Context) {
 	}
 
 	if *reqData.Lock {
-		logger.Infof("locking namespace %s user %s", nsLabel, userID)
+		logger.Infof("locking namespace %s user %s", label, userID)
 	} else {
-		logger.Infof("unlocking namespace %s user %s", nsLabel, userID)
+		logger.Infof("unlocking namespace %s user %s", label, userID)
 	}
-	err := srv.LockNamespace(c.Request.Context(), userID, nsLabel, *reqData.Lock)
+	err := srv.LockNamespace(c.Request.Context(), userID, label, *reqData.Lock)
 	if err != nil {
-		logger.Errorf("failed to lock access to namespace %s: %v", err)
+		logger.Errorf("failed to lock access to namespace %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -137,14 +137,14 @@ func SetNamespaceAccess(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	nsLabel := c.Param("namespace")
+	label := c.Param("namespace")
 	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
 
 	logger.Infof("setting access level %s to user %s on namespace %s of user %s",
-		reqData.Access, reqData.UserID, nsLabel, userID)
-	err := srv.ChangeNamespaceAccess(c.Request.Context(), userID, nsLabel, reqData.UserID, reqData.Access)
+		reqData.Access, reqData.UserID, label, userID)
+	err := srv.ChangeNamespaceAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to lock access to namespace %s: %v", err)
+		logger.Errorf("failed to set access to namespace %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -265,7 +265,7 @@ func SetVolumeLock(c *gin.Context) {
 	}
 	err := srv.LockVolume(c.Request.Context(), userID, label, *reqData.Lock)
 	if err != nil {
-		logger.Errorf("failed to lock access to volume %s: %v", err)
+		logger.Errorf("failed to lock access to volume %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -278,11 +278,11 @@ func SetVolumeAccess(c *gin.Context) {
 	label := c.Param("volume")
 	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
 
-	logger.Infof("set access: level=%s target-user=%s user=%s label=%s",
-		reqData.Access, reqData.UserID, userID, label)
+	logger.Infof("setting access level %s to user %s on volume %s of user %s",
+		reqData.Access, reqData.UserID, label, userID)
 	err := srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to lock access to volume %s: %v", err)
+		logger.Errorf("failed to set access to volume %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -293,19 +293,19 @@ func ListAllNamespaces(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	count, err := strconv.Atoi(c.Query("count"))
 	if count < 0 && err == nil {
-		err = errors.New("less than zero")
+		err = fmt.Errorf("less than zero")
 	}
 	if err != nil {
 		logger.Warnf("invalid integer in QP count: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   err.Error(),
+			"error":   fmt.Sprintf(`parsing query parameter "count": %v`, err),
 			"errcode": "BAD_INPUT",
 		})
 		return
 	}
 
 	ctx := context.WithValue(c.Request.Context(), "count", uint(count))
-	ctx = context.WithValue(ctx, "sort-by", c.Query("sort-by"))
+	ctx = context.WithValue(ctx, "sort-by", c.Query("by"))
 	ctx = context.WithValue(ctx, "sort-direction", c.Query("order"))
 	switch c.Query("sort-by") {
 	}
@@ -337,7 +337,7 @@ func ListAllVolumes(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	count, err := strconv.Atoi(c.Query("count"))
 	if count < 0 && err == nil {
-		err = errors.New("less than zero")
+		err = fmt.Errorf("less than zero")
 	}
 	if err != nil {
 		logger.Warnf("invalid integer in QP count: %v", err)
