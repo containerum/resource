@@ -298,7 +298,8 @@ func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t mode
 	// check if owner & ns_label exists by getting its ID
 	err = db.con.QueryRow(
 		`SELECT resource_id FROM accesses
-		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2`,
+		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
+			AND kind='Namespace'`,
 		owner,
 		label,
 	).Scan(&resID)
@@ -326,6 +327,11 @@ func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t mode
 		}}
 		return
 	}
+	defer func() {
+		if err != nil {
+			tr.Rollback()
+		}
+	}()
 
 	// and UPDATE tariff_id and the rest of the fields
 	_, err = tr.tx.Exec(

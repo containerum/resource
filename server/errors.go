@@ -8,7 +8,7 @@ type (
 	// Generic error type reported by resource-service.
 	Err struct {
 		Cause   error
-		ErrCode string
+		ErrCode string // TODO: fix the values for this field
 		errStr  string
 	}
 

@@ -15,6 +15,7 @@ import (
 
 type Kube interface {
 	CreateNamespace(ctx context.Context, name string, cpu, memory uint, label, access string) error
+	SetNamespaceQuota(ctx context.Context, name string, cpu, memory uint, label, access string) error
 	DeleteNamespace(ctx context.Context, name string) error
 }
 

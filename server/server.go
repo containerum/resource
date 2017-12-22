@@ -662,6 +662,79 @@ func keepCalmAndDontPanic(tag string) {
 }
 
 func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTariffID string) (err error) {
+	var user uuid.UUID
+	var tariff model.NamespaceTariff
+	var tr *dbTransaction
+	var ns Namespace
+
+	if user, err = uuid.FromString(userID); err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"cannot parse userID as UUID: "+err.Error(),
+		}}
+		return
+	}
+
+	tariff, err = rs.getNSTariff(ctx, newTariffID)
+	if err != nil {
+		err = OtherServiceError{Err{
+			err,
+			"SYSTEM",
+			"get namespace tariff: "+err.Error(),
+		}}
+		return
+	}
+
+	{
+		var nss []Namespace
+		nss, err = rs.db.namespaceList(user)
+		if err != nil {
+			err = Err{
+				err,
+				"",
+				"database, list namespaces: "+err.Error(),
+			}
+			return
+		}
+		for _, nsi := range nss {
+			if *nsi.Label == label && *nsi.UserID == user {
+				ns = nsi
+				break
+			}
+		}
+		if ns.ID == nil {
+			err = ErrNoSuchResource
+			return
+		}
+	}
+
+	tr, err = rs.db.namespaceSetTariff(user, label, tariff)
+	if err != nil {
+		err = Err{
+			err,
+			"INTERNAL",
+			"database, set tariff: "+err.Error(),
+		}
+		return
+	}
+	defer tr.Rollback()
+
+	if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID.String()); err != nil{
+		// TODO: don't fail if already subscribed
+		err = OtherServiceError{Err{
+			err,
+			``,
+			"billing error: "+err.Error(),
+		}}
+		return
+	}
+
+	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), *ns.Label, *ns.AccessLevel); err != nil {
+		jk
+	}
+
+	tr.Commit()
 }
 
 func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
