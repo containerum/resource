@@ -1042,7 +1042,8 @@ loop:
 	}
 }
 
-func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after uuid.UUID, count uint) (vch chan Volume, err error) {
+func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after time.Time, count uint) (vch chan Volume, err error) {
+	var direction string = ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
 	var rows *sql.Rows
 	rows, err = db.con.QueryContext(
 		ctx,
@@ -1059,8 +1060,8 @@ func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after uuid.UUID
 			v.replicas,
 			a.user_id
 		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
-		WHERE a.kind='Volume' AND v.id > $1
-		ORDER BY v.id LIMIT $2`,
+		WHERE a.kind='Volume' AND v.create_time > $1
+		ORDER BY v.create_time `+direction+` LIMIT $2`,
 		after,
 		count,
 	)

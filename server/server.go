@@ -33,10 +33,10 @@ type ResourceSvcInterface interface {
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 
 	// ListAll… methods don't ask for authorization, the frontend must bother with that.
-	// Obviously, the required access level is implied to be 'admin'.
+	// Obviously, the required access level is implied to be 'admin'. Output is always
+	// paginated.
 	//
 	// Context varialbes queried:
-	//    sort-by (string enum: "time", "owner_user_id")
 	//    sort-direction (string enum: "asc", "desc")
 	//    after-time (time.Time)
 	//    after-user (UUID)
@@ -707,27 +707,18 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 			}
 		}
 	}
-	//var insertVolumes = func(output chan<- Namespace, input <-chan Namespace){}
 	var err error
 	var ok bool
 	var CS <-chan Namespace
-	var C1, C2 chan Namespace
-	var sortBy, sortDir string // "create_time" or "owner_user_id"
+	var C1, C2 chan Namespace //last 2 links in the chain of post-processing goroutines
+	var sortDir string
 	var afterTime time.Time
-	var afterUser uuid.UUID
 	var count uint
 	var x interface{}
-	var str string
 
 	C1 = make(chan Namespace)
 	C1save := C1
 	C2 = make(chan Namespace)
-
-	if x = ctx.Value("sort-by"); x == nil {
-		sortBy = "create_time"
-	} else if sortBy, ok = x.(string); !ok {
-		return nil, BadInputError{Err{nil, "INTERNAL", `context value "sort-by" was not string`}}
-	}
 
 	if x = ctx.Value("sort-direction"); x == nil {
 		ctx = context.WithValue(ctx, "sort-direction", "ASC")
@@ -740,7 +731,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 		default:
 			return nil, BadInputError{Err{
 				nil,
-				"INTERNAL",
+				"BAD_INPUT",
 				`context value "sort-direction" was neither of: ASC, DESC`,
 			}}
 		}
@@ -750,32 +741,15 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 		if _, ok = x.(time.Time); !ok {
 			return nil, BadInputError{Err{
 				nil,
-				"",
-				``,
+				"INTERNAL",
+				`context value "after-time" was not time.Time`,
 			}}
 		}
 		afterTime = x.(time.Time)
 	}
 
-	if x = ctx.Value("after-user"); x != nil {
-		if str, ok = x.(string); !ok {
-			return nil, BadInputError{Err{
-				nil,
-				"",
-				`context value "after-user" was not string`,
-			}}
-		}
-		if afterUser, err = uuid.FromString(str); err != nil {
-			return nil, BadInputError{Err{
-				err,
-				"",
-				fmt.Sprintf("invalid context value after-user: cannot parse UUID: %v", err),
-			}}
-		}
-	}
-
-	if x = ctx.Value("count"); x != nil {
-		count = 20
+	if x = ctx.Value("count"); x == nil {
+		count = 50
 	} else if count, ok = x.(uint); !ok {
 		return nil, BadInputError{
 			Err{
@@ -812,14 +786,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 		C2 = make(chan Namespace)
 	}
 
-	switch sortBy {
-	case "time":
-		CS, err = rs.db.namespaceListAllByTime(ctx, afterTime, count)
-	case "owner_user_id":
-		CS, err = rs.db.namespaceListAllByOwner(ctx, afterUser, count)
-	default:
-		return nil, BadInputError{Err{nil, "", "unknown sort key: " + sortBy}}
-	}
+	CS, err = rs.db.namespaceListAllByTime(ctx, afterTime, count)
 	if err != nil {
 		switch err.(type) {
 		case BadInputError, Err, PermissionError:
@@ -839,5 +806,130 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 }
 
 func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error) {
-	return nil, Err{nil, "INTERNAL", `not implemented`}
+	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- Volume, input <-chan Volume) {
+		defer cancel()
+		defer close(output)
+		for count >= 0 {
+			v, ok := <-input
+			if ok {
+				output <- v
+			} else {
+				return
+			}
+			count--
+		}
+	}
+	var filterLimited = func(lim bool, output chan<- Volume, input <-chan Volume) {
+		defer close(output)
+		for v := range input {
+			// TODO
+			output <- v
+		}
+	}
+	var filterDeleted = func(del bool, output chan<- Volume, input <-chan Volume) {
+		defer close(output)
+		for v := range input {
+			if del && v.Deleted != nil && *v.Deleted {
+				output <- v
+			} else if !del && v.Deleted != nil && !*v.Deleted {
+				output <- v
+			}
+		}
+	}
+	var err error
+	var ok bool
+	var CS <-chan Volume
+	var C1, C2 chan Volume //last 2 links in the chain of post-processing goroutines
+	var sortDir string
+	var afterTime time.Time
+	var count uint
+	var x interface{}
+
+	C1 = make(chan Volume)
+	C1save := C1
+	C2 = make(chan Volume)
+
+	if x = ctx.Value("sort-direction"); x == nil {
+		ctx = context.WithValue(ctx, "sort-direction", "ASC")
+	} else if sortDir, ok = x.(string); !ok {
+		return nil, BadInputError{Err{nil, "INTERNAL", `context value "sort-direction" was not string`}}
+	} else {
+		sortDir = strings.ToUpper(sortDir)
+		switch sortDir {
+		case "ASC", "DESC":
+		default:
+			return nil, BadInputError{Err{
+				nil,
+				"BAD_INPUT",
+				`context value "sort-direction" was neither of: ASC, DESC`,
+			}}
+		}
+	}
+
+	if x = ctx.Value("after-time"); x != nil {
+		if _, ok = x.(time.Time); !ok {
+			return nil, BadInputError{Err{
+				nil,
+				"INTERNAL",
+				`context value "after-time" was not time.Time`,
+			}}
+		}
+		afterTime = x.(time.Time)
+	}
+
+	if x = ctx.Value("count"); x != nil {
+		count = 50
+	} else if count, ok = x.(uint); !ok {
+		return nil, BadInputError{
+			Err{
+				nil,
+				"INTERNAL",
+				`context value "count" was not uint`,
+			},
+		}
+	}
+
+	var ctxCancel context.CancelFunc
+	ctx, ctxCancel = context.WithCancel(ctx)
+	go filterCount(count, ctxCancel, C2, C1)
+	C1 = C2
+	C2 = make(chan Volume)
+
+	if x = ctx.Value("limited"); x != nil {
+		var b bool
+		if b, ok = x.(bool); !ok {
+			return nil, BadInputError{Err{nil, "INTERNAL", `context value "limited" was not bool`}}
+		}
+		go filterLimited(b, C2, C1)
+		C1 = C2
+		C2 = make(chan Volume)
+	}
+
+	if x = ctx.Value("deleted"); x != nil {
+		var b bool
+		if b, ok = x.(bool); !ok {
+			return nil, BadInputError{Err{nil, "INTERNAL", `context value "deleted" was not bool`}}
+		}
+		go filterDeleted(b, C2, C1)
+		C1 = C2
+		C2 = make(chan Volume)
+	}
+
+	CS, err = rs.db.volumeListAllByTime(ctx, afterTime, count)
+	if err != nil {
+		switch err.(type) {
+		case BadInputError, Err, PermissionError:
+			return nil, err
+		default:
+			return nil, Err{err, "", fmt.Sprintf("database: %v", err)}
+		}
+	}
+	go func() {
+		defer close(C1save)
+		for ns := range CS {
+			C1save <- ns
+		}
+	}()
+
+	return C1, nil
 }

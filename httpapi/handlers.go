@@ -2,8 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"git.containerum.net/ch/resource-service/server"
 
@@ -291,25 +289,7 @@ func SetVolumeAccess(c *gin.Context) {
 func ListAllNamespaces(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
-	count, err := strconv.Atoi(c.Query("count"))
-	if count < 0 && err == nil {
-		err = fmt.Errorf("less than zero")
-	}
-	if err != nil {
-		logger.Warnf("invalid integer in QP count: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   fmt.Sprintf(`parsing query parameter "count": %v`, err),
-			"errcode": "BAD_INPUT",
-		})
-		return
-	}
-
-	ctx := context.WithValue(c.Request.Context(), "count", uint(count))
-	ctx = context.WithValue(ctx, "sort-by", c.Query("by"))
-	ctx = context.WithValue(ctx, "sort-direction", c.Query("order"))
-	switch c.Query("sort-by") {
-	}
-	ctx = context.WithValue(ctx, "after", c.Query("after"))
+	ctx := c.MustGet("request-context").(context.Context)
 
 	logger.Info("list all namespaces")
 	nsch, err := srv.ListAllNamespaces(ctx)
@@ -330,35 +310,31 @@ func ListAllNamespaces(c *gin.Context) {
 		c.IndentedJSON(200, ns)
 	}
 	c.String(200, "\n]")
+
 }
 
 func ListAllVolumes(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
-	count, err := strconv.Atoi(c.Query("count"))
-	if count < 0 && err == nil {
-		err = fmt.Errorf("less than zero")
-	}
-	if err != nil {
-		logger.Warnf("invalid integer in QP count: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   err.Error(),
-			"errcode": "BAD_INPUT",
-		})
-		return
-	}
-
-	ctx := context.WithValue(c.Request.Context(), "count", uint(count))
-	ctx = context.WithValue(ctx, "sort-by", c.Query("sort-by"))
-	ctx = context.WithValue(ctx, "sort-direction", c.Query("order"))
+	ctx := c.MustGet("request-context").(context.Context)
 
 	logger.Info("list all volumes")
-	res, err := srv.ListAllVolumes(ctx)
+	vch, err := srv.ListAllVolumes(ctx)
 	if err != nil {
 		logger.Errorf("failed to list all volumes: %v", err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 		return
 	}
-	c.IndentedJSON(200, res)
+	c.String(200, "[\n")
+	firstIter := true
+	for v := range vch {
+		if !firstIter {
+			c.String(200, ",\n")
+		} else {
+			firstIter = false
+		}
+		c.IndentedJSON(200, v)
+	}
+	c.String(200, "\n]")
 }
