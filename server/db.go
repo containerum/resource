@@ -292,6 +292,69 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 	return
 }
 
+func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t model.NamespaceTariff) (tr *dbTransaction, err error) {
+	var resID uuid.UUID
+
+	// check if owner & ns_label exists by getting its ID
+	err = db.con.QueryRow(
+		`SELECT resource_id FROM accesses
+		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2`,
+		owner,
+		label,
+	).Scan(&resID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		} else {
+			err = dbError{Err{
+				err,
+				"INTERNAL",
+				"SELECT resource_id: "+err.Error(),
+			}}
+		}
+		return
+	}
+
+	// start txn
+	tr = new(dbTransaction)
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"BEGIN: " + err.Error(),
+		}}
+		return
+	}
+
+	// and UPDATE tariff_id and the rest of the fields
+	_, err = tr.tx.Exec(
+		`UPDATE namespaces SET
+			tariff_id=$2,
+			cpu=$3,
+			ram=$4,
+			max_traffic=$5,
+			max_ext_svc=$6,
+			max_int_svc=$7
+		WHERE id=$1`,
+		resID,
+		t.TariffID,
+		t.CpuLimit,
+		t.MemoryLimit,
+		t.Traffic,
+		t.ExternalServices,
+		t.InternalServices,
+	)
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"UPDATE namespaces ...: "+err.Error(),
+		}}
+	}
+	return
+}
+
 func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTransaction, err error) {
 	var alvl string
 	var limited bool

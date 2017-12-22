@@ -21,6 +21,7 @@ type ResourceSvcInterface interface {
 	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (Namespace, error)
 	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
+	ResizeNamespace(ctx context.Context, userID, label, newTariffID string) error
 
 	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
 	DeleteVolume(ctx context.Context, userID, vLabel string) error
@@ -29,6 +30,7 @@ type ResourceSvcInterface interface {
 	GetVolume(ctx context.Context, userID, label string, adminAction bool) (Volume, error)
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
+	ResizeVolume(ctx context.Context, userID, label, newTariffID string) error
 }
 
 type ResourceSvc struct {
@@ -657,4 +659,10 @@ func keepCalmAndDontPanic(tag string) {
 	if r := recover(); r != nil {
 		logrus.Errorf("%s: caught panic: %v", tag, r)
 	}
+}
+
+func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTariffID string) (err error) {
+}
+
+func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
 }
