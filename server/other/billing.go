@@ -134,8 +134,7 @@ func (b billingHTTP) String() string {
 	return fmt.Sprintf("billing http client: url=%v", b.u)
 }
 
-type billingStub struct {
-}
+type billingStub struct {}
 
 func NewBillingStub() Billing {
 	return billingStub{}
@@ -152,8 +151,6 @@ func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) e
 		userID, resourceID)
 	return nil
 }
-
-var someUUID = uuid.NewV4()
 
 func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
 	logrus.Infof("Billing.GetNamespaceTariff tariffID=%s", tariffID)
@@ -199,8 +196,6 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 	}
 	return nt, nil
 }
-
-var someUUID2 = uuid.NewV4()
 
 func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.VolumeTariff, error) {
 	logrus.Infof("Billing.GetVolumeTariff tariffID=%s", tariffID)
