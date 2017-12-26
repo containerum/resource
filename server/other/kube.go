@@ -86,7 +86,7 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 
 func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	refURL := &url.URL{
-		Path: "api/v1/namespaces/"+url.PathEscape(name),
+		Path: "api/v1/namespaces/" + url.PathEscape(name),
 	}
 	req, _ := http.NewRequest("DELETE", kub.u.ResolveReference(refURL).String(), nil)
 	xUserNamespaceBytes, _ := json.Marshal([]interface{}{
@@ -129,6 +129,56 @@ func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	return nil
 }
 
+func (k kube) SetNamespaceQuota(ctx context.Context, name string, cpu, memory uint, label, access string) (err error) {
+	refURL := &url.URL{
+		Path: "api/v1/namespaces/" + url.PathEscape(name) + "/resourcequotas/quota",
+	}
+	req, _ := http.NewRequest("PUT", k.u.ResolveReference(refURL).String(), nil)
+	xUserNamespaceBytes, _ := json.Marshal([]interface{}{
+		map[string]string{
+			"id":     name,
+			"access": "owner",
+		},
+	})
+	xUserNamespaceBase64 := base64.StdEncoding.EncodeToString(xUserNamespaceBytes)
+	req.Header.Set("x-user-namespace", xUserNamespaceBase64)
+	req = req.WithContext(ctx)
+	resp, err := k.c.Do(req)
+	if err != nil {
+		return fmt.Errorf("http error: %v", err)
+	}
+
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return fmt.Errorf("http error: %v", err)
+	}
+
+	if len(respBytes) > 0 {
+		var kubeErr KubeError
+		err = json.Unmarshal(respBytes, &kubeErr)
+		if err != nil {
+			kubeErr.Cause = err
+			kubeErr.errstr = "unmarshal response: " + err.Error()
+			err = kubeErr
+			return
+		}
+		if kubeErr.ErrorStr != "" {
+			err = kubeErr
+			return
+		}
+	}
+	if resp.StatusCode/100 != 2 {
+		ke := KubeError{
+			errstr: "kube api error: http status " + resp.Status,
+		}
+		err = ke
+		return
+	}
+
+	return nil
+}
+
 func (k kube) String() string {
 	return fmt.Sprintf("kube api http client: url=%v", k.u)
 }
@@ -150,6 +200,36 @@ func (kubeStub) DeleteNamespace(_ context.Context, name string) error {
 	return nil
 }
 
+func (kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memory uint, label, access string) error {
+	logrus.Infof("kubeStub.SetNamespaceQuota name=%s cpu=%d memory=%d label=%s access=%s",
+		name, cpu, memory, label, access)
+	return nil
+}
+
 func (kubeStub) String() string {
 	return "kube api dummy"
+}
+
+type KubeError struct {
+	ErrCode  string `json:"errcode,omitempty"`
+	ErrorStr string `json:"error,omitempty"`
+
+	Cause  error `json:"-"`
+	errstr string
+}
+
+func (ke KubeError) Error() string {
+	if ke.errstr != "" {
+		return ke.errstr
+	}
+	if ke.Cause != nil {
+		return ke.Cause.Error()
+	}
+	if ke.ErrorStr != "" {
+		return ke.ErrorStr
+	}
+	if ke.ErrCode != "" {
+		return ke.ErrCode
+	}
+	return "n/a"
 }

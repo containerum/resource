@@ -100,7 +100,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		default:
 			return err
 		}
-		
+
 	}
 	defer tr.Rollback()
 
@@ -294,12 +294,16 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 	var nss []Namespace
 	userUUID, err := uuid.FromString(userID)
 	if err != nil {
-		err = newBadInputError("invalid user ID, not a UUID: %v", userID, err)
+		err = BadInputError{Err{
+			err,
+			"BAD_INPUT",
+			"invalid user ID, not a UUID: " + err.Error(),
+		}}
 		return
 	}
 	nss, err = rs.db.namespaceList(userUUID)
 	if err != nil {
-		err = newError("database: get namespace: %v", err)
+		err = Err{err, "INTERNAL", "database: get namespace: " + err.Error()}
 		return
 	}
 	for i := range nss {
@@ -315,7 +319,11 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 
 	ns.Volumes, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 	if err != nil {
-		err = newError("database: list associated volumes for ns %s: %v", *ns.ID, err)
+		err = Err{
+			err,
+			"INTERNAL",
+			"database: list associated volumes for ns " + ns.ID.String() + ": " + err.Error(),
+		}
 		return
 	}
 
@@ -671,7 +679,7 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		err = BadInputError{Err{
 			err,
 			`BAD_INPUT`,
-			"cannot parse userID as UUID: "+err.Error(),
+			"cannot parse userID as UUID: " + err.Error(),
 		}}
 		return
 	}
@@ -681,31 +689,20 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		err = OtherServiceError{Err{
 			err,
 			"SYSTEM",
-			"get namespace tariff: "+err.Error(),
+			"get namespace tariff: " + err.Error(),
 		}}
 		return
 	}
 
-	{
-		var nss []Namespace
-		nss, err = rs.db.namespaceList(user)
-		if err != nil {
-			err = Err{
-				err,
-				"",
-				"database, list namespaces: "+err.Error(),
-			}
-			return
+	ns, err = rs.GetNamespace(ctx, userID, label, true)
+	if err != nil {
+		if err == ErrNoSuchResource || err == ErrDenied {
+			return err
 		}
-		for _, nsi := range nss {
-			if *nsi.Label == label && *nsi.UserID == user {
-				ns = nsi
-				break
-			}
-		}
-		if ns.ID == nil {
-			err = ErrNoSuchResource
-			return
+		return Err{
+			err,
+			"INTERNAL",
+			"get namespace: " + err.Error(),
 		}
 	}
 
@@ -714,28 +711,35 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		err = Err{
 			err,
 			"INTERNAL",
-			"database, set tariff: "+err.Error(),
+			"database, set tariff: " + err.Error(),
 		}
 		return
 	}
 	defer tr.Rollback()
 
-	if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID.String()); err != nil{
+	if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID.String()); err != nil {
 		// TODO: don't fail if already subscribed
 		err = OtherServiceError{Err{
 			err,
-			``,
-			"billing error: "+err.Error(),
+			`SYSTEM`,
+			"billing error: " + err.Error(),
 		}}
 		return
 	}
 
-	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), *ns.Label, *ns.AccessLevel); err != nil {
-		jk
+	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), *ns.Label, string(*ns.Access)); err != nil {
+		err = OtherServiceError{Err{
+			err,
+			`SYSTEM`,
+			"kube api error: " + err.Error(),
+		}}
 	}
 
 	tr.Commit()
+
+	return
 }
 
 func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
+	return
 }

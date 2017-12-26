@@ -278,7 +278,23 @@ func SetVolumeAccess(c *gin.Context) {
 		reqData.Access, reqData.UserID, userID, label)
 	err := srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to lock access to volume %s: %v", err)
+		logger.Errorf("failed to lock access to volume %s: %v", label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+	}
+}
+
+func ResizeNamespace(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData.Label = c.Param("namespace")
+
+	log.Infof("resize namespace: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)
+	err := srv.ResizeNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID)
+	if err != nil {
+		log.Errorf("failed to resize namespace %s: %v", reqData.Label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
