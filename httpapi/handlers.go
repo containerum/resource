@@ -299,6 +299,7 @@ func ListAllNamespaces(c *gin.Context) {
 		c.AbortWithStatusJSON(code, respObj)
 		return
 	}
+	c.Header("content-type", "application/json")
 	c.String(200, "[\n")
 	firstIter := true
 	for ns := range nsch {
@@ -326,6 +327,7 @@ func ListAllVolumes(c *gin.Context) {
 		c.AbortWithStatusJSON(code, respObj)
 		return
 	}
+	c.Header("content-type", "application/json")
 	c.String(200, "[\n")
 	firstIter := true
 	for v := range vch {
