@@ -2,6 +2,8 @@ package other
 
 import (
 	"encoding/json"
+
+	"git.containerum.net/ch/resource-service/server/model"
 )
 
 var fakeNSData = `
@@ -66,10 +68,11 @@ var fakeVolumeData = `
 ]
 `
 
-var fakeNSTariffs []NamespaceTariff
-var fakeVolumeTariffs []VolumeTariff
+var fakeNSTariffs []model.NamespaceTariff
+var fakeVolumeTariffs []model.VolumeTariff
 
 func init() {
+	var err error
 	err = json.Unmarshal([]byte(fakeNSData), &fakeNSTariffs)
 	if err != nil {
 		panic(err)

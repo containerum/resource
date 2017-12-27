@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	//"math/big"
 	"net/http"
 	"net/url"
 
 	"git.containerum.net/ch/resource-service/server/model"
 
-	uuid "github.com/satori/go.uuid"
+	//uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -134,7 +134,7 @@ func (b billingHTTP) String() string {
 	return fmt.Sprintf("billing http client: url=%v", b.u)
 }
 
-type billingStub struct {}
+type billingStub struct{}
 
 func NewBillingStub() Billing {
 	return billingStub{}
@@ -159,7 +159,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 			return ns, nil
 		}
 	}
-	return nt, BillingError{ErrCode: "NOT_FOUND", nil, "no such namespace tariff"}
+	return model.NamespaceTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such namespace tariff"}
 }
 
 func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.VolumeTariff, error) {
@@ -169,7 +169,7 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.
 			return v, nil
 		}
 	}
-	return vt, BillingError{ErrCode: "NOT_FOUND", nil, "no such volume tariff"}
+	return model.VolumeTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such volume tariff"}
 }
 
 func (billingStub) String() string {

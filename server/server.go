@@ -759,6 +759,7 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 
 func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
 	return
+}
 
 func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace, error) {
 	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- Namespace, input <-chan Namespace) {
