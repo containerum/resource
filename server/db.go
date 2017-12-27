@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -255,12 +256,18 @@ func (db resourceSvcDB) namespaceSetLimited(owner uuid.UUID, ownerLabel string, 
 }
 
 func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
+	var resID, permID uuid.UUID
 
-	// check if the owner is really owner and get the resource_id
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	// get resource id
 	err = db.con.QueryRow(
 		`SELECT resource_id FROM accesses
-		WHERE user_id=owner_user_id AND user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
+		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
 		owner,
 		ownerLabel,
 	).Scan(&resID)
@@ -268,6 +275,33 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		}
+		return
+	}
+
+	// check if the owner is really owner
+	err = db.con.QueryRow(
+		`SELECT 1 FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND owner_user_id=user_id AND kind='Namespace'`,
+		resID,
+		owner,
+	).Scan(new(int))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrDenied
+		}
+		return
+	}
+
+	// decide on UPDATE v INSERT
+	err = db.con.QueryRow(
+		`SELECT id FROM accesses
+		WHERE resource_id=$1 AND user_id=$2 AND kind='Namespace'`,
+		resID,
+		other,
+	).Scan(&permID)
+	if err == sql.ErrNoRows {
+		permID = uuid.Nil
+	} else if err != nil {
 		return
 	}
 
@@ -282,13 +316,34 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 		}
 	}()
 
-	_, err = tr.tx.Exec(
-		`UPDATE accesses SET access_level=$1, access_level_change_time=statement_timestamp()
-		WHERE resource_id=$2 AND user_id=$3`,
-		access,
-		resID,
-		other,
-	)
+	if permID == uuid.Nil {
+		_, err = tr.tx.Exec(
+			`INSERT INTO accesses (
+				id,
+				kind,
+				resource_id,
+				resource_label,
+				user_id,
+				owner_user_id,
+				access_level)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+			uuid.NewV4(),
+			"Namespace",
+			resID,
+			uuid.NewV4().String(), // TODO
+			other,
+			owner,
+			access,
+		)
+	} else {
+		_, err = tr.tx.Exec(
+			`UPDATE accesses SET access_level=$1, access_level_change_time=statement_timestamp()
+			WHERE resource_id=$2 AND user_id=$3`,
+			access,
+			resID,
+			other,
+		)
+	}
 	return
 }
 
@@ -848,4 +903,242 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 // byID is supposed to fetch any kind of model by searching all models for the id.
 func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
 	return nil, fmt.Errorf("not implemented")
+}
+
+func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
+	var direction string = ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			n.id,
+			n.create_time,
+			n.deleted,
+			n.delete_time,
+			n.tariff_id,
+			a.access_level,
+			a.access_level_change_time,
+			a.resource_label,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic,
+			a.user_id
+		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		WHERE a.kind='Namespace' AND n.create_time > $1
+		ORDER BY n.create_time `+direction+` LIMIT $2`,
+		after,
+		count,
+	)
+	if err != nil {
+		// Doesn not matter if context was canceled, it is an error
+		// if this method doesn't return at least one result.
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+
+	nsch1 := make(chan Namespace)
+	nsch2 := make(chan Namespace)
+	nsch = nsch2
+	go streamNamespaces(ctx, nsch1, rows)
+	go streamNSAddVolumes(ctx, db.con, nsch2, nsch1)
+
+	return
+}
+
+func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.UUID, count uint) (nsch <-chan Namespace, err error) {
+	var direction string = ctx.Value("sort-direction").(string)
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			n.id,
+			n.create_time,
+			n.deleted,
+			n.delete_time,
+			n.tariff_id,
+			a.access_level,
+			a.access_level_change_time,
+			a.resource_label,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic,
+			a.user_id
+		FROM namespaces n INNER JOIN accesses a ON a.resource_id=n.id
+		WHERE a.kind='Namespace' AND a.owner_user_id=a.user_id AND a.user_id > $1
+		ORDER BY a.user_id `+direction+` LIMIT $2`,
+		after,
+		count,
+		direction,
+	)
+	if err != nil {
+		// Doesn not matter if context was canceled, it is an error
+		// if this method doesn't return at least one result.
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+
+	nsch1 := make(chan Namespace)
+	nsch2 := make(chan Namespace)
+	nsch = nsch2
+	go streamNamespaces(ctx, nsch2, rows)
+	go streamNSAddVolumes(ctx, db.con, nsch2, nsch1)
+
+	return
+}
+
+func streamNamespaces(ctx context.Context, ch chan<- Namespace, rows *sql.Rows) {
+	var err error
+	defer close(ch)
+	defer rows.Close()
+loop:
+	for rows.Next() {
+		var ns Namespace
+		err = rows.Scan(
+			&ns.ID,
+			&ns.CreateTime,
+			&ns.Deleted,
+			&ns.DeleteTime,
+			&ns.TariffID,
+			&ns.Access,
+			&ns.AccessChangeTime,
+			&ns.Label,
+			&ns.RAM,
+			&ns.CPU,
+			&ns.MaxExtService,
+			&ns.MaxIntService,
+			&ns.MaxTraffic,
+			&ns.UserID,
+		)
+		if err != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			break loop
+		case ch <- ns:
+		}
+	}
+}
+
+func streamNSAddVolumes(ctx context.Context, con *sql.DB, out chan<- Namespace, in <-chan Namespace) {
+	log := logrus.StandardLogger().
+		WithField("function", "streamNSAddVolumes").
+		WithField("module", "git.containerum.net/ch/resource-service/server")
+	for ns := range in {
+		var rowsv *sql.Rows
+		var err error
+		rowsv, err = con.QueryContext(
+			ctx,
+			`SELECT
+				v.id,
+				v.create_time,
+				v.deleted,
+				v.delete_time,
+				v.tariff_id,
+				a.resource_label,
+				a.access_level,
+				a.access_level_change_time,
+				v.capacity,
+				v.replicas
+			FROM volumes v
+				INNER JOIN namespace_volume nv ON v.id = nv.vol_id
+				INNER JOIN accesses a ON a.resource_id = v.id
+			WHERE nv.ns_id=$1`,
+			ns.ID,
+		)
+		if err != nil {
+			log.Errorf("namespace volumes sql failed: %v", err)
+			goto sendns
+		}
+		for rowsv.Next() {
+			var v Volume
+			err = rowsv.Scan(
+				&v.ID,
+				&v.CreateTime,
+				&v.Deleted,
+				&v.DeleteTime,
+				&v.TariffID,
+				&v.Label,
+				&v.Access,
+				&v.AccessChangeTime,
+				&v.Storage,
+				&v.Replicas,
+			)
+			if err != nil {
+				break
+			}
+			ns.Volumes = append(ns.Volumes, v)
+		}
+		rowsv.Close()
+	sendns:
+		out <- ns
+	}
+	close(out)
+}
+
+func streamVolumes(ctx context.Context, ch chan<- Volume, rows *sql.Rows) {
+	var err error
+	defer close(ch)
+	defer rows.Close()
+loop:
+	for rows.Next() {
+		var v Volume
+		err = rows.Scan(
+			&v.ID,
+			&v.CreateTime,
+			&v.Deleted,
+			&v.DeleteTime,
+			&v.TariffID,
+			&v.Label,
+			&v.Access,
+			&v.AccessChangeTime,
+			&v.Storage,
+			&v.Replicas,
+			&v.UserID,
+		)
+		if err != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			break loop
+		case ch <- v:
+		}
+	}
+}
+
+func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after time.Time, count uint) (vch chan Volume, err error) {
+	var direction string = ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
+	var rows *sql.Rows
+	rows, err = db.con.QueryContext(
+		ctx,
+		`SELECT
+			v.id,
+			v.create_time,
+			v.deleted,
+			v.delete_time,
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas,
+			a.user_id
+		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
+		WHERE a.kind='Volume' AND v.create_time > $1
+		ORDER BY v.create_time `+direction+` LIMIT $2`,
+		after,
+		count,
+	)
+	if err != nil {
+		err = dbError{Err{err, "", err.Error()}}
+		return
+	}
+	vch = make(chan Volume)
+	go streamVolumes(ctx, vch, rows)
+	return
 }

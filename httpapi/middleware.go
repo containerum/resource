@@ -1,7 +1,11 @@
 package httpapi
 
 import (
+	"context"
+	"fmt"
 	"regexp"
+	"strconv"
+	"time"
 
 	"git.containerum.net/ch/resource-service/server"
 
@@ -94,7 +98,7 @@ func parseCreateResourceReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
@@ -109,7 +113,7 @@ func parseRenameReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
@@ -124,7 +128,7 @@ func parseLockReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
@@ -139,13 +143,23 @@ func parseSetAccessReq(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
 		c.AbortWithStatusJSON(400, map[string]string{
-			"error": "0x03",
+			"error":   "0x03",
 			"errcode": "BAD_INPUT",
 		})
 	}
 	log = log.WithField("request-data-type", "SetResourceAccessRequest")
 	c.Set("request-data", req)
 	c.Set("logger", log)
+}
+
+func rejectUnprivileged(c *gin.Context) {
+	admin := c.MustGet("admin-action").(bool)
+	if !admin {
+		c.AbortWithStatusJSON(401, map[string]string{
+			"errcode": "PERMISSION_DENIED",
+			"error":   "denied",
+		})
+	}
 }
 
 func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
@@ -155,24 +169,107 @@ func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
 	switch err {
 	case server.ErrNoSuchResource:
 		code = 404
+		obj["errcode"] = server.ErrNoSuchResource.ErrCode
 	case server.ErrAlreadyExists:
 		code = 422
+		obj["errcode"] = server.ErrAlreadyExists.ErrCode
 	case server.ErrDenied:
 		code = 401
+		obj["errcode"] = server.ErrDenied.ErrCode
 	default:
-		switch err.(type) {
+		switch etyped := err.(type) {
 		case server.Err:
 			code = 500
+			obj["errcode"] = etyped.ErrCode
 		case server.BadInputError:
 			code = 400
+			obj["errcode"] = etyped.Err.ErrCode
 		case server.OtherServiceError:
 			code = 503
+			obj["errcode"] = etyped.Err.ErrCode
 		case server.PermissionError:
 			code = 401
+			obj["errcode"] = etyped.Err.ErrCode
 		}
 	}
 
 	obj["error"] = "0x03"
 
 	return
+}
+
+func parseListAllResources(c *gin.Context) {
+	var err error
+	log := c.MustGet("logger").(*logrus.Entry)
+	ctx := c.Request.Context()
+
+	if countstr := c.Query("count"); countstr != "" {
+		count, err := strconv.Atoi(countstr)
+		if count < 0 && err == nil {
+			err = fmt.Errorf("less than zero")
+		}
+		if err != nil {
+			log.Warnf("invalid integer in QP count: %v", err)
+			c.AbortWithStatusJSON(400, map[string]string{
+				"error":   `parsing query parameter "count": ` + err.Error(),
+				"errcode": "BAD_INPUT",
+			})
+			return
+		} else {
+			ctx = context.WithValue(ctx, "count", uint(count))
+		}
+	} else {
+		ctx = context.WithValue(ctx, "count", uint(20))
+	}
+
+	if orderstr := c.Query("order"); orderstr != "" {
+		ctx = context.WithValue(ctx, "sort-direction", c.Query("order"))
+	}
+
+	if afterstr := c.Query("after"); afterstr != "" {
+		var afterTime time.Time
+		afterTime, err = time.Parse(time.RFC3339Nano, afterstr)
+		if err != nil {
+			log.Warnf("invalid timestamp in QP after: %v", err)
+			c.AbortWithStatusJSON(400, map[string]string{
+				"error":   `parsing query parameter "after": ` + err.Error(),
+				"errcode": "BAD_INPUT",
+			})
+			return
+		} else {
+			ctx = context.WithValue(ctx, "after-time", afterTime)
+		}
+	}
+
+	if boolstr := c.Query("deleted"); boolstr == "" {
+		ctx = context.WithValue(ctx, "deleted", false)
+	} else {
+		b, err := strconv.ParseBool(boolstr)
+		if err != nil {
+			log.Warnf("invalid boolean in QP deleted: %v", err)
+			c.AbortWithStatusJSON(400, map[string]string{
+				"error":   `parsing boolean query parameter "deleted": ` + err.Error(),
+				"errcode": "BAD_INPUT",
+			})
+			return
+		}
+		ctx = context.WithValue(ctx, "deleted", b)
+	}
+
+	if boolstr := c.Query("limited"); boolstr == "" {
+		ctx = context.WithValue(ctx, "limited", false)
+	} else {
+		b, err := strconv.ParseBool(boolstr)
+		if err != nil {
+			log.Warnf("invalid boolean in QP limited: %v", err)
+			c.AbortWithStatusJSON(400, map[string]string{
+				"error":   `parsing boolean query parameter "limited": ` + err.Error(),
+				"errcode": "BAD_INPUT",
+			})
+			return
+		}
+		ctx = context.WithValue(ctx, "limited", b)
+	}
+
+	c.Set("request-context", ctx)
 }

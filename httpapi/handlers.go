@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"context"
+
 	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
@@ -104,7 +106,7 @@ func SetNamespaceLock(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	nsLabel := c.Param("namespace")
+	label := c.Param("namespace")
 	reqData := c.MustGet("request-data").(SetResourceLockRequest)
 
 	if reqData.Lock == nil {
@@ -117,13 +119,13 @@ func SetNamespaceLock(c *gin.Context) {
 	}
 
 	if *reqData.Lock {
-		logger.Infof("locking namespace %s user %s", nsLabel, userID)
+		logger.Infof("locking namespace %s user %s", label, userID)
 	} else {
-		logger.Infof("unlocking namespace %s user %s", nsLabel, userID)
+		logger.Infof("unlocking namespace %s user %s", label, userID)
 	}
-	err := srv.LockNamespace(c.Request.Context(), userID, nsLabel, *reqData.Lock)
+	err := srv.LockNamespace(c.Request.Context(), userID, label, *reqData.Lock)
 	if err != nil {
-		logger.Errorf("failed to lock access to namespace %s: %v", err)
+		logger.Errorf("failed to lock access to namespace %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -133,14 +135,14 @@ func SetNamespaceAccess(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	nsLabel := c.Param("namespace")
+	label := c.Param("namespace")
 	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
 
 	logger.Infof("setting access level %s to user %s on namespace %s of user %s",
-		reqData.Access, reqData.UserID, nsLabel, userID)
-	err := srv.ChangeNamespaceAccess(c.Request.Context(), userID, nsLabel, reqData.UserID, reqData.Access)
+		reqData.Access, reqData.UserID, label, userID)
+	err := srv.ChangeNamespaceAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to lock access to namespace %s: %v", err)
+		logger.Errorf("failed to set access to namespace %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -261,7 +263,7 @@ func SetVolumeLock(c *gin.Context) {
 	}
 	err := srv.LockVolume(c.Request.Context(), userID, label, *reqData.Lock)
 	if err != nil {
-		logger.Errorf("failed to lock access to volume %s: %v", err)
+		logger.Errorf("failed to lock access to volume %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
@@ -274,14 +276,67 @@ func SetVolumeAccess(c *gin.Context) {
 	label := c.Param("volume")
 	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
 
-	logger.Infof("set access: level=%s target-user=%s user=%s label=%s",
-		reqData.Access, reqData.UserID, userID, label)
+	logger.Infof("setting access level %s to user %s on volume %s of user %s",
+		reqData.Access, reqData.UserID, label, userID)
 	err := srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to lock access to volume %s: %v", label, err)
+		logger.Errorf("failed to set access to volume %s: %v", label, err)
 		code, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(code, respObj)
 	}
+}
+
+func ListAllNamespaces(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	ctx := c.MustGet("request-context").(context.Context)
+
+	logger.Info("list all namespaces")
+	nsch, err := srv.ListAllNamespaces(ctx)
+	if err != nil {
+		logger.Errorf("failed to list all namespaces: %v", err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.String(200, "[\n")
+	firstIter := true
+	for ns := range nsch {
+		if !firstIter {
+			c.String(200, ",\n")
+		} else {
+			firstIter = !firstIter
+		}
+		c.IndentedJSON(200, ns)
+	}
+	c.String(200, "\n]")
+
+}
+
+func ListAllVolumes(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	logger := c.MustGet("logger").(*logrus.Entry)
+	ctx := c.MustGet("request-context").(context.Context)
+
+	logger.Info("list all volumes")
+	vch, err := srv.ListAllVolumes(ctx)
+	if err != nil {
+		logger.Errorf("failed to list all volumes: %v", err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.String(200, "[\n")
+	firstIter := true
+	for v := range vch {
+		if !firstIter {
+			c.String(200, ",\n")
+		} else {
+			firstIter = false
+		}
+		c.IndentedJSON(200, v)
+	}
+	c.String(200, "\n]")
 }
 
 func ResizeNamespace(c *gin.Context) {
