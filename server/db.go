@@ -816,6 +816,71 @@ func (db resourceSvcDB) volumeSetLimited(owner uuid.UUID, ownerLabel string, lim
 	return
 }
 
+func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t model.VolumeTariff) (tr *dbTransaction, err error) {
+	var resID uuid.UUID
+
+	// check if owner & ns_label exists by getting its ID
+	err = db.con.QueryRow(
+		`SELECT resource_id FROM accesses
+		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
+			AND kind='Volume'`,
+		owner,
+		label,
+	).Scan(&resID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		} else {
+			err = dbError{Err{
+				err,
+				"INTERNAL",
+				"SELECT resource_id: "+err.Error(),
+			}}
+		}
+		return
+	}
+
+	// start txn
+	tr = new(dbTransaction)
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"BEGIN: " + err.Error(),
+		}}
+		return
+	}
+	defer func() {
+		if err != nil {
+			tr.Rollback()
+		}
+	}()
+
+	// and UPDATE tariff_id and the rest of the fields
+	_, err = tr.tx.Exec(
+		`UPDATE volumes SET
+			tariff_id=$2,
+			capacity=$3,
+			replicas=$4,
+			is_persistent=$5
+		WHERE id=$1`,
+		resID,
+		t.TariffID,
+		t.StorageLimit,
+		t.ReplicasLimit,
+		t.IsPersistent,
+	)
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"UPDATE volumes ...: "+err.Error(),
+		}}
+	}
+	return
+}
+
 func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransaction, err error) {
 	var alvl string
 	var limited bool

@@ -32,6 +32,7 @@ func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
 	g.PUT("/volume/:volume/name", parseRenameReq, RenameVolume)
 	g.PUT("/volume/:volume/lock", parseLockReq, SetVolumeLock)
 	g.PUT("/volume/:volume/access", parseSetAccessReq, SetVolumeAccess)
+	g.PUT("/volume/:volume", parseCreateResourceReq, ResizeVolume)
 
 	g.GET("/adm/namespaces", rejectUnprivileged, parseListAllResources, ListAllNamespaces)
 	g.GET("/adm/volumes", rejectUnprivileged, parseListAllResources, ListAllVolumes)

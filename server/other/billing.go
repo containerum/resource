@@ -155,7 +155,7 @@ func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) e
 func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
 	logrus.Infof("billingStub.GetNamespaceTariff tariffID=%s", tariffID)
 	for _, ns := range fakeNSTariffs {
-		if ns.ID != nil && ns.ID.String() == tariffID {
+		if ns.TariffID != nil && ns.TariffID.String() == tariffID {
 			return ns, nil
 		}
 	}
@@ -165,7 +165,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (mod
 func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.VolumeTariff, error) {
 	logrus.Infof("billingStub.GetVolumeTariff tariffID=%s", tariffID)
 	for _, v := range fakeVolumeTariffs {
-		if v.ID != nil && v.ID.String() == tariffID {
+		if v.TariffID != nil && v.TariffID.String() == tariffID {
 			return v, nil
 		}
 	}

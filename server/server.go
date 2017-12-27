@@ -245,7 +245,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 
 	go func() {
 		defer keepCalmAndDontPanic("DeleteNamespace/mailer")
-		tariff, err := rs.getNSTariff(context.TODO(), nsTariffUUID.String())
+		tariff, err := rs.getNSTariff(ctx, nsTariffUUID.String())
 		if err != nil {
 			logrus.Warnf("failed to get namespace tariff %s: %v", nsTariffUUID.String(), err)
 			return
@@ -703,6 +703,16 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 
 	tariff, err = rs.getNSTariff(ctx, newTariffID)
 	if err != nil {
+		if errBilling, ok := err.(other.BillingError); ok {
+			if errBilling.ErrCode == "NOT_FOUND" {
+				err = BadInputError{Err{
+					err,
+					"NOT_FOUND",
+					"no such namespace tariff: " + err.Error(),
+				}}
+				return
+			}
+		}
 		err = OtherServiceError{Err{
 			err,
 			"SYSTEM",
@@ -728,7 +738,7 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		err = Err{
 			err,
 			"INTERNAL",
-			"database, set tariff: " + err.Error(),
+			"database, set namespace tariff: " + err.Error(),
 		}
 		return
 	}
@@ -758,6 +768,75 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 }
 
 func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
+	var user uuid.UUID
+	var tariff model.VolumeTariff
+	var tr *dbTransaction
+	var vol Volume
+
+	if user, err = uuid.FromString(userID); err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"cannot parse userID as UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	tariff, err = rs.getVolumeTariff(ctx, newTariffID)
+	if err != nil {
+		if errBilling, ok := err.(other.BillingError); ok {
+			if errBilling.ErrCode == "NOT_FOUND" {
+				err = BadInputError{Err{
+					err,
+					"NOT_FOUND",
+					"no such volume tariff: " + err.Error(),
+				}}
+				return
+			}
+		}
+		err = OtherServiceError{Err{
+			err,
+			"SYSTEM",
+			"get volume tariff: " + err.Error(),
+		}}
+		return
+	}
+
+	vol, err = rs.GetVolume(ctx, userID, label, true)
+	if err != nil {
+		if err == ErrNoSuchResource || err == ErrDenied {
+			return err
+		}
+		return Err{
+			err,
+			"INTERNAL",
+			"get volume: " + err.Error(),
+		}
+	}
+
+	tr, err = rs.db.volumeSetTariff(user, label, tariff)
+	if err != nil {
+		err = Err{
+			err,
+			"INTERNAL",
+			"database, set volume tariff: " + err.Error(),
+		}
+		return
+	}
+	defer tr.Rollback()
+
+	if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID.String()); err != nil {
+		// TODO: don't fail if already subscribed
+		err = OtherServiceError{Err{
+			err,
+			`SYSTEM`,
+			"billing error: " + err.Error(),
+		}}
+		return
+	}
+
+	tr.Commit()
+
 	return
 }
 
