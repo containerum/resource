@@ -801,6 +801,27 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 		}}
 		return
 	}
+	var missingFields []string
+	if tariff.IsPersistent == nil {
+		missingFields = append(missingFields, "is_persistent")
+	}
+	if tariff.StorageLimit == nil {
+		missingFields = append(missingFields, "storage_limit")
+	}
+	if tariff.IsActive == nil {
+		missingFields = append(missingFields, "is_active")
+	}
+	if tariff.IsPublic == nil {
+		missingFields = append(missingFields, "is_public")
+	}
+	if len(missingFields) > 0 {
+		err = Err{
+			nil,
+			"SYSTEM",
+			`volume tariff missing fields: ` + strings.Join(missingFields, " "),
+		}
+		return
+	}
 
 	vol, err = rs.GetVolume(ctx, userID, label, true)
 	if err != nil {
@@ -825,14 +846,16 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 	}
 	defer tr.Rollback()
 
-	if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID.String()); err != nil {
-		// TODO: don't fail if already subscribed
-		err = OtherServiceError{Err{
-			err,
-			`SYSTEM`,
-			"billing error: " + err.Error(),
-		}}
-		return
+	if *tariff.IsPersistent {
+		if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID.String()); err != nil {
+			// TODO: don't fail if already subscribed
+			err = OtherServiceError{Err{
+				err,
+				`SYSTEM`,
+				"billing error: " + err.Error(),
+			}}
+			return
+		}
 	}
 
 	tr.Commit()
