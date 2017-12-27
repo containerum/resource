@@ -25,6 +25,9 @@ type Namespace struct {
 	MaxTraffic    *int `json:"max_traffic,omitempty"`
 
 	Volumes []Volume `json:"volumes,omitempty"`
+
+	NewAccess *AccessLevel `json:"new_access,omitempty"`
+	Limited   *bool        `json:"limited,omitempty"`
 }
 
 type Volume struct {
@@ -41,6 +44,9 @@ type Volume struct {
 	Storage    *int  `json:"storage,omitempty"`
 	Replicas   *int  `json:"replicas,omitempty"`
 	Persistent *bool `json:"persistent,omitempty"`
+
+	NewAccess *AccessLevel `json:"new_access,omitempty"`
+	Limited   *bool        `json:"limited,omitempty"`
 }
 
 type Service struct {
