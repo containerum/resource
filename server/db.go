@@ -504,6 +504,45 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 	return
 }
 
+func (db resourceSvcDB) namespaceAccesses(nsID uuid.UUID) (ars []accessRecord, err error) {
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	rows, err := db.con.Query(
+		`SELECT
+			user_id,
+			access_level,
+			limited,
+			new_access_level,
+			access_level_change_time
+		FROM accesses
+		WHERE kind='Namespace' AND resource_id=$1`,
+		nsID,
+	)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ar accessRecord
+		err = rows.Scan(
+			&ar.UserID,
+			&ar.Access,
+			&ar.Limited,
+			&ar.NewAccess,
+			&ar.AccessChangeTime,
+		)
+		if err != nil {
+			return
+		}
+		ars = append(ars, ar)
+	}
+	return
+}
+
 func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID uuid.UUID) (tr *dbTransaction, err error) {
 	defer func() {
 		if err != nil {

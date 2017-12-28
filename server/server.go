@@ -24,6 +24,7 @@ type ResourceSvcInterface interface {
 	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
 	ResizeNamespace(ctx context.Context, userID, label, newTariffID string) error
+	GetNamespaceAccesses(ctx context.Context, userID, label string) (Namespace, error)
 
 	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
 	DeleteVolume(ctx context.Context, userID, vLabel string) error
@@ -1178,4 +1179,11 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	}()
 
 	return C1, nil
+}
+
+func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label) (ns Namespace, err error) {
+	ns, err = rs.GetNamespace(ctx, userID, label, true)
+	if err != nil {
+		return
+	}
 }

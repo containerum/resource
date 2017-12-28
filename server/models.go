@@ -27,6 +27,8 @@ type Namespace struct {
 	MaxTraffic    *int `json:"max_traffic,omitempty"`
 
 	Volumes []Volume `json:"volumes,omitempty"`
+
+	Users []accessRecord `json:"users,omitempty"`
 }
 
 type Volume struct {
@@ -59,3 +61,11 @@ const (
 	ARead       AccessLevel = "read"
 	ANone       AccessLevel = "none"
 )
+
+type accessRecord struct {
+	UserID           *uuid.UUID   `json:"user_id,omitempty"`
+	Access           *AccessLevel `json:"access_level,omitempty"`
+	Limited          *bool        `json:"limited,omitempty"`
+	NewAccess        *AccessLevel `json:"new_access_level,omitempty"`
+	AccessChangeTime *time.Time   `json:"access_level_change_time,omitempty"`
+}

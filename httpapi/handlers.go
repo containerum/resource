@@ -372,3 +372,20 @@ func ResizeVolume(c *gin.Context) {
 		c.AbortWithStatusJSON(code, respObj)
 	}
 }
+
+func GetNamespaceAccesses(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("namespace")
+
+	log.Infof("get accesses for namespace %s", label)
+	ns, err := srv.GetNamespaceAccesses(c.Request.Context(), userID, label)
+	if err != nil {
+		log.Errorf("failed to get accesses for namespace %s: %v", label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.IndentedJSON(200, ns)
+}
