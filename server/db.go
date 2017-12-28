@@ -504,14 +504,56 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 	return
 }
 
-func (db resourceSvcDB) namespaceAccesses(nsID uuid.UUID) (ars []accessRecord, err error) {
+func (db resourceSvcDB) namespaceAccesses(owner uuid.UUID, label string) (ns Namespace, err error) {
 	defer func() {
 		if err != nil {
 			err = dbErrorWrap(err)
 		}
 	}()
 
-	rows, err := db.con.Query(
+	err = db.con.QueryRow(
+		`SELECT
+			n.id,
+			n.create_time,
+			n.deleted,
+			n.delete_time,
+			a.user_id,
+			n.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic
+		FROM accesses a INNER JOIN namespaces n ON n.id=a.resource_id AND a.kind='Namespace'
+		WHERE a.owner_user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id`,
+		owner,
+		label,
+	).Scan(
+		&ns.ID,
+		&ns.CreateTime,
+		&ns.Deleted,
+		&ns.DeleteTime,
+		&ns.UserID,
+		&ns.TariffID,
+		&ns.Label,
+		&ns.Access,
+		&ns.AccessChangeTime,
+		&ns.RAM,
+		&ns.CPU,
+		&ns.MaxExtService,
+		&ns.MaxIntService,
+		&ns.MaxTraffic,
+	)
+	if err != nil {
+		err = ErrNoSuchResource
+		return
+	}
+
+	var rows *sql.Rows
+	rows, err = db.con.Query(
 		`SELECT
 			user_id,
 			access_level,
@@ -538,7 +580,7 @@ func (db resourceSvcDB) namespaceAccesses(nsID uuid.UUID) (ars []accessRecord, e
 		if err != nil {
 			return
 		}
-		ars = append(ars, ar)
+		ns.Users = append(ns.Users, ar)
 	}
 	return
 }

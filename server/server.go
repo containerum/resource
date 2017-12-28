@@ -1181,9 +1181,17 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	return C1, nil
 }
 
-func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label) (ns Namespace, err error) {
-	ns, err = rs.GetNamespace(ctx, userID, label, true)
+func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label string) (ns Namespace, err error) {
+	ns, err = rs.db.namespaceAccesses(*ns.ID)
 	if err != nil {
+		err = Err{
+			err,
+			`INTERNAL`,
+			"database: " + err.Error(),
+		}
+		ns = Namespace{}
 		return
 	}
+
+	return
 }
