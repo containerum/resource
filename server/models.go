@@ -17,6 +17,8 @@ type Namespace struct {
 	Label            *string      `json:"label,omitempty"`
 	Access           *AccessLevel `json:"access,omitempty"`
 	AccessChangeTime *time.Time   `json:"access_change_time,omitempty"`
+	Limited          *bool        `json:"limited,omitempty"`
+	NewAccess        *AccessLevel `json:"new_access,omitempty"`
 
 	RAM           *int `json:"ram,omitempty"`
 	CPU           *int `json:"cpu,omitempty"`
@@ -25,9 +27,6 @@ type Namespace struct {
 	MaxTraffic    *int `json:"max_traffic,omitempty"`
 
 	Volumes []Volume `json:"volumes,omitempty"`
-
-	NewAccess *AccessLevel `json:"new_access,omitempty"`
-	Limited   *bool        `json:"limited,omitempty"`
 }
 
 type Volume struct {
@@ -40,13 +39,12 @@ type Volume struct {
 	Label            *string      `json:"label,omitempty"`
 	Access           *AccessLevel `json:"access,omitempty"`
 	AccessChangeTime *time.Time   `json:"access_change_time,omitempty"`
+	Limited          *bool        `json:"limited,omitempty"`
+	NewAccess        *AccessLevel `json:"new_access,omitempty"`
 
 	Storage    *int  `json:"storage,omitempty"`
 	Replicas   *int  `json:"replicas,omitempty"`
 	Persistent *bool `json:"persistent,omitempty"`
-
-	NewAccess *AccessLevel `json:"new_access,omitempty"`
-	Limited   *bool        `json:"limited,omitempty"`
 }
 
 type Service struct {

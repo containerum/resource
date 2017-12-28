@@ -277,27 +277,60 @@ func (rs *ResourceSvc) RenameNamespace(ctx context.Context, userID, labelOld, la
 	return nil
 }
 
-func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
+func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
 	userUUID, err := uuid.FromString(userID)
 	if err != nil {
 		return nil, newBadInputError("invalid user ID, not a UUID: %v", userID, err)
 	}
-	namespaces, err := rm.db.namespaceList(userUUID)
+	namespaces, err := rs.db.namespaceList(userUUID)
 	if err != nil {
-		return nil, newError("database: list namespaces: %v", err)
+		return nil, Err{
+			err,
+			`INTERNAL`,
+			"database: list namespaces: " + err.Error(),
+		}
 	}
 	for i, ns := range namespaces {
-		namespaces[i].Volumes, err = rm.db.namespaceVolumeListAssoc(*ns.ID)
+		var avols []Volume
+		avols, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 		if err != nil {
-			return nil, newError("database: list associated volumes for ns %s: %v", *ns.ID, err)
+			return nil, Err{
+				err,
+				`INTERNAL`,
+				fmt.Sprintf("database: list associated volumes for ns %s: %v", *ns.ID, err),
+			}
 		}
+		var uservols []Volume
+		uservols, err = rs.ListVolumes(ctx, userID, true)
+		if err != nil {
+			return nil, Err{
+				err,
+				`INTERNAL`,
+				fmt.Sprintf("list volumes: %v", err),
+			}
+		}
+		for i := range uservols {
+			for j := range avols {
+				if *uservols[i].ID == *avols[j].ID {
+					ns.Volumes = append(ns.Volumes, uservols[i])
+				}
+			}
+		}
+
+		namespaces[i] = ns
 	}
 
 	if !adminAction {
 		for i := range namespaces {
 			namespaces[i].ID = nil
+			namespaces[i].Access = namespaces[i].NewAccess
+			namespaces[i].NewAccess = nil
+			namespaces[i].Limited = nil
 			for j := range namespaces[i].Volumes {
 				namespaces[i].Volumes[j].ID = nil
+				namespaces[i].Volumes[j].Access = namespaces[i].Volumes[j].NewAccess
+				namespaces[i].Volumes[j].NewAccess = nil
+				namespaces[i].Volumes[j].Limited = nil
 			}
 		}
 	}
@@ -334,20 +367,46 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 		return
 	}
 
-	ns.Volumes, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
+	var avols []Volume
+	avols, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 	if err != nil {
 		err = Err{
 			err,
-			"INTERNAL",
+			`INTERNAL`,
 			"database: list associated volumes for ns " + ns.ID.String() + ": " + err.Error(),
 		}
 		return
 	}
 
+	var uservols []Volume
+	uservols, err = rs.ListVolumes(ctx, userID, true)
+	if err != nil {
+		err = Err{
+			err,
+			`INTERNAL`,
+			"list volumes: " + err.Error(),
+		}
+		return
+	}
+
+	for i := range uservols {
+		for j := range avols {
+			if *uservols[i].ID == *avols[j].ID {
+				ns.Volumes = append(ns.Volumes, uservols[i])
+			}
+		}
+	}
+
 	if !adminAction {
 		ns.ID = nil
+		ns.Access = ns.NewAccess
+		ns.NewAccess = nil
+		ns.Limited = nil
 		for i := range ns.Volumes {
 			ns.Volumes[i].ID = nil
+			ns.Volumes[i].Access = ns.Volumes[i].NewAccess
+			ns.Volumes[i].NewAccess = nil
+			ns.Volumes[i].Limited = nil
 		}
 	}
 	return
