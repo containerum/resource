@@ -154,8 +154,9 @@ func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff, user uuid.
 			owner_user_id,
 			access_level,
 			access_level_change_time,
-			limited)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			limited,
+			new_access_level
+		) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 		uuid.NewV4(),
 		"Namespace",
 		nsID,
@@ -165,6 +166,7 @@ func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff, user uuid.
 		"owner",
 		time.Now(),
 		false,
+		"owner",
 	)
 	if err != nil {
 		return
@@ -182,9 +184,11 @@ func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err erro
 			n.deleted,
 			n.delete_time,
 			n.tariff_id,
+			a.resource_label,
 			a.access_level,
 			a.access_level_change_time,
-			a.resource_label,
+			a.limited,
+			a.new_access_level,
 			n.ram,
 			n.cpu,
 			n.max_ext_svc,
@@ -206,9 +210,11 @@ func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err erro
 			&ns.Deleted,
 			&ns.DeleteTime,
 			&ns.TariffID,
+			&ns.Label,
 			&ns.Access,
 			&ns.AccessChangeTime,
-			&ns.Label,
+			&ns.Limited,
+			&ns.NewAccess,
 			&ns.RAM,
 			&ns.CPU,
 			&ns.MaxExtService,
@@ -255,8 +261,9 @@ func (db resourceSvcDB) namespaceSetLimited(owner uuid.UUID, ownerLabel string, 
 	return
 }
 
-func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
-	var resID, permID uuid.UUID
+func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, label string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
+	var resID uuid.UUID
+	var doInsert bool
 
 	defer func() {
 		if err != nil {
@@ -267,9 +274,9 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 	// get resource id
 	err = db.con.QueryRow(
 		`SELECT resource_id FROM accesses
-		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
+		WHERE user_id=$1 AND resource_label=$2 AND owner_user_id=user_id AND kind='Namespace'`,
 		owner,
-		ownerLabel,
+		label,
 	).Scan(&resID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -278,31 +285,15 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 		return
 	}
 
-	// check if the owner is really owner
+	// UPDATE v INSERT
 	err = db.con.QueryRow(
 		`SELECT 1 FROM accesses
-		WHERE resource_id=$1 AND user_id=$2 AND owner_user_id=user_id AND kind='Namespace'`,
-		resID,
-		owner,
-	).Scan(new(int))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrDenied
-		}
-		return
-	}
-
-	// decide on UPDATE v INSERT
-	err = db.con.QueryRow(
-		`SELECT id FROM accesses
-		WHERE resource_id=$1 AND user_id=$2 AND kind='Namespace'`,
-		resID,
+		WHERE user_id=$1 AND resource_id=$2 AND kind='Namespace'`,
 		other,
-	).Scan(&permID)
+		resID,
+	).Scan(new(int))
 	if err == sql.ErrNoRows {
-		permID = uuid.Nil
-	} else if err != nil {
-		return
+		doInsert = true
 	}
 
 	tr = new(dbTransaction)
@@ -316,43 +307,130 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, ownerLabel string, o
 		}
 	}()
 
-	if permID == uuid.Nil {
+	if other == owner {
 		_, err = tr.tx.Exec(
-			`INSERT INTO accesses (
-				id,
-				kind,
-				resource_id,
-				resource_label,
-				user_id,
-				owner_user_id,
-				access_level)
-			VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			uuid.NewV4(),
-			"Namespace",
-			resID,
-			uuid.NewV4().String(), // TODO
-			other,
-			owner,
+			`UPDATE accesses SET new_access_level=$1
+			WHERE owner_user_id=$2 AND resource_id=$3 AND kind='Namespace'`,
 			access,
+			owner,
+			resID,
 		)
 	} else {
-		_, err = tr.tx.Exec(
-			`UPDATE accesses SET access_level=$1, access_level_change_time=statement_timestamp()
-			WHERE resource_id=$2 AND user_id=$3`,
-			access,
-			resID,
-			other,
-		)
+		if !doInsert {
+			_, err = tr.tx.Exec(
+				`UPDATE accesses SET new_access_level=$1
+				WHERE user_id=$2 AND resource_id=$3 AND kind='Namespace'`,
+				access,
+				other,
+				resID,
+			)
+		} else {
+			_, err = tr.tx.Exec(
+				`INSERT INTO accesses (
+					id,
+					kind,
+					resource_id,
+					resouce_label,
+					user_id,
+					owner_user_id,
+					access_level,
+					new_access_level
+				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+				uuid.NewV4(),
+				"Namespace",
+				resID,
+				uuid.NewV4().String(),
+				other,
+				owner,
+				access,
+				access,
+			)
+		}
+	}
+
+	return
+}
+
+func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t model.NamespaceTariff) (tr *dbTransaction, err error) {
+	var resID uuid.UUID
+
+	// check if owner & ns_label exists by getting its ID
+	err = db.con.QueryRow(
+		`SELECT resource_id FROM accesses
+		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
+			AND kind='Namespace'`,
+		owner,
+		label,
+	).Scan(&resID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		} else {
+			err = dbError{Err{
+				err,
+				"INTERNAL",
+				"SELECT resource_id: "+err.Error(),
+			}}
+		}
+		return
+	}
+
+	// start txn
+	tr = new(dbTransaction)
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"BEGIN: " + err.Error(),
+		}}
+		return
+	}
+	defer func() {
+		if err != nil {
+			tr.Rollback()
+		}
+	}()
+
+	// and UPDATE tariff_id and the rest of the fields
+	_, err = tr.tx.Exec(
+		`UPDATE namespaces SET
+			tariff_id=$2,
+			cpu=$3,
+			ram=$4,
+			max_traffic=$5,
+			max_ext_svc=$6,
+			max_int_svc=$7
+		WHERE id=$1`,
+		resID,
+		t.TariffID,
+		t.CpuLimit,
+		t.MemoryLimit,
+		t.Traffic,
+		t.ExternalServices,
+		t.InternalServices,
+	)
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"UPDATE namespaces ...: "+err.Error(),
+		}}
 	}
 	return
 }
 
 func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTransaction, err error) {
 	var alvl string
-	var limited bool
 	var owner uuid.UUID
 	var resID uuid.UUID
 	var subVolsCnt int
+
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
 
 	err = db.con.QueryRow(
 		`SELECT access_level, owner_user_id, resource_id
@@ -369,27 +447,6 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		}
-		return
-	}
-
-	err = db.con.QueryRow(
-		`SELECT limited
-		FROM accesses
-		WHERE resource_id=$1 AND user_id=$2 AND kind='Namespace'`,
-		resID,
-		owner,
-	).Scan(&limited)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = newError("database consistency error (namespaceDelete, SELECT limited FROM accesses ...)")
-		}
-		return
-	}
-	if limited {
-		alvl = "readdelete"
-	}
-	if !permCheck(alvl, "delete") {
-		err = ErrDenied
 		return
 	}
 
@@ -419,6 +476,7 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 			tr.Rollback()
 		}
 	}()
+
 	if owner == user {
 		_, err = tr.tx.Exec(
 			`UPDATE namespaces
@@ -432,15 +490,98 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 		}
 		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
+			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
 	} else {
 		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
 		if err != nil {
+			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
 	}
 
+	return
+}
+
+func (db resourceSvcDB) namespaceAccesses(owner uuid.UUID, label string) (ns Namespace, err error) {
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	err = db.con.QueryRow(
+		`SELECT
+			n.id,
+			n.create_time,
+			n.deleted,
+			n.delete_time,
+			a.user_id,
+			n.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			n.ram,
+			n.cpu,
+			n.max_ext_svc,
+			n.max_int_svc,
+			n.max_traffic
+		FROM accesses a INNER JOIN namespaces n ON n.id=a.resource_id
+		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id AND a.kind='Namespace'`,
+		owner,
+		label,
+	).Scan(
+		&ns.ID,
+		&ns.CreateTime,
+		&ns.Deleted,
+		&ns.DeleteTime,
+		&ns.UserID,
+		&ns.TariffID,
+		&ns.Label,
+		&ns.Access,
+		&ns.AccessChangeTime,
+		&ns.RAM,
+		&ns.CPU,
+		&ns.MaxExtService,
+		&ns.MaxIntService,
+		&ns.MaxTraffic,
+	)
+	if err != nil {
+		err = ErrNoSuchResource
+		return
+	}
+
+	var rows *sql.Rows
+	rows, err = db.con.Query(
+		`SELECT
+			user_id,
+			access_level,
+			limited,
+			new_access_level,
+			access_level_change_time
+		FROM accesses
+		WHERE kind='Namespace' AND resource_id=$1`,
+		ns.ID,
+	)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ar accessRecord
+		err = rows.Scan(
+			&ar.UserID,
+			&ar.Access,
+			&ar.Limited,
+			&ar.NewAccess,
+			&ar.AccessChangeTime,
+		)
+		if err != nil {
+			return
+		}
+		ns.Users = append(ns.Users, ar)
+	}
 	return
 }
 
@@ -475,8 +616,11 @@ func (db resourceSvcDB) namespaceVolumeListAssoc(nsID uuid.UUID) (vl []Volume, e
 			a.resource_label,
 			a.access_level,
 			a.access_level_change_time,
+			a.limited,
+			a.new_access_level,
 			v.capacity,
-			v.replicas
+			v.replicas,
+			v.is_persistent
 		FROM namespace_volume nv
 			INNER JOIN accesses a ON a.resource_id = nv.vol_id
 			INNER JOIN volumes v ON v.id = nv.vol_id
@@ -498,8 +642,11 @@ func (db resourceSvcDB) namespaceVolumeListAssoc(nsID uuid.UUID) (vl []Volume, e
 			&v.Label,
 			&v.Access,
 			&v.AccessChangeTime,
+			&v.Limited,
+			&v.NewAccess,
 			&v.Storage,
 			&v.Replicas,
+			&v.Persistent,
 		)
 		if err != nil {
 			return
@@ -562,8 +709,9 @@ func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff, user uuid.UUID, 
 			owner_user_id,
 			access_level,
 			access_level_change_time,
-			limited)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			limited,
+			new_access_level
+		) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 		uuid.NewV4(),
 		"Volume",
 		volID,
@@ -573,6 +721,7 @@ func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff, user uuid.UUID, 
 		"owner",
 		time.Now(),
 		false,
+		"owner",
 	)
 	if err != nil {
 		return
@@ -593,6 +742,8 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 			a.resource_label,
 			a.access_level,
 			a.access_level_change_time,
+			a.limited,
+			a.new_access_level,
 			v.capacity,
 			v.replicas,
 			v.is_persistent
@@ -615,6 +766,8 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 			&vol.Label,
 			&vol.Access,
 			&vol.AccessChangeTime,
+			&vol.Limited,
+			&vol.NewAccess,
 			&vol.Storage,
 			&vol.Replicas,
 			&vol.Persistent,
@@ -643,94 +796,6 @@ func (db resourceSvcDB) volumeRename(user uuid.UUID, oldname, newname string) (t
 	return
 }
 
-func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, ownerLabel string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
-	var permID uuid.UUID
-
-	// get resource id
-	err = db.con.QueryRow(
-		`SELECT resource_id FROM accesses
-		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
-		owner,
-		ownerLabel,
-	).Scan(&resID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		}
-		return
-	}
-
-	// check if owner really owns resource
-	err = db.con.QueryRow(
-		`SELECT 1 FROM accesses
-		WHERE resource_id=$1 AND user_id=$2 AND user_id=owner_user_id`,
-		resID,
-		owner,
-	).Scan(new(int))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrDenied
-		}
-		return
-	}
-
-	// decide if we need to INSERT or UPDATE a row
-	err = db.con.QueryRow(
-		`SELECT id FROM accesses
-		WHERE resource_id=$1 AND user_id=$2 AND kind='Volume'`,
-		resID,
-		other,
-	).Scan(&permID)
-	if err != nil && err != sql.ErrNoRows {
-		err = dbError{Err{err, "", err.Error()}}
-		return
-	}
-
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
-
-	if permID == uuid.Nil {
-		_, err = tr.tx.Exec(
-			`INSERT INTO accesses(
-				id,
-				kind,
-				resource_id,
-				resource_label,
-				user_id,
-				owner_user_id,
-				access_level
-			)
-			VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			uuid.NewV4(),
-			"Volume",
-			resID,
-			uuid.NewV4().String(), //FIXME
-			other,
-			owner,
-			access,
-		)
-	} else {
-		_, err = tr.tx.Exec(
-			`UPDATE accesses
-			SET access_level=$1, access_level_change_time=statement_timestamp()
-			WHERE resource_id=$2 AND user_id=$3`,
-			access,
-			resID,
-			other,
-		)
-	}
-	return
-}
-
 func (db resourceSvcDB) volumeSetLimited(owner uuid.UUID, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
@@ -747,11 +812,171 @@ func (db resourceSvcDB) volumeSetLimited(owner uuid.UUID, ownerLabel string, lim
 	return
 }
 
+func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, label string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
+	var resID uuid.UUID
+	var doInsert bool
+
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	// get resource id
+	err = db.con.QueryRow(
+		`SELECT resource_id FROM accesses
+		WHERE user_id=$1 AND resource_label=$2 AND owner_user_id=user_id AND kind='Volume'`,
+		owner,
+		label,
+	).Scan(&resID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		}
+		return
+	}
+
+	// UPDATE v INSERT
+	err = db.con.QueryRow(
+		`SELECT 1 FROM accesses
+		WHERE user_id=$1 AND resource_id=$2 AND kind='Volume'`,
+		other,
+		resID,
+	).Scan(new(int))
+	if err == sql.ErrNoRows {
+		doInsert = true
+	}
+
+	tr = new(dbTransaction)
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		return
+	}
+	defer func() {
+		if err != nil {
+			tr.Rollback()
+		}
+	}()
+
+	if other == owner {
+		_, err = tr.tx.Exec(
+			`UPDATE accesses SET new_access_level=$1
+			WHERE owner_user_id=$2 AND resource_id=$3 AND kind='Volume'`,
+			access,
+			owner,
+			resID,
+		)
+	} else {
+		if !doInsert {
+			_, err = tr.tx.Exec(
+				`UPDATE accesses SET new_access_level=$1
+				WHERE user_id=$2 AND resource_id=$3 AND kind='Volume'`,
+				access,
+				other,
+				resID,
+			)
+		} else {
+			_, err = tr.tx.Exec(
+				`INSERT INTO accesses (
+					id,
+					kind,
+					resource_id,
+					resouce_label,
+					user_id,
+					owner_user_id,
+					access_level,
+					new_access_level
+				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+				uuid.NewV4(),
+				"Volume",
+				resID,
+				uuid.NewV4().String(),
+				other,
+				owner,
+				access,
+				access,
+			)
+		}
+	}
+
+	return
+}
+
+func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t model.VolumeTariff) (tr *dbTransaction, err error) {
+	var resID uuid.UUID
+
+	// check if owner & ns_label exists by getting its ID
+	err = db.con.QueryRow(
+		`SELECT resource_id FROM accesses
+		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
+			AND kind='Volume'`,
+		owner,
+		label,
+	).Scan(&resID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		} else {
+			err = dbError{Err{
+				err,
+				"INTERNAL",
+				"SELECT resource_id: "+err.Error(),
+			}}
+		}
+		return
+	}
+
+	// start txn
+	tr = new(dbTransaction)
+	tr.tx, err = db.con.Begin()
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"BEGIN: " + err.Error(),
+		}}
+		return
+	}
+	defer func() {
+		if err != nil {
+			tr.Rollback()
+		}
+	}()
+
+	// and UPDATE tariff_id and the rest of the fields
+	_, err = tr.tx.Exec(
+		`UPDATE volumes SET
+			tariff_id=$2,
+			capacity=$3,
+			replicas=$4,
+			is_persistent=$5
+		WHERE id=$1`,
+		resID,
+		t.TariffID,
+		t.StorageLimit,
+		t.ReplicasLimit,
+		t.IsPersistent,
+	)
+	if err != nil {
+		err = dbError{Err{
+			err,
+			`INTERNAL`,
+			"UPDATE volumes ...: "+err.Error(),
+		}}
+	}
+	return
+}
+
 func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransaction, err error) {
 	var alvl string
-	var limited bool
 	var owner uuid.UUID
 	var resID uuid.UUID
+
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
 
 	err = db.con.QueryRow(
 		`SELECT access_level, owner_user_id, resource_id
@@ -768,26 +993,6 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		}
-		return
-	}
-	err = db.con.QueryRow(
-		`SELECT limited
-		FROM accesses
-		WHERE resource_id=$1 AND user_id=$2 AND kind='Volume'`,
-		resID,
-		owner,
-	).Scan(&limited)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = newError("database consistency error (volumeDelete, SELECT limited FROM accesses ...)")
-		}
-		return
-	}
-	if limited {
-		alvl = "readdelete"
-	}
-	if !permCheck(alvl, "delete") {
-		err = ErrDenied
 		return
 	}
 
@@ -815,19 +1020,101 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 
 		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
+			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
 		_, err = tr.tx.Exec(`DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
 		if err != nil {
+			err = fmt.Errorf("DELETE FROM namespace_volume ...: %[1]v <%[1]T>", err)
 			return
 		}
 	} else {
 		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
 		if err != nil {
+			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
 	}
 
+	return
+}
+
+func (db resourceSvcDB) volumeAccesses(owner uuid.UUID, label string) (vol Volume, err error) {
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	err = db.con.QueryRow(
+		`SELECT
+			v.id,
+			v.create_time,
+			v.deleted,
+			v.delete_time,
+			a.user_id,
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas,
+			v.is_persistent
+		FROM accesses a INNER JOIN volumes v ON v.id=a.resource_id
+		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id AND a.kind='Volume'`,
+		owner,
+		label,
+	).Scan(
+		&vol.ID,
+		&vol.CreateTime,
+		&vol.Deleted,
+		&vol.DeleteTime,
+		&vol.UserID,
+		&vol.TariffID,
+		&vol.Label,
+		&vol.Access,
+		&vol.AccessChangeTime,
+		&vol.Storage,
+		&vol.Replicas,
+		&vol.Persistent,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		}
+		return
+	}
+
+	var rows *sql.Rows
+	rows, err = db.con.Query(
+		`SELECT
+			user_id,
+			access_level,
+			limited,
+			new_access_level,
+			access_level_change_time
+		FROM accesses
+		WHERE kind='Volume' AND resource_id=$1`,
+		vol.ID,
+	)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ar accessRecord
+		err = rows.Scan(
+			&ar.UserID,
+			&ar.Access,
+			&ar.Limited,
+			&ar.NewAccess,
+			&ar.AccessChangeTime,
+		)
+		if err != nil {
+			return
+		}
+		vol.Users = append(vol.Users, ar)
+	}
 	return
 }
 

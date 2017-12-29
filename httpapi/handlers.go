@@ -340,3 +340,69 @@ func ListAllVolumes(c *gin.Context) {
 	}
 	c.String(200, "\n]")
 }
+
+func ResizeNamespace(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData.Label = c.Param("namespace")
+
+	log.Infof("resize namespace: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)
+	err := srv.ResizeNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID)
+	if err != nil {
+		log.Errorf("failed to resize namespace %s: %v", reqData.Label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+	}
+}
+
+func ResizeVolume(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData.Label = c.Param("volume")
+
+	log.Infof("resize volume: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)
+	err := srv.ResizeVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID)
+	if err != nil {
+		log.Errorf("failed to resize volume %s: %v", reqData.Label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+	}
+}
+
+func GetNamespaceAccesses(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("namespace")
+
+	log.Infof("get accesses for namespace %s", label)
+	ns, err := srv.GetNamespaceAccesses(c.Request.Context(), userID, label)
+	if err != nil {
+		log.Errorf("failed to get accesses for namespace %s: %v", label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.IndentedJSON(200, ns)
+}
+
+func GetVolumeAccesses(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("volume")
+
+	log.Infof("get accesses for volume %s", label)
+	ns, err := srv.GetVolumeAccesses(c.Request.Context(), userID, label)
+	if err != nil {
+		log.Errorf("failed to get accesses for namespace %s: %v", label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.IndentedJSON(200, ns)
+}

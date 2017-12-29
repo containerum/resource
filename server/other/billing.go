@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	//"math/big"
 	"net/http"
 	"net/url"
 
 	"git.containerum.net/ch/resource-service/server/model"
 
-	uuid "github.com/satori/go.uuid"
+	//uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -134,8 +134,7 @@ func (b billingHTTP) String() string {
 	return fmt.Sprintf("billing http client: url=%v", b.u)
 }
 
-type billingStub struct {
-}
+type billingStub struct{}
 
 func NewBillingStub() Billing {
 	return billingStub{}
@@ -153,76 +152,24 @@ func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) e
 	return nil
 }
 
-var someUUID = uuid.NewV4()
-
 func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
-	logrus.Infof("Billing.GetNamespaceTariff tariffID=%s", tariffID)
-	nt := model.NamespaceTariff{
-		ID:               new(uuid.UUID),
-		TariffID:         new(uuid.UUID),
-		CpuLimit:         new(int),
-		MemoryLimit:      new(int),
-		Traffic:          new(int),
-		ExternalServices: new(int),
-		InternalServices: new(int),
-		IsActive:         new(bool),
-		IsPublic:         new(bool),
-		Price:            new(big.Rat),
-		VV:               new(model.VolumeTariff),
-	}
-	*nt.ID = someUUID
-	*nt.TariffID = uuid.FromStringOrNil(tariffID)
-	*nt.CpuLimit = 20
-	*nt.MemoryLimit = 512
-	*nt.Traffic = 1000
-	*nt.ExternalServices = 10
-	*nt.InternalServices = 100
-	*nt.IsActive = true
-	*nt.IsPublic = true
-	nt.Price.SetFrac64(11, 10)
-	{
-		*nt.VV = model.VolumeTariff{
-			ID:            new(uuid.UUID),
-			TariffID:      new(uuid.UUID),
-			StorageLimit:  new(int),
-			ReplicasLimit: new(int),
-			IsActive:      new(bool),
-			IsPublic:      new(bool),
-			Price:         new(big.Rat),
+	logrus.Infof("billingStub.GetNamespaceTariff tariffID=%s", tariffID)
+	for _, ns := range fakeNSTariffs {
+		if ns.TariffID != nil && ns.TariffID.String() == tariffID {
+			return ns, nil
 		}
-		*nt.VV.ID = uuid.FromStringOrNil("e1eab7c4-31d4-4eba-9daf-5a4e77413594")
-		*nt.VV.TariffID = uuid.FromStringOrNil(tariffID[:len(tariffID)-4]+"1112")
-		*nt.VV.StorageLimit = 2
-		*nt.VV.ReplicasLimit = 1
-		*nt.VV.IsActive = true
-		*nt.VV.IsPublic = true
 	}
-	return nt, nil
+	return model.NamespaceTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such namespace tariff"}
 }
 
-var someUUID2 = uuid.NewV4()
-
 func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.VolumeTariff, error) {
-	logrus.Infof("Billing.GetVolumeTariff tariffID=%s", tariffID)
-	vt := model.VolumeTariff{
-		ID:            new(uuid.UUID),
-		TariffID:      new(uuid.UUID),
-		StorageLimit:  new(int),
-		ReplicasLimit: new(int),
-		IsActive:      new(bool),
-		IsPublic:      new(bool),
-		Price:         new(big.Rat),
-		IsPersistent:  new(bool),
+	logrus.Infof("billingStub.GetVolumeTariff tariffID=%s", tariffID)
+	for _, v := range fakeVolumeTariffs {
+		if v.TariffID != nil && v.TariffID.String() == tariffID {
+			return v, nil
+		}
 	}
-	*vt.ID = someUUID2
-	*vt.TariffID = uuid.FromStringOrNil(tariffID)
-	*vt.StorageLimit = 5
-	*vt.ReplicasLimit = 2
-	*vt.IsActive = true
-	*vt.IsPublic = true
-	vt.Price.SetFrac64(9, 10)
-	*vt.IsPersistent = false
-	return vt, nil
+	return model.VolumeTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such volume tariff"}
 }
 
 func (billingStub) String() string {
@@ -237,9 +184,9 @@ type BillingError struct {
 
 func (e BillingError) Error() string {
 	if e.Cause != nil {
-		return fmt.Sprintf("%s: %s: %v", e.ErrCode, e.Error, e.Cause)
+		return fmt.Sprintf("%s: %s: %v", e.ErrCode, e.error, e.Cause)
 	} else {
-		return fmt.Sprintf("%s: %s", e.ErrCode, e.Error)
+		return fmt.Sprintf("%s: %s", e.ErrCode, e.error)
 	}
 }
 

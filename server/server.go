@@ -23,6 +23,7 @@ type ResourceSvcInterface interface {
 	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (Namespace, error)
 	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
+	ResizeNamespace(ctx context.Context, userID, label, newTariffID string) error
 
 	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
 	DeleteVolume(ctx context.Context, userID, vLabel string) error
@@ -31,6 +32,7 @@ type ResourceSvcInterface interface {
 	GetVolume(ctx context.Context, userID, label string, adminAction bool) (Volume, error)
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
+	ResizeVolume(ctx context.Context, userID, label, newTariffID string) error
 
 	// ListAll… methods don't ask for authorization, the frontend must bother with that.
 	// Obviously, the required access level is implied to be 'admin'. Output is always
@@ -46,6 +48,10 @@ type ResourceSvcInterface interface {
 	//
 	ListAllNamespaces(ctx context.Context) (<-chan Namespace, error)
 	ListAllVolumes(ctx context.Context) (<-chan Volume, error)
+
+	// Admin-only access.
+	GetNamespaceAccesses(ctx context.Context, userID, label string) (Namespace, error)
+	GetVolumeAccesses(ctx context.Context, userID, label string) (Volume, error)
 }
 
 type ResourceSvc struct {
@@ -243,7 +249,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 
 	go func() {
 		defer keepCalmAndDontPanic("DeleteNamespace/mailer")
-		tariff, err := rs.getNSTariff(context.TODO(), nsTariffUUID.String())
+		tariff, err := rs.getNSTariff(ctx, nsTariffUUID.String())
 		if err != nil {
 			logrus.Warnf("failed to get namespace tariff %s: %v", nsTariffUUID.String(), err)
 			return
@@ -275,27 +281,60 @@ func (rs *ResourceSvc) RenameNamespace(ctx context.Context, userID, labelOld, la
 	return nil
 }
 
-func (rm *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
+func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
 	userUUID, err := uuid.FromString(userID)
 	if err != nil {
 		return nil, newBadInputError("invalid user ID, not a UUID: %v", userID, err)
 	}
-	namespaces, err := rm.db.namespaceList(userUUID)
+	namespaces, err := rs.db.namespaceList(userUUID)
 	if err != nil {
-		return nil, newError("database: list namespaces: %v", err)
+		return nil, Err{
+			err,
+			`INTERNAL`,
+			"database: list namespaces: " + err.Error(),
+		}
 	}
 	for i, ns := range namespaces {
-		namespaces[i].Volumes, err = rm.db.namespaceVolumeListAssoc(*ns.ID)
+		var avols []Volume
+		avols, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 		if err != nil {
-			return nil, newError("database: list associated volumes for ns %s: %v", *ns.ID, err)
+			return nil, Err{
+				err,
+				`INTERNAL`,
+				fmt.Sprintf("database: list associated volumes for ns %s: %v", *ns.ID, err),
+			}
 		}
+		var uservols []Volume
+		uservols, err = rs.ListVolumes(ctx, userID, true)
+		if err != nil {
+			return nil, Err{
+				err,
+				`INTERNAL`,
+				fmt.Sprintf("list volumes: %v", err),
+			}
+		}
+		for i := range uservols {
+			for j := range avols {
+				if *uservols[i].ID == *avols[j].ID {
+					ns.Volumes = append(ns.Volumes, uservols[i])
+				}
+			}
+		}
+
+		namespaces[i] = ns
 	}
 
 	if !adminAction {
 		for i := range namespaces {
 			namespaces[i].ID = nil
+			namespaces[i].Access = namespaces[i].NewAccess
+			namespaces[i].NewAccess = nil
+			namespaces[i].Limited = nil
 			for j := range namespaces[i].Volumes {
 				namespaces[i].Volumes[j].ID = nil
+				namespaces[i].Volumes[j].Access = namespaces[i].Volumes[j].NewAccess
+				namespaces[i].Volumes[j].NewAccess = nil
+				namespaces[i].Volumes[j].Limited = nil
 			}
 		}
 	}
@@ -309,12 +348,16 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 	var nss []Namespace
 	userUUID, err := uuid.FromString(userID)
 	if err != nil {
-		err = newBadInputError("invalid user ID, not a UUID: %v", userID, err)
+		err = BadInputError{Err{
+			err,
+			"BAD_INPUT",
+			"invalid user ID, not a UUID: " + err.Error(),
+		}}
 		return
 	}
 	nss, err = rs.db.namespaceList(userUUID)
 	if err != nil {
-		err = newError("database: get namespace: %v", err)
+		err = Err{err, "INTERNAL", "database: get namespace: " + err.Error()}
 		return
 	}
 	for i := range nss {
@@ -328,16 +371,46 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 		return
 	}
 
-	ns.Volumes, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
+	var avols []Volume
+	avols, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 	if err != nil {
-		err = newError("database: list associated volumes for ns %s: %v", *ns.ID, err)
+		err = Err{
+			err,
+			`INTERNAL`,
+			"database: list associated volumes for ns " + ns.ID.String() + ": " + err.Error(),
+		}
 		return
+	}
+
+	var uservols []Volume
+	uservols, err = rs.ListVolumes(ctx, userID, true)
+	if err != nil {
+		err = Err{
+			err,
+			`INTERNAL`,
+			"list volumes: " + err.Error(),
+		}
+		return
+	}
+
+	for i := range uservols {
+		for j := range avols {
+			if *uservols[i].ID == *avols[j].ID {
+				ns.Volumes = append(ns.Volumes, uservols[i])
+			}
+		}
 	}
 
 	if !adminAction {
 		ns.ID = nil
+		ns.Access = ns.NewAccess
+		ns.NewAccess = nil
+		ns.Limited = nil
 		for i := range ns.Volumes {
 			ns.Volumes[i].ID = nil
+			ns.Volumes[i].Access = ns.Volumes[i].NewAccess
+			ns.Volumes[i].NewAccess = nil
+			ns.Volumes[i].Limited = nil
 		}
 	}
 	return
@@ -676,6 +749,183 @@ func keepCalmAndDontPanic(tag string) {
 	}
 }
 
+func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTariffID string) (err error) {
+	var user uuid.UUID
+	var tariff model.NamespaceTariff
+	var tr *dbTransaction
+	var ns Namespace
+
+	if user, err = uuid.FromString(userID); err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"cannot parse userID as UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	tariff, err = rs.getNSTariff(ctx, newTariffID)
+	if err != nil {
+		if errBilling, ok := err.(other.BillingError); ok {
+			if errBilling.ErrCode == "NOT_FOUND" {
+				err = BadInputError{Err{
+					err,
+					"NOT_FOUND",
+					"no such namespace tariff: " + err.Error(),
+				}}
+				return
+			}
+		}
+		err = OtherServiceError{Err{
+			err,
+			"SYSTEM",
+			"get namespace tariff: " + err.Error(),
+		}}
+		return
+	}
+
+	ns, err = rs.GetNamespace(ctx, userID, label, true)
+	if err != nil {
+		if err == ErrNoSuchResource || err == ErrDenied {
+			return err
+		}
+		return Err{
+			err,
+			"INTERNAL",
+			"get namespace: " + err.Error(),
+		}
+	}
+
+	tr, err = rs.db.namespaceSetTariff(user, label, tariff)
+	if err != nil {
+		err = Err{
+			err,
+			"INTERNAL",
+			"database, set namespace tariff: " + err.Error(),
+		}
+		return
+	}
+	defer tr.Rollback()
+
+	if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID.String()); err != nil {
+		// TODO: don't fail if already subscribed
+		err = OtherServiceError{Err{
+			err,
+			`SYSTEM`,
+			"billing error: " + err.Error(),
+		}}
+		return
+	}
+
+	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), *ns.Label, string(*ns.Access)); err != nil {
+		err = OtherServiceError{Err{
+			err,
+			`SYSTEM`,
+			"kube api error: " + err.Error(),
+		}}
+	}
+
+	tr.Commit()
+
+	return
+}
+
+func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
+	var user uuid.UUID
+	var tariff model.VolumeTariff
+	var tr *dbTransaction
+	var vol Volume
+
+	if user, err = uuid.FromString(userID); err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"cannot parse userID as UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	tariff, err = rs.getVolumeTariff(ctx, newTariffID)
+	if err != nil {
+		if errBilling, ok := err.(other.BillingError); ok {
+			if errBilling.ErrCode == "NOT_FOUND" {
+				err = BadInputError{Err{
+					err,
+					"NOT_FOUND",
+					"no such volume tariff: " + err.Error(),
+				}}
+				return
+			}
+		}
+		err = OtherServiceError{Err{
+			err,
+			"SYSTEM",
+			"get volume tariff: " + err.Error(),
+		}}
+		return
+	}
+	var missingFields []string
+	if tariff.IsPersistent == nil {
+		missingFields = append(missingFields, "is_persistent")
+	}
+	if tariff.StorageLimit == nil {
+		missingFields = append(missingFields, "storage_limit")
+	}
+	if tariff.IsActive == nil {
+		missingFields = append(missingFields, "is_active")
+	}
+	if tariff.IsPublic == nil {
+		missingFields = append(missingFields, "is_public")
+	}
+	if len(missingFields) > 0 {
+		err = Err{
+			nil,
+			"SYSTEM",
+			`volume tariff missing fields: ` + strings.Join(missingFields, " "),
+		}
+		return
+	}
+
+	vol, err = rs.GetVolume(ctx, userID, label, true)
+	if err != nil {
+		if err == ErrNoSuchResource || err == ErrDenied {
+			return err
+		}
+		return Err{
+			err,
+			"INTERNAL",
+			"get volume: " + err.Error(),
+		}
+	}
+
+	tr, err = rs.db.volumeSetTariff(user, label, tariff)
+	if err != nil {
+		err = Err{
+			err,
+			"INTERNAL",
+			"database, set volume tariff: " + err.Error(),
+		}
+		return
+	}
+	defer tr.Rollback()
+
+	if *tariff.IsPersistent {
+		if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID.String()); err != nil {
+			// TODO: don't fail if already subscribed
+			err = OtherServiceError{Err{
+				err,
+				`SYSTEM`,
+				"billing error: " + err.Error(),
+			}}
+			return
+		}
+	}
+
+	tr.Commit()
+
+	return
+}
+
 func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace, error) {
 	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- Namespace, input <-chan Namespace) {
 		defer cancel()
@@ -932,4 +1182,58 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	}()
 
 	return C1, nil
+}
+
+func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label string) (ns Namespace, err error) {
+	var userUUID uuid.UUID
+
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"invalid user ID, not a UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	ns, err = rs.db.namespaceAccesses(userUUID, label)
+	if err != nil {
+		err = Err{
+			err,
+			`INTERNAL`,
+			"database: " + err.Error(),
+		}
+		ns = Namespace{}
+		return
+	}
+
+	return
+}
+
+func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label string) (vol Volume, err error) {
+	var userUUID uuid.UUID
+
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"invalid user ID, not a UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	vol, err = rs.db.volumeAccesses(userUUID, label)
+	if err != nil {
+		err = Err{
+			err,
+			`INTERNAL`,
+			"database: " + err.Error(),
+		}
+		vol = Volume{}
+		return
+	}
+
+	return
 }

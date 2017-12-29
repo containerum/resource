@@ -37,3 +37,6 @@
 [submodule "vendor/gopkg.in/yaml.v2"]
 	path = vendor/gopkg.in/yaml.v2
 	url = https://gopkg.in/yaml.v2
+[submodule "vendor/github.com/shopspring/decimal"]
+	path = vendor/github.com/shopspring/decimal
+	url = https://github.com/shopspring/decimal
