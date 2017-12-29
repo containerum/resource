@@ -527,8 +527,8 @@ func (db resourceSvcDB) namespaceAccesses(owner uuid.UUID, label string) (ns Nam
 			n.max_ext_svc,
 			n.max_int_svc,
 			n.max_traffic
-		FROM accesses a INNER JOIN namespaces n ON n.id=a.resource_id AND a.kind='Namespace'
-		WHERE a.owner_user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id`,
+		FROM accesses a INNER JOIN namespaces n ON n.id=a.resource_id
+		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id AND a.kind='Namespace'`,
 		owner,
 		label,
 	).Scan(
@@ -562,7 +562,7 @@ func (db resourceSvcDB) namespaceAccesses(owner uuid.UUID, label string) (ns Nam
 			access_level_change_time
 		FROM accesses
 		WHERE kind='Namespace' AND resource_id=$1`,
-		nsID,
+		ns.ID,
 	)
 	if err != nil {
 		return
@@ -1036,6 +1036,85 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 		}
 	}
 
+	return
+}
+
+func (db resourceSvcDB) volumeAccesses(owner uuid.UUID, label string) (vol Volume, err error) {
+	defer func() {
+		if err != nil {
+			err = dbErrorWrap(err)
+		}
+	}()
+
+	err = db.con.QueryRow(
+		`SELECT
+			v.id,
+			v.create_time,
+			v.deleted,
+			v.delete_time,
+			a.user_id,
+			v.tariff_id,
+			a.resource_label,
+			a.access_level,
+			a.access_level_change_time,
+			v.capacity,
+			v.replicas,
+			v.is_persistent
+		FROM accesses a INNER JOIN volumes v ON v.id=a.resource_id
+		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id AND a.kind='Volume'`,
+		owner,
+		label,
+	).Scan(
+		&vol.ID,
+		&vol.CreateTime,
+		&vol.Deleted,
+		&vol.DeleteTime,
+		&vol.UserID,
+		&vol.TariffID,
+		&vol.Label,
+		&vol.Access,
+		&vol.AccessChangeTime,
+		&vol.Storage,
+		&vol.Replicas,
+		&vol.Persistent,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = ErrNoSuchResource
+		}
+		return
+	}
+
+	var rows *sql.Rows
+	rows, err = db.con.Query(
+		`SELECT
+			user_id,
+			access_level,
+			limited,
+			new_access_level,
+			access_level_change_time
+		FROM accesses
+		WHERE kind='Volume' AND resource_id=$1`,
+		vol.ID,
+	)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ar accessRecord
+		err = rows.Scan(
+			&ar.UserID,
+			&ar.Access,
+			&ar.Limited,
+			&ar.NewAccess,
+			&ar.AccessChangeTime,
+		)
+		if err != nil {
+			return
+		}
+		vol.Users = append(vol.Users, ar)
+	}
 	return
 }
 

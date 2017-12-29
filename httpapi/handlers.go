@@ -389,3 +389,20 @@ func GetNamespaceAccesses(c *gin.Context) {
 	}
 	c.IndentedJSON(200, ns)
 }
+
+func GetVolumeAccesses(c *gin.Context) {
+	srv := c.MustGet("server").(server.ResourceSvcInterface)
+	log := c.MustGet("logger").(*logrus.Entry)
+	userID := c.MustGet("user-id").(string)
+	label := c.Param("volume")
+
+	log.Infof("get accesses for volume %s", label)
+	ns, err := srv.GetVolumeAccesses(c.Request.Context(), userID, label)
+	if err != nil {
+		log.Errorf("failed to get accesses for namespace %s: %v", label, err)
+		code, respObj := serverErrorResponse(err)
+		c.AbortWithStatusJSON(code, respObj)
+		return
+	}
+	c.IndentedJSON(200, ns)
+}

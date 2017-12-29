@@ -24,7 +24,6 @@ type ResourceSvcInterface interface {
 	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
 	ResizeNamespace(ctx context.Context, userID, label, newTariffID string) error
-	GetNamespaceAccesses(ctx context.Context, userID, label string) (Namespace, error)
 
 	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
 	DeleteVolume(ctx context.Context, userID, vLabel string) error
@@ -49,6 +48,10 @@ type ResourceSvcInterface interface {
 	//
 	ListAllNamespaces(ctx context.Context) (<-chan Namespace, error)
 	ListAllVolumes(ctx context.Context) (<-chan Volume, error)
+
+	// Admin-only access.
+	GetNamespaceAccesses(ctx context.Context, userID, label string) (Namespace, error)
+	GetVolumeAccesses(ctx context.Context, userID, label string) (Volume, error)
 }
 
 type ResourceSvc struct {
@@ -1182,7 +1185,19 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 }
 
 func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label string) (ns Namespace, err error) {
-	ns, err = rs.db.namespaceAccesses(*ns.ID)
+	var userUUID uuid.UUID
+
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"invalid user ID, not a UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	ns, err = rs.db.namespaceAccesses(userUUID, label)
 	if err != nil {
 		err = Err{
 			err,
@@ -1190,6 +1205,33 @@ func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label s
 			"database: " + err.Error(),
 		}
 		ns = Namespace{}
+		return
+	}
+
+	return
+}
+
+func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label string) (vol Volume, err error) {
+	var userUUID uuid.UUID
+
+	userUUID, err = uuid.FromString(userID)
+	if err != nil {
+		err = BadInputError{Err{
+			err,
+			`BAD_INPUT`,
+			"invalid user ID, not a UUID: " + err.Error(),
+		}}
+		return
+	}
+
+	vol, err = rs.db.volumeAccesses(userUUID, label)
+	if err != nil {
+		err = Err{
+			err,
+			`INTERNAL`,
+			"database: " + err.Error(),
+		}
+		vol = Volume{}
 		return
 	}
 

@@ -47,6 +47,8 @@ type Volume struct {
 	Storage    *int  `json:"storage,omitempty"`
 	Replicas   *int  `json:"replicas,omitempty"`
 	Persistent *bool `json:"persistent,omitempty"`
+
+	Users []accessRecord `json:"users,omitempty"`
 }
 
 type Service struct {
