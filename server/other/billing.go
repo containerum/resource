@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"git.containerum.net/ch/resource-service/server/model"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 
 	//uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
@@ -19,8 +19,8 @@ type Billing interface {
 	Subscribe(ctx context.Context, userID, tariffID, resourceID string) error
 	Unsubscribe(ctx context.Context, userID, resourceID string) error
 
-	GetNamespaceTariff(ctx context.Context, id string) (model.NamespaceTariff, error)
-	GetVolumeTariff(ctx context.Context, id string) (model.VolumeTariff, error)
+	GetNamespaceTariff(ctx context.Context, id string) (rstypes.NamespaceTariff, error)
+	GetVolumeTariff(ctx context.Context, id string) (rstypes.VolumeTariff, error)
 }
 
 type billingHTTP struct {
@@ -84,7 +84,7 @@ func (b billingHTTP) Unsubscribe(ctx context.Context, userID, resourceID string)
 	return nil
 }
 
-func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (nst model.NamespaceTariff, err error) {
+func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (nst rstypes.NamespaceTariff, err error) {
 	refURL := &url.URL{
 		Path: "/namespace_tariffs",
 	}
@@ -107,7 +107,7 @@ func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (n
 	return
 }
 
-func (b billingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (vt model.VolumeTariff, err error) {
+func (b billingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (vt rstypes.VolumeTariff, err error) {
 	refURL := &url.URL{
 		Path: "/volume_tariffs",
 	}
@@ -152,24 +152,24 @@ func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) e
 	return nil
 }
 
-func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (model.NamespaceTariff, error) {
+func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (rstypes.NamespaceTariff, error) {
 	logrus.Infof("billingStub.GetNamespaceTariff tariffID=%s", tariffID)
 	for _, ns := range fakeNSTariffs {
-		if ns.TariffID != nil && ns.TariffID.String() == tariffID {
+		if ns.TariffID != "" && ns.TariffID == tariffID {
 			return ns, nil
 		}
 	}
-	return model.NamespaceTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such namespace tariff"}
+	return rstypes.NamespaceTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such namespace tariff"}
 }
 
-func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (model.VolumeTariff, error) {
+func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstypes.VolumeTariff, error) {
 	logrus.Infof("billingStub.GetVolumeTariff tariffID=%s", tariffID)
 	for _, v := range fakeVolumeTariffs {
-		if v.TariffID != nil && v.TariffID.String() == tariffID {
+		if v.TariffID != "" && v.TariffID == tariffID {
 			return v, nil
 		}
 	}
-	return model.VolumeTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such volume tariff"}
+	return rstypes.VolumeTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such volume tariff"}
 }
 
 func (billingStub) String() string {

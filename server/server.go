@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"git.containerum.net/ch/resource-service/server/model"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/server/other"
 	"git.containerum.net/ch/resource-service/util/cache"
 
@@ -91,7 +91,7 @@ func (rm *ResourceSvc) Initialize(a other.AuthSvc, b other.Billing, k other.Kube
 func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error {
 	var err error
 	var nsUUID, userUUID uuid.UUID
-	var tariff model.NamespaceTariff
+	var tariff rstypes.NamespaceTariff
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
@@ -103,11 +103,11 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		return newOtherServiceError("failed to get namespace tariff: %v", err)
 	}
 
-	if !*tariff.IsActive {
+	if !tariff.IsActive {
 		return newPermissionError("cannot subscribe to inactive tariff")
 	}
 	if !adminAction {
-		if !*tariff.IsPublic {
+		if !tariff.IsPublic {
 			return newPermissionError("tariff unavailable")
 		}
 	}
@@ -125,7 +125,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	}
 	defer tr.Rollback()
 
-	err = rs.kube.CreateNamespace(ctx, nsUUID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), nsLabel, "owner")
+	err = rs.kube.CreateNamespace(ctx, nsUUID.String(), uint(tariff.CpuLimit), uint(tariff.MemoryLimit), nsLabel, "owner")
 	if err != nil {
 		// TODO: don't fail if already exists
 		return newOtherServiceError("kube api error: create namespace: %v", err)
@@ -135,8 +135,8 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		return newOtherServiceError("billing error: subscribe: %v", err)
 	}
 
-	if tariff.VV != nil && tariff.VV.TariffID != nil {
-		err = rs.CreateVolume(context.TODO(), userID, nsLabel+"-volume", tariff.VV.TariffID.String(), adminAction)
+	if tariff.VV != nil && tariff.VV.TariffID != "" {
+		err = rs.CreateVolume(context.TODO(), userID, nsLabel+"-volume", tariff.VV.TariffID, adminAction)
 		if err != nil {
 			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to create volume: %v <%[1]T>", userID, nsLabel, err)
 			return newError("create volume: %[1]v <%[1]T>", err)
@@ -468,13 +468,13 @@ func (rs *ResourceSvc) LockNamespace(ctx context.Context, userID, label string, 
 	return nil
 }
 
-func (rm *ResourceSvc) getNSTariff(ctx context.Context, id string) (t model.NamespaceTariff, err error) {
+func (rm *ResourceSvc) getNSTariff(ctx context.Context, id string) (t rstypes.NamespaceTariff, err error) {
 	if rm.tariffCache == nil {
 		rm.tariffCache = cache.NewTimed(time.Second * 10)
 	}
 
 	if tmp, cached := rm.tariffCache.Get(id); cached && tmp != nil {
-		t = tmp.(model.NamespaceTariff)
+		t = tmp.(rstypes.NamespaceTariff)
 	} else {
 		t, err = rm.billing.GetNamespaceTariff(ctx, id)
 		if err != nil {
@@ -486,13 +486,13 @@ func (rm *ResourceSvc) getNSTariff(ctx context.Context, id string) (t model.Name
 	return
 }
 
-func (rs *ResourceSvc) getVolumeTariff(ctx context.Context, id string) (t model.VolumeTariff, err error) {
+func (rs *ResourceSvc) getVolumeTariff(ctx context.Context, id string) (t rstypes.VolumeTariff, err error) {
 	if rs.tariffCache == nil {
 		rs.tariffCache = cache.NewTimed(time.Second * 10)
 	}
 
 	if tmp, cached := rs.tariffCache.Get(id); cached && tmp != nil {
-		t = tmp.(model.VolumeTariff)
+		t = tmp.(rstypes.VolumeTariff)
 	} else {
 		t, err = rs.billing.GetVolumeTariff(ctx, id)
 		if err != nil {
@@ -507,7 +507,7 @@ func (rs *ResourceSvc) getVolumeTariff(ctx context.Context, id string) (t model.
 func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID string, adminAction bool) error {
 	var err error
 	var userUUID uuid.UUID
-	var tariff model.VolumeTariff
+	var tariff rstypes.VolumeTariff
 	var tr *dbTransaction
 
 	// Parse input
@@ -751,7 +751,7 @@ func keepCalmAndDontPanic(tag string) {
 
 func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTariffID string) (err error) {
 	var user uuid.UUID
-	var tariff model.NamespaceTariff
+	var tariff rstypes.NamespaceTariff
 	var tr *dbTransaction
 	var ns Namespace
 
@@ -817,7 +817,7 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		return
 	}
 
-	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(*tariff.CpuLimit), uint(*tariff.MemoryLimit), *ns.Label, string(*ns.Access)); err != nil {
+	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(tariff.CpuLimit), uint(tariff.MemoryLimit), *ns.Label, string(*ns.Access)); err != nil {
 		err = OtherServiceError{Err{
 			err,
 			`SYSTEM`,
@@ -832,7 +832,7 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 
 func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
 	var user uuid.UUID
-	var tariff model.VolumeTariff
+	var tariff rstypes.VolumeTariff
 	var tr *dbTransaction
 	var vol Volume
 
@@ -864,27 +864,6 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 		}}
 		return
 	}
-	var missingFields []string
-	if tariff.IsPersistent == nil {
-		missingFields = append(missingFields, "is_persistent")
-	}
-	if tariff.StorageLimit == nil {
-		missingFields = append(missingFields, "storage_limit")
-	}
-	if tariff.IsActive == nil {
-		missingFields = append(missingFields, "is_active")
-	}
-	if tariff.IsPublic == nil {
-		missingFields = append(missingFields, "is_public")
-	}
-	if len(missingFields) > 0 {
-		err = Err{
-			nil,
-			"SYSTEM",
-			`volume tariff missing fields: ` + strings.Join(missingFields, " "),
-		}
-		return
-	}
 
 	vol, err = rs.GetVolume(ctx, userID, label, true)
 	if err != nil {
@@ -909,7 +888,7 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 	}
 	defer tr.Rollback()
 
-	if *tariff.IsPersistent {
+	if tariff.IsPersistent {
 		if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID.String()); err != nil {
 			// TODO: don't fail if already subscribed
 			err = OtherServiceError{Err{

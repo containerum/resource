@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"git.containerum.net/ch/resource-service/server/model"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 
 	_ "github.com/lib/pq"
 	"github.com/mattes/migrate"
@@ -97,7 +97,7 @@ func (db resourceSvcDB) initialize() error {
 	return nil
 }
 
-func (db resourceSvcDB) namespaceCreate(tariff model.NamespaceTariff, user uuid.UUID, label string) (tr *dbTransaction, nsID uuid.UUID, err error) {
+func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user uuid.UUID, label string) (tr *dbTransaction, nsID uuid.UUID, err error) {
 	nsID = uuid.NewV4()
 	{
 		var count int
@@ -351,7 +351,7 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, label string, other 
 	return
 }
 
-func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t model.NamespaceTariff) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t rstypes.NamespaceTariff) (tr *dbTransaction, err error) {
 	var resID uuid.UUID
 
 	// check if owner & ns_label exists by getting its ID
@@ -656,7 +656,7 @@ func (db resourceSvcDB) namespaceVolumeListAssoc(nsID uuid.UUID) (vl []Volume, e
 	return
 }
 
-func (db resourceSvcDB) volumeCreate(tariff model.VolumeTariff, user uuid.UUID, label string) (tr *dbTransaction, volID uuid.UUID, err error) {
+func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user uuid.UUID, label string) (tr *dbTransaction, volID uuid.UUID, err error) {
 	volID = uuid.NewV4()
 	{
 		var count int
@@ -902,7 +902,7 @@ func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, label string, other uui
 	return
 }
 
-func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t model.VolumeTariff) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t rstypes.VolumeTariff) (tr *dbTransaction, err error) {
 	var resID uuid.UUID
 
 	// check if owner & ns_label exists by getting its ID
