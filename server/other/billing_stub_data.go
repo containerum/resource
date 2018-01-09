@@ -3,7 +3,7 @@ package other
 import (
 	"encoding/json"
 
-	"git.containerum.net/ch/resource-service/server/model"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 )
 
 var fakeNSData = `
@@ -88,8 +88,8 @@ var fakeVolumeData = `
 ]
 `
 
-var fakeNSTariffs []model.NamespaceTariff
-var fakeVolumeTariffs []model.VolumeTariff
+var fakeNSTariffs []rstypes.NamespaceTariff
+var fakeVolumeTariffs []rstypes.VolumeTariff
 
 func init() {
 	var err error

@@ -8,17 +8,17 @@ import (
 	"net/http"
 	"net/url"
 
-	"git.containerum.net/ch/resource-service/server/model"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 
 	"github.com/sirupsen/logrus"
 )
 
 type Mailer interface {
-	SendNamespaceCreated(userID, nsLabel string, t model.NamespaceTariff) error
-	SendNamespaceDeleted(userID, nsLabel string, t model.NamespaceTariff) error
+	SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error
+	SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error
 
-	SendVolumeCreated(userID, nsLabel string, t model.VolumeTariff) error
-	SendVolumeDeleted(userID, nsLabel string, t model.VolumeTariff) error
+	SendVolumeCreated(userID, nsLabel string, t rstypes.VolumeTariff) error
+	SendVolumeDeleted(userID, nsLabel string, t rstypes.VolumeTariff) error
 }
 
 type mailerHTTP struct {
@@ -76,12 +76,12 @@ func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[strin
 	return nil
 }
 
-func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string, t model.NamespaceTariff) error {
+func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	err := ml.sendRequest("ns_created", userID, map[string]interface{}{
 		"NAMESPACE": nsLabel,
-		"CPU": *t.CpuLimit,
-		"RAM": *t.MemoryLimit,
-		"DAILY_PAY": *t.Price,
+		"CPU": t.CpuLimit,
+		"RAM": t.MemoryLimit,
+		"DAILY_PAY": t.Price,
 		//"DAILY_PAY_TOTAL": 0, // FIXME
 		//"STORAGE": 0, // FIXME
 	})
@@ -91,7 +91,7 @@ func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string, t model.Namesp
 	return nil
 }
 
-func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string, t model.NamespaceTariff) error {
+func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	err := ml.sendRequest("ns_deleted", userID, map[string]interface{}{
 		"NAMESPACE": nsLabel,
 	})
@@ -101,11 +101,11 @@ func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string, t model.Namesp
 	return nil
 }
 
-func (ml mailerHTTP) SendVolumeCreated(userID, volLabel string, t model.VolumeTariff) error {
+func (ml mailerHTTP) SendVolumeCreated(userID, volLabel string, t rstypes.VolumeTariff) error {
 	err := ml.sendRequest("vol_created", userID, map[string]interface{}{
 		"VOLUME": volLabel,
-		"STORAGE": *t.StorageLimit,
-		"DAILY_PAY": *t.Price,
+		"STORAGE": t.StorageLimit,
+		"DAILY_PAY": t.Price,
 		//"DAILY_PAY_TOTAL": 0, // FIXME
 	})
 	if err != nil {
@@ -114,7 +114,7 @@ func (ml mailerHTTP) SendVolumeCreated(userID, volLabel string, t model.VolumeTa
 	return nil
 }
 
-func (ml mailerHTTP) SendVolumeDeleted(userID, volLabel string, t model.VolumeTariff) error {
+func (ml mailerHTTP) SendVolumeDeleted(userID, volLabel string, t rstypes.VolumeTariff) error {
 	err := ml.sendRequest("vol_deleted", userID, map[string]interface{}{
 		"VOLUME": volLabel,
 	})
@@ -134,22 +134,22 @@ func NewMailerStub() Mailer {
 	return mailerStub{}
 }
 
-func (mailerStub) SendNamespaceCreated(userID, nsLabel string, t model.NamespaceTariff) error {
+func (mailerStub) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	logrus.Infof("Mailer.SendNamespaceCreated userID=%s nsLabel=%s tariff=%+v", userID, nsLabel, t)
 	return nil
 }
 
-func (mailerStub) SendNamespaceDeleted(userID, nsLabel string, t model.NamespaceTariff) error {
+func (mailerStub) SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	logrus.Infof("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s tariff=%+v", userID, nsLabel, t)
 	return nil
 }
 
-func (mailerStub) SendVolumeCreated(userID, label string, t model.VolumeTariff) error {
+func (mailerStub) SendVolumeCreated(userID, label string, t rstypes.VolumeTariff) error {
 	logrus.Infof("Mailer.SendVolumeCreated userID=%s label=%s tariff=%+v", userID, label, t)
 	return nil
 }
 
-func (mailerStub) SendVolumeDeleted(userID, label string, t model.VolumeTariff) error {
+func (mailerStub) SendVolumeDeleted(userID, label string, t rstypes.VolumeTariff) error {
 	logrus.Infof("Mailer.SendVolumeDeleted userID=%s label=%s tariff=%+v", userID, label, t)
 	return nil
 }

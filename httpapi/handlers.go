@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/server"
-
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ func CreateNamespace(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
-	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 
 	logger.Infof("creating namespace %s", reqData.Label)
 	err := srv.CreateNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
@@ -82,7 +82,7 @@ func RenameNamespace(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
-	reqData := c.MustGet("request-data").(RenameResourceRequest)
+	reqData := c.MustGet("request-data").(rstypes.RenameResourceRequest)
 
 	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
 		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
@@ -107,7 +107,7 @@ func SetNamespaceLock(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
-	reqData := c.MustGet("request-data").(SetResourceLockRequest)
+	reqData := c.MustGet("request-data").(rstypes.SetResourceLockRequest)
 
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
@@ -136,7 +136,7 @@ func SetNamespaceAccess(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
-	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
+	reqData := c.MustGet("request-data").(rstypes.SetResourceAccessRequest)
 
 	logger.Infof("setting access level %s to user %s on namespace %s of user %s",
 		reqData.Access, reqData.UserID, label, userID)
@@ -155,7 +155,7 @@ func CreateVolume(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
-	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 
 	logger.Infof("creating volume %s", reqData.Label)
 	err := srv.CreateVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
@@ -221,7 +221,7 @@ func RenameVolume(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
-	reqData := c.MustGet("request-data").(RenameResourceRequest)
+	reqData := c.MustGet("request-data").(rstypes.RenameResourceRequest)
 
 	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
 		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
@@ -246,7 +246,7 @@ func SetVolumeLock(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
-	reqData := c.MustGet("request-data").(SetResourceLockRequest)
+	reqData := c.MustGet("request-data").(rstypes.SetResourceLockRequest)
 
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
@@ -274,7 +274,7 @@ func SetVolumeAccess(c *gin.Context) {
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
-	reqData := c.MustGet("request-data").(SetResourceAccessRequest)
+	reqData := c.MustGet("request-data").(rstypes.SetResourceAccessRequest)
 
 	logger.Infof("setting access level %s to user %s on volume %s of user %s",
 		reqData.Access, reqData.UserID, label, userID)
@@ -345,7 +345,7 @@ func ResizeNamespace(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 	reqData.Label = c.Param("namespace")
 
 	log.Infof("resize namespace: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)
@@ -361,7 +361,7 @@ func ResizeVolume(c *gin.Context) {
 	srv := c.MustGet("server").(server.ResourceSvcInterface)
 	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
-	reqData := c.MustGet("request-data").(CreateResourceRequest)
+	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 	reqData.Label = c.Param("volume")
 
 	log.Infof("resize volume: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)

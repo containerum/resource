@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"git.containerum.net/ch/resource-service/server"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
@@ -16,24 +17,6 @@ import (
 
 var logger = logrus.New()
 var DNSLabel = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?`)
-
-type CreateResourceRequest struct {
-	TariffID string `json:"tariff-id"`
-	Label    string `json:"label"`
-}
-
-type RenameResourceRequest struct {
-	New string `json:"label"`
-}
-
-type SetResourceLockRequest struct {
-	Lock *bool `json:"lock"`
-}
-
-type SetResourceAccessRequest struct {
-	UserID string `json:"user_id"`
-	Access string `json:"access"`
-}
 
 func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -93,7 +76,7 @@ func adminAction(c *gin.Context) {
 }
 
 func parseCreateResourceReq(c *gin.Context) {
-	var req CreateResourceRequest
+	var req rstypes.CreateResourceRequest
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
@@ -108,7 +91,7 @@ func parseCreateResourceReq(c *gin.Context) {
 }
 
 func parseRenameReq(c *gin.Context) {
-	var req RenameResourceRequest
+	var req rstypes.RenameResourceRequest
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
@@ -123,7 +106,7 @@ func parseRenameReq(c *gin.Context) {
 }
 
 func parseLockReq(c *gin.Context) {
-	var req SetResourceLockRequest
+	var req rstypes.SetResourceLockRequest
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
@@ -138,7 +121,7 @@ func parseLockReq(c *gin.Context) {
 }
 
 func parseSetAccessReq(c *gin.Context) {
-	var req SetResourceAccessRequest
+	var req rstypes.SetResourceAccessRequest
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
