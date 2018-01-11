@@ -101,52 +101,49 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 		}
 	}
 
-	var tr *dbTransaction
-	tr, nsID, err = rs.db.namespaceCreate(tariff, userID, nsLabel)
-	if err != nil {
-		switch err.(type) {
-		case *dbError:
-			return newError("database: create namespace: %v", err)
-		default:
+	err = rs.db.transactional(func(tx resourceSvcDB) error {
+		var err error
+		if nsID, err = tx.namespaceCreate(tariff, userID, nsLabel); err != nil {
 			return err
 		}
 
-	}
-	defer tr.Rollback()
+		err = rs.kube.CreateNamespace(ctx, nsID, uint(tariff.CpuLimit), uint(tariff.MemoryLimit), nsLabel, "owner")
+		if err != nil {
+			// TODO: don't fail if already exists
+			return newOtherServiceError("kube api error: create namespace: %v", err)
+		}
+		err = rs.billing.Subscribe(ctx, userID, tariffID, nsID)
+		if err != nil {
+			return newOtherServiceError("billing error: subscribe: %v", err)
+		}
 
-	err = rs.kube.CreateNamespace(ctx, nsID, uint(tariff.CpuLimit), uint(tariff.MemoryLimit), nsLabel, "owner")
+		if tariff.VV != nil && tariff.VV.TariffID != "" {
+			err = rs.db.transactional(func(volTx resourceSvcDB) error {
+				err := rs.CreateVolume(context.TODO(), userID, nsLabel+"-volume", tariff.VV.TariffID, adminAction)
+				if err != nil {
+					logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to create volume: %v <%[1]T>", userID, nsLabel, err)
+					return newError("create volume: %[1]v <%[1]T>", err)
+				}
+				var vol Volume
+				vol, err = rs.GetVolume(context.TODO(), userID, nsLabel+"-volume", true)
+				if err != nil {
+					logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to get new volume: %v <%[1]T>", userID, nsLabel, err)
+					return newError("get volume: %[1]v <%[1]T>", err)
+				}
+				err = volTx.namespaceVolumeAssociate(nsID, vol.ID)
+				if err != nil {
+					logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to associate namespace and volume: %v",
+						userID, nsLabel, err)
+					return newError("database: associate volume: %v", err)
+				}
+				return nil
+			})
+		}
+		return nil
+	})
 	if err != nil {
-		// TODO: don't fail if already exists
-		return newOtherServiceError("kube api error: create namespace: %v", err)
+		return err
 	}
-	err = rs.billing.Subscribe(ctx, userID, tariffID, nsID)
-	if err != nil {
-		return newOtherServiceError("billing error: subscribe: %v", err)
-	}
-
-	if tariff.VV != nil && tariff.VV.TariffID != "" {
-		err = rs.CreateVolume(context.TODO(), userID, nsLabel+"-volume", tariff.VV.TariffID, adminAction)
-		if err != nil {
-			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to create volume: %v <%[1]T>", userID, nsLabel, err)
-			return newError("create volume: %[1]v <%[1]T>", err)
-		}
-		var vol Volume
-		vol, err = rs.GetVolume(context.TODO(), userID, nsLabel+"-volume", true)
-		if err != nil {
-			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to get new volume: %v <%[1]T>", userID, nsLabel, err)
-			return newError("get volume: %[1]v <%[1]T>", err)
-		}
-		var trVol *dbTransaction
-		trVol, err = rs.db.namespaceVolumeAssociate(nsID, vol.ID)
-		if err != nil {
-			logrus.Errorf("ResourceSvc: create namespace userID=%s label=%s: failed to associate namespace and volume: %v",
-				userID, nsLabel, err)
-			return newError("database: associate volume: %v", err)
-		}
-		trVol.Commit()
-	}
-
-	tr.Commit()
 
 	go func() {
 		defer keepCalmAndDontPanic("CreateNamespace/mailer")
@@ -167,7 +164,6 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel string) error {
 	var err error
 	var nsID, nsTariffID string
-	var tr *dbTransaction
 	var avols []Volume
 
 	{
@@ -202,34 +198,36 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		}
 	}
 
-	tr, err = rs.db.namespaceDelete(userID, nsLabel)
-	if err != nil {
-		if err == ErrDenied || err == ErrNoSuchResource {
-			return err
-		} else if _, ok := err.(*errors.Error); ok {
-			return err
-		} else {
-			return newError("database: %v", err)
+	err = rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.namespaceDelete(userID, nsLabel)
+		if err != nil {
+			if err == ErrDenied || err == ErrNoSuchResource {
+				return err
+			} else if _, ok := err.(*errors.Error); ok {
+				return err
+			} else {
+				return newError("database: %v", err)
+			}
 		}
-	}
-	defer tr.Rollback()
 
-	err = rs.billing.Unsubscribe(ctx, userID, nsID)
-	if err != nil {
-		// TODO: don't fail in the "already unsubscribed" case
-		return newOtherServiceError("billing error: unsubscribe %v", err)
-	}
+		err = rs.billing.Unsubscribe(ctx, userID, nsID)
+		if err != nil {
+			// TODO: don't fail in the "already unsubscribed" case
+			return newOtherServiceError("billing error: unsubscribe %v", err)
+		}
 
-	err = rs.authsvc.UpdateUserAccess(userID)
-	if err != nil {
-		logrus.Warnf("auth svc error: update user access: %v", err)
-	}
+		err = rs.authsvc.UpdateUserAccess(userID)
+		if err != nil {
+			logrus.Warnf("auth svc error: update user access: %v", err)
+		}
 
-	err = rs.kube.DeleteNamespace(ctx, nsID)
-	if err != nil {
-		//fail = true
-		logrus.Warnf("kube api error: delete namespace: %v", err)
-	}
+		err = rs.kube.DeleteNamespace(ctx, nsID)
+		if err != nil {
+			logrus.Warnf("kube api error: delete namespace: %v", err)
+		}
+
+		return nil
+	})
 
 	go func() {
 		defer keepCalmAndDontPanic("DeleteNamespace/mailer")
@@ -243,25 +241,25 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 		}
 	}()
 
-	tr.Commit()
-
 	return nil
 }
 
 func (rs *ResourceSvc) RenameNamespace(ctx context.Context, userID, labelOld, labelNew string) error {
-	tr, err := rs.db.namespaceRename(userID, labelOld, labelNew)
-	if err != nil {
-		return newError("database: rename namespace: %v", err)
-	}
-	defer tr.Rollback()
+	err := rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.namespaceRename(userID, labelOld, labelNew)
+		if err != nil {
+			return newError("database: rename namespace: %v", err)
+		}
 
-	err = rs.authsvc.UpdateUserAccess(userID)
-	if err != nil {
-		return newOtherServiceError("auth svc error: %v", err)
-	}
-	tr.Commit()
+		err = rs.authsvc.UpdateUserAccess(userID)
+		if err != nil {
+			return newOtherServiceError("auth svc error: %v", err)
+		}
 
-	return nil
+		return nil
+	})
+
+	return err
 }
 
 func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
@@ -367,41 +365,38 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 }
 
 func (rs *ResourceSvc) ChangeNamespaceAccess(ctx context.Context, ownerUserID, label string, otherUserID, access string) error {
-	var tr *dbTransaction
-	var err error
+	err := rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.namespaceSetAccess(ownerUserID, label, otherUserID, access)
+		if err != nil {
+			return newError("database, set access: %v", err)
+		}
 
-	tr, err = rs.db.namespaceSetAccess(ownerUserID, label, otherUserID, access)
-	if err != nil {
-		return newError("database, set access: %v", err)
-	}
-	defer tr.Rollback()
+		err = rs.authsvc.UpdateUserAccess(otherUserID)
+		if err != nil {
+			return newOtherServiceError("auth svc error: failed to update user access: %v", err)
+		}
 
-	err = rs.authsvc.UpdateUserAccess(otherUserID)
-	if err != nil {
-		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
-	}
-	tr.Commit()
+		return nil
+	})
 
-	return nil
+	return err
 }
 
 func (rs *ResourceSvc) LockNamespace(ctx context.Context, userID, label string, lockState bool) error {
-	var tr *dbTransaction
-	var err error
+	err := rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.namespaceSetLimited(userID, label, lockState)
+		if err != nil {
+			return newError("database, set limited: %v", err)
+		}
 
-	tr, err = rs.db.namespaceSetLimited(userID, label, lockState)
-	if err != nil {
-		return newError("database, set limited: %v", err)
-	}
-	defer tr.Rollback()
+		err = rs.authsvc.UpdateUserAccess(userID)
+		if err != nil {
+			return newOtherServiceError("auth svc error: failed to update user access: %v", err)
+		}
+		return nil
+	})
 
-	err = rs.authsvc.UpdateUserAccess(userID)
-	if err != nil {
-		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
-	}
-	tr.Commit()
-
-	return nil
+	return err
 }
 
 func (rm *ResourceSvc) getNSTariff(ctx context.Context, id string) (t rstypes.NamespaceTariff, err error) {
@@ -443,33 +438,33 @@ func (rs *ResourceSvc) getVolumeTariff(ctx context.Context, id string) (t rstype
 func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID string, adminAction bool) error {
 	var err error
 	var tariff rstypes.VolumeTariff
-	var tr *dbTransaction
 
 	// Get supplementary info
 	if tariff, err = rs.getVolumeTariff(ctx, tariffID); err != nil {
 		return newOtherServiceError("failed to get volume tariff %s: %v", tariffID, err)
 	}
 
-	// Create records in our db and prepare rollbacks
-	if tr, _, err = rs.db.volumeCreate(tariff, userID, label); err != nil {
-		if err == ErrAlreadyExists || err == ErrDenied {
-			return err
+	err = rs.db.transactional(func(tx resourceSvcDB) error {
+		if _, err = tx.volumeCreate(tariff, userID, label); err != nil {
+			if err == ErrAlreadyExists || err == ErrDenied {
+				return err
+			}
+			return newError("database: create volume: %v", err)
 		}
-		return newError("database: create volume: %v", err)
-	}
-	defer tr.Rollback()
 
-	// Create the volume
-	if err = rs.volumesvc.CreateVolume(); err != nil {
-		// TODO: don't fail if already exists
-		return newOtherServiceError("volume svc error: create volume: %v", err)
-	}
+		// Create the volume
+		if err = rs.volumesvc.CreateVolume(); err != nil {
+			// TODO: don't fail if already exists
+			return newOtherServiceError("volume svc error: create volume: %v", err)
+		}
 
-	// Update accesses in auth service
-	if err = rs.authsvc.UpdateUserAccess(userID); err != nil {
-		return newOtherServiceError("auth svc error: add access to volume: %v", err)
-	}
-	tr.Commit()
+		// Update accesses in auth service
+		if err = rs.authsvc.UpdateUserAccess(userID); err != nil {
+			return newOtherServiceError("auth svc error: add access to volume: %v", err)
+		}
+
+		return nil
+	})
 
 	// Non-critical commands to other services
 	go func() {
@@ -484,8 +479,6 @@ func (rs *ResourceSvc) CreateVolume(ctx context.Context, userID, label, tariffID
 
 func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (err error) {
 	var vol *Volume
-	var tr *dbTransaction
-
 	{
 		var vols []Volume
 		vols, err = rs.db.volumeList(userID)
@@ -505,33 +498,35 @@ func (rs *ResourceSvc) DeleteVolume(ctx context.Context, userID, label string) (
 		}
 	}
 
-	tr, err = rs.db.volumeDelete(userID, label)
-	if err != nil {
-		err = newError("database: delete volume: %v", err)
-		return
-	}
-	defer tr.Rollback()
+	err = rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.volumeDelete(userID, label)
+		if err != nil {
+			err = newError("database: delete volume: %v", err)
+			return err
+		}
 
-	if err = rs.billing.Unsubscribe(ctx, userID, vol.ID); err != nil {
-		// TODO:
-		//var canContinue bool
-		//if errBilling, ok := err.(other.BillingError); ok {
-		//	if errBilling.IsAlreadyUnsubscribed() {
-		//		canContinue = true
-		//	}
-		//}
-		//if !canContinue {
-		//	return newOtherServiceError("billing error: unsubscribe: %v", err)
-		//}
+		if err = rs.billing.Unsubscribe(ctx, userID, vol.ID); err != nil {
+			// TODO:
+			//var canContinue bool
+			//if errBilling, ok := err.(other.BillingError); ok {
+			//	if errBilling.IsAlreadyUnsubscribed() {
+			//		canContinue = true
+			//	}
+			//}
+			//if !canContinue {
+			//	return newOtherServiceError("billing error: unsubscribe: %v", err)
+			//}
 
-		return newOtherServiceError("billing error: unsubscribe: %v", err)
-	}
+			return newOtherServiceError("billing error: unsubscribe: %v", err)
+		}
 
-	err = rs.volumesvc.DeleteVolume()
-	if err != nil {
-		return newOtherServiceError("volume svc error: deleting volume: %v", err)
-	}
-	tr.Commit()
+		err = rs.volumesvc.DeleteVolume()
+		if err != nil {
+			return newOtherServiceError("volume svc error: deleting volume: %v", err)
+		}
+
+		return nil
+	})
 
 	go func() {
 		defer keepCalmAndDontPanic("DeleteVolume/mailer")
@@ -586,57 +581,57 @@ func (rs *ResourceSvc) GetVolume(ctx context.Context, userID, label string, admi
 }
 
 func (rs *ResourceSvc) RenameVolume(ctx context.Context, userID, labelOld, labelNew string) error {
-	tr, err := rs.db.volumeRename(userID, labelOld, labelNew)
-	if err != nil {
-		return newError("database: rename volume: %v", err)
-	}
-	defer tr.Rollback()
+	err := rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.volumeRename(userID, labelOld, labelNew)
+		if err != nil {
+			return newError("database: rename volume: %v", err)
+		}
 
-	err = rs.authsvc.UpdateUserAccess(userID)
-	if err != nil {
-		return newOtherServiceError("auth svc error: %v", err)
-	}
-	tr.Commit()
+		err = rs.authsvc.UpdateUserAccess(userID)
+		if err != nil {
+			return newOtherServiceError("auth svc error: %v", err)
+		}
 
-	return nil
+		return nil
+	})
+
+	return err
 }
 
 func (rs *ResourceSvc) ChangeVolumeAccess(ctx context.Context, ownerUserID, label string, otherUserID, access string) error {
-	var tr *dbTransaction
-	var err error
+	err := rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.volumeSetAccess(ownerUserID, label, otherUserID, access)
+		if err != nil {
+			return newError("database, set access: %v", err)
+		}
 
-	tr, err = rs.db.volumeSetAccess(ownerUserID, label, otherUserID, access)
-	if err != nil {
-		return newError("database, set access: %v", err)
-	}
-	defer tr.Rollback()
+		err = rs.authsvc.UpdateUserAccess(otherUserID)
+		if err != nil {
+			return newOtherServiceError("auth svc error: failed to update user access: %v", err)
+		}
 
-	err = rs.authsvc.UpdateUserAccess(otherUserID)
-	if err != nil {
-		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
-	}
-	tr.Commit()
+		return nil
+	})
 
-	return nil
+	return err
 }
 
 func (rs *ResourceSvc) LockVolume(ctx context.Context, userID, label string, lockState bool) error {
-	var tr *dbTransaction
-	var err error
+	err := rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.volumeSetLimited(userID, label, lockState)
+		if err != nil {
+			return newError("database, set limited: %v", err)
+		}
 
-	tr, err = rs.db.volumeSetLimited(userID, label, lockState)
-	if err != nil {
-		return newError("database, set limited: %v", err)
-	}
-	defer tr.Rollback()
+		err = rs.authsvc.UpdateUserAccess(userID)
+		if err != nil {
+			return newOtherServiceError("auth svc error: failed to update user access: %v", err)
+		}
 
-	err = rs.authsvc.UpdateUserAccess(userID)
-	if err != nil {
-		return newOtherServiceError("auth svc error: failed to update user access: %v", err)
-	}
-	tr.Commit()
+		return nil
+	})
 
-	return nil
+	return err
 }
 
 func keepCalmAndDontPanic(tag string) {
@@ -648,7 +643,6 @@ func keepCalmAndDontPanic(tag string) {
 func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTariffID string) (err error) {
 	var user string
 	var tariff rstypes.NamespaceTariff
-	var tr *dbTransaction
 	var ns Namespace
 
 	tariff, err = rs.getNSTariff(ctx, newTariffID)
@@ -665,24 +659,26 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		return errors.Format("get namespace: %v", err)
 	}
 
-	tr, err = rs.db.namespaceSetTariff(user, label, tariff)
-	if err != nil {
-		err = errors.Format("database, set namespace tariff: %v", err)
-		return
-	}
-	defer tr.Rollback()
+	err = rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.namespaceSetTariff(user, label, tariff)
+		if err != nil {
+			err = errors.Format("database, set namespace tariff: %v", err)
+			return err
+		}
 
-	if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID); err != nil {
-		// TODO: don't fail if already subscribed
-		err = newOtherServiceError("billing error: %v", err)
-		return
-	}
+		if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID); err != nil {
+			// TODO: don't fail if already subscribed
+			err = newOtherServiceError("billing error: %v", err)
+			return err
+		}
 
-	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID, uint(tariff.CpuLimit), uint(tariff.MemoryLimit), ns.Label, string(ns.Access)); err != nil {
-		err = newOtherServiceError("kube api error: %v", err)
-	}
+		if err = rs.kube.SetNamespaceQuota(ctx, ns.ID, uint(tariff.CpuLimit), uint(tariff.MemoryLimit), ns.Label, string(ns.Access)); err != nil {
+			err = newOtherServiceError("kube api error: %v", err)
+			return err
+		}
 
-	tr.Commit()
+		return nil
+	})
 
 	return
 }
@@ -690,7 +686,6 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTariffID string) (err error) {
 	var user string
 	var tariff rstypes.VolumeTariff
-	var tr *dbTransaction
 	var vol Volume
 
 	tariff, err = rs.getVolumeTariff(ctx, newTariffID)
@@ -707,23 +702,23 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 		return errors.Format("get volume: %v", err)
 	}
 
-	tr, err = rs.db.volumeSetTariff(user, label, tariff)
-	if err != nil {
-		err = errors.Format("database, set volume tariff: %v", err)
-		return
-	}
-	defer tr.Rollback()
-
-	if tariff.IsPersistent {
-		if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID); err != nil {
-			// TODO: don't fail if already subscribed
-			err = errors.Format("billing error: %v", err)
-			return
+	err = rs.db.transactional(func(tx resourceSvcDB) error {
+		err := tx.volumeSetTariff(user, label, tariff)
+		if err != nil {
+			err = errors.Format("database, set volume tariff: %v", err)
+			return err
 		}
-	}
 
-	tr.Commit()
+		if tariff.IsPersistent {
+			if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID); err != nil {
+				// TODO: don't fail if already subscribed
+				err = errors.Format("billing error: %v", err)
+				return err
+			}
+		}
 
+		return nil
+	})
 	return
 }
 

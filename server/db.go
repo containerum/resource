@@ -9,7 +9,9 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 
+	"git.containerum.net/ch/json-types/errors"
 	"git.containerum.net/ch/utils"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/mattes/migrate"
 	mig_postgres "github.com/mattes/migrate/database/postgres"
@@ -41,28 +43,6 @@ func permCheck(perm, needed string) bool {
 	return false
 }
 
-type dbTransaction struct {
-	tx *sql.Tx
-}
-
-func (t *dbTransaction) Commit() error {
-	if t != nil && t.tx != nil {
-		err := t.tx.Commit()
-		t.tx = nil
-		return err
-	}
-	return nil
-}
-
-func (t *dbTransaction) Rollback() error {
-	if t != nil && t.tx != nil {
-		err := t.tx.Rollback()
-		t.tx = nil
-		return err
-	}
-	return nil
-}
-
 // resourceSvcDB is the database interface of the resource service.
 //
 // Assuming correct usage of returned dbTransaction objects,
@@ -72,20 +52,26 @@ func (t *dbTransaction) Rollback() error {
 //
 // BUG: the above requirement doesn't hold.
 type resourceSvcDB struct {
-	con *sql.DB
+	conn *sqlx.DB // do not use it in select/exec operations
+	log  *logrus.Entry
+	qLog *utils.SQLXQueryLogger
+	eLog *utils.SQLXExecLogger
 }
 
 func dbConnect(dbDSN string) (*resourceSvcDB, error) {
-	con, err := sql.Open("postgres", dbDSN)
+	conn, err := sqlx.Open("postgres", dbDSN)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := con.Ping(); err != nil {
+	log := logrus.WithField("component", "db")
+
+	log.Debugln("pinging")
+	if err := conn.Ping(); err != nil {
 		return nil, err
 	}
 
-	inst, err := mig_postgres.WithInstance(con, &mig_postgres.Config{})
+	inst, err := mig_postgres.WithInstance(conn.DB, &mig_postgres.Config{})
 	if err != nil {
 		return nil, newError("what the fuck is this: %v", err)
 	}
@@ -97,15 +83,71 @@ func dbConnect(dbDSN string) (*resourceSvcDB, error) {
 		return nil, newError("cannot run migration: %v", err)
 	}
 	return &resourceSvcDB{
-		con: con,
+		conn: conn,
+		log:  log,
+		qLog: utils.NewSQLXQueryLogger(conn, log),
+		eLog: utils.NewSQLXExecLogger(conn, log),
 	}, nil
 }
 
-func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user string, label string) (tr *dbTransaction, nsID string, err error) {
+var (
+	ErrTransactionBegin    = errors.New("transaction begin error")
+	ErrTransactionRollback = errors.New("transaction rollback error")
+	ErrTransactionCommit   = errors.New("transaction commit error")
+)
+
+func (db resourceSvcDB) transactional(f func(tx resourceSvcDB) error) (err error) {
+	start := time.Now().Format(time.ANSIC)
+	e := db.log.WithField("transaction_at", start)
+	e.Debugln("Begin transaction")
+	tx, txErr := db.conn.Beginx()
+	if txErr != nil {
+		e.WithError(txErr).Errorln("Begin transaction error")
+		return ErrTransactionBegin
+	}
+
+	arg := resourceSvcDB{
+		conn: db.conn,
+		log:  e,
+		eLog: utils.NewSQLXExecLogger(tx, e),
+		qLog: utils.NewSQLXQueryLogger(tx, e),
+	}
+
+	// needed for recovering panics in transactions.
+	defer func(dberr error) {
+		// if panic recovered, try to rollback transaction
+		if panicErr := recover(); panicErr != nil {
+			dberr = fmt.Errorf("panic in transaction: %v", panicErr)
+		}
+
+		if dberr != nil {
+			e.WithError(dberr).Debugln("Rollback transaction")
+			if rerr := tx.Rollback(); rerr != nil {
+				e.WithError(rerr).Errorln("Rollback error")
+				err = ErrTransactionRollback
+			}
+			err = dberr // forward error with panic description
+			return
+		}
+
+		e.Debugln("Commit transaction")
+		if cerr := tx.Commit(); cerr != nil {
+			e.WithError(cerr).Errorln("Commit error")
+			err = ErrTransactionCommit
+		}
+	}(f(arg))
+
+	return
+}
+
+func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user string, label string) (nsID string, err error) {
 	nsID = utils.NewUUID()
 	{
 		var count int
-		err = db.con.QueryRow(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`, user, label).Scan(&count)
+		db.qLog.QueryRowx(`SELECT count(*)
+									FROM accesses
+									WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
+			user, label).Scan(&count)
 		if err != nil {
 			return
 		}
@@ -115,18 +157,7 @@ func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user str
 		}
 	}
 
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
-
-	_, err = tr.tx.Exec(
+	_, err = db.eLog.Exec(
 		`INSERT INTO namespaces (
 			id,
 			ram,
@@ -148,7 +179,7 @@ func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user str
 		return
 	}
 
-	_, err = tr.tx.Exec(
+	_, err = db.eLog.Exec(
 		`INSERT INTO accesses(
 			id,
 			kind,
@@ -180,8 +211,7 @@ func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user str
 }
 
 func (db resourceSvcDB) namespaceList(user string) (nss []Namespace, err error) {
-	var rows *sql.Rows
-	rows, err = db.con.Query(
+	rows, err := db.qLog.Query(
 		`SELECT
 			n.id,
 			n.create_time,
@@ -233,86 +263,48 @@ func (db resourceSvcDB) namespaceList(user string) (nss []Namespace, err error) 
 	return
 }
 
-func (db resourceSvcDB) namespaceRename(user string, oldname, newname string) (tr *dbTransaction, err error) {
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	_, err = tr.tx.Exec(
+func (db resourceSvcDB) namespaceRename(user string, oldname, newname string) (err error) {
+	_, err = db.eLog.Exec(
 		`UPDATE accesses SET resource_label=$1
 		WHERE resource_label=$2 AND user_id=$3 AND kind='Namespace'`,
 		newname,
 		oldname,
 		user,
 	)
-	if err != nil {
-		tr.Rollback()
-	}
 	return
 }
 
-func (db resourceSvcDB) namespaceSetLimited(owner string, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	_, err = tr.tx.Exec(
+func (db resourceSvcDB) namespaceSetLimited(owner string, ownerLabel string, limited bool) (err error) {
+	_, err = db.eLog.Exec(
 		`UPDATE accesses SET limited=$3
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
 		owner,
 		ownerLabel,
 		limited,
 	)
-	if err != nil {
-		tr.Rollback()
-	}
 	return
 }
 
-func (db resourceSvcDB) namespaceSetAccess(owner string, label string, other string, access string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceSetAccess(owner string, label string, other string, access string) (err error) {
 	var resID string
-	var doInsert bool
-
-	defer func() {
-		if err != nil {
-			err = dbErrorWrap(err)
-		}
-	}()
 
 	// get resource id
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT resource_id FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND owner_user_id=user_id AND kind='Namespace'`,
 		owner,
 		label,
 	).Scan(&resID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		return ErrNoSuchResource
+	default:
 		return
 	}
-
-	// UPDATE v INSERT
-	err = db.con.QueryRow(
-		`SELECT 1 FROM accesses
-		WHERE user_id=$1 AND resource_id=$2 AND kind='Namespace'`,
-		other,
-		resID,
-	).Scan(new(int))
-	if err == sql.ErrNoRows {
-		doInsert = true
-	}
-
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
 
 	if other == owner {
-		_, err = tr.tx.Exec(
+		_, err = db.eLog.Exec(
 			`UPDATE accesses SET new_access_level=$1
 			WHERE owner_user_id=$2 AND resource_id=$3 AND kind='Namespace'`,
 			access,
@@ -320,17 +312,8 @@ func (db resourceSvcDB) namespaceSetAccess(owner string, label string, other str
 			resID,
 		)
 	} else {
-		if !doInsert {
-			_, err = tr.tx.Exec(
-				`UPDATE accesses SET new_access_level=$1
-				WHERE user_id=$2 AND resource_id=$3 AND kind='Namespace'`,
-				access,
-				other,
-				resID,
-			)
-		} else {
-			_, err = tr.tx.Exec(
-				`INSERT INTO accesses (
+		_, err = db.eLog.Exec(
+			`INSERT INTO accesses (
 					id,
 					kind,
 					resource_id,
@@ -339,57 +322,43 @@ func (db resourceSvcDB) namespaceSetAccess(owner string, label string, other str
 					owner_user_id,
 					access_level,
 					new_access_level
-				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-				utils.NewUUID(),
-				"Namespace",
-				resID,
-				utils.NewUUID(),
-				other,
-				owner,
-				access,
-				access,
-			)
-		}
+				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+				ON CONFLICT (resource_id, user_id) DO UPDATE SET new_access_level = $8`,
+			utils.NewUUID(),
+			"Namespace",
+			resID,
+			utils.NewUUID(),
+			other,
+			owner,
+			access,
+			access,
+		)
 	}
 
 	return
 }
 
-func (db resourceSvcDB) namespaceSetTariff(owner string, label string, t rstypes.NamespaceTariff) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceSetTariff(owner string, label string, t rstypes.NamespaceTariff) (err error) {
 	var resID string
 
 	// check if owner & ns_label exists by getting its ID
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT resource_id FROM accesses
 		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
 			AND kind='Namespace'`,
 		owner,
 		label,
 	).Scan(&resID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		} else {
-			err = newDBError("SELECT resource_id: %v", err.Error())
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		return ErrNoSuchResource
+	default:
 		return
 	}
-
-	// start txn
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		err = newDBError("BEGIN: %v", err.Error())
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
 
 	// and UPDATE tariff_id and the rest of the fields
-	_, err = tr.tx.Exec(
+	_, err = db.eLog.Exec(
 		`UPDATE namespaces SET
 			tariff_id=$2,
 			cpu=$3,
@@ -406,13 +375,10 @@ func (db resourceSvcDB) namespaceSetTariff(owner string, label string, t rstypes
 		t.ExternalServices,
 		t.InternalServices,
 	)
-	if err != nil {
-		err = newDBError("UPDATE namespaces ...: %v", err)
-	}
 	return
 }
 
-func (db resourceSvcDB) namespaceDelete(user string, label string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceDelete(user string, label string) (err error) {
 	var alvl string
 	var owner string
 	var resID string
@@ -424,7 +390,7 @@ func (db resourceSvcDB) namespaceDelete(user string, label string) (tr *dbTransa
 		}
 	}()
 
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT access_level, owner_user_id, resource_id
 		FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
@@ -435,15 +401,16 @@ func (db resourceSvcDB) namespaceDelete(user string, label string) (tr *dbTransa
 		&owner,
 		&resID,
 	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		return ErrNoSuchResource
+	default:
 		return
 	}
 
 	if owner == user {
-		err = db.con.QueryRow(
+		err = db.qLog.QueryRowx(
 			`SELECT count(nv.*)
 			FROM namespace_volume nv
 			WHERE nv.ns_id=$1`,
@@ -458,19 +425,8 @@ func (db resourceSvcDB) namespaceDelete(user string, label string) (tr *dbTransa
 		}
 	}
 
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
-
 	if owner == user {
-		_, err = tr.tx.Exec(
+		_, err = db.eLog.Exec(
 			`UPDATE namespaces
 			SET deleted=true, delete_time=statement_timestamp()
 			WHERE id=$1`,
@@ -480,13 +436,13 @@ func (db resourceSvcDB) namespaceDelete(user string, label string) (tr *dbTransa
 			err = fmt.Errorf("UPDATE namespaces ... : %[1]v <%[1]T>", err)
 			return
 		}
-		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
+		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
 	} else {
-		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
+		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
@@ -503,7 +459,7 @@ func (db resourceSvcDB) namespaceAccesses(owner string, label string) (ns Namesp
 		}
 	}()
 
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT
 			n.id,
 			n.create_time,
@@ -539,13 +495,16 @@ func (db resourceSvcDB) namespaceAccesses(owner string, label string) (ns Namesp
 		&ns.MaxIntService,
 		&ns.MaxTraffic,
 	)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
 
-	var rows *sql.Rows
-	rows, err = db.con.Query(
+	rows, err := db.qLog.Query(
 		`SELECT
 			user_id,
 			access_level,
@@ -577,18 +536,8 @@ func (db resourceSvcDB) namespaceAccesses(owner string, label string) (ns Namesp
 	return
 }
 
-func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID string) (tr *dbTransaction, err error) {
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	_, err = tr.tx.Exec(
+func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID string) (err error) {
+	_, err = db.eLog.Exec(
 		`INSERT INTO namespace_volume (ns_id, vol_id)
 		VALUES ($1,$2)`,
 		nsID,
@@ -598,8 +547,7 @@ func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID string) (tr *dbTransa
 }
 
 func (db resourceSvcDB) namespaceVolumeListAssoc(nsID string) (vl []Volume, err error) {
-	var rows *sql.Rows
-	rows, err = db.con.Query(
+	rows, err := db.qLog.Query(
 		`SELECT nv.vol_id,
 			v.create_time,
 			v.deleted,
@@ -648,11 +596,11 @@ func (db resourceSvcDB) namespaceVolumeListAssoc(nsID string) (vl []Volume, err 
 	return
 }
 
-func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user string, label string) (tr *dbTransaction, volID string, err error) {
+func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user string, label string) (volID string, err error) {
 	volID = utils.NewUUID()
 	{
 		var count int
-		err = db.con.QueryRow(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`, user, label).Scan(&count)
+		err = db.qLog.QueryRowx(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`, user, label).Scan(&count)
 		if err != nil {
 			return
 		}
@@ -662,18 +610,7 @@ func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user string, l
 		}
 	}
 
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
-
-	_, err = tr.tx.Exec(
+	_, err = db.eLog.Exec(
 		`INSERT INTO volumes (
 			id,
 			capacity,
@@ -691,7 +628,7 @@ func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user string, l
 		return
 	}
 
-	_, err = tr.tx.Exec(
+	_, err = db.eLog.Exec(
 		`INSERT INTO accesses(
 			id,
 			kind,
@@ -715,16 +652,11 @@ func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user string, l
 		false,
 		"owner",
 	)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
 func (db resourceSvcDB) volumeList(user string) (vols []Volume, err error) {
-	var rows *sql.Rows
-	rows, err = db.con.Query(
+	rows, err := db.qLog.Query(
 		`SELECT
 			v.id,
 			v.create_time,
@@ -741,8 +673,7 @@ func (db resourceSvcDB) volumeList(user string) (vols []Volume, err error) {
 			v.is_persistent
 		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
 		WHERE a.user_id=$1 AND a.kind='Volume'`,
-		user,
-	)
+		user)
 	if err != nil {
 		return
 	}
@@ -772,86 +703,49 @@ func (db resourceSvcDB) volumeList(user string) (vols []Volume, err error) {
 	return
 }
 
-func (db resourceSvcDB) volumeRename(user string, oldname, newname string) (tr *dbTransaction, err error) {
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	_, err = tr.tx.Exec(
+func (db resourceSvcDB) volumeRename(user string, oldname, newname string) (err error) {
+	_, err = db.eLog.Exec(
 		`UPDATE accesses SET resource_label=$1
 		WHERE resource_label=$2 AND user_id=$3 AND kind='Volume'`,
 		newname,
 		oldname,
 		user,
 	)
-	if err != nil {
-		tr.Rollback()
-	}
 	return
 }
 
-func (db resourceSvcDB) volumeSetLimited(owner string, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	_, err = tr.tx.Exec(
+func (db resourceSvcDB) volumeSetLimited(owner string, ownerLabel string, limited bool) (err error) {
+	_, err = db.eLog.Exec(
 		`UPDATE accesses SET limited=$3
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
 		owner,
 		ownerLabel,
 		limited,
 	)
-	if err != nil {
-		tr.Rollback()
-	}
 	return
 }
 
-func (db resourceSvcDB) volumeSetAccess(owner string, label string, other string, access string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeSetAccess(owner string, label string, other string, access string) (err error) {
 	var resID string
-	var doInsert bool
-
-	defer func() {
-		if err != nil {
-			err = dbErrorWrap(err)
-		}
-	}()
 
 	// get resource id
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT resource_id FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND owner_user_id=user_id AND kind='Volume'`,
 		owner,
 		label,
 	).Scan(&resID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
-
-	// UPDATE v INSERT
-	err = db.con.QueryRow(
-		`SELECT 1 FROM accesses
-		WHERE user_id=$1 AND resource_id=$2 AND kind='Volume'`,
-		other,
-		resID,
-	).Scan(new(int))
-	if err == sql.ErrNoRows {
-		doInsert = true
-	}
-
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
 
 	if other == owner {
-		_, err = tr.tx.Exec(
+		_, err = db.eLog.Exec(
 			`UPDATE accesses SET new_access_level=$1
 			WHERE owner_user_id=$2 AND resource_id=$3 AND kind='Volume'`,
 			access,
@@ -859,17 +753,8 @@ func (db resourceSvcDB) volumeSetAccess(owner string, label string, other string
 			resID,
 		)
 	} else {
-		if !doInsert {
-			_, err = tr.tx.Exec(
-				`UPDATE accesses SET new_access_level=$1
-				WHERE user_id=$2 AND resource_id=$3 AND kind='Volume'`,
-				access,
-				other,
-				resID,
-			)
-		} else {
-			_, err = tr.tx.Exec(
-				`INSERT INTO accesses (
+		_, err = db.eLog.Exec(
+			`INSERT INTO accesses (
 					id,
 					kind,
 					resource_id,
@@ -878,57 +763,44 @@ func (db resourceSvcDB) volumeSetAccess(owner string, label string, other string
 					owner_user_id,
 					access_level,
 					new_access_level
-				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-				utils.NewUUID(),
-				"Volume",
-				resID,
-				utils.NewUUID(),
-				other,
-				owner,
-				access,
-				access,
-			)
-		}
+					) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+					ON CONFLICT (resource_id, user_id) DO UPDATE SET new_access_level = $8`,
+			utils.NewUUID(),
+			"Volume",
+			resID,
+			utils.NewUUID(),
+			other,
+			owner,
+			access,
+			access,
+		)
 	}
 
 	return
 }
 
-func (db resourceSvcDB) volumeSetTariff(owner string, label string, t rstypes.VolumeTariff) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeSetTariff(owner string, label string, t rstypes.VolumeTariff) (err error) {
 	var resID string
 
 	// check if owner & ns_label exists by getting its ID
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT resource_id FROM accesses
 		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
 			AND kind='Volume'`,
 		owner,
 		label,
 	).Scan(&resID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		} else {
-			err = newDBError("SELECT resource_id: %v", err)
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
 
-	// start txn
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		err = newDBError("BEGIN: %v", err)
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
-
-	// and UPDATE tariff_id and the rest of the fields
-	_, err = tr.tx.Exec(
+	// UPDATE tariff_id and the rest of the fields
+	_, err = db.eLog.Exec(
 		`UPDATE volumes SET
 			tariff_id=$2,
 			capacity=$3,
@@ -941,24 +813,15 @@ func (db resourceSvcDB) volumeSetTariff(owner string, label string, t rstypes.Vo
 		t.ReplicasLimit,
 		t.IsPersistent,
 	)
-	if err != nil {
-		err = newDBError("UPDATE volumes ...: %v", err)
-	}
 	return
 }
 
-func (db resourceSvcDB) volumeDelete(user string, label string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeDelete(user string, label string) (err error) {
 	var alvl string
 	var owner string
 	var resID string
 
-	defer func() {
-		if err != nil {
-			err = dbErrorWrap(err)
-		}
-	}()
-
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT access_level, owner_user_id, resource_id
 		FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
@@ -969,26 +832,17 @@ func (db resourceSvcDB) volumeDelete(user string, label string) (tr *dbTransacti
 		&owner,
 		&resID,
 	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
-
-	tr = new(dbTransaction)
-	tr.tx, err = db.con.Begin()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			tr.Rollback()
-		}
-	}()
 
 	if owner == user {
-		_, err = tr.tx.Exec(
+		_, err = db.eLog.Exec(
 			`UPDATE volumes SET deleted=true, delete_time=statement_timestamp()
 			WHERE id=$1`,
 			resID,
@@ -998,18 +852,18 @@ func (db resourceSvcDB) volumeDelete(user string, label string) (tr *dbTransacti
 			return
 		}
 
-		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
+		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
-		_, err = tr.tx.Exec(`DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
+		_, err = db.eLog.Exec(`DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM namespace_volume ...: %[1]v <%[1]T>", err)
 			return
 		}
 	} else {
-		_, err = tr.tx.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
+		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
@@ -1020,13 +874,7 @@ func (db resourceSvcDB) volumeDelete(user string, label string) (tr *dbTransacti
 }
 
 func (db resourceSvcDB) volumeAccesses(owner string, label string) (vol Volume, err error) {
-	defer func() {
-		if err != nil {
-			err = dbErrorWrap(err)
-		}
-	}()
-
-	err = db.con.QueryRow(
+	err = db.qLog.QueryRowx(
 		`SELECT
 			v.id,
 			v.create_time,
@@ -1058,15 +906,16 @@ func (db resourceSvcDB) volumeAccesses(owner string, label string) (vol Volume, 
 		&vol.Replicas,
 		&vol.Persistent,
 	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			err = ErrNoSuchResource
-		}
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
 
-	var rows *sql.Rows
-	rows, err = db.con.Query(
+	rows, err := db.qLog.Query(
 		`SELECT
 			user_id,
 			access_level,
@@ -1104,10 +953,8 @@ func (db resourceSvcDB) byID(id string) (obj interface{}, err error) {
 }
 
 func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
-	var direction string = ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
-	var rows *sql.Rows
-	rows, err = db.con.QueryContext(
-		ctx,
+	direction := ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
+	rows, err := db.qLog.Query(
 		`SELECT
 			n.id,
 			n.create_time,
@@ -1129,27 +976,27 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 		after,
 		count,
 	)
-	if err != nil {
-		// Doesn not matter if context was canceled, it is an error
-		// if this method doesn't return at least one result.
-		err = newDBError(err.Error())
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
 
 	nsch1 := make(chan Namespace)
 	nsch2 := make(chan Namespace)
 	nsch = nsch2
-	go streamNamespaces(ctx, nsch1, rows)
-	go streamNSAddVolumes(ctx, db.con, nsch2, nsch1)
+	go db.streamNamespaces(ctx, nsch1, rows)
+	go db.streamNSAddVolumes(ctx, nsch2, nsch1)
 
 	return
 }
 
 func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after string, count uint) (nsch <-chan Namespace, err error) {
-	var direction string = ctx.Value("sort-direction").(string)
-	var rows *sql.Rows
-	rows, err = db.con.QueryContext(
-		ctx,
+	direction := ctx.Value("sort-direction").(string)
+	rows, err := db.qLog.Query(
 		`SELECT
 			n.id,
 			n.create_time,
@@ -1182,13 +1029,13 @@ func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after strin
 	nsch1 := make(chan Namespace)
 	nsch2 := make(chan Namespace)
 	nsch = nsch2
-	go streamNamespaces(ctx, nsch2, rows)
-	go streamNSAddVolumes(ctx, db.con, nsch2, nsch1)
+	go db.streamNamespaces(ctx, nsch2, rows)
+	go db.streamNSAddVolumes(ctx, nsch2, nsch1)
 
 	return
 }
 
-func streamNamespaces(ctx context.Context, ch chan<- Namespace, rows *sql.Rows) {
+func (db resourceSvcDB) streamNamespaces(ctx context.Context, ch chan<- Namespace, rows *sql.Rows) {
 	var err error
 	defer close(ch)
 	defer rows.Close()
@@ -1222,15 +1069,11 @@ loop:
 	}
 }
 
-func streamNSAddVolumes(ctx context.Context, con *sql.DB, out chan<- Namespace, in <-chan Namespace) {
-	log := logrus.StandardLogger().
-		WithField("function", "streamNSAddVolumes").
-		WithField("module", "git.containerum.net/ch/resource-service/server")
+func (db resourceSvcDB) streamNSAddVolumes(ctx context.Context, out chan<- Namespace, in <-chan Namespace) {
+	log := db.log.WithField("function", "streamNSAddVolumes")
 	for ns := range in {
-		var rowsv *sql.Rows
 		var err error
-		rowsv, err = con.QueryContext(
-			ctx,
+		rowsv, err := db.qLog.Query(
 			`SELECT
 				v.id,
 				v.create_time,
@@ -1278,7 +1121,7 @@ func streamNSAddVolumes(ctx context.Context, con *sql.DB, out chan<- Namespace, 
 	close(out)
 }
 
-func streamVolumes(ctx context.Context, ch chan<- Volume, rows *sql.Rows) {
+func (db resourceSvcDB) streamVolumes(ctx context.Context, ch chan<- Volume, rows *sql.Rows) {
 	var err error
 	defer close(ch)
 	defer rows.Close()
@@ -1310,10 +1153,8 @@ loop:
 }
 
 func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after time.Time, count uint) (vch chan Volume, err error) {
-	var direction string = ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
-	var rows *sql.Rows
-	rows, err = db.con.QueryContext(
-		ctx,
+	direction := ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
+	rows, err := db.qLog.Query(
 		`SELECT
 			v.id,
 			v.create_time,
@@ -1332,11 +1173,15 @@ func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after time.Time
 		after,
 		count,
 	)
-	if err != nil {
-		err = newDBError(err.Error())
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = ErrNoSuchResource
+		return
+	default:
 		return
 	}
 	vch = make(chan Volume)
-	go streamVolumes(ctx, vch, rows)
+	go db.streamVolumes(ctx, vch, rows)
 	return
 }

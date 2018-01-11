@@ -75,6 +75,6 @@ func dbErrorWrap(cause error) error {
 	case *errors.Error, *dbError, *PermissionError, *BadInputError:
 		return cause
 	default:
-		return &dbError{errors.Format("db error caused by: %v", cause)}
+		return &dbError{e: errors.Format("db error caused by: %v", cause)}
 	}
 }
