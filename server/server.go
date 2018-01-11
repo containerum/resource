@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"strings"
 	"time"
 
@@ -60,7 +59,7 @@ type ResourceSvc struct {
 	kube      other.Kube
 	volumesvc other.VolumeSvc
 
-	db          resourceSvcDB
+	db          *resourceSvcDB
 	tariffCache cache.Cache
 }
 
@@ -77,11 +76,7 @@ func (rm *ResourceSvc) Initialize(a other.AuthSvc, b other.Billing, k other.Kube
 	rm.volumesvc = v
 
 	var err error
-	rm.db.con, err = sql.Open("postgres", dbDSN)
-	if err != nil {
-		return err
-	}
-	if err = rm.db.initialize(); err != nil {
+	if rm.db, err = dbConnect(dbDSN); err != nil {
 		return err
 	}
 	return nil

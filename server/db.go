@@ -75,26 +75,30 @@ type resourceSvcDB struct {
 	con *sql.DB
 }
 
-func (db resourceSvcDB) initialize() error {
-	err := db.con.Ping()
+func dbConnect(dbDSN string) (*resourceSvcDB, error) {
+	con, err := sql.Open("postgres", dbDSN)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	inst, err := mig_postgres.WithInstance(db.con, &mig_postgres.Config{})
+	if err := con.Ping(); err != nil {
+		return nil, err
+	}
+
+	inst, err := mig_postgres.WithInstance(con, &mig_postgres.Config{})
 	if err != nil {
-		return newError("what the fuck is this: %v", err)
+		return nil, newError("what the fuck is this: %v", err)
 	}
 	mig, err := migrate.NewWithDatabaseInstance(os.Getenv("MIGRATION_URL"), "postgres", inst)
 	if err != nil {
-		return newError("cannot create migration: %v", err)
+		return nil, newError("cannot create migration: %v", err)
 	}
-	if err = mig.Up(); err != nil {
-		if err != migrate.ErrNoChange {
-			return newError("cannot run migration: %v", err)
-		}
+	if err = mig.Up(); err != nil && err != migrate.ErrNoChange {
+		return nil, newError("cannot run migration: %v", err)
 	}
-	return nil
+	return &resourceSvcDB{
+		con: con,
+	}, nil
 }
 
 func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user string, label string) (tr *dbTransaction, nsID string, err error) {
