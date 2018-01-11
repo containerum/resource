@@ -1,7 +1,15 @@
 
 [[constraint]]
   branch = "master"
+  name = "git.containerum.net/ch/utils"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/gin-gonic/gin"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/jmoiron/sqlx"
 
 [[constraint]]
   branch = "master"
@@ -12,13 +20,5 @@
   version = "3.0.1"
 
 [[constraint]]
-  name = "github.com/satori/go.uuid"
-  version = "1.1.0"
-
-[[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "1.0.4"
-
-[[constraint]]
-  branch = "master"
-  name = "git.containerum.net/ch/json-types"

@@ -9,6 +9,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/server"
+	rserrors "git.containerum.net/ch/resource-service/server/errors"
 
 	"git.containerum.net/ch/json-types/errors"
 	"git.containerum.net/ch/utils"
@@ -135,21 +136,21 @@ func serverErrorResponse(err error) (code int, resp *errors.Error) {
 	code = 500
 
 	switch err {
-	case server.ErrNoSuchResource:
+	case rserrors.ErrNoSuchResource:
 		code = 404
-	case server.ErrAlreadyExists:
+	case rserrors.ErrAlreadyExists:
 		code = 422
-	case server.ErrDenied:
+	case rserrors.ErrDenied:
 		code = 401
 	default:
 		switch err.(type) {
 		case *errors.Error:
 			code = 500
-		case *server.BadInputError:
+		case *rserrors.BadInputError:
 			code = 400
-		case *server.OtherServiceError:
+		case *rserrors.OtherServiceError:
 			code = 503
-		case *server.PermissionError:
+		case *rserrors.PermissionError:
 			code = 401
 		}
 	}
