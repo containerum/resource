@@ -4,8 +4,14 @@
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/json-types"
-  packages = ["resource-service"]
-  revision = "3aeb6d5a06576680f0e9fb9458986856643e2652"
+  packages = ["errors","resource-service"]
+  revision = "4744ebe33269c2599a6c69eb4d8193744da48c4e"
+
+[[projects]]
+  branch = "master"
+  name = "git.containerum.net/ch/utils"
+  packages = ["."]
+  revision = "d4bc7c3c97ec43796b2923d94ff179ea10d1d75d"
 
 [[projects]]
   branch = "master"
@@ -24,6 +30,12 @@
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/jmoiron/sqlx"
+  packages = [".","reflectx"]
+  revision = "de8647470aafe4854c976707c431dbe1eb2822c6"
 
 [[projects]]
   name = "github.com/json-iterator/go"
@@ -48,12 +60,6 @@
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
   version = "v0.0.3"
-
-[[projects]]
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
-  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/shopspring/decimal"
@@ -100,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b8a79736329d9e7c1fd50564cdb205a66e4594b93c2d1160835d3c28364e1466"
+  inputs-digest = "39e4af96fd776043dbe64330c27c5c963d8ff3b3008a570e586763b00c52ffac"
   solver-name = "gps-cdcl"
   solver-version = 1

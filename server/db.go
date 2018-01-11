@@ -9,11 +9,11 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 
+	"git.containerum.net/ch/utils"
 	_ "github.com/lib/pq"
 	"github.com/mattes/migrate"
 	mig_postgres "github.com/mattes/migrate/database/postgres"
 	_ "github.com/mattes/migrate/source/file"
-	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -97,8 +97,8 @@ func (db resourceSvcDB) initialize() error {
 	return nil
 }
 
-func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user uuid.UUID, label string) (tr *dbTransaction, nsID uuid.UUID, err error) {
-	nsID = uuid.NewV4()
+func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user string, label string) (tr *dbTransaction, nsID string, err error) {
+	nsID = utils.NewUUID()
 	{
 		var count int
 		err = db.con.QueryRow(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`, user, label).Scan(&count)
@@ -157,7 +157,7 @@ func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user uui
 			limited,
 			new_access_level
 		) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-		uuid.NewV4(),
+		utils.NewUUID(),
 		"Namespace",
 		nsID,
 		label,
@@ -175,7 +175,7 @@ func (db resourceSvcDB) namespaceCreate(tariff rstypes.NamespaceTariff, user uui
 	return
 }
 
-func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err error) {
+func (db resourceSvcDB) namespaceList(user string) (nss []Namespace, err error) {
 	var rows *sql.Rows
 	rows, err = db.con.Query(
 		`SELECT
@@ -229,7 +229,7 @@ func (db resourceSvcDB) namespaceList(user uuid.UUID) (nss []Namespace, err erro
 	return
 }
 
-func (db resourceSvcDB) namespaceRename(user uuid.UUID, oldname, newname string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceRename(user string, oldname, newname string) (tr *dbTransaction, err error) {
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	_, err = tr.tx.Exec(
@@ -245,7 +245,7 @@ func (db resourceSvcDB) namespaceRename(user uuid.UUID, oldname, newname string)
 	return
 }
 
-func (db resourceSvcDB) namespaceSetLimited(owner uuid.UUID, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceSetLimited(owner string, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	_, err = tr.tx.Exec(
@@ -261,8 +261,8 @@ func (db resourceSvcDB) namespaceSetLimited(owner uuid.UUID, ownerLabel string, 
 	return
 }
 
-func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, label string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
+func (db resourceSvcDB) namespaceSetAccess(owner string, label string, other string, access string) (tr *dbTransaction, err error) {
+	var resID string
 	var doInsert bool
 
 	defer func() {
@@ -336,10 +336,10 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, label string, other 
 					access_level,
 					new_access_level
 				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-				uuid.NewV4(),
+				utils.NewUUID(),
 				"Namespace",
 				resID,
-				uuid.NewV4().String(),
+				utils.NewUUID(),
 				other,
 				owner,
 				access,
@@ -351,8 +351,8 @@ func (db resourceSvcDB) namespaceSetAccess(owner uuid.UUID, label string, other 
 	return
 }
 
-func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t rstypes.NamespaceTariff) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
+func (db resourceSvcDB) namespaceSetTariff(owner string, label string, t rstypes.NamespaceTariff) (tr *dbTransaction, err error) {
+	var resID string
 
 	// check if owner & ns_label exists by getting its ID
 	err = db.con.QueryRow(
@@ -408,10 +408,10 @@ func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t rsty
 	return
 }
 
-func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceDelete(user string, label string) (tr *dbTransaction, err error) {
 	var alvl string
-	var owner uuid.UUID
-	var resID uuid.UUID
+	var owner string
+	var resID string
 	var subVolsCnt int
 
 	defer func() {
@@ -492,7 +492,7 @@ func (db resourceSvcDB) namespaceDelete(user uuid.UUID, label string) (tr *dbTra
 	return
 }
 
-func (db resourceSvcDB) namespaceAccesses(owner uuid.UUID, label string) (ns Namespace, err error) {
+func (db resourceSvcDB) namespaceAccesses(owner string, label string) (ns Namespace, err error) {
 	defer func() {
 		if err != nil {
 			err = dbErrorWrap(err)
@@ -573,7 +573,7 @@ func (db resourceSvcDB) namespaceAccesses(owner uuid.UUID, label string) (ns Nam
 	return
 }
 
-func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID uuid.UUID) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID string) (tr *dbTransaction, err error) {
 	defer func() {
 		if err != nil {
 			tr.Rollback()
@@ -593,7 +593,7 @@ func (db resourceSvcDB) namespaceVolumeAssociate(nsID, vID uuid.UUID) (tr *dbTra
 	return
 }
 
-func (db resourceSvcDB) namespaceVolumeListAssoc(nsID uuid.UUID) (vl []Volume, err error) {
+func (db resourceSvcDB) namespaceVolumeListAssoc(nsID string) (vl []Volume, err error) {
 	var rows *sql.Rows
 	rows, err = db.con.Query(
 		`SELECT nv.vol_id,
@@ -644,8 +644,8 @@ func (db resourceSvcDB) namespaceVolumeListAssoc(nsID uuid.UUID) (vl []Volume, e
 	return
 }
 
-func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user uuid.UUID, label string) (tr *dbTransaction, volID uuid.UUID, err error) {
-	volID = uuid.NewV4()
+func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user string, label string) (tr *dbTransaction, volID string, err error) {
+	volID = utils.NewUUID()
 	{
 		var count int
 		err = db.con.QueryRow(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`, user, label).Scan(&count)
@@ -700,7 +700,7 @@ func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user uuid.UUID
 			limited,
 			new_access_level
 		) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-		uuid.NewV4(),
+		utils.NewUUID(),
 		"Volume",
 		volID,
 		label,
@@ -718,7 +718,7 @@ func (db resourceSvcDB) volumeCreate(tariff rstypes.VolumeTariff, user uuid.UUID
 	return
 }
 
-func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
+func (db resourceSvcDB) volumeList(user string) (vols []Volume, err error) {
 	var rows *sql.Rows
 	rows, err = db.con.Query(
 		`SELECT
@@ -768,7 +768,7 @@ func (db resourceSvcDB) volumeList(user uuid.UUID) (vols []Volume, err error) {
 	return
 }
 
-func (db resourceSvcDB) volumeRename(user uuid.UUID, oldname, newname string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeRename(user string, oldname, newname string) (tr *dbTransaction, err error) {
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	_, err = tr.tx.Exec(
@@ -784,7 +784,7 @@ func (db resourceSvcDB) volumeRename(user uuid.UUID, oldname, newname string) (t
 	return
 }
 
-func (db resourceSvcDB) volumeSetLimited(owner uuid.UUID, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeSetLimited(owner string, ownerLabel string, limited bool) (tr *dbTransaction, err error) {
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	_, err = tr.tx.Exec(
@@ -800,8 +800,8 @@ func (db resourceSvcDB) volumeSetLimited(owner uuid.UUID, ownerLabel string, lim
 	return
 }
 
-func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, label string, other uuid.UUID, access string) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
+func (db resourceSvcDB) volumeSetAccess(owner string, label string, other string, access string) (tr *dbTransaction, err error) {
+	var resID string
 	var doInsert bool
 
 	defer func() {
@@ -875,10 +875,10 @@ func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, label string, other uui
 					access_level,
 					new_access_level
 				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-				uuid.NewV4(),
+				utils.NewUUID(),
 				"Volume",
 				resID,
-				uuid.NewV4().String(),
+				utils.NewUUID(),
 				other,
 				owner,
 				access,
@@ -890,8 +890,8 @@ func (db resourceSvcDB) volumeSetAccess(owner uuid.UUID, label string, other uui
 	return
 }
 
-func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t rstypes.VolumeTariff) (tr *dbTransaction, err error) {
-	var resID uuid.UUID
+func (db resourceSvcDB) volumeSetTariff(owner string, label string, t rstypes.VolumeTariff) (tr *dbTransaction, err error) {
+	var resID string
 
 	// check if owner & ns_label exists by getting its ID
 	err = db.con.QueryRow(
@@ -943,10 +943,10 @@ func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t rstypes
 	return
 }
 
-func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransaction, err error) {
+func (db resourceSvcDB) volumeDelete(user string, label string) (tr *dbTransaction, err error) {
 	var alvl string
-	var owner uuid.UUID
-	var resID uuid.UUID
+	var owner string
+	var resID string
 
 	defer func() {
 		if err != nil {
@@ -1015,7 +1015,7 @@ func (db resourceSvcDB) volumeDelete(user uuid.UUID, label string) (tr *dbTransa
 	return
 }
 
-func (db resourceSvcDB) volumeAccesses(owner uuid.UUID, label string) (vol Volume, err error) {
+func (db resourceSvcDB) volumeAccesses(owner string, label string) (vol Volume, err error) {
 	defer func() {
 		if err != nil {
 			err = dbErrorWrap(err)
@@ -1095,7 +1095,7 @@ func (db resourceSvcDB) volumeAccesses(owner uuid.UUID, label string) (vol Volum
 }
 
 // byID is supposed to fetch any kind of model by searching all models for the id.
-func (db resourceSvcDB) byID(id uuid.UUID) (obj interface{}, err error) {
+func (db resourceSvcDB) byID(id string) (obj interface{}, err error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -1141,7 +1141,7 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 	return
 }
 
-func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.UUID, count uint) (nsch <-chan Namespace, err error) {
+func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after string, count uint) (nsch <-chan Namespace, err error) {
 	var direction string = ctx.Value("sort-direction").(string)
 	var rows *sql.Rows
 	rows, err = db.con.QueryContext(
