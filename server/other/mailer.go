@@ -33,7 +33,7 @@ type mailerSendRequest struct {
 }
 
 type mailerSendResponse struct {
-	Error  string `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
 	UserID string `json:"user_id"`
 }
@@ -79,8 +79,8 @@ func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[strin
 func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	err := ml.sendRequest("ns_created", userID, map[string]interface{}{
 		"NAMESPACE": nsLabel,
-		"CPU": t.CpuLimit,
-		"RAM": t.MemoryLimit,
+		"CPU":       t.CpuLimit,
+		"RAM":       t.MemoryLimit,
 		"DAILY_PAY": t.Price,
 		//"DAILY_PAY_TOTAL": 0, // FIXME
 		//"STORAGE": 0, // FIXME
@@ -103,8 +103,8 @@ func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string, t rstypes.Name
 
 func (ml mailerHTTP) SendVolumeCreated(userID, volLabel string, t rstypes.VolumeTariff) error {
 	err := ml.sendRequest("vol_created", userID, map[string]interface{}{
-		"VOLUME": volLabel,
-		"STORAGE": t.StorageLimit,
+		"VOLUME":    volLabel,
+		"STORAGE":   t.StorageLimit,
 		"DAILY_PAY": t.Price,
 		//"DAILY_PAY_TOTAL": 0, // FIXME
 	})

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"git.containerum.net/ch/json-types/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -155,23 +156,19 @@ func (k kube) SetNamespaceQuota(ctx context.Context, name string, cpu, memory ui
 	}
 
 	if len(respBytes) > 0 {
-		var kubeErr KubeError
+		var kubeErr errors.Error
 		err = json.Unmarshal(respBytes, &kubeErr)
 		if err != nil {
-			kubeErr.Cause = err
-			kubeErr.errstr = "unmarshal response: " + err.Error()
-			err = kubeErr
+			err = errors.New(err.Error())
 			return
 		}
-		if kubeErr.ErrorStr != "" {
-			err = kubeErr
+		if kubeErr.Text != "" {
+			err = &kubeErr
 			return
 		}
 	}
 	if resp.StatusCode/100 != 2 {
-		ke := KubeError{
-			errstr: "kube api error: http status " + resp.Status,
-		}
+		ke := errors.Format("kube api error: http status %d", resp.Status)
 		err = ke
 		return
 	}
@@ -208,28 +205,4 @@ func (kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memory ui
 
 func (kubeStub) String() string {
 	return "kube api dummy"
-}
-
-type KubeError struct {
-	ErrCode  string `json:"errcode,omitempty"`
-	ErrorStr string `json:"error,omitempty"`
-
-	Cause  error `json:"-"`
-	errstr string
-}
-
-func (ke KubeError) Error() string {
-	if ke.errstr != "" {
-		return ke.errstr
-	}
-	if ke.Cause != nil {
-		return ke.Cause.Error()
-	}
-	if ke.ErrorStr != "" {
-		return ke.ErrorStr
-	}
-	if ke.ErrCode != "" {
-		return ke.ErrCode
-	}
-	return "n/a"
 }
