@@ -1,4 +1,4 @@
-package server
+package models
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func TestPermCheck(t *testing.T) {
 	for i := range perms {
 		permMatrix = append(permMatrix, make([]bool, len(levels)))
 		for j := range levels {
-			permMatrix[i][j] = permCheck(perms[i], levels[j])
+			permMatrix[i][j] = PermCheck(perms[i], levels[j])
 		}
 	}
 	for i := range perms {
