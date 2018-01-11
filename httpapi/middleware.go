@@ -11,8 +11,8 @@ import (
 	"git.containerum.net/ch/resource-service/server"
 
 	"git.containerum.net/ch/json-types/errors"
+	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
-	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +21,7 @@ var DNSLabel = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?`)
 
 func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		requestID := uuid.NewV4().String()
+		requestID := utils.NewUUID()
 		c.Header("x-request-id", requestID)
 		c.Set("request-id", requestID)
 		c.Set("logger", logrus.NewEntry(logger).
