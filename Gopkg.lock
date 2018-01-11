@@ -20,10 +20,10 @@
   revision = "22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae"
 
 [[projects]]
+  branch = "master"
   name = "github.com/gin-gonic/gin"
-  packages = [".","binding","render"]
-  revision = "d459835d2b077e44f7c9b453505ee29881d5d12d"
-  version = "v1.2"
+  packages = [".","binding","json","render"]
+  revision = "a712f77d7aaec7eb4766a663924aaa4e54d3fe70"
 
 [[projects]]
   branch = "master"
@@ -36,6 +36,12 @@
   name = "github.com/jmoiron/sqlx"
   packages = [".","reflectx"]
   revision = "de8647470aafe4854c976707c431dbe1eb2822c6"
+
+[[projects]]
+  name = "github.com/json-iterator/go"
+  packages = ["."]
+  revision = "f7279a603edee96fe7764d3de9c6ff8cf9970994"
+  version = "1.0.4"
 
 [[projects]]
   branch = "master"
@@ -100,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2f59344482211f15c6cfe787c1bb2d438d4eb60fdc9459acf45515dfa8ccc1ae"
+  inputs-digest = "20dbd6aeba747e717c54321468de7ea2acbd26edb3b6b120f350b18a011466ce"
   solver-name = "gps-cdcl"
   solver-version = 1
