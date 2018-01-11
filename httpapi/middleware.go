@@ -8,7 +8,6 @@ import (
 	"time"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/resource-service/server"
 	rserrors "git.containerum.net/ch/resource-service/server/errors"
 
 	"git.containerum.net/ch/json-types/errors"
@@ -20,7 +19,7 @@ import (
 var logger = logrus.New()
 var DNSLabel = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?`)
 
-func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
+func initializeContext() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := utils.NewUUID()
 		c.Header("x-request-id", requestID)
@@ -30,7 +29,6 @@ func initializeContext(srv server.ResourceSvcInterface) gin.HandlerFunc {
 			WithField("request-id", requestID).
 			WithField("http-method", c.Request.Method).
 			WithField("http-uri", c.Request.RequestURI))
-		c.Set("server", srv)
 	}
 }
 

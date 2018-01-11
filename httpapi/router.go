@@ -8,11 +8,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewGinEngine(srv server.ResourceSvcInterface) *gin.Engine {
+var srv server.ResourceSvcInterface
+
+func NewGinEngine(srvarg server.ResourceSvcInterface) *gin.Engine {
+	srv = srvarg
+
 	g := gin.New()
 	g.Use(gin.Recovery())
 	g.Use(gin.LoggerWithWriter(os.Stderr))
-	g.Use(initializeContext(srv))
+	g.Use(initializeContext())
 	g.Use(parseHeaders)
 	g.Use(adminAction)
 

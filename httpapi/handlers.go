@@ -5,7 +5,6 @@ import (
 
 	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/resource-service/server"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -13,7 +12,7 @@ import (
 // *** NAMESPACES ***
 
 func CreateNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
@@ -29,7 +28,7 @@ func CreateNamespace(c *gin.Context) {
 }
 
 func DeleteNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
@@ -44,7 +43,7 @@ func DeleteNamespace(c *gin.Context) {
 }
 
 func ListNamespaces(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
@@ -61,7 +60,7 @@ func ListNamespaces(c *gin.Context) {
 }
 
 func GetNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
@@ -79,7 +78,7 @@ func GetNamespace(c *gin.Context) {
 }
 
 func RenameNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
@@ -101,7 +100,7 @@ func RenameNamespace(c *gin.Context) {
 }
 
 func SetNamespaceLock(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
@@ -127,7 +126,7 @@ func SetNamespaceLock(c *gin.Context) {
 }
 
 func SetNamespaceAccess(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
@@ -146,7 +145,7 @@ func SetNamespaceAccess(c *gin.Context) {
 // *** VOLUMES ***
 
 func CreateVolume(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
@@ -162,7 +161,7 @@ func CreateVolume(c *gin.Context) {
 }
 
 func DeleteVolume(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
@@ -177,7 +176,7 @@ func DeleteVolume(c *gin.Context) {
 }
 
 func ListVolumes(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
@@ -194,7 +193,7 @@ func ListVolumes(c *gin.Context) {
 }
 
 func GetVolume(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
@@ -212,7 +211,7 @@ func GetVolume(c *gin.Context) {
 }
 
 func RenameVolume(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
@@ -234,7 +233,7 @@ func RenameVolume(c *gin.Context) {
 }
 
 func SetVolumeLock(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
@@ -260,7 +259,7 @@ func SetVolumeLock(c *gin.Context) {
 }
 
 func SetVolumeAccess(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
@@ -277,7 +276,7 @@ func SetVolumeAccess(c *gin.Context) {
 }
 
 func ListAllNamespaces(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	ctx := c.MustGet("request-context").(context.Context)
 
@@ -305,7 +304,7 @@ func ListAllNamespaces(c *gin.Context) {
 }
 
 func ListAllVolumes(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	logger := c.MustGet("logger").(*logrus.Entry)
 	ctx := c.MustGet("request-context").(context.Context)
 
@@ -332,7 +331,7 @@ func ListAllVolumes(c *gin.Context) {
 }
 
 func ResizeNamespace(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
@@ -348,7 +347,7 @@ func ResizeNamespace(c *gin.Context) {
 }
 
 func ResizeVolume(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
@@ -364,7 +363,7 @@ func ResizeVolume(c *gin.Context) {
 }
 
 func GetNamespaceAccesses(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
@@ -381,7 +380,7 @@ func GetNamespaceAccesses(c *gin.Context) {
 }
 
 func GetVolumeAccesses(c *gin.Context) {
-	srv := c.MustGet("server").(server.ResourceSvcInterface)
+
 	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
