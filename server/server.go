@@ -3,10 +3,10 @@ package server
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
+	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/server/other"
 	"git.containerum.net/ch/resource-service/util/cache"
@@ -116,7 +116,7 @@ func (rs *ResourceSvc) CreateNamespace(ctx context.Context, userID, nsLabel, tar
 	tr, nsUUID, err = rs.db.namespaceCreate(tariff, userUUID, nsLabel)
 	if err != nil {
 		switch err.(type) {
-		case dbError:
+		case *dbError:
 			return newError("database: create namespace: %v", err)
 		default:
 			return err
@@ -222,7 +222,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	if err != nil {
 		if err == ErrDenied || err == ErrNoSuchResource {
 			return err
-		} else if _, ok := err.(Err); ok {
+		} else if _, ok := err.(*errors.Error); ok {
 			return err
 		} else {
 			return newError("database: %v", err)
@@ -288,30 +288,18 @@ func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminA
 	}
 	namespaces, err := rs.db.namespaceList(userUUID)
 	if err != nil {
-		return nil, Err{
-			err,
-			`INTERNAL`,
-			"database: list namespaces: " + err.Error(),
-		}
+		return nil, errors.Format("database: list namespaces: %v", err)
 	}
 	for i, ns := range namespaces {
 		var avols []Volume
 		avols, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 		if err != nil {
-			return nil, Err{
-				err,
-				`INTERNAL`,
-				fmt.Sprintf("database: list associated volumes for ns %s: %v", *ns.ID, err),
-			}
+			return nil, errors.Format("database: list associated volumes for ns %s: %v", *ns.ID, err)
 		}
 		var uservols []Volume
 		uservols, err = rs.ListVolumes(ctx, userID, true)
 		if err != nil {
-			return nil, Err{
-				err,
-				`INTERNAL`,
-				fmt.Sprintf("list volumes: %v", err),
-			}
+			return nil, errors.Format("list volumes: %v", err)
 		}
 		for i := range uservols {
 			for j := range avols {
@@ -348,16 +336,12 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 	var nss []Namespace
 	userUUID, err := uuid.FromString(userID)
 	if err != nil {
-		err = BadInputError{Err{
-			err,
-			"BAD_INPUT",
-			"invalid user ID, not a UUID: " + err.Error(),
-		}}
+		err = newBadInputError("invalid user ID, not a UUID: %v", err.Error())
 		return
 	}
 	nss, err = rs.db.namespaceList(userUUID)
 	if err != nil {
-		err = Err{err, "INTERNAL", "database: get namespace: " + err.Error()}
+		err = errors.Format("database: get namespace: %v", err.Error())
 		return
 	}
 	for i := range nss {
@@ -374,22 +358,14 @@ func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string,
 	var avols []Volume
 	avols, err = rs.db.namespaceVolumeListAssoc(*ns.ID)
 	if err != nil {
-		err = Err{
-			err,
-			`INTERNAL`,
-			"database: list associated volumes for ns " + ns.ID.String() + ": " + err.Error(),
-		}
+		err = errors.Format("database: list associated volumes for ns %v : %v", ns.ID, err)
 		return
 	}
 
 	var uservols []Volume
 	uservols, err = rs.ListVolumes(ctx, userID, true)
 	if err != nil {
-		err = Err{
-			err,
-			`INTERNAL`,
-			"list volumes: " + err.Error(),
-		}
+		err = errors.Format("list volumes: %v", err)
 		return
 	}
 
@@ -756,31 +732,13 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 	var ns Namespace
 
 	if user, err = uuid.FromString(userID); err != nil {
-		err = BadInputError{Err{
-			err,
-			`BAD_INPUT`,
-			"cannot parse userID as UUID: " + err.Error(),
-		}}
+		err = newBadInputError("cannot parse userID as UUID: %v", err)
 		return
 	}
 
 	tariff, err = rs.getNSTariff(ctx, newTariffID)
 	if err != nil {
-		if errBilling, ok := err.(other.BillingError); ok {
-			if errBilling.ErrCode == "NOT_FOUND" {
-				err = BadInputError{Err{
-					err,
-					"NOT_FOUND",
-					"no such namespace tariff: " + err.Error(),
-				}}
-				return
-			}
-		}
-		err = OtherServiceError{Err{
-			err,
-			"SYSTEM",
-			"get namespace tariff: " + err.Error(),
-		}}
+		err = newOtherServiceError("get namespace tariff: %v", err.Error())
 		return
 	}
 
@@ -789,40 +747,24 @@ func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTa
 		if err == ErrNoSuchResource || err == ErrDenied {
 			return err
 		}
-		return Err{
-			err,
-			"INTERNAL",
-			"get namespace: " + err.Error(),
-		}
+		return errors.Format("get namespace: %v", err)
 	}
 
 	tr, err = rs.db.namespaceSetTariff(user, label, tariff)
 	if err != nil {
-		err = Err{
-			err,
-			"INTERNAL",
-			"database, set namespace tariff: " + err.Error(),
-		}
+		err = errors.Format("database, set namespace tariff: %v", err)
 		return
 	}
 	defer tr.Rollback()
 
 	if err = rs.billing.Subscribe(ctx, userID, newTariffID, ns.ID.String()); err != nil {
 		// TODO: don't fail if already subscribed
-		err = OtherServiceError{Err{
-			err,
-			`SYSTEM`,
-			"billing error: " + err.Error(),
-		}}
+		err = newOtherServiceError("billing error: %v", err)
 		return
 	}
 
 	if err = rs.kube.SetNamespaceQuota(ctx, ns.ID.String(), uint(tariff.CpuLimit), uint(tariff.MemoryLimit), *ns.Label, string(*ns.Access)); err != nil {
-		err = OtherServiceError{Err{
-			err,
-			`SYSTEM`,
-			"kube api error: " + err.Error(),
-		}}
+		err = newOtherServiceError("kube api error: %v", err)
 	}
 
 	tr.Commit()
@@ -837,31 +779,13 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 	var vol Volume
 
 	if user, err = uuid.FromString(userID); err != nil {
-		err = BadInputError{Err{
-			err,
-			`BAD_INPUT`,
-			"cannot parse userID as UUID: " + err.Error(),
-		}}
+		err = newBadInputError("cannot parse userID as UUID: %v", err)
 		return
 	}
 
 	tariff, err = rs.getVolumeTariff(ctx, newTariffID)
 	if err != nil {
-		if errBilling, ok := err.(other.BillingError); ok {
-			if errBilling.ErrCode == "NOT_FOUND" {
-				err = BadInputError{Err{
-					err,
-					"NOT_FOUND",
-					"no such volume tariff: " + err.Error(),
-				}}
-				return
-			}
-		}
-		err = OtherServiceError{Err{
-			err,
-			"SYSTEM",
-			"get volume tariff: " + err.Error(),
-		}}
+		err = newOtherServiceError("get volume tariff: %v", err)
 		return
 	}
 
@@ -870,20 +794,12 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 		if err == ErrNoSuchResource || err == ErrDenied {
 			return err
 		}
-		return Err{
-			err,
-			"INTERNAL",
-			"get volume: " + err.Error(),
-		}
+		return errors.Format("get volume: %v", err)
 	}
 
 	tr, err = rs.db.volumeSetTariff(user, label, tariff)
 	if err != nil {
-		err = Err{
-			err,
-			"INTERNAL",
-			"database, set volume tariff: " + err.Error(),
-		}
+		err = errors.Format("database, set volume tariff: %v", err)
 		return
 	}
 	defer tr.Rollback()
@@ -891,11 +807,7 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 	if tariff.IsPersistent {
 		if err = rs.billing.Subscribe(ctx, userID, newTariffID, vol.ID.String()); err != nil {
 			// TODO: don't fail if already subscribed
-			err = OtherServiceError{Err{
-				err,
-				`SYSTEM`,
-				"billing error: " + err.Error(),
-			}}
+			err = errors.Format("billing error: %v", err)
 			return
 		}
 	}
@@ -952,27 +864,19 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	if x = ctx.Value("sort-direction"); x == nil {
 		ctx = context.WithValue(ctx, "sort-direction", "ASC")
 	} else if sortDir, ok = x.(string); !ok {
-		return nil, BadInputError{Err{nil, "INTERNAL", `context value "sort-direction" was not string`}}
+		return nil, newBadInputError(`context value "sort-direction" was not string`)
 	} else {
 		sortDir = strings.ToUpper(sortDir)
 		switch sortDir {
 		case "ASC", "DESC":
 		default:
-			return nil, BadInputError{Err{
-				nil,
-				"BAD_INPUT",
-				`context value "sort-direction" was neither of: ASC, DESC`,
-			}}
+			return nil, newBadInputError(`context value "sort-direction" was neither of: ASC, DESC`)
 		}
 	}
 
 	if x = ctx.Value("after-time"); x != nil {
 		if _, ok = x.(time.Time); !ok {
-			return nil, BadInputError{Err{
-				nil,
-				"INTERNAL",
-				`context value "after-time" was not time.Time`,
-			}}
+			return nil, newBadInputError(`context value "after-time" was not time.Time`)
 		}
 		afterTime = x.(time.Time)
 	}
@@ -980,13 +884,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	if x = ctx.Value("count"); x == nil {
 		count = 50
 	} else if count, ok = x.(uint); !ok {
-		return nil, BadInputError{
-			Err{
-				nil,
-				"INTERNAL",
-				`context value "count" was not uint`,
-			},
-		}
+		return nil, newBadInputError(`context value "count" was not uint`)
 	}
 
 	var ctxCancel context.CancelFunc
@@ -998,7 +896,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	if x = ctx.Value("limited"); x != nil {
 		var b bool
 		if b, ok = x.(bool); !ok {
-			return nil, BadInputError{Err{nil, "INTERNAL", `context value "limited" was not bool`}}
+			return nil, newBadInputError(`context value "limited" was not bool`)
 		}
 		go filterLimited(b, C2, C1)
 		C1 = C2
@@ -1008,7 +906,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	if x = ctx.Value("deleted"); x != nil {
 		var b bool
 		if b, ok = x.(bool); !ok {
-			return nil, BadInputError{Err{nil, "INTERNAL", `context value "deleted" was not bool`}}
+			return nil, newBadInputError(`context value "deleted" was not bool`)
 		}
 		go filterDeleted(b, C2, C1)
 		C1 = C2
@@ -1018,10 +916,10 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	CS, err = rs.db.namespaceListAllByTime(ctx, afterTime, count)
 	if err != nil {
 		switch err.(type) {
-		case BadInputError, Err, PermissionError:
+		case *BadInputError, *PermissionError, *errors.Error:
 			return nil, err
 		default:
-			return nil, Err{err, "", fmt.Sprintf("database: %v", err)}
+			return nil, errors.Format("database: %v", err)
 		}
 	}
 	go func() {
@@ -1081,27 +979,19 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	if x = ctx.Value("sort-direction"); x == nil {
 		ctx = context.WithValue(ctx, "sort-direction", "ASC")
 	} else if sortDir, ok = x.(string); !ok {
-		return nil, BadInputError{Err{nil, "INTERNAL", `context value "sort-direction" was not string`}}
+		return nil, newBadInputError(`context value "sort-direction" was not string`)
 	} else {
 		sortDir = strings.ToUpper(sortDir)
 		switch sortDir {
 		case "ASC", "DESC":
 		default:
-			return nil, BadInputError{Err{
-				nil,
-				"BAD_INPUT",
-				`context value "sort-direction" was neither of: ASC, DESC`,
-			}}
+			return nil, newBadInputError(`context value "sort-direction" was neither of: ASC, DESC`)
 		}
 	}
 
 	if x = ctx.Value("after-time"); x != nil {
 		if _, ok = x.(time.Time); !ok {
-			return nil, BadInputError{Err{
-				nil,
-				"INTERNAL",
-				`context value "after-time" was not time.Time`,
-			}}
+			return nil, newBadInputError(`context value "after-time" was not time.Time`)
 		}
 		afterTime = x.(time.Time)
 	}
@@ -1109,13 +999,7 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	if x = ctx.Value("count"); x != nil {
 		count = 50
 	} else if count, ok = x.(uint); !ok {
-		return nil, BadInputError{
-			Err{
-				nil,
-				"INTERNAL",
-				`context value "count" was not uint`,
-			},
-		}
+		return nil, newBadInputError(`context value "count" was not uint`)
 	}
 
 	var ctxCancel context.CancelFunc
@@ -1127,7 +1011,7 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	if x = ctx.Value("limited"); x != nil {
 		var b bool
 		if b, ok = x.(bool); !ok {
-			return nil, BadInputError{Err{nil, "INTERNAL", `context value "limited" was not bool`}}
+			return nil, newBadInputError(`context value "limited" was not bool`)
 		}
 		go filterLimited(b, C2, C1)
 		C1 = C2
@@ -1137,7 +1021,7 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	if x = ctx.Value("deleted"); x != nil {
 		var b bool
 		if b, ok = x.(bool); !ok {
-			return nil, BadInputError{Err{nil, "INTERNAL", `context value "deleted" was not bool`}}
+			return nil, newBadInputError(`context value "deleted" was not bool`)
 		}
 		go filterDeleted(b, C2, C1)
 		C1 = C2
@@ -1147,10 +1031,10 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	CS, err = rs.db.volumeListAllByTime(ctx, afterTime, count)
 	if err != nil {
 		switch err.(type) {
-		case BadInputError, Err, PermissionError:
+		case *BadInputError, *PermissionError, *errors.Error:
 			return nil, err
 		default:
-			return nil, Err{err, "", fmt.Sprintf("database: %v", err)}
+			return nil, errors.Format("database: %v", err)
 		}
 	}
 	go func() {
@@ -1168,21 +1052,13 @@ func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label s
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
-		err = BadInputError{Err{
-			err,
-			`BAD_INPUT`,
-			"invalid user ID, not a UUID: " + err.Error(),
-		}}
+		err = newBadInputError("invalid user ID, not a UUID: %v", err)
 		return
 	}
 
 	ns, err = rs.db.namespaceAccesses(userUUID, label)
 	if err != nil {
-		err = Err{
-			err,
-			`INTERNAL`,
-			"database: " + err.Error(),
-		}
+		err = errors.Format("database: %v", err)
 		ns = Namespace{}
 		return
 	}
@@ -1195,21 +1071,13 @@ func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label stri
 
 	userUUID, err = uuid.FromString(userID)
 	if err != nil {
-		err = BadInputError{Err{
-			err,
-			`BAD_INPUT`,
-			"invalid user ID, not a UUID: " + err.Error(),
-		}}
+		err = errors.Format("invalid user ID, not a UUID: %v", err)
 		return
 	}
 
 	vol, err = rs.db.volumeAccesses(userUUID, label)
 	if err != nil {
-		err = Err{
-			err,
-			`INTERNAL`,
-			"database: " + err.Error(),
-		}
+		err = errors.Format("database: %v", err)
 		vol = Volume{}
 		return
 	}

@@ -3,8 +3,9 @@ package httpapi
 import (
 	"context"
 
-	"git.containerum.net/ch/resource-service/server"
+	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/resource-service/server"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -86,10 +87,7 @@ func RenameNamespace(c *gin.Context) {
 
 	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
 		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New("empty or does not match DNS_LABEL"))
 		return
 	}
 
@@ -111,10 +109,7 @@ func SetNamespaceLock(c *gin.Context) {
 
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New("missing field \"lock\""))
 		return
 	}
 
@@ -225,10 +220,7 @@ func RenameVolume(c *gin.Context) {
 
 	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
 		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New("invalid new label: empty or does not match DNS_LABEL"))
 		return
 	}
 
@@ -250,9 +242,7 @@ func SetVolumeLock(c *gin.Context) {
 
 	if reqData.Lock == nil {
 		logger.Warnf("invalid input: missing field \"lock\"")
-		c.AbortWithStatusJSON(400, map[string]interface{}{
-			"error": "0x03",
-		})
+		c.AbortWithStatusJSON(400, errors.New("missing field \"lock\""))
 		return
 	}
 

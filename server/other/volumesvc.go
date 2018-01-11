@@ -1,9 +1,9 @@
 package other
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 )

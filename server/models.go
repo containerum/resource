@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/satori/go.uuid"
 	"time"
+
+	"github.com/satori/go.uuid"
 )
 
 // Internally used models.

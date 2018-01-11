@@ -1,8 +1,8 @@
 package server
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestPermCheck(t *testing.T) {

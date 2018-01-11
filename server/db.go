@@ -366,11 +366,7 @@ func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t rsty
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		} else {
-			err = dbError{Err{
-				err,
-				"INTERNAL",
-				"SELECT resource_id: "+err.Error(),
-			}}
+			err = newDBError("SELECT resource_id: %v", err.Error())
 		}
 		return
 	}
@@ -379,11 +375,7 @@ func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t rsty
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	if err != nil {
-		err = dbError{Err{
-			err,
-			`INTERNAL`,
-			"BEGIN: " + err.Error(),
-		}}
+		err = newDBError("BEGIN: %v", err.Error())
 		return
 	}
 	defer func() {
@@ -411,11 +403,7 @@ func (db resourceSvcDB) namespaceSetTariff(owner uuid.UUID, label string, t rsty
 		t.InternalServices,
 	)
 	if err != nil {
-		err = dbError{Err{
-			err,
-			`INTERNAL`,
-			"UPDATE namespaces ...: "+err.Error(),
-		}}
+		err = newDBError("UPDATE namespaces ...: %v", err)
 	}
 	return
 }
@@ -917,11 +905,7 @@ func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t rstypes
 		if err == sql.ErrNoRows {
 			err = ErrNoSuchResource
 		} else {
-			err = dbError{Err{
-				err,
-				"INTERNAL",
-				"SELECT resource_id: "+err.Error(),
-			}}
+			err = newDBError("SELECT resource_id: %v", err)
 		}
 		return
 	}
@@ -930,11 +914,7 @@ func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t rstypes
 	tr = new(dbTransaction)
 	tr.tx, err = db.con.Begin()
 	if err != nil {
-		err = dbError{Err{
-			err,
-			`INTERNAL`,
-			"BEGIN: " + err.Error(),
-		}}
+		err = newDBError("BEGIN: %v", err)
 		return
 	}
 	defer func() {
@@ -958,11 +938,7 @@ func (db resourceSvcDB) volumeSetTariff(owner uuid.UUID, label string, t rstypes
 		t.IsPersistent,
 	)
 	if err != nil {
-		err = dbError{Err{
-			err,
-			`INTERNAL`,
-			"UPDATE volumes ...: "+err.Error(),
-		}}
+		err = newDBError("UPDATE volumes ...: %v", err)
 	}
 	return
 }
@@ -1152,7 +1128,7 @@ func (db resourceSvcDB) namespaceListAllByTime(ctx context.Context, after time.T
 	if err != nil {
 		// Doesn not matter if context was canceled, it is an error
 		// if this method doesn't return at least one result.
-		err = dbError{Err{err, "", err.Error()}}
+		err = newDBError(err.Error())
 		return
 	}
 
@@ -1195,7 +1171,7 @@ func (db resourceSvcDB) namespaceListAllByOwner(ctx context.Context, after uuid.
 	if err != nil {
 		// Doesn not matter if context was canceled, it is an error
 		// if this method doesn't return at least one result.
-		err = dbError{Err{err, "", err.Error()}}
+		err = newDBError(err.Error())
 		return
 	}
 
@@ -1353,7 +1329,7 @@ func (db resourceSvcDB) volumeListAllByTime(ctx context.Context, after time.Time
 		count,
 	)
 	if err != nil {
-		err = dbError{Err{err, "", err.Error()}}
+		err = newDBError(err.Error())
 		return
 	}
 	vch = make(chan Volume)

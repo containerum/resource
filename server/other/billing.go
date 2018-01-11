@@ -12,6 +12,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 
 	//uuid "github.com/satori/go.uuid"
+	"git.containerum.net/ch/json-types/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -159,7 +160,7 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (rst
 			return ns, nil
 		}
 	}
-	return rstypes.NamespaceTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such namespace tariff"}
+	return rstypes.NamespaceTariff{}, errors.New("no such namespace tariff")
 }
 
 func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstypes.VolumeTariff, error) {
@@ -169,37 +170,9 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstype
 			return v, nil
 		}
 	}
-	return rstypes.VolumeTariff{}, BillingError{ErrCode: "NOT_FOUND", Cause: nil, error: "no such volume tariff"}
+	return rstypes.VolumeTariff{}, errors.New("no such volume tariff")
 }
 
 func (billingStub) String() string {
 	return "billing service dummy"
-}
-
-type BillingError struct {
-	ErrCode string
-	Cause   error
-	error   string
-}
-
-func (e BillingError) Error() string {
-	if e.Cause != nil {
-		return fmt.Sprintf("%s: %s: %v", e.ErrCode, e.error, e.Cause)
-	} else {
-		return fmt.Sprintf("%s: %s", e.ErrCode, e.error)
-	}
-}
-
-func (e BillingError) IsAlreadySubscribed() bool {
-	if e.ErrCode == "ALREADY_SUBSCRIBED" {
-		return true
-	}
-	return false
-}
-
-func (e BillingError) IsAlreadyUnsubscribed() bool {
-	if e.ErrCode == "NOT_SUBSCRIBED" {
-		return true
-	}
-	return false
 }

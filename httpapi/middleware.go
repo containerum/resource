@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"git.containerum.net/ch/resource-service/server"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/resource-service/server"
 
+	"git.containerum.net/ch/json-types/errors"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
@@ -80,10 +81,7 @@ func parseCreateResourceReq(c *gin.Context) {
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
 	log = log.WithField("request-data-type", "CreateResourceRequest")
 	c.Set("request-data", req)
@@ -95,10 +93,7 @@ func parseRenameReq(c *gin.Context) {
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
 	log = log.WithField("request-data-type", "RenameResourceRequest")
 	c.Set("request-data", req)
@@ -110,10 +105,7 @@ func parseLockReq(c *gin.Context) {
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
 	log = log.WithField("request-data-type", "SetResourceLockRequest")
 	c.Set("request-data", req)
@@ -125,10 +117,7 @@ func parseSetAccessReq(c *gin.Context) {
 	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Infof("failed to json-bind request data: %v", err)
-		c.AbortWithStatusJSON(400, map[string]string{
-			"error":   "0x03",
-			"errcode": "BAD_INPUT",
-		})
+		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
 	log = log.WithField("request-data-type", "SetResourceAccessRequest")
 	c.Set("request-data", req)
@@ -138,45 +127,34 @@ func parseSetAccessReq(c *gin.Context) {
 func rejectUnprivileged(c *gin.Context) {
 	admin := c.MustGet("admin-action").(bool)
 	if !admin {
-		c.AbortWithStatusJSON(401, map[string]string{
-			"errcode": "PERMISSION_DENIED",
-			"error":   "denied",
-		})
+		c.AbortWithStatusJSON(401, errors.New("denied"))
 	}
 }
 
-func serverErrorResponse(err error) (code int, obj map[string]interface{}) {
+func serverErrorResponse(err error) (code int, resp *errors.Error) {
 	code = 500
-	obj = make(map[string]interface{})
 
 	switch err {
 	case server.ErrNoSuchResource:
 		code = 404
-		obj["errcode"] = server.ErrNoSuchResource.ErrCode
 	case server.ErrAlreadyExists:
 		code = 422
-		obj["errcode"] = server.ErrAlreadyExists.ErrCode
 	case server.ErrDenied:
 		code = 401
-		obj["errcode"] = server.ErrDenied.ErrCode
 	default:
-		switch etyped := err.(type) {
-		case server.Err:
+		switch err.(type) {
+		case *errors.Error:
 			code = 500
-			obj["errcode"] = etyped.ErrCode
-		case server.BadInputError:
+		case *server.BadInputError:
 			code = 400
-			obj["errcode"] = etyped.Err.ErrCode
-		case server.OtherServiceError:
+		case *server.OtherServiceError:
 			code = 503
-			obj["errcode"] = etyped.Err.ErrCode
-		case server.PermissionError:
+		case *server.PermissionError:
 			code = 401
-			obj["errcode"] = etyped.Err.ErrCode
 		}
 	}
 
-	obj["error"] = "0x03"
+	resp = errors.New(err.Error())
 
 	return
 }
@@ -193,10 +171,7 @@ func parseListAllResources(c *gin.Context) {
 		}
 		if err != nil {
 			log.Warnf("invalid integer in QP count: %v", err)
-			c.AbortWithStatusJSON(400, map[string]string{
-				"error":   `parsing query parameter "count": ` + err.Error(),
-				"errcode": "BAD_INPUT",
-			})
+			c.AbortWithStatusJSON(400, errors.Format(`parsing query parameter "count": %v`, err))
 			return
 		} else {
 			ctx = context.WithValue(ctx, "count", uint(count))
@@ -214,10 +189,7 @@ func parseListAllResources(c *gin.Context) {
 		afterTime, err = time.Parse(time.RFC3339Nano, afterstr)
 		if err != nil {
 			log.Warnf("invalid timestamp in QP after: %v", err)
-			c.AbortWithStatusJSON(400, map[string]string{
-				"error":   `parsing query parameter "after": ` + err.Error(),
-				"errcode": "BAD_INPUT",
-			})
+			c.AbortWithStatusJSON(400, errors.Format(`parsing query parameter "after": %v`, err))
 			return
 		} else {
 			ctx = context.WithValue(ctx, "after-time", afterTime)
@@ -230,10 +202,7 @@ func parseListAllResources(c *gin.Context) {
 		b, err := strconv.ParseBool(boolstr)
 		if err != nil {
 			log.Warnf("invalid boolean in QP deleted: %v", err)
-			c.AbortWithStatusJSON(400, map[string]string{
-				"error":   `parsing boolean query parameter "deleted": ` + err.Error(),
-				"errcode": "BAD_INPUT",
-			})
+			c.AbortWithStatusJSON(400, errors.Format(`parsing boolean query parameter "deleted": %v`, err))
 			return
 		}
 		ctx = context.WithValue(ctx, "deleted", b)
@@ -245,10 +214,7 @@ func parseListAllResources(c *gin.Context) {
 		b, err := strconv.ParseBool(boolstr)
 		if err != nil {
 			log.Warnf("invalid boolean in QP limited: %v", err)
-			c.AbortWithStatusJSON(400, map[string]string{
-				"error":   `parsing boolean query parameter "limited": ` + err.Error(),
-				"errcode": "BAD_INPUT",
-			})
+			c.AbortWithStatusJSON(400, errors.Format(`parsing boolean query parameter "limited": %v`, err))
 			return
 		}
 		ctx = context.WithValue(ctx, "limited", b)
