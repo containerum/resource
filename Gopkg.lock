@@ -4,8 +4,8 @@
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/json-types"
-  packages = ["errors","resource-service"]
-  revision = "e318033a04a8db51f91ce9759511c20cefc39e3e"
+  packages = ["errors","mail-templater","resource-service"]
+  revision = "0f17f0672ec62e4c366ae0a71151582f817d9f1b"
 
 [[projects]]
   branch = "master"
@@ -93,15 +93,33 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["idna","publicsuffix"]
+  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
   revision = "810d7000345868fc619eb81f46307107118f4ae1"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/text"
+  packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
+  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
   packages = ["."]
   revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
   version = "v8.18.2"
+
+[[projects]]
+  name = "gopkg.in/resty.v1"
+  packages = ["."]
+  revision = "9ac9c42358f7c3c69ac9f8610e8790d7c338e85d"
+  version = "v1.0"
 
 [[projects]]
   branch = "v2"
@@ -112,6 +130,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a2f88bcffd5daea22368199339cb26dd9d4162cc709ab87aa6a9f185cf9d52d3"
+  inputs-digest = "a8beb6fbbed3d32d2aab32aff8324e3e2e3e84f02a6a796a033357bfcf10093e"
   solver-name = "gps-cdcl"
   solver-version = 1

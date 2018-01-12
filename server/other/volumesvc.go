@@ -2,10 +2,12 @@ package other
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 
+	"git.containerum.net/ch/json-types/errors"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/resty.v1"
 )
 
 type VolumeSvc interface {
@@ -14,14 +16,22 @@ type VolumeSvc interface {
 }
 
 type volumeSvcHTTP struct {
-	c *http.Client
-	u *url.URL
+	client *resty.Client
+	log    *logrus.Entry
 }
 
 func NewVolumeSvcHTTP(u *url.URL) VolumeSvc {
+	log := logrus.WithField("component", "volume_client")
+	client := resty.New().
+		SetHostURL(u.String()).
+		SetLogger(log.WriterLevel(logrus.DebugLevel)).
+		SetDebug(true).
+		SetError(errors.Error{})
+	client.JSONMarshal = jsoniter.Marshal
+	client.JSONUnmarshal = jsoniter.Unmarshal
 	return volumeSvcHTTP{
-		c: http.DefaultClient,
-		u: u,
+		client: client,
+		log:    log,
 	}
 }
 
@@ -33,23 +43,25 @@ func (vs volumeSvcHTTP) DeleteVolume() error {
 	return fmt.Errorf("not implemented")
 }
 
-func (v volumeSvcHTTP) String() string {
-	return fmt.Sprintf("volume service http client: url=%v", v.u)
+func (vs volumeSvcHTTP) String() string {
+	return fmt.Sprintf("volume service http client: url=%v", vs.client.HostURL)
 }
 
-type volumeSvcStub struct{}
+type volumeSvcStub struct {
+	log *logrus.Entry
+}
 
 func NewVolumeSvcStub() VolumeSvc {
-	return volumeSvcStub{}
+	return volumeSvcStub{log: logrus.WithField("component", "volume_stub")}
 }
 
-func (volumeSvcStub) CreateVolume() error {
-	logrus.Infof("volumeSvcStub.CreateVolume")
+func (v volumeSvcStub) CreateVolume() error {
+	v.log.Debugln("volume created")
 	return nil
 }
 
-func (volumeSvcStub) DeleteVolume() error {
-	logrus.Infof("volumeSvcStub.DeleteVolume")
+func (v volumeSvcStub) DeleteVolume() error {
+	v.log.Debugln("volume deleted")
 	return nil
 }
 

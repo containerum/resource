@@ -1,16 +1,16 @@
 package other
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 
+	mttypes "git.containerum.net/ch/json-types/mail-templater"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 
+	"git.containerum.net/ch/json-types/errors"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/resty.v1"
 )
 
 type Mailer interface {
@@ -22,57 +22,43 @@ type Mailer interface {
 }
 
 type mailerHTTP struct {
-	c *http.Client
-	u *url.URL
-}
-
-type mailerSendRequest struct {
-	Template  string                 `json:"template"`
-	UserID    string                 `json:"user_id"`
-	Variables map[string]interface{} `json:"variables"`
-}
-
-type mailerSendResponse struct {
-	Error string `json:"error,omitempty"`
-
-	UserID string `json:"user_id"`
+	client *resty.Client
+	log    *logrus.Entry
 }
 
 func NewMailerHTTP(u *url.URL) Mailer {
+	log := logrus.WithField("component", "mail_client")
+	client := resty.New().
+		SetHostURL(u.String()).
+		SetLogger(log.WriterLevel(logrus.DebugLevel)).
+		SetDebug(true).
+		SetError(errors.Error{})
+	client.JSONMarshal = jsoniter.Marshal
+	client.JSONUnmarshal = jsoniter.Unmarshal
 	return mailerHTTP{
-		c: http.DefaultClient,
-		u: u,
+		client: client,
+		log:    log,
 	}
 }
 
 func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[string]interface{}) error {
-	var reqObj = mailerSendRequest{
+	ml.log.WithFields(logrus.Fields{
+		"event":   eventName,
+		"user_id": userID,
+	}).Debugf("sending mail with vars %v", vars)
+	resp, err := ml.client.R().SetBody(mttypes.SimpleSendRequest{
 		Template:  eventName,
 		UserID:    userID,
 		Variables: vars,
-	}
-	var respObj mailerSendResponse
-
-	reqBytes, _ := json.Marshal(reqObj)
-	reqBuf := bytes.NewBuffer(reqBytes)
-	reqURL, _ := ml.u.Parse("/templates/namespace_created/send")
-	httpReq, _ := http.NewRequest(http.MethodPost, reqURL.String(), reqBuf)
-	httpResp, err := ml.c.Do(httpReq)
+	}).SetResult(mttypes.SimpleSendResponse{}).Post("/send")
 	if err != nil {
 		return err
 	}
-	respBytes, err := ioutil.ReadAll(httpResp.Body)
-	if err != nil {
-		return err
+	if resp.Error() != nil {
+		return resp.Error().(*errors.Error)
 	}
-	err = json.Unmarshal(respBytes, &respObj)
-	if err != nil {
-		return err
-	}
-	if respObj.Error != "" || respObj.UserID == "" {
-		return fmt.Errorf("http status %s: error %s", httpResp.Status, respObj.Error)
-	}
-
+	result := resp.Result().(*mttypes.SimpleSendResponse)
+	ml.log.WithField("user_id", result.UserID).Debugln("sent mail")
 	return nil
 }
 
@@ -124,33 +110,47 @@ func (ml mailerHTTP) SendVolumeDeleted(userID, volLabel string, t rstypes.Volume
 	return nil
 }
 
-func (m mailerHTTP) String() string {
-	return fmt.Sprintf("mail service http client: url=%v", m.u)
+func (ml mailerHTTP) String() string {
+	return fmt.Sprintf("mail service http client: url=%v", ml.client.HostURL)
 }
 
-type mailerStub struct{}
+type mailerStub struct {
+	log *logrus.Entry
+}
 
 func NewMailerStub() Mailer {
-	return mailerStub{}
+	return mailerStub{log: logrus.WithField("component", "mailer_stub")}
 }
 
-func (mailerStub) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
-	logrus.Infof("Mailer.SendNamespaceCreated userID=%s nsLabel=%s tariff=%+v", userID, nsLabel, t)
+func (ml mailerStub) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
+	ml.log.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"ns_label": nsLabel,
+	}).Debugf("send namespace created with tariff %+v", t)
 	return nil
 }
 
-func (mailerStub) SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error {
-	logrus.Infof("Mailer.SendNamespaceDeleted userID=%s nsLabel=%s tariff=%+v", userID, nsLabel, t)
+func (ml mailerStub) SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error {
+	ml.log.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"ns_label": nsLabel,
+	}).Debugf("send namespace deleted with tariff %+v", t)
 	return nil
 }
 
-func (mailerStub) SendVolumeCreated(userID, label string, t rstypes.VolumeTariff) error {
-	logrus.Infof("Mailer.SendVolumeCreated userID=%s label=%s tariff=%+v", userID, label, t)
+func (ml mailerStub) SendVolumeCreated(userID, label string, t rstypes.VolumeTariff) error {
+	ml.log.WithFields(logrus.Fields{
+		"user_id":   userID,
+		"vol_label": label,
+	}).Debugf("send volume created with tariff %+v", t)
 	return nil
 }
 
-func (mailerStub) SendVolumeDeleted(userID, label string, t rstypes.VolumeTariff) error {
-	logrus.Infof("Mailer.SendVolumeDeleted userID=%s label=%s tariff=%+v", userID, label, t)
+func (ml mailerStub) SendVolumeDeleted(userID, label string, t rstypes.VolumeTariff) error {
+	ml.log.WithFields(logrus.Fields{
+		"user_id":   userID,
+		"vol_label": label,
+	}).Debugf("send volume deleted with tariff %+v", t)
 	return nil
 }
 
