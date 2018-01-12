@@ -16,33 +16,45 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type operationMode int
+
+const (
+	modeDebug operationMode = iota
+	modeRelease
+)
+
+var opMode operationMode
+
 func setupLogger() error {
-	opMode := os.Getenv("MODE")
-	switch opMode {
+	mode := os.Getenv("MODE")
+	switch mode {
 	case "debug":
+		opMode = modeDebug
 		gin.SetMode(gin.DebugMode)
+		logrus.SetLevel(logrus.DebugLevel)
 	case "release", "":
+		opMode = modeRelease
 		gin.SetMode(gin.ReleaseMode)
 		logrus.SetFormatter(&logrus.JSONFormatter{})
+
+		logLevelString := os.Getenv("LOG_LEVEL")
+		var level logrus.Level
+		if logLevelString == "" {
+			level = logrus.InfoLevel
+		} else {
+			levelI, err := strconv.Atoi(logLevelString)
+			if err != nil {
+				return err
+			}
+			level = logrus.Level(levelI)
+			if level > logrus.DebugLevel || level < logrus.PanicLevel {
+				return errors.New("invalid log level")
+			}
+		}
+		logrus.SetLevel(level)
 	default:
 		return errors.New("invalid operation mode (must be 'debug' or 'release')")
 	}
-
-	logLevelString := os.Getenv("LOG_LEVEL")
-	var level logrus.Level
-	if logLevelString == "" {
-		level = logrus.InfoLevel
-	} else {
-		levelI, err := strconv.Atoi(logLevelString)
-		if err != nil {
-			return err
-		}
-		level = logrus.Level(levelI)
-		if level > logrus.DebugLevel || level < logrus.PanicLevel {
-			return errors.New("invalid log level")
-		}
-	}
-	logrus.SetLevel(level)
 	return nil
 }
 
@@ -56,7 +68,7 @@ func setupServer() (server.ResourceSvcInterface, error) {
 			return nil, err
 		}
 	} else {
-		if logrus.GetLevel() == logrus.DebugLevel {
+		if opMode == modeDebug {
 			clients.Auth = other.NewAuthSvcStub()
 		} else {
 			return nil, errors.New("missing configuration for auth service")
@@ -78,7 +90,7 @@ func setupServer() (server.ResourceSvcInterface, error) {
 			Host:   u,
 		})
 	} else {
-		if logrus.GetLevel() == logrus.DebugLevel {
+		if opMode == modeDebug {
 			clients.Kube = other.NewKubeStub()
 		} else {
 			return nil, errors.New("missing configuration for kube service")
@@ -91,7 +103,7 @@ func setupServer() (server.ResourceSvcInterface, error) {
 			Host:   u,
 		})
 	} else {
-		if logrus.GetLevel() == logrus.DebugLevel {
+		if opMode == modeDebug {
 			clients.Mailer = other.NewMailerStub()
 		} else {
 			return nil, errors.New("missing configuration for mailer service")
@@ -104,7 +116,7 @@ func setupServer() (server.ResourceSvcInterface, error) {
 			Host:   u,
 		})
 	} else {
-		if logrus.GetLevel() == logrus.DebugLevel {
+		if opMode == modeDebug {
 			clients.Volume = other.NewVolumeSvcStub()
 		} else {
 			return nil, errors.New("missing configuration for volume service")
