@@ -56,12 +56,12 @@ func NewVolumeSvcStub() VolumeSvc {
 }
 
 func (v volumeSvcStub) CreateVolume() error {
-	v.log.Debugln("volume created")
+	v.log.Infoln("volume created")
 	return nil
 }
 
 func (v volumeSvcStub) DeleteVolume() error {
-	v.log.Debugln("volume deleted")
+	v.log.Infoln("volume deleted")
 	return nil
 }
 

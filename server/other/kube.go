@@ -58,7 +58,7 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 		"memory": memory,
 		"label":  label,
 		"access": access,
-	}).Debugln("create namespace")
+	}).Infoln("create namespace")
 
 	resp, err := kub.client.R().SetBody(map[string]interface{}{
 		"kind":       "Namespace",
@@ -86,7 +86,7 @@ func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory ui
 }
 
 func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
-	kub.log.WithField("name", name).Debugln("delete namespace")
+	kub.log.WithField("name", name).Infoln("delete namespace")
 
 	resp, err := kub.client.R().
 		SetHeader(namespaceHeader, kub.createNamespaceHeaderValue(kubNamespaceHeaderElement{
@@ -114,7 +114,7 @@ func (kub kube) SetNamespaceQuota(ctx context.Context, name string, cpu, memory 
 		"memory": memory,
 		"label":  label,
 		"access": access,
-	}).Debugln("set namespace quota")
+	}).Infoln("set namespace quota")
 
 	resp, err := kub.client.R().
 		SetHeader(namespaceHeader, kub.createNamespaceHeaderValue(kubNamespaceHeaderElement{
@@ -151,12 +151,12 @@ func (kub kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory 
 		"memory": memory,
 		"label":  label,
 		"access": access,
-	}).Debugln("create namespace")
+	}).Infoln("create namespace")
 	return nil
 }
 
 func (kub kubeStub) DeleteNamespace(_ context.Context, name string) error {
-	kub.log.WithField("name", name).Debugln("delete namespace")
+	kub.log.WithField("name", name).Infoln("delete namespace")
 	return nil
 }
 
@@ -167,7 +167,7 @@ func (kub kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memor
 		"memory": memory,
 		"label":  label,
 		"access": access,
-	}).Debugln("set namespace quota")
+	}).Infoln("set namespace quota")
 	return nil
 }
 

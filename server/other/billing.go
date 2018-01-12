@@ -46,7 +46,7 @@ func (b billingHTTP) Subscribe(ctx context.Context, userID, tariffID, resourceID
 		"user_id":     userID,
 		"tariff_id":   tariffID,
 		"resource_id": resourceID,
-	}).Debugln("subscribing")
+	}).Infoln("subscribing")
 	resp, err := b.client.R().SetBody(map[string]string{ // TODO: replace with type from 'json-types'
 		//"tariff_label":   tariffLabel,
 		//"resource_type":  resType,
@@ -67,7 +67,7 @@ func (b billingHTTP) Unsubscribe(ctx context.Context, userID, resourceID string)
 	b.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"resource_id": resourceID,
-	}).Debugln("unsubscribing")
+	}).Infoln("unsubscribing")
 	resp, err := b.client.R().SetBody(map[string]string{
 		"resource_id": resourceID,
 		"user_id":     userID,
@@ -82,7 +82,7 @@ func (b billingHTTP) Unsubscribe(ctx context.Context, userID, resourceID string)
 }
 
 func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (nst rstypes.NamespaceTariff, err error) {
-	b.log.WithField("tariff_id", tariffID).Debugln("get namespace tariff")
+	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
 	resp, err := b.client.R().SetResult(&nst).Get("/namespace_tariffs/" + tariffID)
 	if err != nil {
 		return
@@ -94,7 +94,7 @@ func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (n
 }
 
 func (b billingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (vt rstypes.VolumeTariff, err error) {
-	b.log.WithField("tariff_id", tariffID).Debugln("get volume tariff")
+	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
 	resp, err := b.client.R().SetResult(&vt).Get("/volume_tariffs/" + tariffID)
 	if err != nil {
 		return
@@ -122,7 +122,7 @@ func (b billingStub) Subscribe(ctx context.Context, userID, tariffID, resourceID
 		"user_id":     userID,
 		"tariff_id":   tariffID,
 		"resource_id": resourceID,
-	}).Debugln("subscribing")
+	}).Infoln("subscribing")
 	return nil
 }
 
@@ -130,12 +130,12 @@ func (b billingStub) Unsubscribe(ctx context.Context, userID, resourceID string)
 	b.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"resource_id": resourceID,
-	}).Debugln("unsubscribing")
+	}).Infoln("unsubscribing")
 	return nil
 }
 
 func (b billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (rstypes.NamespaceTariff, error) {
-	b.log.WithField("tariff_id", tariffID).Debugln("get namespace tariff")
+	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
 	for _, ns := range fakeNSTariffs {
 		if ns.TariffID != "" && ns.TariffID == tariffID {
 			return ns, nil
@@ -145,7 +145,7 @@ func (b billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (r
 }
 
 func (b billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstypes.VolumeTariff, error) {
-	b.log.WithField("tariff_id", tariffID).Debugln("get volume tariff")
+	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
 	for _, v := range fakeVolumeTariffs {
 		if v.TariffID != "" && v.TariffID == tariffID {
 			return v, nil

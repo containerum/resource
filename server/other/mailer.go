@@ -45,7 +45,7 @@ func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[strin
 	ml.log.WithFields(logrus.Fields{
 		"event":   eventName,
 		"user_id": userID,
-	}).Debugf("sending mail with vars %v", vars)
+	}).Infof("sending mail with vars %v", vars)
 	resp, err := ml.client.R().SetBody(mttypes.SimpleSendRequest{
 		Template:  eventName,
 		UserID:    userID,
@@ -58,7 +58,7 @@ func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[strin
 		return resp.Error().(*errors.Error)
 	}
 	result := resp.Result().(*mttypes.SimpleSendResponse)
-	ml.log.WithField("user_id", result.UserID).Debugln("sent mail")
+	ml.log.WithField("user_id", result.UserID).Infoln("sent mail")
 	return nil
 }
 
@@ -126,7 +126,7 @@ func (ml mailerStub) SendNamespaceCreated(userID, nsLabel string, t rstypes.Name
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
-	}).Debugf("send namespace created with tariff %+v", t)
+	}).Infof("send namespace created with tariff %+v", t)
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (ml mailerStub) SendNamespaceDeleted(userID, nsLabel string, t rstypes.Name
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
-	}).Debugf("send namespace deleted with tariff %+v", t)
+	}).Infof("send namespace deleted with tariff %+v", t)
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (ml mailerStub) SendVolumeCreated(userID, label string, t rstypes.VolumeTar
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
-	}).Debugf("send volume created with tariff %+v", t)
+	}).Infof("send volume created with tariff %+v", t)
 	return nil
 }
 
@@ -150,7 +150,7 @@ func (ml mailerStub) SendVolumeDeleted(userID, label string, t rstypes.VolumeTar
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
-	}).Debugf("send volume deleted with tariff %+v", t)
+	}).Infof("send volume deleted with tariff %+v", t)
 	return nil
 }
 
