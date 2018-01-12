@@ -1,57 +1,44 @@
 package httpapi
 
 import (
-	"context"
-
-	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 // *** NAMESPACES ***
 
 func CreateNamespace(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 
-	logger.Infof("creating namespace %s", reqData.Label)
 	err := srv.CreateNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
 	if err != nil {
-		logger.Errorf("failed to create namespace %s: %v", reqData.Label, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
 func DeleteNamespace(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
 
-	logger.Infof("deleting namespace %s", nsLabel)
 	err := srv.DeleteNamespace(c.Request.Context(), userID, nsLabel)
 	if err != nil {
-		logger.Errorf("failed to delete namespace %s: %v", nsLabel, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
 func ListNamespaces(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 
-	logger.Infof("listing namespaces")
 	nss, err := srv.ListNamespaces(c.Request.Context(), userID, adminAction)
 	if err != nil {
-		logger.Errorf("failed to list namespaces: %v", err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 		return
@@ -60,16 +47,13 @@ func ListNamespaces(c *gin.Context) {
 }
 
 func GetNamespace(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 	nsLabel := c.Param("namespace")
 
-	logger.Infof("getting namespace %s", nsLabel)
 	nss, err := srv.GetNamespace(c.Request.Context(), userID, nsLabel, adminAction)
 	if err != nil {
-		logger.Errorf("failed to get namespace %s: %v", nsLabel, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 		return
@@ -78,113 +62,78 @@ func GetNamespace(c *gin.Context) {
 }
 
 func RenameNamespace(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	nsLabel := c.Param("namespace")
 	reqData := c.MustGet("request-data").(rstypes.RenameResourceRequest)
 
-	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
-		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
-		c.AbortWithStatusJSON(400, errors.New("empty or does not match DNS_LABEL"))
-		return
-	}
-
-	logger.Infof("renaming namespace %s to %s user %s", nsLabel, reqData.New, userID)
 	err := srv.RenameNamespace(c.Request.Context(), userID, nsLabel, reqData.New)
 	if err != nil {
-		logger.Errorf("failed to rename namespace %s into %s: %v", nsLabel, reqData.New, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
 func SetNamespaceLock(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
 	reqData := c.MustGet("request-data").(rstypes.SetResourceLockRequest)
 
-	if reqData.Lock == nil {
-		logger.Warnf("invalid input: missing field \"lock\"")
-		c.AbortWithStatusJSON(400, errors.New("missing field \"lock\""))
-		return
-	}
-
-	if *reqData.Lock {
-		logger.Infof("locking namespace %s user %s", label, userID)
-	} else {
-		logger.Infof("unlocking namespace %s user %s", label, userID)
-	}
-	err := srv.LockNamespace(c.Request.Context(), userID, label, *reqData.Lock)
+	err := srv.LockNamespace(c.Request.Context(), userID, label, reqData.Lock)
 	if err != nil {
-		logger.Errorf("failed to lock access to namespace %s: %v", label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+
 	}
 }
 
 func SetNamespaceAccess(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
 	reqData := c.MustGet("request-data").(rstypes.SetResourceAccessRequest)
 
-	logger.Infof("setting access level %s to user %s on namespace %s of user %s",
-		reqData.Access, reqData.UserID, label, userID)
 	err := srv.ChangeNamespaceAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to set access to namespace %s: %v", label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+
 	}
 }
 
 // *** VOLUMES ***
 
 func CreateVolume(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 
-	logger.Infof("creating volume %s", reqData.Label)
 	err := srv.CreateVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID, adminAction)
 	if err != nil {
-		logger.Warnf("failed to create volume %s: %v", reqData.Label, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
 func DeleteVolume(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
 
-	logger.Infof("deleting volume %s", label)
 	err := srv.DeleteVolume(c.Request.Context(), userID, label)
 	if err != nil {
-		logger.Errorf("failed to delete volume %s: %v", label, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 	}
 }
 
 func ListVolumes(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 
-	logger.Infof("listing volumes")
 	vols, err := srv.ListVolumes(c.Request.Context(), userID, adminAction)
 	if err != nil {
-		logger.Errorf("failed to list volumes: %v", err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 		return
@@ -193,16 +142,13 @@ func ListVolumes(c *gin.Context) {
 }
 
 func GetVolume(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	adminAction := c.MustGet("admin-action").(bool)
 	label := c.Param("volume")
 
-	logger.Infof("getting volume %s", label)
 	vols, err := srv.GetVolume(c.Request.Context(), userID, label, adminAction)
 	if err != nil {
-		logger.Errorf("failed to get volume %s: %v", label, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 		return
@@ -211,22 +157,13 @@ func GetVolume(c *gin.Context) {
 }
 
 func RenameVolume(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
 	reqData := c.MustGet("request-data").(rstypes.RenameResourceRequest)
 
-	if reqData.New == "" || !DNSLabel.MatchString(reqData.New) {
-		logger.Warnf("invalid new label: empty or does not match DNS_LABEL: %q", reqData.New)
-		c.AbortWithStatusJSON(400, errors.New("invalid new label: empty or does not match DNS_LABEL"))
-		return
-	}
-
-	logger.Infof("rename volume %s to %s user %s", label, reqData.New, userID)
 	err := srv.RenameVolume(c.Request.Context(), userID, label, reqData.New)
 	if err != nil {
-		logger.Errorf("failed to rename volume %s into %s: %v", label, reqData.New, err)
+		c.Error(err)
 		status, respObj := serverErrorResponse(err)
 		c.AbortWithStatusJSON(status, respObj)
 	}
@@ -234,58 +171,38 @@ func RenameVolume(c *gin.Context) {
 
 func SetVolumeLock(c *gin.Context) {
 
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
 	reqData := c.MustGet("request-data").(rstypes.SetResourceLockRequest)
 
-	if reqData.Lock == nil {
-		logger.Warnf("invalid input: missing field \"lock\"")
-		c.AbortWithStatusJSON(400, errors.New("missing field \"lock\""))
-		return
-	}
-
-	if *reqData.Lock {
-		logger.Infof("lock volume %s user %s", label, userID)
-	} else {
-		logger.Infof("unlock volume %s user %s", label, userID)
-	}
-	err := srv.LockVolume(c.Request.Context(), userID, label, *reqData.Lock)
+	err := srv.LockVolume(c.Request.Context(), userID, label, reqData.Lock)
 	if err != nil {
-		logger.Errorf("failed to lock access to volume %s: %v", label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+
 	}
 }
 
 func SetVolumeAccess(c *gin.Context) {
 
-	logger := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
 	reqData := c.MustGet("request-data").(rstypes.SetResourceAccessRequest)
 
-	logger.Infof("setting access level %s to user %s on volume %s of user %s",
-		reqData.Access, reqData.UserID, label, userID)
 	err := srv.ChangeVolumeAccess(c.Request.Context(), userID, label, reqData.UserID, reqData.Access)
 	if err != nil {
-		logger.Errorf("failed to set access to volume %s: %v", label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+
 	}
 }
 
 func ListAllNamespaces(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
-	ctx := c.MustGet("request-context").(context.Context)
-
-	logger.Info("list all namespaces")
-	nsch, err := srv.ListAllNamespaces(ctx)
+	nsch, err := srv.ListAllNamespaces(c.Request.Context())
 	if err != nil {
-		logger.Errorf("failed to list all namespaces: %v", err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+
 		return
 	}
 	c.Header("content-type", "application/json")
@@ -304,16 +221,11 @@ func ListAllNamespaces(c *gin.Context) {
 }
 
 func ListAllVolumes(c *gin.Context) {
-
-	logger := c.MustGet("logger").(*logrus.Entry)
-	ctx := c.MustGet("request-context").(context.Context)
-
-	logger.Info("list all volumes")
-	vch, err := srv.ListAllVolumes(ctx)
+	vch, err := srv.ListAllVolumes(c.Request.Context())
 	if err != nil {
-		logger.Errorf("failed to list all volumes: %v", err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+
 		return
 	}
 	c.Header("content-type", "application/json")
@@ -331,66 +243,50 @@ func ListAllVolumes(c *gin.Context) {
 }
 
 func ResizeNamespace(c *gin.Context) {
-
-	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 	reqData.Label = c.Param("namespace")
 
-	log.Infof("resize namespace: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)
 	err := srv.ResizeNamespace(c.Request.Context(), userID, reqData.Label, reqData.TariffID)
 	if err != nil {
-		log.Errorf("failed to resize namespace %s: %v", reqData.Label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
 	}
 }
 
 func ResizeVolume(c *gin.Context) {
-
-	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	reqData := c.MustGet("request-data").(rstypes.CreateResourceRequest)
 	reqData.Label = c.Param("volume")
 
-	log.Infof("resize volume: user=%s label=%s tariff=%s", userID, reqData.Label, reqData.TariffID)
 	err := srv.ResizeVolume(c.Request.Context(), userID, reqData.Label, reqData.TariffID)
 	if err != nil {
-		log.Errorf("failed to resize volume %s: %v", reqData.Label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
 	}
 }
 
 func GetNamespaceAccesses(c *gin.Context) {
-
-	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
 
-	log.Infof("get accesses for namespace %s", label)
 	ns, err := srv.GetNamespaceAccesses(c.Request.Context(), userID, label)
 	if err != nil {
-		log.Errorf("failed to get accesses for namespace %s: %v", label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
 		return
 	}
 	c.IndentedJSON(200, ns)
 }
 
 func GetVolumeAccesses(c *gin.Context) {
-
-	log := c.MustGet("logger").(*logrus.Entry)
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("volume")
 
-	log.Infof("get accesses for volume %s", label)
 	ns, err := srv.GetVolumeAccesses(c.Request.Context(), userID, label)
 	if err != nil {
-		log.Errorf("failed to get accesses for namespace %s: %v", label, err)
-		code, respObj := serverErrorResponse(err)
-		c.AbortWithStatusJSON(code, respObj)
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
 		return
 	}
 	c.IndentedJSON(200, ns)

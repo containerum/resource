@@ -6,6 +6,9 @@ import (
 	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
+
+	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"github.com/gin-gonic/gin/binding"
 )
 
 var srv server.ResourceSvcInterface
@@ -13,10 +16,12 @@ var srv server.ResourceSvcInterface
 func NewGinEngine(srvarg server.ResourceSvcInterface) *gin.Engine {
 	srv = srvarg
 
+	rstypes.RegisterCustomTagsGin(binding.Validator)
+
 	g := gin.New()
+
 	g.Use(gin.Recovery())
 	g.Use(gin.LoggerWithWriter(os.Stderr))
-	g.Use(initializeContext())
 	g.Use(parseHeaders)
 	g.Use(adminAction)
 

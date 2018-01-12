@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -11,26 +10,9 @@ import (
 	rserrors "git.containerum.net/ch/resource-service/server/errors"
 
 	"git.containerum.net/ch/json-types/errors"
-	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
-
-var logger = logrus.New()
-var DNSLabel = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?`)
-
-func initializeContext() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		requestID := utils.NewUUID()
-		c.Header("x-request-id", requestID)
-		c.Set("request-id", requestID)
-		c.Set("logger", logrus.NewEntry(logger).
-			WithField("client-ip", c.ClientIP()).
-			WithField("request-id", requestID).
-			WithField("http-method", c.Request.Method).
-			WithField("http-uri", c.Request.RequestURI))
-	}
-}
 
 // depends on initializeContext
 func parseHeaders(c *gin.Context) {
