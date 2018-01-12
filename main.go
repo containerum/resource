@@ -1,11 +1,17 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"time"
 
-	"git.containerum.net/ch/resource-service/httpapi"
+	"os/signal"
 
+	"context"
+
+	"git.containerum.net/ch/resource-service/httpapi"
+	"github.com/gin-gonic/contrib/ginrus"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,12 +32,29 @@ func main() {
 	srv, err := setupServer()
 	exitOnError(err)
 
-	gin := httpapi.NewGinEngine(srv)
-	for {
-		err = gin.Run(listenAddr)
-		if err != nil {
-			logrus.Errorf("gin error: %v", err)
-		}
-		time.Sleep(time.Second)
+	g := gin.New()
+	g.Use(gin.RecoveryWithWriter(logrus.WithField("component", "gin_recovery").WriterLevel(logrus.ErrorLevel)))
+	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
+
+	exitOnError(httpapi.SetupGinEngine(srv, g))
+
+	// for graceful shutdown
+	httpsrv := &http.Server{
+		Addr:    listenAddr,
+		Handler: g,
 	}
+
+	// serve connections
+	go exitOnError(httpsrv.ListenAndServe())
+
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 5 seconds.
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt) // subscribe on interrupt event
+	<-quit                            // wait for event
+	logrus.Infoln("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	exitOnError(httpsrv.Shutdown(ctx))
 }

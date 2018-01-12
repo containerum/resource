@@ -1,8 +1,6 @@
 package httpapi
 
 import (
-	"os"
-
 	"git.containerum.net/ch/resource-service/server"
 
 	"github.com/gin-gonic/gin"
@@ -13,40 +11,47 @@ import (
 
 var srv server.ResourceSvcInterface
 
-func NewGinEngine(srvarg server.ResourceSvcInterface) *gin.Engine {
+func SetupGinEngine(srvarg server.ResourceSvcInterface, g *gin.Engine) error {
 	srv = srvarg
 
-	rstypes.RegisterCustomTagsGin(binding.Validator)
+	if err := rstypes.RegisterCustomTagsGin(binding.Validator); err != nil {
+		return err
+	}
 
-	g := gin.New()
-
-	g.Use(gin.Recovery())
-	g.Use(gin.LoggerWithWriter(os.Stderr))
 	g.Use(parseHeaders)
 	g.Use(adminAction)
 
-	g.POST("/namespace", parseCreateResourceReq, CreateNamespace)
-	g.DELETE("/namespace/:namespace", DeleteNamespace)
-	g.GET("/namespace", ListNamespaces)
-	g.GET("/namespace/:namespace", GetNamespace)
-	g.PUT("/namespace/:namespace/name", parseRenameReq, RenameNamespace)
-	g.PUT("/namespace/:namespace/lock", parseLockReq, SetNamespaceLock)
-	g.PUT("/namespace/:namespace/access", parseSetAccessReq, SetNamespaceAccess)
-	g.GET("/namespace/:namespace/access", rejectUnprivileged, GetNamespaceAccesses)
-	g.PUT("/namespace/:namespace", parseCreateResourceReq, ResizeNamespace)
+	ns := g.Group("/namespace")
+	{
+		ns.POST("", parseCreateResourceReq, CreateNamespace)
+		ns.DELETE("/:namespace", DeleteNamespace)
+		ns.GET("", ListNamespaces)
+		ns.GET("/:namespace", GetNamespace)
+		ns.PUT("/:namespace/name", parseRenameReq, RenameNamespace)
+		ns.PUT("/:namespace/lock", parseLockReq, SetNamespaceLock)
+		ns.PUT("/:namespace/access", parseSetAccessReq, SetNamespaceAccess)
+		ns.GET("/:namespace/access", rejectUnprivileged, GetNamespaceAccesses)
+		ns.PUT("/:namespace", parseCreateResourceReq, ResizeNamespace)
+	}
 
-	g.POST("/volume", parseCreateResourceReq, CreateVolume)
-	g.DELETE("/volume/:volume", DeleteVolume)
-	g.GET("/volume", ListVolumes)
-	g.GET("/volume/:volume", GetVolume)
-	g.PUT("/volume/:volume/name", parseRenameReq, RenameVolume)
-	g.PUT("/volume/:volume/lock", parseLockReq, SetVolumeLock)
-	g.PUT("/volume/:volume/access", parseSetAccessReq, SetVolumeAccess)
-	g.GET("/volume/:volume/access", rejectUnprivileged, GetVolumeAccesses)
-	g.PUT("/volume/:volume", parseCreateResourceReq, ResizeVolume)
+	vol := g.Group("/volume")
+	{
+		vol.POST("", parseCreateResourceReq, CreateVolume)
+		vol.DELETE("/:volume", DeleteVolume)
+		vol.GET("", ListVolumes)
+		vol.GET("/:volume", GetVolume)
+		vol.PUT("/:volume/name", parseRenameReq, RenameVolume)
+		vol.PUT("/:volume/lock", parseLockReq, SetVolumeLock)
+		vol.PUT("/:volume/access", parseSetAccessReq, SetVolumeAccess)
+		vol.GET("/:volume/access", rejectUnprivileged, GetVolumeAccesses)
+		vol.PUT("/:volume", parseCreateResourceReq, ResizeVolume)
+	}
 
-	g.GET("/adm/namespaces", rejectUnprivileged, parseListAllResources, ListAllNamespaces)
-	g.GET("/adm/volumes", rejectUnprivileged, parseListAllResources, ListAllVolumes)
+	adm := g.Group("/adm")
+	{
+		adm.GET("/namespaces", rejectUnprivileged, parseListAllResources, ListAllNamespaces)
+		adm.GET("/volumes", rejectUnprivileged, parseListAllResources, ListAllVolumes)
+	}
 
 	g.GET("", func(c *gin.Context) {
 		c.IndentedJSON(200, map[string]interface{}{
@@ -55,5 +60,5 @@ func NewGinEngine(srvarg server.ResourceSvcInterface) *gin.Engine {
 		})
 	})
 
-	return g
+	return nil
 }

@@ -21,6 +21,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gin-gonic/contrib"
+  packages = ["ginrus"]
+  revision = "88aede40372d4bcb11e45168a8c30d99e44cf617"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gin-gonic/gin"
   packages = [".","binding","json","render"]
   revision = "a712f77d7aaec7eb4766a663924aaa4e54d3fe70"
@@ -106,6 +112,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "20dbd6aeba747e717c54321468de7ea2acbd26edb3b6b120f350b18a011466ce"
+  inputs-digest = "a2f88bcffd5daea22368199339cb26dd9d4162cc709ab87aa6a9f185cf9d52d3"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -11,10 +11,8 @@ import (
 
 	"git.containerum.net/ch/json-types/errors"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
-// depends on initializeContext
 func parseHeaders(c *gin.Context) {
 	userID := c.Request.Header.Get("x-user-id")
 	userRole := c.Request.Header.Get("x-user-role")
@@ -23,14 +21,6 @@ func parseHeaders(c *gin.Context) {
 	c.Set("user-id", userID)
 	c.Set("user-role", userRole)
 	c.Set("token-id", tokenID)
-
-	logger := c.MustGet("logger").(*logrus.Entry)
-	logger = logger.
-		WithField("user-id", userID).
-		WithField("actor-user-id", userID).
-		WithField("user-role", userRole).
-		WithField("token-id", tokenID)
-	c.Set("logger", logger)
 }
 
 // adminAction checks whether the request is performed by the
@@ -40,69 +30,50 @@ func parseHeaders(c *gin.Context) {
 //
 // depends on parseHeaders
 func adminAction(c *gin.Context) {
-	logger := c.MustGet("logger").(*logrus.Entry)
-
 	if c.MustGet("user-role").(string) == "admin" {
 		if qpUserID, exists := c.GetQuery("user-id"); exists {
 			c.Set("user-id", qpUserID)
-			logger = logger.WithField("user-id", qpUserID)
 		}
 		c.Set("admin-action", true)
-		logger = logger.WithField("admin-action", true)
 	} else {
 		c.Set("admin-action", false)
-		logger = logger.WithField("admin-action", false)
 	}
-
-	c.Set("logger", logger)
 }
 
 func parseCreateResourceReq(c *gin.Context) {
 	var req rstypes.CreateResourceRequest
-	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Infof("failed to json-bind request data: %v", err)
+		c.Error(err)
 		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
-	log = log.WithField("request-data-type", "CreateResourceRequest")
 	c.Set("request-data", req)
-	c.Set("logger", log)
 }
 
 func parseRenameReq(c *gin.Context) {
 	var req rstypes.RenameResourceRequest
-	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Infof("failed to json-bind request data: %v", err)
+		c.Error(err)
 		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
-	log = log.WithField("request-data-type", "RenameResourceRequest")
 	c.Set("request-data", req)
-	c.Set("logger", log)
 }
 
 func parseLockReq(c *gin.Context) {
 	var req rstypes.SetResourceLockRequest
-	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Infof("failed to json-bind request data: %v", err)
+		c.Error(err)
 		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
-	log = log.WithField("request-data-type", "SetResourceLockRequest")
 	c.Set("request-data", req)
-	c.Set("logger", log)
 }
 
 func parseSetAccessReq(c *gin.Context) {
 	var req rstypes.SetResourceAccessRequest
-	log := c.MustGet("logger").(*logrus.Entry)
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Infof("failed to json-bind request data: %v", err)
+		c.Error(err)
 		c.AbortWithStatusJSON(400, errors.New(err.Error()))
 	}
-	log = log.WithField("request-data-type", "SetResourceAccessRequest")
 	c.Set("request-data", req)
-	c.Set("logger", log)
 }
 
 func rejectUnprivileged(c *gin.Context) {
@@ -142,7 +113,6 @@ func serverErrorResponse(err error) (code int, resp *errors.Error) {
 
 func parseListAllResources(c *gin.Context) {
 	var err error
-	log := c.MustGet("logger").(*logrus.Entry)
 	ctx := c.Request.Context()
 
 	if countstr := c.Query("count"); countstr != "" {
@@ -151,7 +121,6 @@ func parseListAllResources(c *gin.Context) {
 			err = fmt.Errorf("less than zero")
 		}
 		if err != nil {
-			log.Warnf("invalid integer in QP count: %v", err)
 			c.AbortWithStatusJSON(400, errors.Format(`parsing query parameter "count": %v`, err))
 			return
 		} else {
@@ -169,7 +138,7 @@ func parseListAllResources(c *gin.Context) {
 		var afterTime time.Time
 		afterTime, err = time.Parse(time.RFC3339Nano, afterstr)
 		if err != nil {
-			log.Warnf("invalid timestamp in QP after: %v", err)
+			c.Error(err)
 			c.AbortWithStatusJSON(400, errors.Format(`parsing query parameter "after": %v`, err))
 			return
 		} else {
@@ -182,7 +151,7 @@ func parseListAllResources(c *gin.Context) {
 	} else {
 		b, err := strconv.ParseBool(boolstr)
 		if err != nil {
-			log.Warnf("invalid boolean in QP deleted: %v", err)
+			c.Error(err)
 			c.AbortWithStatusJSON(400, errors.Format(`parsing boolean query parameter "deleted": %v`, err))
 			return
 		}
@@ -194,12 +163,10 @@ func parseListAllResources(c *gin.Context) {
 	} else {
 		b, err := strconv.ParseBool(boolstr)
 		if err != nil {
-			log.Warnf("invalid boolean in QP limited: %v", err)
+			c.Error(err)
 			c.AbortWithStatusJSON(400, errors.Format(`parsing boolean query parameter "limited": %v`, err))
 			return
 		}
 		ctx = context.WithValue(ctx, "limited", b)
 	}
-
-	c.Set("request-context", ctx)
 }
