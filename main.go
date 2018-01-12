@@ -31,6 +31,7 @@ func main() {
 
 	srv, err := setupServer()
 	exitOnError(err)
+	defer srv.Close()
 
 	g := gin.New()
 	g.Use(gin.RecoveryWithWriter(logrus.WithField("component", "gin_recovery").WriterLevel(logrus.ErrorLevel)))
@@ -52,7 +53,7 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt) // subscribe on interrupt event
 	<-quit                            // wait for event
-	logrus.Infoln("Shutting down server...")
+	logrus.Infoln("shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
