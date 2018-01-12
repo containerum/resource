@@ -1,19 +1,16 @@
 package other
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	//"math/big"
-	"net/http"
 	"net/url"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 
-	//uuid "github.com/satori/go.uuid"
 	"git.containerum.net/ch/json-types/errors"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/resty.v1"
 )
 
 type Billing interface {
@@ -25,136 +22,120 @@ type Billing interface {
 }
 
 type billingHTTP struct {
-	c *http.Client
-	u *url.URL
+	client *resty.Client
+	log    *logrus.Entry
 }
 
 func NewBillingHTTP(u *url.URL) Billing {
-	return billingHTTP{
-		http.DefaultClient,
-		u,
+	log := logrus.WithField("component", "billing_client")
+	client := resty.New().
+		SetHostURL(u.String()).
+		SetLogger(log.WriterLevel(logrus.DebugLevel)).
+		SetDebug(true).
+		SetError(errors.Error{})
+	client.JSONMarshal = jsoniter.Marshal
+	client.JSONUnmarshal = jsoniter.Unmarshal
+	return &billingHTTP{
+		client: client,
+		log:    log,
 	}
 }
 
 func (b billingHTTP) Subscribe(ctx context.Context, userID, tariffID, resourceID string) error {
-	refURL := &url.URL{
-		Path: "/user/subscribe",
-	}
-	reqData := map[string]string{
+	b.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"tariff_id":   tariffID,
+		"resource_id": resourceID,
+	}).Infoln("subscribing")
+	resp, err := b.client.R().SetBody(map[string]string{ // TODO: replace with type from 'json-types'
 		//"tariff_label":   tariffLabel,
 		//"resource_type":  resType,
 		//"resource_label": resLabel,
 		"resource_id": resourceID,
 		"user_id":     userID,
-	}
-	reqBytes, _ := json.Marshal(reqData)
-	reqBuf := bytes.NewReader(reqBytes)
-	req, _ := http.NewRequest("POST", b.u.ResolveReference(refURL).String(), reqBuf)
-	resp, err := b.c.Do(req)
+	}).Post("/user/subscribe")
 	if err != nil {
 		return err
 	}
-
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("billing: http status %s", resp.Status)
+	if resp.Error() != nil {
+		return resp.Error().(*errors.Error)
 	}
-
 	return nil
 }
 
 func (b billingHTTP) Unsubscribe(ctx context.Context, userID, resourceID string) error {
-	refURL := &url.URL{
-		Path: "/user/unsubscribe",
-	}
-	reqData := map[string]string{
+	b.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"resource_id": resourceID,
+	}).Infoln("unsubscribing")
+	resp, err := b.client.R().SetBody(map[string]string{
 		"resource_id": resourceID,
 		"user_id":     userID,
-	}
-	reqBytes, _ := json.Marshal(reqData)
-	reqBuf := bytes.NewReader(reqBytes)
-	req, _ := http.NewRequest("POST", b.u.ResolveReference(refURL).String(), reqBuf)
-	resp, err := b.c.Do(req)
+	}).Post("/user/unsubscribe")
 	if err != nil {
 		return err
 	}
-
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("billing: http status %s", resp.Status)
+	if resp.Error() != nil {
+		return resp.Error().(*errors.Error)
 	}
-
 	return nil
 }
 
 func (b billingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (nst rstypes.NamespaceTariff, err error) {
-	refURL := &url.URL{
-		Path: "/namespace_tariffs",
-	}
-	req, _ := http.NewRequest("POST", b.u.ResolveReference(refURL).String(), nil)
-	resp, err := b.c.Do(req)
-	defer resp.Body.Close()
+	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
+	resp, err := b.client.R().SetResult(&nst).Get("/namespace_tariffs/" + tariffID)
 	if err != nil {
 		return
 	}
-	if resp.StatusCode/100 != 2 {
-		err = fmt.Errorf("billing: http status %s", resp.Status)
-		return
+	if resp.Error() != nil {
+		err = resp.Error().(*errors.Error)
 	}
-	jdec := json.NewDecoder(resp.Body)
-	err = jdec.Decode(&nst)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
 func (b billingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (vt rstypes.VolumeTariff, err error) {
-	refURL := &url.URL{
-		Path: "/volume_tariffs",
-	}
-	req, _ := http.NewRequest("POST", b.u.ResolveReference(refURL).String(), nil)
-	resp, err := b.c.Do(req)
-	defer resp.Body.Close()
+	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
+	resp, err := b.client.R().SetResult(&vt).Get("/volume_tariffs/" + tariffID)
 	if err != nil {
 		return
 	}
-	if resp.StatusCode/100 != 2 {
-		err = fmt.Errorf("billing: http status %s", resp.Status)
-		return
+	if resp.Error() != nil {
+		err = resp.Error().(*errors.Error)
 	}
-	jdec := json.NewDecoder(resp.Body)
-	err = jdec.Decode(&vt)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
 func (b billingHTTP) String() string {
-	return fmt.Sprintf("billing http client: url=%v", b.u)
+	return fmt.Sprintf("billing http client: url=%v", b.client.HostURL)
 }
 
-type billingStub struct{}
+type billingStub struct {
+	log *logrus.Entry
+}
 
 func NewBillingStub() Billing {
-	return billingStub{}
+	return billingStub{log: logrus.WithField("component", "billing_stub")}
 }
 
-func (billingStub) Subscribe(ctx context.Context, userID, tariffID, resourceID string) error {
-	logrus.Infof("billingStub.Subscribe userID=%s tariffID=%s resourceID=%s",
-		userID, tariffID, resourceID)
+func (b billingStub) Subscribe(ctx context.Context, userID, tariffID, resourceID string) error {
+	b.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"tariff_id":   tariffID,
+		"resource_id": resourceID,
+	}).Infoln("subscribing")
 	return nil
 }
 
-func (billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) error {
-	logrus.Infof("billingStub.Unsubscribe userID=%s resourceID=%s",
-		userID, resourceID)
+func (b billingStub) Unsubscribe(ctx context.Context, userID, resourceID string) error {
+	b.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"resource_id": resourceID,
+	}).Infoln("unsubscribing")
 	return nil
 }
 
-func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (rstypes.NamespaceTariff, error) {
-	logrus.Infof("billingStub.GetNamespaceTariff tariffID=%s", tariffID)
+func (b billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (rstypes.NamespaceTariff, error) {
+	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
 	for _, ns := range fakeNSTariffs {
 		if ns.TariffID != "" && ns.TariffID == tariffID {
 			return ns, nil
@@ -163,8 +144,8 @@ func (billingStub) GetNamespaceTariff(ctx context.Context, tariffID string) (rst
 	return rstypes.NamespaceTariff{}, errors.New("no such namespace tariff")
 }
 
-func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstypes.VolumeTariff, error) {
-	logrus.Infof("billingStub.GetVolumeTariff tariffID=%s", tariffID)
+func (b billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstypes.VolumeTariff, error) {
+	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
 	for _, v := range fakeVolumeTariffs {
 		if v.TariffID != "" && v.TariffID == tariffID {
 			return v, nil
@@ -173,6 +154,6 @@ func (billingStub) GetVolumeTariff(ctx context.Context, tariffID string) (rstype
 	return rstypes.VolumeTariff{}, errors.New("no such volume tariff")
 }
 
-func (billingStub) String() string {
+func (b billingStub) String() string {
 	return "billing service dummy"
 }

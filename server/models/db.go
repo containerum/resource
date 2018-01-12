@@ -366,3 +366,7 @@ func (db ResourceSvcDB) VolumeListAllByTime(ctx context.Context, after time.Time
 	go db.streamVolumes(ctx, vch, rows)
 	return
 }
+
+func (db ResourceSvcDB) Close() error {
+	return db.conn.Close()
+}

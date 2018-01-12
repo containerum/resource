@@ -3,9 +3,15 @@
 
 [[projects]]
   branch = "master"
+  name = "git.containerum.net/ch/grpc-proto-files"
+  packages = ["auth","common"]
+  revision = "a37cf53c18640c19d94263e11ddd4735fa79c9fe"
+
+[[projects]]
+  branch = "master"
   name = "git.containerum.net/ch/json-types"
-  packages = ["errors","resource-service"]
-  revision = "4744ebe33269c2599a6c69eb4d8193744da48c4e"
+  packages = ["errors","mail-templater","resource-service"]
+  revision = "0f17f0672ec62e4c366ae0a71151582f817d9f1b"
 
 [[projects]]
   branch = "master"
@@ -21,6 +27,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gin-gonic/contrib"
+  packages = ["ginrus"]
+  revision = "88aede40372d4bcb11e45168a8c30d99e44cf617"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gin-gonic/gin"
   packages = [".","binding","json","render"]
   revision = "a712f77d7aaec7eb4766a663924aaa4e54d3fe70"
@@ -28,8 +40,14 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["proto"]
+  packages = ["jsonpb","proto","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
   revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = [".","logging","logging/logrus","tags","tags/logrus"]
+  revision = "d0c54e68681ec7999ac17864470f3bee6521ba2b"
 
 [[projects]]
   branch = "master"
@@ -87,15 +105,45 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","publicsuffix","trace"]
+  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
   revision = "810d7000345868fc619eb81f46307107118f4ae1"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/text"
+  packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
+  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/rpc/status"]
+  revision = "a8101f21cf983e773d0c1133ebc5424792003214"
+
+[[projects]]
+  name = "google.golang.org/grpc"
+  packages = [".","balancer","balancer/base","balancer/roundrobin","codes","connectivity","credentials","encoding","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
+  revision = "7cea4cc846bcf00cbb27595b07da5de875ef7de9"
+  version = "v1.9.1"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
   packages = ["."]
   revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
   version = "v8.18.2"
+
+[[projects]]
+  name = "gopkg.in/resty.v1"
+  packages = ["."]
+  revision = "9ac9c42358f7c3c69ac9f8610e8790d7c338e85d"
+  version = "v1.0"
 
 [[projects]]
   branch = "v2"
@@ -106,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "20dbd6aeba747e717c54321468de7ea2acbd26edb3b6b120f350b18a011466ce"
+  inputs-digest = "a938098fa663a7f5032e73a9b4f13baa8442a1d125c0c7a736f6d308d6c015d1"
   solver-name = "gps-cdcl"
   solver-version = 1
