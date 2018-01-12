@@ -7,6 +7,9 @@ import (
 
 	"net/url"
 
+	"fmt"
+	"reflect"
+
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/resource-service/server/other"
 	"github.com/gin-gonic/gin"
@@ -46,10 +49,11 @@ func setupServer() (server.ResourceSvcInterface, error) {
 	var clients server.ResourceSvcClients
 
 	if u := os.Getenv("AUTH_ADDR"); u != "" {
-		clients.Auth = other.NewAuthSvcHTTP(&url.URL{
-			Scheme: "http",
-			Host:   u,
-		})
+		var err error
+		clients.Auth, err = other.NewAuthSvcGRPC(u)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		if logrus.GetLevel() == logrus.DebugLevel {
 			clients.Auth = other.NewAuthSvcStub()
@@ -106,6 +110,15 @@ func setupServer() (server.ResourceSvcInterface, error) {
 		}
 	}
 
+	// print info about clients which implements Stringer
+	v := reflect.ValueOf(clients)
+	for i := 0; i < reflect.TypeOf(clients).NumField(); i++ {
+		f := v.Field(i)
+		stringer := reflect.TypeOf((*fmt.Stringer)(nil))
+		if f.Type().Implements(stringer) {
+			logrus.Infof("%s", f.Interface())
+		}
+	}
 	logrus.Infof("database url=%s", os.Getenv("DB_URL"))
 	logrus.Infof("database migrations url=%s", os.Getenv("MIGRATION_URL"))
 
