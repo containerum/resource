@@ -5,6 +5,8 @@ import (
 
 	"context"
 
+	"io"
+
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/grpc-proto-files/common"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
@@ -14,12 +16,16 @@ import (
 
 type AuthSvc interface {
 	UpdateUserAccess(userID string) error
+
+	// for connections closing
+	io.Closer
 }
 
 type authSvcGRPC struct {
 	client auth.AuthClient
 	addr   string
 	log    *logrus.Entry
+	conn   *grpc.ClientConn
 }
 
 func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
@@ -29,11 +35,11 @@ func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 	}
 
 	ret.log.Debugf("grpc connect to %s", addr)
-	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(ret.log)))
+	ret.conn, err = grpc.Dial(addr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(ret.log)))
 	if err != nil {
 		return
 	}
-	ret.client = auth.NewAuthClient(conn)
+	ret.client = auth.NewAuthClient(ret.conn)
 
 	return ret, nil
 }
@@ -48,6 +54,10 @@ func (as authSvcGRPC) UpdateUserAccess(userID string) error {
 
 func (as authSvcGRPC) String() string {
 	return fmt.Sprintf("auth grpc client: addr=%v", as.addr)
+}
+
+func (as authSvcGRPC) Close() error {
+	return as.conn.Close()
 }
 
 type authSvcStub struct {
@@ -67,4 +77,8 @@ func (as authSvcStub) UpdateUserAccess(userID string) error {
 
 func (authSvcStub) String() string {
 	return "ch-auth client dummy"
+}
+
+func (authSvcStub) Close() error {
+	return nil
 }

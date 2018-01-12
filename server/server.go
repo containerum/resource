@@ -14,6 +14,8 @@ import (
 
 	"io"
 
+	"reflect"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -984,5 +986,16 @@ func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label stri
 }
 
 func (rs *ResourceSvc) Close() error {
-	return rs.db.Close()
+	// close all closable resources
+	v := reflect.ValueOf(rs.ResourceSvcClients)
+	closer := reflect.TypeOf((*io.Closer)(nil))
+	for i := 0; i < v.Type().NumField(); i++ {
+		f := v.Field(i)
+		if f.Type().Implements(closer) || f.Type().ConvertibleTo(closer) {
+			if err := f.Convert(closer).Interface().(io.Closer).Close(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
