@@ -23,8 +23,9 @@ func exitOnError(err error) {
 }
 
 func main() {
-	logrus.Infof("starting resource-service version %s")
 	exitOnError(setupLogger())
+
+	logrus.Info("starting resource-service")
 
 	listenAddr, err := getListenAddr()
 	exitOnError(err)

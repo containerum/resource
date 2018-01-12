@@ -32,14 +32,15 @@ func setupLogger() error {
 	var level logrus.Level
 	if logLevelString == "" {
 		level = logrus.InfoLevel
-	}
-	levelI, err := strconv.Atoi(logLevelString)
-	if err != nil {
-		return err
-	}
-	level = logrus.Level(levelI)
-	if level > logrus.DebugLevel || level < logrus.PanicLevel {
-		return errors.New("invalid log level")
+	} else {
+		levelI, err := strconv.Atoi(logLevelString)
+		if err != nil {
+			return err
+		}
+		level = logrus.Level(levelI)
+		if level > logrus.DebugLevel || level < logrus.PanicLevel {
+			return errors.New("invalid log level")
+		}
 	}
 	logrus.SetLevel(level)
 	return nil
