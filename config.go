@@ -125,10 +125,11 @@ func setupServer() (server.ResourceSvcInterface, error) {
 
 	// print info about clients which implements Stringer
 	v := reflect.ValueOf(clients)
+	// trick to take type of interface, because of reflect.TypeOf((fmt.Stringer)(nil)) throws panic
+	stringer := reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 	for i := 0; i < reflect.TypeOf(clients).NumField(); i++ {
 		f := v.Field(i)
-		stringer := reflect.TypeOf((*fmt.Stringer)(nil))
-		if f.Type().Implements(stringer) {
+		if f.Type().ConvertibleTo(stringer) {
 			logrus.Infof("%s", f.Interface())
 		}
 	}
