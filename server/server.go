@@ -988,10 +988,10 @@ func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label stri
 func (rs *ResourceSvc) Close() error {
 	// close all closable resources
 	v := reflect.ValueOf(rs.ResourceSvcClients)
-	closer := reflect.TypeOf((*io.Closer)(nil))
+	closer := reflect.TypeOf((*io.Closer)(nil)).Elem()
 	for i := 0; i < v.Type().NumField(); i++ {
 		f := v.Field(i)
-		if f.Type().Implements(closer) || f.Type().ConvertibleTo(closer) {
+		if f.Type().ConvertibleTo(closer) {
 			if err := f.Convert(closer).Interface().(io.Closer).Close(); err != nil {
 				return err
 			}
