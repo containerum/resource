@@ -45,8 +45,8 @@ func PermCheck(perm, needed string) bool {
 type ResourceSvcDB struct {
 	conn *sqlx.DB // do not use it in select/exec operations
 	log  *logrus.Entry
-	qLog *utils.SQLXQueryLogger
-	eLog *utils.SQLXExecLogger
+	qLog sqlx.QueryerContext
+	eLog sqlx.ExecerContext
 }
 
 func DBConnect(dbDSN string) (*ResourceSvcDB, error) {
@@ -76,8 +76,8 @@ func DBConnect(dbDSN string) (*ResourceSvcDB, error) {
 	return &ResourceSvcDB{
 		conn: conn,
 		log:  log,
-		qLog: utils.NewSQLXQueryLogger(conn, log),
-		eLog: utils.NewSQLXExecLogger(conn, log),
+		qLog: utils.NewSQLXContextQueryLogger(conn, log),
+		eLog: utils.NewSQLXContextExecLogger(conn, log),
 	}, nil
 }
 
@@ -100,8 +100,8 @@ func (db ResourceSvcDB) Transactional(f func(tx ResourceSvcDB) error) (err error
 	arg := ResourceSvcDB{
 		conn: db.conn,
 		log:  e,
-		eLog: utils.NewSQLXExecLogger(tx, e),
-		qLog: utils.NewSQLXQueryLogger(tx, e),
+		eLog: utils.NewSQLXContextExecLogger(tx, e),
+		qLog: utils.NewSQLXContextQueryLogger(tx, e),
 	}
 
 	// needed for recovering panics in transactions.
@@ -138,7 +138,7 @@ func (db ResourceSvcDB) ByID(id string) (obj interface{}, err error) {
 
 func (db ResourceSvcDB) NamespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
 	direction := ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
-	rows, err := db.qLog.Query(
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			n.id,
 			n.create_time,
@@ -180,7 +180,7 @@ func (db ResourceSvcDB) NamespaceListAllByTime(ctx context.Context, after time.T
 
 func (db ResourceSvcDB) NamespaceListAllByOwner(ctx context.Context, after string, count uint) (nsch <-chan Namespace, err error) {
 	direction := ctx.Value("sort-direction").(string)
-	rows, err := db.qLog.Query(
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			n.id,
 			n.create_time,
@@ -254,7 +254,7 @@ func (db ResourceSvcDB) streamNSAddVolumes(ctx context.Context, out chan<- Names
 	log := db.log.WithField("function", "streamNSAddVolumes")
 	for ns := range in {
 		var err error
-		rowsv, err := db.qLog.Query(
+		rowsv, err := db.qLog.QueryContext(ctx,
 			`SELECT
 				v.id,
 				v.create_time,
@@ -335,7 +335,7 @@ loop:
 
 func (db ResourceSvcDB) VolumeListAllByTime(ctx context.Context, after time.Time, count uint) (vch chan Volume, err error) {
 	direction := ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
-	rows, err := db.qLog.Query(
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			v.id,
 			v.create_time,

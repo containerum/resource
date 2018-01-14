@@ -17,7 +17,7 @@
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "d4bc7c3c97ec43796b2923d94ff179ea10d1d75d"
+  revision = "097a44de8a3f02eb1ae1a5577e67ceb5dbe99e6c"
 
 [[projects]]
   branch = "master"

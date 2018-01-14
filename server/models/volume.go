@@ -8,6 +8,8 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	rserrors "git.containerum.net/ch/resource-service/server/errors"
 
+	"context"
+
 	"git.containerum.net/ch/utils"
 )
 
@@ -31,11 +33,11 @@ type Volume struct {
 	Users []accessRecord `json:"users,omitempty"`
 }
 
-func (db ResourceSvcDB) VolumeCreate(tariff rstypes.VolumeTariff, user string, label string) (volID string, err error) {
+func (db ResourceSvcDB) VolumeCreate(ctx context.Context, tariff rstypes.VolumeTariff, user string, label string) (volID string, err error) {
 	volID = utils.NewUUID()
 	{
 		var count int
-		err = db.qLog.QueryRowx(`SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`, user, label).Scan(&count)
+		err = db.qLog.QueryRowxContext(ctx, `SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`, user, label).Scan(&count)
 		if err != nil {
 			return
 		}
@@ -45,7 +47,7 @@ func (db ResourceSvcDB) VolumeCreate(tariff rstypes.VolumeTariff, user string, l
 		}
 	}
 
-	_, err = db.eLog.Exec(
+	_, err = db.eLog.ExecContext(ctx,
 		`INSERT INTO volumes (
 			id,
 			capacity,
@@ -63,7 +65,7 @@ func (db ResourceSvcDB) VolumeCreate(tariff rstypes.VolumeTariff, user string, l
 		return
 	}
 
-	_, err = db.eLog.Exec(
+	_, err = db.eLog.ExecContext(ctx,
 		`INSERT INTO accesses(
 			id,
 			kind,
@@ -90,8 +92,8 @@ func (db ResourceSvcDB) VolumeCreate(tariff rstypes.VolumeTariff, user string, l
 	return
 }
 
-func (db ResourceSvcDB) VolumeList(user string) (vols []Volume, err error) {
-	rows, err := db.qLog.Query(
+func (db ResourceSvcDB) VolumeList(ctx context.Context, user string) (vols []Volume, err error) {
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			v.id,
 			v.create_time,
@@ -138,8 +140,8 @@ func (db ResourceSvcDB) VolumeList(user string) (vols []Volume, err error) {
 	return
 }
 
-func (db ResourceSvcDB) VolumeRename(user string, oldname, newname string) (err error) {
-	_, err = db.eLog.Exec(
+func (db ResourceSvcDB) VolumeRename(ctx context.Context, user string, oldname, newname string) (err error) {
+	_, err = db.eLog.ExecContext(ctx,
 		`UPDATE accesses SET resource_label=$1
 		WHERE resource_label=$2 AND user_id=$3 AND kind='Volume'`,
 		newname,
@@ -149,8 +151,8 @@ func (db ResourceSvcDB) VolumeRename(user string, oldname, newname string) (err 
 	return
 }
 
-func (db ResourceSvcDB) VolumeSetLimited(owner string, ownerLabel string, limited bool) (err error) {
-	_, err = db.eLog.Exec(
+func (db ResourceSvcDB) VolumeSetLimited(ctx context.Context, owner string, ownerLabel string, limited bool) (err error) {
+	_, err = db.eLog.ExecContext(ctx,
 		`UPDATE accesses SET limited=$3
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
 		owner,
@@ -160,11 +162,11 @@ func (db ResourceSvcDB) VolumeSetLimited(owner string, ownerLabel string, limite
 	return
 }
 
-func (db ResourceSvcDB) VolumeSetAccess(owner string, label string, other string, access string) (err error) {
+func (db ResourceSvcDB) VolumeSetAccess(ctx context.Context, owner string, label string, other string, access string) (err error) {
 	var resID string
 
 	// get resource id
-	err = db.qLog.QueryRowx(
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT resource_id FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND owner_user_id=user_id AND kind='Volume'`,
 		owner,
@@ -180,7 +182,7 @@ func (db ResourceSvcDB) VolumeSetAccess(owner string, label string, other string
 	}
 
 	if other == owner {
-		_, err = db.eLog.Exec(
+		_, err = db.eLog.ExecContext(ctx,
 			`UPDATE accesses SET new_access_level=$1
 			WHERE owner_user_id=$2 AND resource_id=$3 AND kind='Volume'`,
 			access,
@@ -188,7 +190,7 @@ func (db ResourceSvcDB) VolumeSetAccess(owner string, label string, other string
 			resID,
 		)
 	} else {
-		_, err = db.eLog.Exec(
+		_, err = db.eLog.ExecContext(ctx,
 			`INSERT INTO accesses (
 					id,
 					kind,
@@ -214,11 +216,11 @@ func (db ResourceSvcDB) VolumeSetAccess(owner string, label string, other string
 	return
 }
 
-func (db ResourceSvcDB) VolumeSetTariff(owner string, label string, t rstypes.VolumeTariff) (err error) {
+func (db ResourceSvcDB) VolumeSetTariff(ctx context.Context, owner string, label string, t rstypes.VolumeTariff) (err error) {
 	var resID string
 
 	// check if owner & ns_label exists by getting its ID
-	err = db.qLog.QueryRowx(
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT resource_id FROM accesses
 		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
 			AND kind='Volume'`,
@@ -235,7 +237,7 @@ func (db ResourceSvcDB) VolumeSetTariff(owner string, label string, t rstypes.Vo
 	}
 
 	// UPDATE tariff_id and the rest of the fields
-	_, err = db.eLog.Exec(
+	_, err = db.eLog.ExecContext(ctx,
 		`UPDATE volumes SET
 			tariff_id=$2,
 			capacity=$3,
@@ -251,12 +253,12 @@ func (db ResourceSvcDB) VolumeSetTariff(owner string, label string, t rstypes.Vo
 	return
 }
 
-func (db ResourceSvcDB) VolumeDelete(user string, label string) (err error) {
+func (db ResourceSvcDB) VolumeDelete(ctx context.Context, user string, label string) (err error) {
 	var alvl string
 	var owner string
 	var resID string
 
-	err = db.qLog.QueryRowx(
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT access_level, owner_user_id, resource_id
 		FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
@@ -277,7 +279,7 @@ func (db ResourceSvcDB) VolumeDelete(user string, label string) (err error) {
 	}
 
 	if owner == user {
-		_, err = db.eLog.Exec(
+		_, err = db.eLog.ExecContext(ctx,
 			`UPDATE volumes SET deleted=true, delete_time=statement_timestamp()
 			WHERE id=$1`,
 			resID,
@@ -287,18 +289,18 @@ func (db ResourceSvcDB) VolumeDelete(user string, label string) (err error) {
 			return
 		}
 
-		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
+		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
-		_, err = db.eLog.Exec(`DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
+		_, err = db.eLog.ExecContext(ctx, `DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM namespace_volume ...: %[1]v <%[1]T>", err)
 			return
 		}
 	} else {
-		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
+		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
@@ -308,8 +310,8 @@ func (db ResourceSvcDB) VolumeDelete(user string, label string) (err error) {
 	return
 }
 
-func (db ResourceSvcDB) VolumeAccesses(owner string, label string) (vol Volume, err error) {
-	err = db.qLog.QueryRowx(
+func (db ResourceSvcDB) VolumeAccesses(ctx context.Context, owner string, label string) (vol Volume, err error) {
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT
 			v.id,
 			v.create_time,
@@ -350,7 +352,7 @@ func (db ResourceSvcDB) VolumeAccesses(owner string, label string) (vol Volume, 
 		return
 	}
 
-	rows, err := db.qLog.Query(
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			user_id,
 			access_level,

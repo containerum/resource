@@ -7,6 +7,8 @@ import (
 	mttypes "git.containerum.net/ch/json-types/mail-templater"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 
+	"context"
+
 	"git.containerum.net/ch/json-types/errors"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
@@ -14,11 +16,11 @@ import (
 )
 
 type Mailer interface {
-	SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error
-	SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error
+	SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t rstypes.NamespaceTariff) error
+	SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t rstypes.NamespaceTariff) error
 
-	SendVolumeCreated(userID, nsLabel string, t rstypes.VolumeTariff) error
-	SendVolumeDeleted(userID, nsLabel string, t rstypes.VolumeTariff) error
+	SendVolumeCreated(ctx context.Context, userID, nsLabel string, t rstypes.VolumeTariff) error
+	SendVolumeDeleted(ctx context.Context, userID, nsLabel string, t rstypes.VolumeTariff) error
 }
 
 type mailerHTTP struct {
@@ -41,12 +43,12 @@ func NewMailerHTTP(u *url.URL) Mailer {
 	}
 }
 
-func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[string]interface{}) error {
+func (ml mailerHTTP) sendRequest(ctx context.Context, eventName string, userID string, vars map[string]interface{}) error {
 	ml.log.WithFields(logrus.Fields{
 		"event":   eventName,
 		"user_id": userID,
 	}).Infof("sending mail with vars %v", vars)
-	resp, err := ml.client.R().SetBody(mttypes.SimpleSendRequest{
+	resp, err := ml.client.R().SetContext(ctx).SetBody(mttypes.SimpleSendRequest{
 		Template:  eventName,
 		UserID:    userID,
 		Variables: vars,
@@ -62,8 +64,8 @@ func (ml mailerHTTP) sendRequest(eventName string, userID string, vars map[strin
 	return nil
 }
 
-func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
-	err := ml.sendRequest("ns_created", userID, map[string]interface{}{
+func (ml mailerHTTP) SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t rstypes.NamespaceTariff) error {
+	err := ml.sendRequest(ctx, "ns_created", userID, map[string]interface{}{
 		"NAMESPACE": nsLabel,
 		"CPU":       t.CpuLimit,
 		"RAM":       t.MemoryLimit,
@@ -77,8 +79,8 @@ func (ml mailerHTTP) SendNamespaceCreated(userID, nsLabel string, t rstypes.Name
 	return nil
 }
 
-func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error {
-	err := ml.sendRequest("ns_deleted", userID, map[string]interface{}{
+func (ml mailerHTTP) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t rstypes.NamespaceTariff) error {
+	err := ml.sendRequest(ctx, "ns_deleted", userID, map[string]interface{}{
 		"NAMESPACE": nsLabel,
 	})
 	if err != nil {
@@ -87,8 +89,8 @@ func (ml mailerHTTP) SendNamespaceDeleted(userID, nsLabel string, t rstypes.Name
 	return nil
 }
 
-func (ml mailerHTTP) SendVolumeCreated(userID, volLabel string, t rstypes.VolumeTariff) error {
-	err := ml.sendRequest("vol_created", userID, map[string]interface{}{
+func (ml mailerHTTP) SendVolumeCreated(ctx context.Context, userID, volLabel string, t rstypes.VolumeTariff) error {
+	err := ml.sendRequest(ctx, "vol_created", userID, map[string]interface{}{
 		"VOLUME":    volLabel,
 		"STORAGE":   t.StorageLimit,
 		"DAILY_PAY": t.Price,
@@ -100,8 +102,8 @@ func (ml mailerHTTP) SendVolumeCreated(userID, volLabel string, t rstypes.Volume
 	return nil
 }
 
-func (ml mailerHTTP) SendVolumeDeleted(userID, volLabel string, t rstypes.VolumeTariff) error {
-	err := ml.sendRequest("vol_deleted", userID, map[string]interface{}{
+func (ml mailerHTTP) SendVolumeDeleted(ctx context.Context, userID, volLabel string, t rstypes.VolumeTariff) error {
+	err := ml.sendRequest(ctx, "vol_deleted", userID, map[string]interface{}{
 		"VOLUME": volLabel,
 	})
 	if err != nil {
@@ -122,7 +124,7 @@ func NewMailerStub() Mailer {
 	return mailerStub{log: logrus.WithField("component", "mailer_stub")}
 }
 
-func (ml mailerStub) SendNamespaceCreated(userID, nsLabel string, t rstypes.NamespaceTariff) error {
+func (ml mailerStub) SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -130,7 +132,7 @@ func (ml mailerStub) SendNamespaceCreated(userID, nsLabel string, t rstypes.Name
 	return nil
 }
 
-func (ml mailerStub) SendNamespaceDeleted(userID, nsLabel string, t rstypes.NamespaceTariff) error {
+func (ml mailerStub) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t rstypes.NamespaceTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -138,7 +140,7 @@ func (ml mailerStub) SendNamespaceDeleted(userID, nsLabel string, t rstypes.Name
 	return nil
 }
 
-func (ml mailerStub) SendVolumeCreated(userID, label string, t rstypes.VolumeTariff) error {
+func (ml mailerStub) SendVolumeCreated(ctx context.Context, userID, label string, t rstypes.VolumeTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
@@ -146,7 +148,7 @@ func (ml mailerStub) SendVolumeCreated(userID, label string, t rstypes.VolumeTar
 	return nil
 }
 
-func (ml mailerStub) SendVolumeDeleted(userID, label string, t rstypes.VolumeTariff) error {
+func (ml mailerStub) SendVolumeDeleted(ctx context.Context, userID, label string, t rstypes.VolumeTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
