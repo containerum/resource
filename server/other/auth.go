@@ -15,7 +15,7 @@ import (
 )
 
 type AuthSvc interface {
-	UpdateUserAccess(userID string) error
+	UpdateUserAccess(ctx context.Context, userID string) error
 
 	// for connections closing
 	io.Closer
@@ -44,9 +44,9 @@ func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 	return ret, nil
 }
 
-func (as authSvcGRPC) UpdateUserAccess(userID string) error {
+func (as authSvcGRPC) UpdateUserAccess(ctx context.Context, userID string) error {
 	as.log.WithField("user_id", userID).Infoln("update user access")
-	_, err := as.client.UpdateAccess(context.Background(), &auth.UpdateAccessRequest{
+	_, err := as.client.UpdateAccess(ctx, &auth.UpdateAccessRequest{
 		UserId: &common.UUID{Value: userID},
 	})
 	return err
@@ -70,7 +70,7 @@ func NewAuthSvcStub() AuthSvc {
 	}
 }
 
-func (as authSvcStub) UpdateUserAccess(userID string) error {
+func (as authSvcStub) UpdateUserAccess(ctx context.Context, userID string) error {
 	as.log.WithField("user_id", userID).Infoln("update user access")
 	return nil
 }

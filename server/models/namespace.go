@@ -8,6 +8,8 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	rserrors "git.containerum.net/ch/resource-service/server/errors"
 
+	"context"
+
 	"git.containerum.net/ch/utils"
 )
 
@@ -35,11 +37,11 @@ type Namespace struct {
 	Users []accessRecord `json:"users,omitempty"`
 }
 
-func (db ResourceSvcDB) NamespaceCreate(tariff rstypes.NamespaceTariff, user string, label string) (nsID string, err error) {
+func (db ResourceSvcDB) NamespaceCreate(ctx context.Context, tariff rstypes.NamespaceTariff, user string, label string) (nsID string, err error) {
 	nsID = utils.NewUUID()
 	{
 		var count int
-		db.qLog.QueryRowx(`SELECT count(*)
+		db.qLog.QueryRowxContext(ctx, `SELECT count(*)
 									FROM accesses
 									WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
 			user, label).Scan(&count)
@@ -52,7 +54,7 @@ func (db ResourceSvcDB) NamespaceCreate(tariff rstypes.NamespaceTariff, user str
 		}
 	}
 
-	_, err = db.eLog.Exec(
+	_, err = db.eLog.ExecContext(ctx,
 		`INSERT INTO namespaces (
 			id,
 			ram,
@@ -74,7 +76,7 @@ func (db ResourceSvcDB) NamespaceCreate(tariff rstypes.NamespaceTariff, user str
 		return
 	}
 
-	_, err = db.eLog.Exec(
+	_, err = db.eLog.ExecContext(ctx,
 		`INSERT INTO accesses(
 			id,
 			kind,
@@ -105,8 +107,8 @@ func (db ResourceSvcDB) NamespaceCreate(tariff rstypes.NamespaceTariff, user str
 	return
 }
 
-func (db ResourceSvcDB) NamespaceList(user string) (nss []Namespace, err error) {
-	rows, err := db.qLog.Query(
+func (db ResourceSvcDB) NamespaceList(ctx context.Context, user string) (nss []Namespace, err error) {
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			n.id,
 			n.create_time,
@@ -158,8 +160,8 @@ func (db ResourceSvcDB) NamespaceList(user string) (nss []Namespace, err error) 
 	return
 }
 
-func (db ResourceSvcDB) NamespaceRename(user string, oldname, newname string) (err error) {
-	_, err = db.eLog.Exec(
+func (db ResourceSvcDB) NamespaceRename(ctx context.Context, user string, oldname, newname string) (err error) {
+	_, err = db.eLog.ExecContext(ctx,
 		`UPDATE accesses SET resource_label=$1
 		WHERE resource_label=$2 AND user_id=$3 AND kind='Namespace'`,
 		newname,
@@ -169,8 +171,8 @@ func (db ResourceSvcDB) NamespaceRename(user string, oldname, newname string) (e
 	return
 }
 
-func (db ResourceSvcDB) NamespaceSetLimited(owner string, ownerLabel string, limited bool) (err error) {
-	_, err = db.eLog.Exec(
+func (db ResourceSvcDB) NamespaceSetLimited(ctx context.Context, owner string, ownerLabel string, limited bool) (err error) {
+	_, err = db.eLog.ExecContext(ctx,
 		`UPDATE accesses SET limited=$3
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
 		owner,
@@ -180,11 +182,11 @@ func (db ResourceSvcDB) NamespaceSetLimited(owner string, ownerLabel string, lim
 	return
 }
 
-func (db ResourceSvcDB) NamespaceSetAccess(owner string, label string, other string, access string) (err error) {
+func (db ResourceSvcDB) NamespaceSetAccess(ctx context.Context, owner string, label string, other string, access string) (err error) {
 	var resID string
 
 	// get resource id
-	err = db.qLog.QueryRowx(
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT resource_id FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND owner_user_id=user_id AND kind='Namespace'`,
 		owner,
@@ -199,7 +201,7 @@ func (db ResourceSvcDB) NamespaceSetAccess(owner string, label string, other str
 	}
 
 	if other == owner {
-		_, err = db.eLog.Exec(
+		_, err = db.eLog.ExecContext(ctx,
 			`UPDATE accesses SET new_access_level=$1
 			WHERE owner_user_id=$2 AND resource_id=$3 AND kind='Namespace'`,
 			access,
@@ -207,7 +209,7 @@ func (db ResourceSvcDB) NamespaceSetAccess(owner string, label string, other str
 			resID,
 		)
 	} else {
-		_, err = db.eLog.Exec(
+		_, err = db.eLog.ExecContext(ctx,
 			`INSERT INTO accesses (
 					id,
 					kind,
@@ -233,11 +235,11 @@ func (db ResourceSvcDB) NamespaceSetAccess(owner string, label string, other str
 	return
 }
 
-func (db ResourceSvcDB) NamespaceSetTariff(owner string, label string, t rstypes.NamespaceTariff) (err error) {
+func (db ResourceSvcDB) NamespaceSetTariff(ctx context.Context, owner string, label string, t rstypes.NamespaceTariff) (err error) {
 	var resID string
 
 	// check if owner & ns_label exists by getting its ID
-	err = db.qLog.QueryRowx(
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT resource_id FROM accesses
 		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
 			AND kind='Namespace'`,
@@ -253,7 +255,7 @@ func (db ResourceSvcDB) NamespaceSetTariff(owner string, label string, t rstypes
 	}
 
 	// and UPDATE tariff_id and the rest of the fields
-	_, err = db.eLog.Exec(
+	_, err = db.eLog.ExecContext(ctx,
 		`UPDATE namespaces SET
 			tariff_id=$2,
 			cpu=$3,
@@ -273,13 +275,13 @@ func (db ResourceSvcDB) NamespaceSetTariff(owner string, label string, t rstypes
 	return
 }
 
-func (db ResourceSvcDB) NamespaceDelete(user string, label string) (err error) {
+func (db ResourceSvcDB) NamespaceDelete(ctx context.Context, user string, label string) (err error) {
 	var alvl string
 	var owner string
 	var resID string
 	var subVolsCnt int
 
-	err = db.qLog.QueryRowx(
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT access_level, owner_user_id, resource_id
 		FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
@@ -299,7 +301,7 @@ func (db ResourceSvcDB) NamespaceDelete(user string, label string) (err error) {
 	}
 
 	if owner == user {
-		err = db.qLog.QueryRowx(
+		err = db.qLog.QueryRowxContext(ctx,
 			`SELECT count(nv.*)
 			FROM namespace_volume nv
 			WHERE nv.ns_id=$1`,
@@ -315,7 +317,7 @@ func (db ResourceSvcDB) NamespaceDelete(user string, label string) (err error) {
 	}
 
 	if owner == user {
-		_, err = db.eLog.Exec(
+		_, err = db.eLog.ExecContext(ctx,
 			`UPDATE namespaces
 			SET deleted=true, delete_time=statement_timestamp()
 			WHERE id=$1`,
@@ -325,13 +327,13 @@ func (db ResourceSvcDB) NamespaceDelete(user string, label string) (err error) {
 			err = fmt.Errorf("UPDATE namespaces ... : %[1]v <%[1]T>", err)
 			return
 		}
-		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1`, resID)
+		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1`, resID)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
 		}
 	} else {
-		_, err = db.eLog.Exec(`DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
+		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
 		if err != nil {
 			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
 			return
@@ -341,8 +343,8 @@ func (db ResourceSvcDB) NamespaceDelete(user string, label string) (err error) {
 	return
 }
 
-func (db ResourceSvcDB) NamespaceAccesses(owner string, label string) (ns Namespace, err error) {
-	err = db.qLog.QueryRowx(
+func (db ResourceSvcDB) NamespaceAccesses(ctx context.Context, owner string, label string) (ns Namespace, err error) {
+	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT
 			n.id,
 			n.create_time,
@@ -387,7 +389,7 @@ func (db ResourceSvcDB) NamespaceAccesses(owner string, label string) (ns Namesp
 		return
 	}
 
-	rows, err := db.qLog.Query(
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			user_id,
 			access_level,
@@ -419,8 +421,8 @@ func (db ResourceSvcDB) NamespaceAccesses(owner string, label string) (ns Namesp
 	return
 }
 
-func (db ResourceSvcDB) NamespaceVolumeAssociate(nsID, vID string) (err error) {
-	_, err = db.eLog.Exec(
+func (db ResourceSvcDB) NamespaceVolumeAssociate(ctx context.Context, nsID, vID string) (err error) {
+	_, err = db.eLog.ExecContext(ctx,
 		`INSERT INTO namespace_volume (ns_id, vol_id)
 		VALUES ($1,$2)`,
 		nsID,
@@ -429,8 +431,8 @@ func (db ResourceSvcDB) NamespaceVolumeAssociate(nsID, vID string) (err error) {
 	return
 }
 
-func (db ResourceSvcDB) NamespaceVolumeListAssoc(nsID string) (vl []Volume, err error) {
-	rows, err := db.qLog.Query(
+func (db ResourceSvcDB) NamespaceVolumeListAssoc(ctx context.Context, nsID string) (vl []Volume, err error) {
+	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT nv.vol_id,
 			v.create_time,
 			v.deleted,
