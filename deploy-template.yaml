@@ -40,7 +40,5 @@ spec:
           value: "${LISTEN_ADDR}"
         - name: DB_URL
           value: "${DB_URL}"
-      nodeSelector:
-        role: master
       imagePullSecrets:
       - name: gitlab-registry
