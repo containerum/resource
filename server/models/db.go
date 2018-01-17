@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/errors"
 	rserrors "git.containerum.net/ch/resource-service/server/errors"
 	"git.containerum.net/ch/utils"
@@ -365,6 +366,46 @@ func (db ResourceSvcDB) VolumeListAllByTime(ctx context.Context, after time.Time
 	vch = make(chan Volume)
 	go db.streamVolumes(ctx, vch, rows)
 	return
+}
+
+func (db ResourceSvcDB) UserResourceAccess(ctx context.Context, owner string) (*auth.ResourcesAccess, error) {
+	rows, err := db.qLog.QueryContext(ctx, `SELECT resource_label, id, access_level, kind
+													FROM accesses
+													WHERE owner_user_id = $1 AND 
+															user_id = owner_user_id AND
+															kind IN ('Namespace', 'Volume') `,
+		owner)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		return nil, rserrors.ErrNoSuchResource
+	default:
+		return nil, err
+	}
+	defer rows.Close()
+	var resp auth.ResourcesAccess
+	for rows.Next() {
+		var obj auth.AccessObject
+		var kind, accessLevelStr string
+		err = rows.Scan(
+			&obj.Label,
+			&obj.Id,
+			&accessLevelStr,
+		)
+		accessLevel, ok := auth.Role_value[accessLevelStr]
+		if !ok {
+			return nil, errors.Format("access level %s not defined in grpc", accessLevel)
+		}
+		switch kind {
+		case "Namespace":
+			resp.Namespace = append(resp.Namespace, &obj)
+		case "Volume":
+			resp.Volume = append(resp.Volume, &obj)
+		default:
+			return nil, errors.Format("unexpected kind %s", kind)
+		}
+	}
+	return &resp, rows.Err()
 }
 
 func (db ResourceSvcDB) Close() error {

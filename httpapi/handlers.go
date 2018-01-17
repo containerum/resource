@@ -291,3 +291,15 @@ func GetVolumeAccesses(c *gin.Context) {
 	}
 	c.IndentedJSON(200, ns)
 }
+
+func GetResourcesAccess(c *gin.Context) {
+	userID := c.MustGet("user-id").(string)
+
+	resp, err := srv.GetResourceAccess(c.Request.Context(), userID)
+	if err != nil {
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+		return
+	}
+	c.IndentedJSON(200, resp)
+}
