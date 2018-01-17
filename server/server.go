@@ -16,6 +16,7 @@ import (
 
 	"reflect"
 
+	"git.containerum.net/ch/grpc-proto-files/auth"
 	"github.com/sirupsen/logrus"
 )
 
@@ -56,6 +57,8 @@ type ResourceSvcInterface interface {
 	// Admin-only access.
 	GetNamespaceAccesses(ctx context.Context, userID, label string) (Namespace, error)
 	GetVolumeAccesses(ctx context.Context, userID, label string) (Volume, error)
+
+	GetResourceAccess(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
 
 	// To close connections
 	io.Closer
@@ -983,6 +986,10 @@ func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label stri
 	}
 
 	return
+}
+
+func (rs *ResourceSvc) GetResourceAccess(ctx context.Context, userID string) (*auth.ResourcesAccess, error) {
+	return rs.db.UserResourceAccess(ctx, userID)
 }
 
 func (rs *ResourceSvc) Close() error {

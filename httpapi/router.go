@@ -53,6 +53,8 @@ func SetupGinEngine(srvarg server.ResourceSvcInterface, g *gin.Engine) error {
 		adm.GET("/volumes", rejectUnprivileged, parseListAllResources, ListAllVolumes)
 	}
 
+	g.GET("/access", GetResourcesAccess)
+
 	g.GET("", func(c *gin.Context) {
 		c.IndentedJSON(200, map[string]interface{}{
 			"service": "resource-service",
