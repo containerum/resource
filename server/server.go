@@ -29,6 +29,7 @@ type ResourceSvcInterface interface {
 	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
 	ResizeNamespace(ctx context.Context, userID, label, newTariffID string) error
+	DeleteAllNamespaces(ctx context.Context, userID string) error
 
 	CreateVolume(ctx context.Context, userID, vLabel, tariffID string, adminAction bool) error
 	DeleteVolume(ctx context.Context, userID, vLabel string) error
@@ -38,7 +39,6 @@ type ResourceSvcInterface interface {
 	ChangeVolumeAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 	ResizeVolume(ctx context.Context, userID, label, newTariffID string) error
-
 	DeleteAllVolumes(ctx context.Context, userID string) error
 
 	// ListAll… methods don't ask for authorization, the frontend must bother with that.
@@ -996,7 +996,23 @@ func (rs *ResourceSvc) GetResourceAccess(ctx context.Context, userID string) (*a
 
 func (rs *ResourceSvc) DeleteAllVolumes(ctx context.Context, userID string) error {
 	return rs.db.Transactional(func(tx ResourceSvcDB) error {
-		return tx.DeactivateAllUserVolumes(ctx, userID)
+		// TODO: billing unsubscribe for all vols
+		return tx.VolumesDeactivateAll(ctx, userID)
+	})
+}
+
+func (rs *ResourceSvc) DeleteAllNamespaces(ctx context.Context, userID string) error {
+	return rs.db.Transactional(func(tx ResourceSvcDB) error {
+		// TODO: billing unsubscribe for all namespaces
+		if err := tx.VolumesDeactivateAll(ctx, userID); err != nil {
+			return err
+		}
+
+		if err := tx.NamespacesDeleteAll(ctx, userID); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
 

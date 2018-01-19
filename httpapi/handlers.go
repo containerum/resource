@@ -276,6 +276,16 @@ func DeleteAllVolumes(c *gin.Context) {
 	}
 }
 
+func DeleteAllNamespaces(c *gin.Context) {
+	userID := c.MustGet("user-id").(string)
+
+	err := srv.DeleteAllVolumes(c.Request.Context(), userID)
+	if err != nil {
+		c.Error(err)
+		c.AbortWithStatusJSON(serverErrorResponse(err))
+	}
+}
+
 func GetNamespaceAccesses(c *gin.Context) {
 	userID := c.MustGet("user-id").(string)
 	label := c.Param("namespace")
