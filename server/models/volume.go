@@ -377,7 +377,7 @@ func (db ResourceSvcDB) VolumeSetActive(ctx context.Context, volID string, isAct
 
 func (db ResourceSvcDB) DeactivateAllUserVolumes(ctx context.Context, owner string) error {
 	_, err := db.eLog.ExecContext(ctx, `UPDATE volumes
-												SET volumes.is_active = FALSE
+												SET is_active = FALSE
 												WHERE id IN (SELECT resource_id FROM accesses 
 																WHERE owner_user_id = $1 AND kind = 'Volume')`,
 		owner)

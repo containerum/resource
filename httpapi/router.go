@@ -37,6 +37,7 @@ func SetupGinEngine(srvarg server.ResourceSvcInterface, g *gin.Engine) error {
 	vol := g.Group("/volume")
 	{
 		vol.POST("", parseCreateResourceReq, CreateVolume)
+		vol.DELETE("", rejectUnprivileged, DeleteAllVolumes)
 		vol.DELETE("/:volume", DeleteVolume)
 		vol.GET("", ListVolumes)
 		vol.GET("/:volume", GetVolume)
