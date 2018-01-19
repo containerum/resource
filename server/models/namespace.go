@@ -456,3 +456,11 @@ func (db ResourceSvcDB) NamespaceVolumeListAssoc(ctx context.Context, nsID strin
 	}
 	return
 }
+
+func (db ResourceSvcDB) NamespacesDeleteAll(ctx context.Context, owner string) error {
+	_, err := db.eLog.ExecContext(ctx, `UPDATE namespaces
+			SET deleted=true, delete_time=statement_timestamp()
+			WHERE id IN (SELECT resource_id FROM accesses
+							WHERE user_id = $1)`, owner)
+	return err
+}

@@ -24,6 +24,7 @@ func SetupGinEngine(srvarg server.ResourceSvcInterface, g *gin.Engine) error {
 	ns := g.Group("/namespace")
 	{
 		ns.POST("", parseCreateResourceReq, CreateNamespace)
+		ns.DELETE("", rejectUnprivileged, DeleteAllNamespaces)
 		ns.DELETE("/:namespace", DeleteNamespace)
 		ns.GET("", ListNamespaces)
 		ns.GET("/:namespace", GetNamespace)
