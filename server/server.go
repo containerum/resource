@@ -39,6 +39,8 @@ type ResourceSvcInterface interface {
 	LockVolume(ctx context.Context, userID, label string, lockState bool) error
 	ResizeVolume(ctx context.Context, userID, label, newTariffID string) error
 
+	DeleteAllVolumes(ctx context.Context, userID string) error
+
 	// ListAll… methods don't ask for authorization, the frontend must bother with that.
 	// Obviously, the required access level is implied to be 'admin'. Output is always
 	// paginated.
@@ -990,6 +992,12 @@ func (rs *ResourceSvc) GetVolumeAccesses(ctx context.Context, userID, label stri
 
 func (rs *ResourceSvc) GetResourceAccess(ctx context.Context, userID string) (*auth.ResourcesAccess, error) {
 	return rs.db.UserResourceAccess(ctx, userID)
+}
+
+func (rs *ResourceSvc) DeleteAllVolumes(ctx context.Context, userID string) error {
+	return rs.db.Transactional(func(tx ResourceSvcDB) error {
+		return tx.DeactivateAllUserVolumes(ctx, userID)
+	})
 }
 
 func (rs *ResourceSvc) Close() error {
