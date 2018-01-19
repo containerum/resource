@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
   - deploy
 
 .create_tag: &create_tag
@@ -44,9 +45,29 @@ docker-build-test:
   image: docker:latest
   stage: build
   tags:
-    - prebuild
+    - test
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
     - docker build --pull -t ${CI_REGISTRY_IMAGE}:${TAG} .
   except:
     - develop
+
+migrations-test:
+  <<: *create_tag
+  variables:
+    POSTGRES_USER: migtest
+    POSTGRES_PASSWORD: migtest
+    POSTGRES_DB: migtest
+    MIGRATIONS_DIR: ./migrations
+    DOCKER_HOST: tcp://docker:2375
+  services:
+    - docker:dind
+    - postgres:latest
+  image: docker:latest
+  stage: test
+  script:
+    - docker build --pull -f Dockerfile.migrationtests -t ${CI_REGISTRY_IMAGE}-psql-migrations-test:${TAG} .
+    - 'docker run --rm
+      -e DB_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_PORT_5432_TCP_ADDR/$POSTGRES_DB?sslmode=disable"
+      -e MIGRATIONS_DIR
+      ${CI_REGISTRY_IMAGE}-psql-migrations-test:${TAG}'

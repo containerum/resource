@@ -9,6 +9,7 @@ import (
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/errors"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	rserrors "git.containerum.net/ch/resource-service/server/errors"
 	"git.containerum.net/ch/utils"
 	"github.com/jmoiron/sqlx"
@@ -137,7 +138,7 @@ func (db ResourceSvcDB) ByID(id string) (obj interface{}, err error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (db ResourceSvcDB) NamespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan Namespace, err error) {
+func (db ResourceSvcDB) NamespaceListAllByTime(ctx context.Context, after time.Time, count uint) (nsch <-chan rstypes.Namespace, err error) {
 	direction := ctx.Value("sort-direction").(string) //assuming the actual method function validated this data
 	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
@@ -170,8 +171,8 @@ func (db ResourceSvcDB) NamespaceListAllByTime(ctx context.Context, after time.T
 		return
 	}
 
-	nsch1 := make(chan Namespace)
-	nsch2 := make(chan Namespace)
+	nsch1 := make(chan rstypes.Namespace)
+	nsch2 := make(chan rstypes.Namespace)
 	nsch = nsch2
 	go db.streamNamespaces(ctx, nsch1, rows)
 	go db.streamNSAddVolumes(ctx, nsch2, nsch1)
@@ -179,7 +180,7 @@ func (db ResourceSvcDB) NamespaceListAllByTime(ctx context.Context, after time.T
 	return
 }
 
-func (db ResourceSvcDB) NamespaceListAllByOwner(ctx context.Context, after string, count uint) (nsch <-chan Namespace, err error) {
+func (db ResourceSvcDB) NamespaceListAllByOwner(ctx context.Context, after string, count uint) (nsch <-chan rstypes.Namespace, err error) {
 	direction := ctx.Value("sort-direction").(string)
 	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
@@ -208,8 +209,8 @@ func (db ResourceSvcDB) NamespaceListAllByOwner(ctx context.Context, after strin
 		return
 	}
 
-	nsch1 := make(chan Namespace)
-	nsch2 := make(chan Namespace)
+	nsch1 := make(chan rstypes.Namespace)
+	nsch2 := make(chan rstypes.Namespace)
 	nsch = nsch2
 	go db.streamNamespaces(ctx, nsch2, rows)
 	go db.streamNSAddVolumes(ctx, nsch2, nsch1)
@@ -217,13 +218,13 @@ func (db ResourceSvcDB) NamespaceListAllByOwner(ctx context.Context, after strin
 	return
 }
 
-func (db ResourceSvcDB) streamNamespaces(ctx context.Context, ch chan<- Namespace, rows *sql.Rows) {
+func (db ResourceSvcDB) streamNamespaces(ctx context.Context, ch chan<- rstypes.Namespace, rows *sql.Rows) {
 	var err error
 	defer close(ch)
 	defer rows.Close()
 loop:
 	for rows.Next() {
-		var ns Namespace
+		var ns rstypes.Namespace
 		err = rows.Scan(
 			&ns.ID,
 			&ns.CreateTime,
@@ -251,7 +252,7 @@ loop:
 	}
 }
 
-func (db ResourceSvcDB) streamNSAddVolumes(ctx context.Context, out chan<- Namespace, in <-chan Namespace) {
+func (db ResourceSvcDB) streamNSAddVolumes(ctx context.Context, out chan<- rstypes.Namespace, in <-chan rstypes.Namespace) {
 	log := db.log.WithField("function", "streamNSAddVolumes")
 	for ns := range in {
 		var err error

@@ -13,25 +13,7 @@ import (
 	"git.containerum.net/ch/utils"
 )
 
-type Volume struct {
-	ID               string      `json:"id,omitempty"`
-	CreateTime       time.Time   `json:"create_time,omitempty"`
-	Deleted          bool        `json:"deleted,omitempty"`
-	DeleteTime       time.Time   `json:"delete_time,omitempty"`
-	UserID           string      `json:"user_id,omitempty"`
-	TariffID         string      `json:"tariff_id,omitempty"`
-	Label            string      `json:"label,omitempty"`
-	Access           AccessLevel `json:"access,omitempty"`
-	AccessChangeTime time.Time   `json:"access_change_time,omitempty"`
-	Limited          bool        `json:"limited,omitempty"`
-	NewAccess        AccessLevel `json:"new_access,omitempty"`
-
-	Storage    int  `json:"storage,omitempty"`
-	Replicas   int  `json:"replicas,omitempty"`
-	Persistent bool `json:"persistent,omitempty"`
-
-	Users []accessRecord `json:"users,omitempty"`
-}
+type Volume = rstypes.Volume
 
 func (db ResourceSvcDB) VolumeCreate(ctx context.Context, tariff rstypes.VolumeTariff, user string, label string) (volID string, err error) {
 	volID = utils.NewUUID()
@@ -107,7 +89,8 @@ func (db ResourceSvcDB) VolumeList(ctx context.Context, user string) (vols []Vol
 			a.new_access_level,
 			v.capacity,
 			v.replicas,
-			v.is_persistent
+			v.is_persistent,
+			v.is_active
 		FROM volumes v INNER JOIN accesses a ON a.resource_id=v.id
 		WHERE a.user_id=$1 AND a.kind='Volume'`,
 		user)
@@ -131,6 +114,7 @@ func (db ResourceSvcDB) VolumeList(ctx context.Context, user string) (vols []Vol
 			&vol.Storage,
 			&vol.Replicas,
 			&vol.Persistent,
+			&vol.IsActive,
 		)
 		if err != nil {
 			return
@@ -368,7 +352,7 @@ func (db ResourceSvcDB) VolumeAccesses(ctx context.Context, owner string, label 
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ar accessRecord
+		var ar rstypes.AccessRecord
 		err = rows.Scan(
 			&ar.UserID,
 			&ar.Access,
@@ -382,4 +366,20 @@ func (db ResourceSvcDB) VolumeAccesses(ctx context.Context, owner string, label 
 		vol.Users = append(vol.Users, ar)
 	}
 	return
+}
+
+func (db ResourceSvcDB) VolumeSetActive(ctx context.Context, volID string, isActive bool) error {
+	_, err := db.eLog.ExecContext(ctx, `UPDATE volumes 
+												SET is_active = $1 
+												WHERE id = $2 AND kind = 'Volume'`, isActive, volID)
+	return err
+}
+
+func (db ResourceSvcDB) DeactivateAllUserVolumes(ctx context.Context, owner string) error {
+	_, err := db.eLog.ExecContext(ctx, `UPDATE volumes
+												SET is_active = FALSE
+												WHERE id IN (SELECT resource_id FROM accesses 
+																WHERE owner_user_id = $1 AND kind = 'Volume')`,
+		owner)
+	return err
 }

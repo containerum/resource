@@ -13,30 +13,6 @@ import (
 	"git.containerum.net/ch/utils"
 )
 
-type Namespace struct {
-	ID               string      `json:"id,omitempty"`
-	CreateTime       time.Time   `json:"create_time,omitempty"`
-	Deleted          bool        `json:"deleted,omitempty"`
-	DeleteTime       time.Time   `json:"delete_time,omitempty"`
-	UserID           string      `json:"user_id,omitempty"`
-	TariffID         string      `json:"tariff_id,omitempty"`
-	Label            string      `json:"label,omitempty"`
-	Access           AccessLevel `json:"access,omitempty"`
-	AccessChangeTime time.Time   `json:"access_change_time,omitempty"`
-	Limited          bool        `json:"limited,omitempty"`
-	NewAccess        AccessLevel `json:"new_access,omitempty"`
-
-	RAM           int `json:"ram,omitempty"`
-	CPU           int `json:"cpu,omitempty"`
-	MaxExtService int `json:"max_ext_service,omitempty"`
-	MaxIntService int `json:"max_int_service,omitempty"`
-	MaxTraffic    int `json:"max_traffic,omitempty"`
-
-	Volumes []Volume `json:"volumes,omitempty"`
-
-	Users []accessRecord `json:"users,omitempty"`
-}
-
 func (db ResourceSvcDB) NamespaceCreate(ctx context.Context, tariff rstypes.NamespaceTariff, user string, label string) (nsID string, err error) {
 	nsID = utils.NewUUID()
 	{
@@ -107,7 +83,7 @@ func (db ResourceSvcDB) NamespaceCreate(ctx context.Context, tariff rstypes.Name
 	return
 }
 
-func (db ResourceSvcDB) NamespaceList(ctx context.Context, user string) (nss []Namespace, err error) {
+func (db ResourceSvcDB) NamespaceList(ctx context.Context, user string) (nss []rstypes.Namespace, err error) {
 	rows, err := db.qLog.QueryContext(ctx,
 		`SELECT
 			n.id,
@@ -134,7 +110,7 @@ func (db ResourceSvcDB) NamespaceList(ctx context.Context, user string) (nss []N
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ns Namespace
+		var ns rstypes.Namespace
 		err = rows.Scan(
 			&ns.ID,
 			&ns.CreateTime,
@@ -343,7 +319,7 @@ func (db ResourceSvcDB) NamespaceDelete(ctx context.Context, user string, label 
 	return
 }
 
-func (db ResourceSvcDB) NamespaceAccesses(ctx context.Context, owner string, label string) (ns Namespace, err error) {
+func (db ResourceSvcDB) NamespaceAccesses(ctx context.Context, owner string, label string) (ns rstypes.Namespace, err error) {
 	err = db.qLog.QueryRowxContext(ctx,
 		`SELECT
 			n.id,
@@ -405,7 +381,7 @@ func (db ResourceSvcDB) NamespaceAccesses(ctx context.Context, owner string, lab
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ar accessRecord
+		var ar rstypes.AccessRecord
 		err = rows.Scan(
 			&ar.UserID,
 			&ar.Access,
