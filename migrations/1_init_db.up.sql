@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS uuid_ossp;
+
 SELECT uuid_generate_v4() as check_uuid_extension;
 
 BEGIN TRANSACTION;
