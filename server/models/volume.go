@@ -13,25 +13,7 @@ import (
 	"git.containerum.net/ch/utils"
 )
 
-type Volume struct {
-	ID               string      `json:"id,omitempty"`
-	CreateTime       time.Time   `json:"create_time,omitempty"`
-	Deleted          bool        `json:"deleted,omitempty"`
-	DeleteTime       time.Time   `json:"delete_time,omitempty"`
-	UserID           string      `json:"user_id,omitempty"`
-	TariffID         string      `json:"tariff_id,omitempty"`
-	Label            string      `json:"label,omitempty"`
-	Access           AccessLevel `json:"access,omitempty"`
-	AccessChangeTime time.Time   `json:"access_change_time,omitempty"`
-	Limited          bool        `json:"limited,omitempty"`
-	NewAccess        AccessLevel `json:"new_access,omitempty"`
-
-	Storage    int  `json:"storage,omitempty"`
-	Replicas   int  `json:"replicas,omitempty"`
-	Persistent bool `json:"persistent,omitempty"`
-
-	Users []accessRecord `json:"users,omitempty"`
-}
+type Volume = rstypes.Volume
 
 func (db ResourceSvcDB) VolumeCreate(ctx context.Context, tariff rstypes.VolumeTariff, user string, label string) (volID string, err error) {
 	volID = utils.NewUUID()
@@ -368,7 +350,7 @@ func (db ResourceSvcDB) VolumeAccesses(ctx context.Context, owner string, label 
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ar accessRecord
+		var ar rstypes.AccessRecord
 		err = rows.Scan(
 			&ar.UserID,
 			&ar.Access,

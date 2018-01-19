@@ -24,8 +24,8 @@ type ResourceSvcInterface interface {
 	CreateNamespace(ctx context.Context, userID, nsLabel, tariffID string, adminAction bool) error
 	DeleteNamespace(ctx context.Context, userID, nsLabel string) error
 	RenameNamespace(ctx context.Context, userID, labelOld, labelNew string) error
-	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error)
-	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (Namespace, error)
+	ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]rstypes.Namespace, error)
+	GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (rstypes.Namespace, error)
 	ChangeNamespaceAccess(ctx context.Context, userID, label, otherUserID, access string) error
 	LockNamespace(ctx context.Context, userID, label string, lockState bool) error
 	ResizeNamespace(ctx context.Context, userID, label, newTariffID string) error
@@ -51,11 +51,11 @@ type ResourceSvcInterface interface {
 	//    limited (bool)
 	//    deleted (bool)
 	//
-	ListAllNamespaces(ctx context.Context) (<-chan Namespace, error)
+	ListAllNamespaces(ctx context.Context) (<-chan rstypes.Namespace, error)
 	ListAllVolumes(ctx context.Context) (<-chan Volume, error)
 
 	// Admin-only access.
-	GetNamespaceAccesses(ctx context.Context, userID, label string) (Namespace, error)
+	GetNamespaceAccesses(ctx context.Context, userID, label string) (rstypes.Namespace, error)
 	GetVolumeAccesses(ctx context.Context, userID, label string) (Volume, error)
 
 	GetResourceAccess(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
@@ -181,7 +181,7 @@ func (rs *ResourceSvc) DeleteNamespace(ctx context.Context, userID, nsLabel stri
 	var avols []Volume
 
 	{
-		var nss []Namespace
+		var nss []rstypes.Namespace
 		nss, err = rs.db.NamespaceList(ctx, userID)
 		if err != nil {
 			return errors.Format("database: %v", err)
@@ -276,7 +276,7 @@ func (rs *ResourceSvc) RenameNamespace(ctx context.Context, userID, labelOld, la
 	return err
 }
 
-func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]Namespace, error) {
+func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminAction bool) ([]rstypes.Namespace, error) {
 	namespaces, err := rs.db.NamespaceList(ctx, userID)
 	if err != nil {
 		return nil, errors.Format("database: list namespaces: %v", err)
@@ -318,13 +318,13 @@ func (rs *ResourceSvc) ListNamespaces(ctx context.Context, userID string, adminA
 		}
 	}
 	if namespaces == nil {
-		namespaces = []Namespace{}
+		namespaces = []rstypes.Namespace{}
 	}
 	return namespaces, nil
 }
 
-func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (ns Namespace, err error) {
-	var nss []Namespace
+func (rs *ResourceSvc) GetNamespace(ctx context.Context, userID, nsLabel string, adminAction bool) (ns rstypes.Namespace, err error) {
+	var nss []rstypes.Namespace
 	nss, err = rs.db.NamespaceList(ctx, userID)
 	if err != nil {
 		err = errors.Format("database: get namespace: %v", err.Error())
@@ -657,7 +657,7 @@ func (rs *ResourceSvc) keepCalmAndDontPanic(tag string) {
 func (rs *ResourceSvc) ResizeNamespace(ctx context.Context, userID, label, newTariffID string) (err error) {
 	var user string
 	var tariff rstypes.NamespaceTariff
-	var ns Namespace
+	var ns rstypes.Namespace
 
 	tariff, err = rs.getNSTariff(ctx, newTariffID)
 	if err != nil {
@@ -736,8 +736,8 @@ func (rs *ResourceSvc) ResizeVolume(ctx context.Context, userID, label, newTarif
 	return
 }
 
-func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace, error) {
-	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- Namespace, input <-chan Namespace) {
+func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan rstypes.Namespace, error) {
+	var filterCount = func(count uint, cancel context.CancelFunc, output chan<- rstypes.Namespace, input <-chan rstypes.Namespace) {
 		defer cancel()
 		defer close(output)
 		for count >= 0 {
@@ -750,14 +750,14 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 			count--
 		}
 	}
-	var filterLimited = func(lim bool, output chan<- Namespace, input <-chan Namespace) {
+	var filterLimited = func(lim bool, output chan<- rstypes.Namespace, input <-chan rstypes.Namespace) {
 		defer close(output)
 		for ns := range input {
 			// TODO
 			output <- ns
 		}
 	}
-	var filterDeleted = func(del bool, output chan<- Namespace, input <-chan Namespace) {
+	var filterDeleted = func(del bool, output chan<- rstypes.Namespace, input <-chan rstypes.Namespace) {
 		defer close(output)
 		for ns := range input {
 			if del && ns.Deleted {
@@ -769,16 +769,16 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	}
 	var err error
 	var ok bool
-	var CS <-chan Namespace
-	var C1, C2 chan Namespace //last 2 links in the chain of post-processing goroutines
+	var CS <-chan rstypes.Namespace
+	var C1, C2 chan rstypes.Namespace //last 2 links in the chain of post-processing goroutines
 	var sortDir string
 	var afterTime time.Time
 	var count uint
 	var x interface{}
 
-	C1 = make(chan Namespace)
+	C1 = make(chan rstypes.Namespace)
 	C1save := C1
-	C2 = make(chan Namespace)
+	C2 = make(chan rstypes.Namespace)
 
 	if x = ctx.Value("sort-direction"); x == nil {
 		ctx = context.WithValue(ctx, "sort-direction", "ASC")
@@ -810,7 +810,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 	ctx, ctxCancel = context.WithCancel(ctx)
 	go filterCount(count, ctxCancel, C2, C1)
 	C1 = C2
-	C2 = make(chan Namespace)
+	C2 = make(chan rstypes.Namespace)
 
 	if x = ctx.Value("limited"); x != nil {
 		var b bool
@@ -819,7 +819,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 		}
 		go filterLimited(b, C2, C1)
 		C1 = C2
-		C2 = make(chan Namespace)
+		C2 = make(chan rstypes.Namespace)
 	}
 
 	if x = ctx.Value("deleted"); x != nil {
@@ -829,7 +829,7 @@ func (rs *ResourceSvc) ListAllNamespaces(ctx context.Context) (<-chan Namespace,
 		}
 		go filterDeleted(b, C2, C1)
 		C1 = C2
-		C2 = make(chan Namespace)
+		C2 = make(chan rstypes.Namespace)
 	}
 
 	CS, err = rs.db.NamespaceListAllByTime(ctx, afterTime, count)
@@ -966,11 +966,11 @@ func (rs *ResourceSvc) ListAllVolumes(ctx context.Context) (<-chan Volume, error
 	return C1, nil
 }
 
-func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label string) (ns Namespace, err error) {
+func (rs *ResourceSvc) GetNamespaceAccesses(ctx context.Context, userID, label string) (ns rstypes.Namespace, err error) {
 	ns, err = rs.db.NamespaceAccesses(ctx, userID, label)
 	if err != nil {
 		err = errors.Format("database: %v", err)
-		ns = Namespace{}
+		ns = rstypes.Namespace{}
 		return
 	}
 
