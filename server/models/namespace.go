@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
@@ -17,7 +16,7 @@ func (db ResourceSvcDB) NamespaceCreate(ctx context.Context, tariff rstypes.Name
 	nsID = utils.NewUUID()
 	{
 		var count int
-		db.qLog.QueryRowxContext(ctx, `SELECT count(*)
+		err = db.qLog.QueryRowxContext(ctx, `SELECT count(*)
 									FROM accesses
 									WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
 			user, label).Scan(&count)
@@ -212,35 +211,25 @@ func (db ResourceSvcDB) NamespaceSetAccess(ctx context.Context, owner string, la
 }
 
 func (db ResourceSvcDB) NamespaceSetTariff(ctx context.Context, owner string, label string, t rstypes.NamespaceTariff) (err error) {
-	var resID string
-
-	// check if owner & ns_label exists by getting its ID
-	err = db.qLog.QueryRowxContext(ctx,
-		`SELECT resource_id FROM accesses
-		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
-			AND kind='Namespace'`,
+	res, err := db.eLog.ExecContext(ctx,
+		`
+		WITH owner_ns_id AS (
+			SELECT resource_id FROM accesses
+			WHERE owner_user_id=user_id 
+					AND user_id=$1 
+					AND resource_label=$2
+					AND kind='Namespace'
+		)
+		UPDATE namespaces SET
+			tariff_id=$3,
+			cpu=$4,
+			ram=$5,
+			max_traffic=$6,
+			max_ext_svc=$7,
+			max_int_svc=$8
+		WHERE id IN (SELECT * FROM owner_ns_id)`,
 		owner,
 		label,
-	).Scan(&resID)
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		return rserrors.ErrNoSuchResource
-	default:
-		return
-	}
-
-	// and UPDATE tariff_id and the rest of the fields
-	_, err = db.eLog.ExecContext(ctx,
-		`UPDATE namespaces SET
-			tariff_id=$2,
-			cpu=$3,
-			ram=$4,
-			max_traffic=$5,
-			max_ext_svc=$6,
-			max_int_svc=$7
-		WHERE id=$1`,
-		resID,
 		t.TariffID,
 		t.CpuLimit,
 		t.MemoryLimit,
@@ -248,26 +237,33 @@ func (db ResourceSvcDB) NamespaceSetTariff(ctx context.Context, owner string, la
 		t.ExternalServices,
 		t.InternalServices,
 	)
+	if err != nil {
+		return
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return
+	}
+	if affected == 0 { // means namespace is not exists
+		err = rserrors.ErrNoSuchResource
+	}
+
 	return
 }
 
 func (db ResourceSvcDB) NamespaceDelete(ctx context.Context, user string, label string) (err error) {
-	var alvl string
+	var accessLevel string
 	var owner string
 	var resID string
 	var subVolsCnt int
 
 	err = db.qLog.QueryRowxContext(ctx,
-		`SELECT access_level, owner_user_id, resource_id
-		FROM accesses
-		WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'`,
-		user,
-		label,
-	).Scan(
-		&alvl,
-		&owner,
-		&resID,
-	)
+		`SELECT a.access_level, a.owner_user_id, a.resource_id, count(nv.*) as vol_count
+				FROM accesses a
+				JOIN namespace_volume nv ON nv.ns_id = a.resource_id
+				WHERE user_id=$1 AND resource_label=$2 AND kind='Namespace'
+				GROUP BY a.access_level, a.owner_user_id, a.resource_id`,
+		user, label).Scan(&accessLevel, &owner, &resID, &subVolsCnt)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -276,45 +272,25 @@ func (db ResourceSvcDB) NamespaceDelete(ctx context.Context, user string, label 
 		return
 	}
 
-	if owner == user {
-		err = db.qLog.QueryRowxContext(ctx,
-			`SELECT count(nv.*)
-			FROM namespace_volume nv
-			WHERE nv.ns_id=$1`,
-			resID,
-		).Scan(&subVolsCnt)
-		if err != nil {
-			return
-		}
-		if subVolsCnt > 0 {
-			err = rserrors.NewPermissionError("cannot delete, namespace has associated volumes")
-			return
-		}
+	if owner == user && subVolsCnt > 0 {
+		err = rserrors.NewPermissionError("cannot delete, namespace has associated volumes")
+		return
 	}
 
-	if owner == user {
-		_, err = db.eLog.ExecContext(ctx,
-			`UPDATE namespaces
-			SET deleted=true, delete_time=statement_timestamp()
-			WHERE id=$1`,
-			resID,
-		)
-		if err != nil {
-			err = fmt.Errorf("UPDATE namespaces ... : %[1]v <%[1]T>", err)
-			return
-		}
-		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1`, resID)
-		if err != nil {
-			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
-			return
-		}
-	} else {
-		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
-		if err != nil {
-			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
-			return
-		}
+	_, err = db.eLog.ExecContext(ctx,
+		`UPDATE namespaces
+		SET deleted=true, delete_time=statement_timestamp()
+		WHERE id=$1 AND $2=$3`, // if user is owner of namespace set it as deleted
+		resID, owner, user)
+	if err != nil {
+		return err
 	}
+
+	_, err = db.eLog.ExecContext(ctx, `
+		DELETE FROM accesses 
+			WHERE resource_id=$1 
+				AND (user_id=$3 OR $2=$3)`, // if user is owner of namespace all accesses will be removed, if not - only user accesses to ns
+		resID, owner, user)
 
 	return
 }
@@ -365,7 +341,7 @@ func (db ResourceSvcDB) NamespaceAccesses(ctx context.Context, owner string, lab
 		return
 	}
 
-	rows, err := db.qLog.QueryContext(ctx,
+	rows, err := db.qLog.QueryxContext(ctx,
 		`SELECT
 			user_id,
 			access_level,
@@ -382,13 +358,7 @@ func (db ResourceSvcDB) NamespaceAccesses(ctx context.Context, owner string, lab
 	defer rows.Close()
 	for rows.Next() {
 		var ar rstypes.AccessRecord
-		err = rows.Scan(
-			&ar.UserID,
-			&ar.Access,
-			&ar.Limited,
-			&ar.NewAccess,
-			&ar.AccessChangeTime,
-		)
+		err = rows.StructScan(&rows)
 		if err != nil {
 			return
 		}
@@ -423,8 +393,8 @@ func (db ResourceSvcDB) NamespaceVolumeListAssoc(ctx context.Context, nsID strin
 			v.replicas,
 			v.is_persistent
 		FROM namespace_volume nv
-			INNER JOIN accesses a ON a.resource_id = nv.vol_id
-			INNER JOIN volumes v ON v.id = nv.vol_id
+		INNER JOIN accesses a ON a.resource_id = nv.vol_id
+		INNER JOIN volumes v ON v.id = nv.vol_id
 		WHERE nv.ns_id=$1`,
 		nsID,
 	)
@@ -458,9 +428,13 @@ func (db ResourceSvcDB) NamespaceVolumeListAssoc(ctx context.Context, nsID strin
 }
 
 func (db ResourceSvcDB) NamespacesDeleteAll(ctx context.Context, owner string) error {
-	_, err := db.eLog.ExecContext(ctx, `UPDATE namespaces
-			SET deleted=true, delete_time=statement_timestamp()
-			WHERE id IN (SELECT resource_id FROM accesses
-							WHERE user_id = $1 AND kind = 'Namespace')`, owner)
+	_, err := db.eLog.ExecContext(ctx, `
+		WITH resources_to_update AS (
+			SELECT resource_id FROM accesses
+			WHERE user_id = $1 AND kind = 'Namespace'
+		)
+		UPDATE namespaces
+		SET deleted=true, delete_time=statement_timestamp()
+		WHERE id IN (SELECT * FROM resources_to_update)`, owner)
 	return err
 }

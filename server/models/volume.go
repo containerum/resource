@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
@@ -19,7 +18,11 @@ func (db ResourceSvcDB) VolumeCreate(ctx context.Context, tariff rstypes.VolumeT
 	volID = utils.NewUUID()
 	{
 		var count int
-		err = db.qLog.QueryRowxContext(ctx, `SELECT count(*) FROM accesses WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`, user, label).Scan(&count)
+		err = db.qLog.QueryRowxContext(ctx, `
+				SELECT count(*) 
+				FROM accesses 
+				WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
+			user, label).Scan(&count)
 		if err != nil {
 			return
 		}
@@ -48,7 +51,7 @@ func (db ResourceSvcDB) VolumeCreate(ctx context.Context, tariff rstypes.VolumeT
 	}
 
 	_, err = db.eLog.ExecContext(ctx,
-		`INSERT INTO accesses(
+		`INSERT INTO accesses (
 			id,
 			kind,
 			resource_id,
@@ -201,58 +204,45 @@ func (db ResourceSvcDB) VolumeSetAccess(ctx context.Context, owner string, label
 }
 
 func (db ResourceSvcDB) VolumeSetTariff(ctx context.Context, owner string, label string, t rstypes.VolumeTariff) (err error) {
-	var resID string
-
-	// check if owner & ns_label exists by getting its ID
-	err = db.qLog.QueryRowxContext(ctx,
-		`SELECT resource_id FROM accesses
-		WHERE owner_user_id=user_id AND user_id=$1 AND resource_label=$2
-			AND kind='Volume'`,
-		owner,
-		label,
-	).Scan(&resID)
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		err = rserrors.ErrNoSuchResource
-		return
-	default:
+	res, err := db.eLog.ExecContext(ctx, `
+		WITH resources_to_update AS (
+			SELECT resource_id 
+			FROM accesses
+			WHERE owner_user_id=user_id
+				AND user_id=$1
+				AND resource_label=$2
+				AND kind='Volume'
+		)
+		UPDATE volumes SET
+			tariff_id=$3,
+			capacity=$4,
+			replicas=$5,
+			is_persistent=$6
+		WHERE id IN (SELECT * FROM resources_to_update)`,
+		owner, label, t.TariffID, t.StorageLimit, t.ReplicasLimit, t.IsPersistent)
+	if err != nil {
 		return
 	}
-
-	// UPDATE tariff_id and the rest of the fields
-	_, err = db.eLog.ExecContext(ctx,
-		`UPDATE volumes SET
-			tariff_id=$2,
-			capacity=$3,
-			replicas=$4,
-			is_persistent=$5
-		WHERE id=$1`,
-		resID,
-		t.TariffID,
-		t.StorageLimit,
-		t.ReplicasLimit,
-		t.IsPersistent,
-	)
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return
+	}
+	if affected == 0 {
+		err = rserrors.ErrNoSuchResource
+	}
 	return
 }
 
 func (db ResourceSvcDB) VolumeDelete(ctx context.Context, user string, label string) (err error) {
-	var alvl string
+	var accessLevel string
 	var owner string
 	var resID string
 
-	err = db.qLog.QueryRowxContext(ctx,
-		`SELECT access_level, owner_user_id, resource_id
+	err = db.qLog.QueryRowxContext(ctx, `
+		SELECT access_level, owner_user_id, resource_id
 		FROM accesses
 		WHERE user_id=$1 AND resource_label=$2 AND kind='Volume'`,
-		user,
-		label,
-	).Scan(
-		&alvl,
-		&owner,
-		&resID,
-	)
+		user, label).Scan(&accessLevel, &owner, &resID)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -262,34 +252,27 @@ func (db ResourceSvcDB) VolumeDelete(ctx context.Context, user string, label str
 		return
 	}
 
-	if owner == user {
-		_, err = db.eLog.ExecContext(ctx,
-			`UPDATE volumes SET deleted=true, delete_time=statement_timestamp()
-			WHERE id=$1`,
-			resID,
-		)
-		if err != nil {
-			err = fmt.Errorf("UPDATE volumes ... : %[1]v <%[1]T>", err)
-			return
-		}
-
-		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1`, resID)
-		if err != nil {
-			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
-			return
-		}
-		_, err = db.eLog.ExecContext(ctx, `DELETE FROM namespace_volume WHERE vol_id=$1`, resID)
-		if err != nil {
-			err = fmt.Errorf("DELETE FROM namespace_volume ...: %[1]v <%[1]T>", err)
-			return
-		}
-	} else {
-		_, err = db.eLog.ExecContext(ctx, `DELETE FROM accesses WHERE resource_id=$1 AND user_id=$2`, resID, user)
-		if err != nil {
-			err = fmt.Errorf("DELETE FROM accesses ...: %[1]v <%[1]T>", err)
-			return
-		}
+	_, err = db.eLog.ExecContext(ctx, `
+		UPDATE volumes
+		SET deleted=true, delete_time=statement_timestamp()
+		WHERE id=$1 AND $2=$3`,
+		resID, owner, user)
+	if err != nil {
+		return
 	}
+
+	_, err = db.eLog.ExecContext(ctx, `
+		DELETE FROM accesses 
+		WHERE resource_id=$1 AND ($2=$3 OR user_id=$3)`,
+		resID, owner, user)
+	if err != nil {
+		return
+	}
+
+	_, err = db.eLog.ExecContext(ctx, `
+		DELETE FROM namespace_volume
+		WHERE vol_id=$1 AND $2=$3`,
+		resID, owner, user)
 
 	return
 }
@@ -309,24 +292,24 @@ func (db ResourceSvcDB) VolumeAccesses(ctx context.Context, owner string, label 
 			v.capacity,
 			v.replicas,
 			v.is_persistent
-		FROM accesses a INNER JOIN volumes v ON v.id=a.resource_id
+		FROM accesses a
+		INNER JOIN volumes v ON v.id=a.resource_id
 		WHERE a.user_id=$1 AND a.resource_label=$2 AND a.owner_user_id=a.user_id AND a.kind='Volume'`,
-		owner,
-		label,
-	).Scan(
-		&vol.ID,
-		&vol.CreateTime,
-		&vol.Deleted,
-		&vol.DeleteTime,
-		&vol.UserID,
-		&vol.TariffID,
-		&vol.Label,
-		&vol.Access,
-		&vol.AccessChangeTime,
-		&vol.Storage,
-		&vol.Replicas,
-		&vol.Persistent,
-	)
+		owner, label).
+		Scan(
+			&vol.ID,
+			&vol.CreateTime,
+			&vol.Deleted,
+			&vol.DeleteTime,
+			&vol.UserID,
+			&vol.TariffID,
+			&vol.Label,
+			&vol.Access,
+			&vol.AccessChangeTime,
+			&vol.Storage,
+			&vol.Replicas,
+			&vol.Persistent,
+		)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -336,8 +319,8 @@ func (db ResourceSvcDB) VolumeAccesses(ctx context.Context, owner string, label 
 		return
 	}
 
-	rows, err := db.qLog.QueryContext(ctx,
-		`SELECT
+	rows, err := db.qLog.QueryContext(ctx, `
+		SELECT
 			user_id,
 			access_level,
 			limited,
