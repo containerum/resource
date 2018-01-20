@@ -58,69 +58,79 @@ func setupLogger() error {
 	return nil
 }
 
+func setupAuthClient(addr string) (other.AuthSvc, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		return other.NewAuthSvcStub(), nil
+	case addr != "":
+		return other.NewAuthSvcGRPC(addr)
+	default:
+		return nil, errors.New("missing configuration for auth service")
+	}
+}
+
+func setupBillingClient(addr string) (other.Billing, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		return other.NewBillingStub(), nil
+	case addr != "":
+		return other.NewBillingHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+	default:
+		return nil, errors.New("missing configuration for billing service")
+	}
+}
+
+func setupKubeClient(addr string) (other.Kube, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		return other.NewKubeStub(), nil
+	case addr != "":
+		return other.NewKubeHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+	default:
+		return nil, errors.New("missing configuration for kube service")
+	}
+}
+
+func setupMailerClient(addr string) (other.Mailer, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		return other.NewMailerStub(), nil
+	case addr != "":
+		return other.NewMailerHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+	default:
+		return nil, errors.New("missing configuration for mailer service")
+	}
+}
+
+func setupVolumesClient(addr string) (other.VolumeSvc, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		return other.NewVolumeSvcStub(), nil
+	case addr != "":
+		return other.NewVolumeSvcHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+	default:
+		return nil, errors.New("missing configuration for volume service")
+	}
+}
+
 func setupServer() (server.ResourceSvcInterface, error) {
 	var clients server.ResourceSvcClients
 
-	if u := os.Getenv("AUTH_ADDR"); u != "" {
-		var err error
-		clients.Auth, err = other.NewAuthSvcGRPC(u)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if opMode == modeDebug {
-			clients.Auth = other.NewAuthSvcStub()
-		} else {
-			return nil, errors.New("missing configuration for auth service")
-		}
+	var err error
+	if clients.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
+		return nil, err
 	}
-
-	if u := os.Getenv("BILLING_ADDR"); u != "" {
-		clients.Billing = other.NewBillingHTTP(&url.URL{
-			Scheme: "http",
-			Host:   u,
-		})
-	} else {
-		clients.Billing = other.NewBillingStub()
+	if clients.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
+		return nil, err
 	}
-
-	if u := os.Getenv("KUBE_ADDR"); u != "" {
-		clients.Kube = other.NewKubeHTTP(&url.URL{
-			Scheme: "http",
-			Host:   u,
-		})
-	} else {
-		if opMode == modeDebug {
-			clients.Kube = other.NewKubeStub()
-		} else {
-			return nil, errors.New("missing configuration for kube service")
-		}
+	if clients.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
+		return nil, err
 	}
-
-	if u := os.Getenv("MAILER_ADDR"); u != "" {
-		clients.Mailer = other.NewMailerHTTP(&url.URL{
-			Scheme: "http",
-			Host:   u,
-		})
-	} else {
-		if opMode == modeDebug {
-			clients.Mailer = other.NewMailerStub()
-		} else {
-			return nil, errors.New("missing configuration for mailer service")
-		}
+	if clients.Mailer, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
+		return nil, err
 	}
-
-	if u := os.Getenv("VOLUMES_ADDR"); u != "" {
-		clients.Volume = other.NewVolumeSvcHTTP(&url.URL{
-			Scheme: "http",
-			Host:   u,
-		})
-	} else {
-		if opMode == modeDebug {
-			clients.Volume = other.NewVolumeSvcStub()
-		} else {
-			return nil, errors.New("missing configuration for volume service")
-		}
+	if clients.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
+		return nil, err
 	}
 
 	// print info about clients which implements Stringer
