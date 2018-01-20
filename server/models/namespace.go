@@ -461,6 +461,6 @@ func (db ResourceSvcDB) NamespacesDeleteAll(ctx context.Context, owner string) e
 	_, err := db.eLog.ExecContext(ctx, `UPDATE namespaces
 			SET deleted=true, delete_time=statement_timestamp()
 			WHERE id IN (SELECT resource_id FROM accesses
-							WHERE user_id = $1)`, owner)
+							WHERE user_id = $1 AND kind = 'Namespace')`, owner)
 	return err
 }
