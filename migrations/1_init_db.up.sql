@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 SELECT uuid_generate_v4() as check_uuid_extension;
 
 BEGIN TRANSACTION;
-CREATE TABLE namespaces (
+CREATE TABLE IF NOT EXISTS namespaces (
 	id uuid NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
 	ram int NOT NULL,
@@ -34,7 +34,7 @@ CREATE TYPE AccessLevel AS ENUM (
 	'readdelete'
 );
 
-CREATE TABLE accesses (
+CREATE TABLE IF NOT EXISTS accesses (
 	id uuid NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
 	kind ResourceKind NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE accesses (
 	CHECK ( user_id != owner_user_id AND limited IS NULL OR user_id = owner_user_id )
 );
 
-CREATE TABLE log (
+CREATE TABLE IF NOT EXISTS log (
 	t timestamp NOT NULL DEFAULT statement_timestamp(),
 	action varchar NOT NULL,
 	obj_type varchar NOT NULL,

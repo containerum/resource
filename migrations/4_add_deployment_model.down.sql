@@ -1,5 +1,5 @@
 BEGIN TRANSACTION;
-DROP TABLE deployments;
-DROP TABLE deployment_volume;
-DROP TABLE containers;
+DROP TABLE IF EXISTS deployments;
+DROP TABLE IF EXISTS deployment_volume;
+DROP TABLE IF EXISTS containers;
 COMMIT TRANSACTION;

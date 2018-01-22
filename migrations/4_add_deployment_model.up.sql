@@ -1,5 +1,5 @@
 BEGIN TRANSACTION;
-CREATE TABLE deployments (
+CREATE TABLE IF NOT EXISTS deployments (
 	id uuid NOT NULL CONSTRAINT prim_key PRIMARY KEY,
 	ns_id uuid NOT NULL,
 	name varchar NOT NULL,
@@ -12,13 +12,13 @@ CREATE TABLE deployments (
 	CONSTRAINT uniq_in_ns UNIQUE (ns_id, name),
 	CONSTRAINT valid_resources CHECK (ram > 0 AND cpu > 0)
 );
-CREATE TABLE deployment_volume (
+CREATE TABLE IF NOT EXISTS deployment_volume (
 	depl_id uuid NOT NULL,
 	vol_id uuid NOT NULL,
 
 	CONSTRAINT uniq_pair UNIQUE(depl_id, vol_id)
 );
-CREATE TABLE containers (
+CREATE TABLE IF NOT EXISTS containers (
 	depl_id uuid NOT NULL,
 	image varchar NOT NULL
 );

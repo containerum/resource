@@ -1,5 +1,5 @@
 BEGIN TRANSACTION;
-CREATE TABLE volumes (
+CREATE TABLE IF NOT EXISTS volumes (
 	id uuid NOT NULL,
 	create_time timestamp NOT NULL DEFAULT statement_timestamp(),
 	tariff_id uuid NOT NULL,

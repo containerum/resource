@@ -1,4 +1,5 @@
 BEGIN TRANSACTION;
-DROP TABLE namespace_volume;
-ALTER TABLE volumes DROP COLUMN is_persistent;
+DROP TABLE IF EXISTS namespace_volume;
+ALTER TABLE volumes
+  DROP COLUMN IF EXISTS is_persistent;
 COMMIT TRANSACTION;

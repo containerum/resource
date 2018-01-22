@@ -1,1 +1,1 @@
-DROP TABLE volumes;
+DROP TABLE IF EXISTS volumes;
