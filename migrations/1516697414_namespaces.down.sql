@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS namespaces;
+
+DROP EXTENSION IF EXISTS "uuid-ossp";
