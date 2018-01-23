@@ -77,6 +77,21 @@ $update_users_permissions$ LANGUAGE plpgsql;
 CREATE TRIGGER update_users_permissions AFTER UPDATE ON permissions
   FOR EACH ROW EXECUTE PROCEDURE update_users_permissions();
 
+-- insert permissions as owner`s one
+CREATE OR REPLACE FUNCTION insert_owner_permissions() RETURNS TRIGGER AS $insert_owner_permissions$
+  BEGIN
+    IF NEW.user_id != NEW.owner_user_id THEN -- rewrite permissions with owner`s one
+      SELECT limited, new_access_level, access_level_change_time
+      INTO NEW.limited, NEW.new_access_level, NEW.access_level_change_time
+      FROM permissions
+      WHERE owner_user_id = NEW.owner_user_id AND owner_user_id = user_id;
+    END IF;
+  END;
+$insert_owner_permissions$ LANGUAGE plpgsql;
+
+CREATE TRIGGER insert_owner_permissions BEFORE INSERT ON permissions
+  FOR EACH ROW EXECUTE PROCEDURE insert_owner_permissions();
+
 -- remove all non owners access records if we remove owner`s access record
 CREATE OR REPLACE FUNCTION remove_users_on_remove_owner() RETURNS TRIGGER AS $remove_users_on_remove_owner$
   BEGIN
