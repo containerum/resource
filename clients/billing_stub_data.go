@@ -1,4 +1,4 @@
-package other
+package clients
 
 import (
 	"encoding/json"
