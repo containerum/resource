@@ -1,3 +1,9 @@
+DROP TRIGGER IF EXISTS volume_marked_deleted ON volumes;
+DROP FUNCTION IF EXISTS volume_marked_deleted();
+
+DROP TRIGGER IF EXISTS namespace_marked_deleted ON namespaces;
+DROP FUNCTION IF EXISTS namespace_marked_deleted();
+
 DROP TRIGGER IF EXISTS remove_volume_perms ON volumes;
 DROP FUNCTION IF EXISTS remove_volume_perms();
 

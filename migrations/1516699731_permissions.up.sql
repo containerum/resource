@@ -127,3 +127,26 @@ $remove_volume_perms$ LANGUAGE plpgsql;
 
 CREATE TRIGGER remove_volume_perms BEFORE DELETE ON volumes
   FOR EACH ROW EXECUTE PROCEDURE remove_volume_perms();
+
+-- remove permissions if resource marked as deleted
+CREATE OR REPLACE FUNCTION namespace_marked_deleted() RETURNS TRIGGER AS $namespace_marked_deleted$
+  BEGIN
+    IF NEW.deleted = TRUE THEN
+      DELETE FROM permissions WHERE resource_id = OLD.id;
+    END IF;
+  END;
+$namespace_marked_deleted$ LANGUAGE plpgsql;
+
+CREATE TRIGGER namespace_marked_deleted BEFORE UPDATE ON namespaces
+  FOR EACH ROW EXECUTE PROCEDURE namespace_marked_deleted();
+
+CREATE OR REPLACE FUNCTION volume_marked_deleted() RETURNS TRIGGER AS $volume_marked_deleted$
+BEGIN
+  IF NEW.deleted = TRUE THEN
+    DELETE FROM permissions WHERE resource_id = OLD.id;
+  END IF;
+END;
+$volume_marked_deleted$ LANGUAGE plpgsql;
+
+CREATE TRIGGER volume_marked_deleted BEFORE UPDATE ON volumes
+  FOR EACH ROW EXECUTE PROCEDURE volume_marked_deleted()
