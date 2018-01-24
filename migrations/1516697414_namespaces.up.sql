@@ -3,9 +3,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS namespaces (
   -- generic resource params
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  create_time TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
+  create_time TIMESTAMPTZ NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
   deleted BOOLEAN NOT NULL DEFAULT FALSE,
-  delete_time TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL,
+  delete_time TIMESTAMPTZ DEFAULT NULL,
   tariff_id UUID NOT NULL,
   -- namespace-specific params
   ram INTEGER NOT NULL,

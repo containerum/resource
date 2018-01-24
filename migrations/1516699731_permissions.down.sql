@@ -10,8 +10,8 @@ DROP FUNCTION IF EXISTS remove_users_on_remove_owner();
 DROP TRIGGER IF EXISTS update_users_permissions ON permissions;
 DROP FUNCTION IF EXISTS update_users_permissions();
 
-DROP TRIGGER IF EXISTS insert_owner_permissions ON permissions;
-DROP FUNCTION IF EXISTS insert_owner_permissions();
+DROP TRIGGER IF EXISTS set_limited ON permissions;
+DROP FUNCTION IF EXISTS set_limited();
 
 DROP TRIGGER IF EXISTS check_update_permissions ON permissions;
 DROP FUNCTION IF EXISTS check_update_permissions();
