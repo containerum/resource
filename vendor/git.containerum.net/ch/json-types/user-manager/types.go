@@ -63,6 +63,15 @@ type UserCreateResponse struct {
 	IsActive bool   `json:"is_active"`
 }
 
+type UserCreateWebAPIRequest struct {
+	ID        string                 `json:"id"`
+	UserName  string                 `json:"username" binding:"required,email"`
+	Password  string                 `json:"password" binding:"required"`
+	Data      map[string]interface{} `json:"data"`
+	CreatedAt string                 `json:"created_at"`
+	IsActive  bool                   `json:"is_active"`
+}
+
 type ActivateRequest struct {
 	Link string `json:"link" binding:"required"`
 }
@@ -110,6 +119,7 @@ type UserListEntry struct {
 	IsActive      bool                   `json:"is_active"`
 	IsInBlacklist bool                   `json:"is_in_blacklist"`
 	IsDeleted     bool                   `json:"is_deleted"`
+	Accounts      map[string]string      `json:"accounts"`
 }
 
 type UserListGetResponse struct {
@@ -132,4 +142,12 @@ type UserListQuery struct {
 
 type CompleteDeleteHandlerRequest struct {
 	UserID string `json:"user_id" binding:"required,uuid4"`
+}
+
+type BoundAccountsResponce struct {
+	Accounts map[string]string `json:"accounts" binding:"required"`
+}
+
+type BoundAccountDeleteRequest struct {
+	Resource string `json:"resource" binding:"required"`
 }

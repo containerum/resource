@@ -3,11 +3,13 @@ package models
 import (
 	"fmt"
 	"testing"
+
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 )
 
 func TestPermCheck(t *testing.T) {
-	perms := []string{"owner", "read", "write", "readdelete"}
-	levels := []string{"owner", "read", "write", "delete"}
+	perms := []rstypes.PermissionStatus{rstypes.PermissionStatusOwner, rstypes.PermissionStatusRead, rstypes.PermissionStatusWrite, rstypes.PermissionStatusReadDelete}
+	levels := []rstypes.PermissionStatus{rstypes.PermissionStatusOwner, rstypes.PermissionStatusRead, rstypes.PermissionStatusWrite, rstypes.PermissionStatusReadDelete}
 	var permMatrix [][]bool
 	for i := range perms {
 		permMatrix = append(permMatrix, make([]bool, len(levels)))

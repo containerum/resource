@@ -5,19 +5,19 @@
   branch = "master"
   name = "git.containerum.net/ch/grpc-proto-files"
   packages = ["auth","common"]
-  revision = "a37cf53c18640c19d94263e11ddd4735fa79c9fe"
+  revision = "88c149b05138ce6362b2ffd66842176c6cfe4c8d"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/json-types"
-  packages = ["errors","mail-templater","resource-service"]
-  revision = "0427e400408db6e486f87f06596433fb84df0659"
+  packages = ["errors","mail-templater","misc","resource-service","user-manager"]
+  revision = "f8e8b242097cd09e3d4cfd8d030212b9ec4b6bce"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "097a44de8a3f02eb1ae1a5577e67ceb5dbe99e6c"
+  revision = "b00f2eea44849569dda2ba22420da2eee12ec209"
 
 [[projects]]
   branch = "master"
@@ -35,13 +35,13 @@
   branch = "master"
   name = "github.com/gin-gonic/gin"
   packages = [".","binding","json","render"]
-  revision = "a712f77d7aaec7eb4766a663924aaa4e54d3fe70"
+  revision = "7a9a290b36bb803a18874aa5c5b108be2d7eb34d"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["jsonpb","proto","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
-  revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
+  revision = "c65a0412e71e8b9b3bfd22925720d23c0f054237"
 
 [[projects]]
   branch = "master"
@@ -65,7 +65,7 @@
   branch = "master"
   name = "github.com/lib/pq"
   packages = [".","oid"]
-  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
+  revision = "61fe37aa2ee24fabcdbe5c4ac1d4ac566f88f345"
 
 [[projects]]
   name = "github.com/mattes/migrate"
@@ -80,10 +80,10 @@
   version = "v0.0.3"
 
 [[projects]]
-  name = "github.com/shopspring/decimal"
+  name = "github.com/pkg/errors"
   packages = ["."]
-  revision = "9ca7f51822d222ae4e246f070f9aad863599bd1a"
-  version = "1.0.0"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -92,16 +92,16 @@
   version = "v1.0.4"
 
 [[projects]]
-  branch = "master"
   name = "github.com/ugorji/go"
   packages = ["codec"]
-  revision = "ccfe18359b55b97855cee1d3f74e5efbda4869dc"
+  revision = "9831f2c3ac1068a78f50999a30db84270f647af6"
+  version = "v1.1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "5f55bce93ad2c89f411e009659bb1fd83da36e7b"
+  revision = "3d37316aaa6bd9929127ac9a527abf408178ea7b"
 
 [[projects]]
   branch = "master"
@@ -113,7 +113,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "810d7000345868fc619eb81f46307107118f4ae1"
+  revision = "af50095a40f9041b3b38960738837185c26e9419"
 
 [[projects]]
   branch = "master"
@@ -130,8 +130,8 @@
 [[projects]]
   name = "google.golang.org/grpc"
   packages = [".","balancer","balancer/base","balancer/roundrobin","codes","connectivity","credentials","encoding","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
-  revision = "7cea4cc846bcf00cbb27595b07da5de875ef7de9"
-  version = "v1.9.1"
+  revision = "6b51017f791ae1cfbec89c52efdf444b13b550ef"
+  version = "v1.9.2"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -154,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a938098fa663a7f5032e73a9b4f13baa8442a1d125c0c7a736f6d308d6c015d1"
+  inputs-digest = "a623ec084a1241a7b96b036cd6e0fd812e640f383d41d6a427b40d3c211fd253"
   solver-name = "gps-cdcl"
   solver-version = 1
