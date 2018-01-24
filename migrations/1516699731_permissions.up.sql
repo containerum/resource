@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS permissions (
   owner_user_id UUID NOT NULL,
   create_time TIMESTAMPTZ NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
   user_id UUID NOT NULL,
-  access_level PERMISSION_STATUS NOT NULL,
+  access_level PERMISSION_STATUS NOT NULL DEFAULT 'owner'::PERMISSION_STATUS,
   limited BOOLEAN NOT NULL DEFAULT FALSE,
   access_level_change_time TIMESTAMPTZ NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
-  new_access_level UUID NOT NULL,
+  new_access_level PERMISSION_STATUS NOT NULL DEFAULT 'owner'::PERMISSION_STATUS,
 
   UNIQUE (kind, resource_id, resource_label, owner_user_id)
 );
