@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS permissions (
   access_level_change_time TIMESTAMPTZ NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
   new_access_level PERMISSION_STATUS NOT NULL DEFAULT 'owner'::PERMISSION_STATUS,
 
-  UNIQUE (kind, resource_id, resource_label, owner_user_id)
+  UNIQUE (kind, resource_id, resource_label, user_id)
 );
 
 -- check if newly inserted permission for namespace or volume is referenced to existing namespace or volume
