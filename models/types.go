@@ -30,7 +30,8 @@ type DB interface {
 	DeleteAllUserVolumes(ctx context.Context, userID string) error
 	RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) error
 	ResizeVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
-	SetVolumeActive(ctx context.Context, id string, active bool) error
+	SetVolumeActiveByID(ctx context.Context, id string, active bool) error
+	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
 
 	GetUserResourceAccesses(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
 	SetNamespaceAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error

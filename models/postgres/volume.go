@@ -394,10 +394,39 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 	return
 }
 
-func (db *pgDB) SetVolumeActive(ctx context.Context, id string, active bool) (err error) {
+func (db *pgDB) SetVolumeActiveByID(ctx context.Context, id string, active bool) (err error) {
 	db.log.WithField("id", id).Debug("activating volume")
 
 	result, err := db.eLog.ExecContext(ctx, `UPDATE volumes SET active = $2 WHERE id = $1`, id, active)
+	if err != nil {
+		err = models.WrapDBError(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrResourceNotExists
+	}
+
+	return
+}
+
+func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, active bool) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+		"active":  active,
+	}).Debug("activating volume")
+
+	result, err := db.eLog.ExecContext(ctx, `
+		WITH user_vol AS (
+			SELECT resource_id
+			FROM permissions
+			WHERE owner_user_id = user_id AND 
+				user_id = $1 AND 
+				resource_kind = 'volume' AND
+				resource_label = $2
+		)
+		UPDATE volumes 
+		SET active = $2 
+		WHERE id IN (SELECT * FROM user_vol)`, userID, label, active)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
