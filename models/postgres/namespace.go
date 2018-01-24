@@ -3,28 +3,64 @@ package postgres
 import (
 	"context"
 
+	"database/sql"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error {
+func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (exists bool, err error) {
+	entry := db.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	})
+	entry.Debug("check if namespace exists")
+
+	var count int
+	err = db.qLog.QueryRowxContext(ctx, `
+		SELECT count(ns.*)
+		FROM namespaces ns
+		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'namespace'
+		WHERE p.user_id = $1 AND p.resource_label = $2`,
+		userID, label).Scan(&count)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	entry.Debugf("found %d namespaces", count)
+	exists = count > 0
+	return
+}
+
+func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
 	}).Infof("creating namespace %#v", namespace)
-	err := db.qLog.QueryRowxContext(ctx, `
-			INSERT INTO namespaces
-			(
-				tariff_id,
-				ram,
-				cpu,
-				max_ext_services,
-				max_int_services,
-				max_traffic,
-			)
-			VALUES ($1, $2, $3, $4, $5, $6)
-			RETURNING *`,
+
+	var exists bool
+	if exists, err = db.isNamespaceExists(ctx, userID, label); err != nil {
+		return
+	}
+	if exists {
+		err = models.ErrLabeledResourceExists
+		return
+	}
+
+	err = db.qLog.QueryRowxContext(ctx, `
+		INSERT INTO namespaces
+		(
+			tariff_id,
+			ram,
+			cpu,
+			max_ext_services,
+			max_int_services,
+			max_traffic,
+		)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING *`,
 		namespace.TariffID,
 		namespace.RAM,
 		namespace.CPU,
@@ -159,6 +195,10 @@ func (db *pgDB) GetAllNamespaces(ctx context.Context,
 		err = models.WrapDBError(err)
 		return
 	}
+	if len(nsIDs) == 0 {
+		err = models.ErrResourceNotExists
+		return
+	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -179,6 +219,10 @@ func (db *pgDB) GetUserNamespaces(ctx context.Context, userID string,
 	nsIDs, nsMap, err := db.getUserNamespacesRaw(ctx, userID, filters)
 	if err != nil {
 		err = models.WrapDBError(err)
+		return
+	}
+	if len(nsIDs) == 0 {
+		err = models.ErrResourceNotExists
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
@@ -205,7 +249,12 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = $1 AND p.resource_label = $2`, userID, label).
 		StructScan(&ret.NamespaceWithPermission)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrLabeledResourceNotExists
+		return
+	default:
 		err = models.WrapDBError(err)
 		return
 	}
@@ -222,6 +271,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 	}
 	defer rows.Close()
 
+	ret.Volume = make([]rstypes.VolumeWithPermission, 0)
 	for rows.Next() {
 		var volume rstypes.VolumeWithPermission
 		if err = rows.StructScan(&volume); err != nil {
@@ -247,7 +297,12 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = $1 AND p.resource_label = $2`, userID, label).
 		StructScan(&ret.NamespaceWithPermission)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrLabeledResourceNotExists
+		return
+	default:
 		err = models.WrapDBError(err)
 		return
 	}
@@ -281,7 +336,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 		"label":   label,
 	}).Debug("delete user namespace by label")
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -296,6 +351,9 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
+	}
 
 	return
 }
@@ -303,7 +361,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err error) {
 	db.log.WithField("user_id", userID).Debug("delete user namespace by label")
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -317,6 +375,9 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
+	}
 
 	return
 }
@@ -326,9 +387,18 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		"user_id":   userID,
 		"old_label": oldLabel,
 		"new_label": newLabel,
-	})
+	}).Debug("rename namespace")
 
-	_, err = db.eLog.ExecContext(ctx, `
+	var exists bool
+	if exists, err = db.isNamespaceExists(ctx, userID, newLabel); err != nil {
+		return
+	}
+	if exists {
+		err = models.ErrLabeledResourceExists
+		return
+	}
+
+	result, err := db.eLog.ExecContext(ctx, `
 		UPDATE permissions
 		SET resource_label = $2
 		WHERE owner_user_id = $1 AND
@@ -336,6 +406,9 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 				resource_label = $3`, userID, newLabel, oldLabel)
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
 	}
 
 	return
@@ -347,7 +420,7 @@ func (db *pgDB) ResizeNamespace(ctx *context.Context, userID, label string, name
 		"label":   label,
 	}).Debugf("update namespace to %#v", namespace)
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -375,6 +448,9 @@ func (db *pgDB) ResizeNamespace(ctx *context.Context, userID, label string, name
 		namespace.MaxTraffic)
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
 	}
 
 	return

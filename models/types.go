@@ -63,6 +63,9 @@ var (
 
 // Generic resource errors
 var (
+	ErrLabeledResourceExists    = errors.New("resource with this label already exists")
+	ErrLabeledResourceNotExists = errors.New("resource with this label not exists")
+
 	ErrResourceExists    = errors.New("resource already exists")
 	ErrResourceNotExists = errors.New("resource not exists")
 )

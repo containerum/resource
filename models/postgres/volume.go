@@ -3,11 +3,37 @@ package postgres
 import (
 	"context"
 
+	"database/sql"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
+
+func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exists bool, err error) {
+	entry := db.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	})
+	entry.Debug("check if volume exists")
+
+	var count int
+	err = db.qLog.QueryRowxContext(ctx, `
+		SELECT count(ns.*)
+		FROM volumes ns
+		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'volume'
+		WHERE p.user_id = $1 AND p.resource_label = $2`,
+		userID, label).Scan(&count)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	entry.Debugf("found %d volumes", count)
+	exists = count > 0
+	return
+}
 
 func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 	nsIDs []string, nsMap map[string]rstypes.NamespaceWithVolumes) (err error) {
@@ -48,6 +74,16 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		"user_id": userID,
 		"label":   label,
 	}).Infof("creating volume %#v", volume)
+
+	var exists bool
+	if exists, err = db.isVolumeExists(ctx, userID, label); err != nil {
+		return
+	}
+	if exists {
+		err = models.ErrLabeledResourceExists
+		return
+	}
+
 	err = db.qLog.QueryRowxContext(ctx, `
 		INSERT INTO volumes
 		(
@@ -126,6 +162,10 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 		ret = append(ret, vol)
 	}
 
+	if len(ret) == 0 {
+		err = models.ErrResourceNotExists
+	}
+
 	return
 }
 
@@ -176,6 +216,10 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 		ret = append(ret, volume)
 	}
 
+	if len(ret) == 0 {
+		err = models.ErrResourceNotExists
+	}
+
 	return
 }
 
@@ -212,7 +256,12 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = p.owner_user_id AND p.user_id = $1 AND p.resource_label = $2`,
 		userID, label).StructScan(&ret.VolumeWithPermission)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrLabeledResourceNotExists
+		return
+	default:
 		err = models.WrapDBError(err)
 		return
 	}
@@ -245,7 +294,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		"label":   label,
 	}).Debug("delete user volume by label")
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -257,6 +306,9 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
+	}
 
 	return
 }
@@ -264,7 +316,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err error) {
 	db.log.WithField("user_id", userID).Debug("delete all user volumes")
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -275,6 +327,9 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err er
 		WHERE id IN (SELECT * FROM user_vol)`, userID)
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
 	}
 
 	return
@@ -287,7 +342,7 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 		"new_label": newLabel,
 	}).Debug("rename user volume")
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		UPDATE permissions
 		SET resource_label = $2
 		WHERE owner_user_id = $1 AND
@@ -295,6 +350,9 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 				resource_label = $3`, userID, newLabel, oldLabel)
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
 	}
 
 	return
@@ -306,7 +364,7 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 		"label":   label,
 	}).Debugf("update volume to %#v", volume)
 
-	_, err = db.eLog.ExecContext(ctx, `
+	result, err := db.eLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -329,6 +387,9 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
+	}
 
 	return
 }
@@ -336,9 +397,12 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 func (db *pgDB) SetVolumeActive(ctx context.Context, id string, active bool) (err error) {
 	db.log.WithField("id", id).Debug("activating volume")
 
-	_, err = db.eLog.ExecContext(ctx, `UPDATE volumes SET active = $2 WHERE id = $1`, id, active)
+	result, err := db.eLog.ExecContext(ctx, `UPDATE volumes SET active = $2 WHERE id = $1`, id, active)
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		err = models.ErrLabeledResourceNotExists
 	}
 
 	return

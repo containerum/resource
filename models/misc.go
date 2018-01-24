@@ -35,5 +35,8 @@ func PermCheck(perm, needed rstypes.PermissionStatus) bool {
 // WrapDBError is used to wrap sql error to special type for more convenient handling.
 // It should be used by all implementations of DB interface
 func WrapDBError(err error) *DBError {
+	if e, ok := err.(*DBError); ok {
+		return e
+	}
 	return &DBError{Err: errors.New(err.Error())}
 }
