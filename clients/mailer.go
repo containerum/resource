@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/json-types/errors"
+	"git.containerum.net/ch/utils"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
@@ -48,11 +49,15 @@ func (ml mailerHTTP) sendRequest(ctx context.Context, eventName string, userID s
 		"event":   eventName,
 		"user_id": userID,
 	}).Infof("sending mail with vars %v", vars)
-	resp, err := ml.client.R().SetContext(ctx).SetBody(mttypes.SimpleSendRequest{
-		Template:  eventName,
-		UserID:    userID,
-		Variables: vars,
-	}).SetResult(mttypes.SimpleSendResponse{}).Post("/send")
+	resp, err := ml.client.R().
+		SetContext(ctx).
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetBody(mttypes.SimpleSendRequest{
+			Template:  eventName,
+			UserID:    userID,
+			Variables: vars,
+		}).
+		SetResult(mttypes.SimpleSendResponse{}).Post("/send")
 	if err != nil {
 		return err
 	}
