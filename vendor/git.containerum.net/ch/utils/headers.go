@@ -78,3 +78,12 @@ func RequireAdminRole(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusForbidden, errors.New("you don`t have permission to do that"))
 	}
 }
+
+// SubstituteUserMiddleware replaces user id in context with user id from query if it set and user is admin
+func SubstituteUserMiddleware(ctx *gin.Context) {
+	role := ctx.GetHeader(umtypes.UserIDHeader)
+	if userID, set := ctx.GetQuery("user-id"); set && role == "admin" {
+		rctx := context.WithValue(ctx.Request.Context(), UserIDContextKey, userID)
+		ctx.Request = ctx.Request.WithContext(rctx)
+	}
+}
