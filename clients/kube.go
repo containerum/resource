@@ -13,8 +13,8 @@ import (
 )
 
 type Kube interface {
-	CreateNamespace(ctx context.Context, name string, cpu, memory uint, label, access string) error
-	SetNamespaceQuota(ctx context.Context, name string, cpu, memory uint, label, access string) error
+	CreateNamespace(ctx context.Context, name string, cpu, memory int, label, access string) error
+	SetNamespaceQuota(ctx context.Context, name string, cpu, memory int, label, access string) error
 	DeleteNamespace(ctx context.Context, name string) error
 }
 
@@ -51,7 +51,7 @@ func (kub kube) createNamespaceHeaderValue(e kubNamespaceHeaderElement) string {
 	return base64.StdEncoding.EncodeToString(xUserNamespaceBytes)
 }
 
-func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory uint, label, access string) error {
+func (kub kube) CreateNamespace(ctx context.Context, name string, cpu, memory int, label, access string) error {
 	kub.log.WithFields(logrus.Fields{
 		"name":   name,
 		"cpu":    cpu,
@@ -105,7 +105,7 @@ func (kub kube) DeleteNamespace(ctx context.Context, name string) error {
 	return nil
 }
 
-func (kub kube) SetNamespaceQuota(ctx context.Context, name string, cpu, memory uint, label, access string) (err error) {
+func (kub kube) SetNamespaceQuota(ctx context.Context, name string, cpu, memory int, label, access string) (err error) {
 	// TODO: update cpu and memory also
 
 	kub.log.WithFields(logrus.Fields{
@@ -144,7 +144,7 @@ func NewKubeStub() Kube {
 	return kubeStub{log: logrus.WithField("component", "kube_stub")}
 }
 
-func (kub kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory uint, label, access string) error {
+func (kub kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory int, label, access string) error {
 	kub.log.WithFields(logrus.Fields{
 		"name":   name,
 		"cpu":    cpu,
@@ -160,7 +160,7 @@ func (kub kubeStub) DeleteNamespace(_ context.Context, name string) error {
 	return nil
 }
 
-func (kub kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memory uint, label, access string) error {
+func (kub kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memory int, label, access string) error {
 	kub.log.WithFields(logrus.Fields{
 		"name":   name,
 		"cpu":    cpu,
