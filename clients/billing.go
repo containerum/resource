@@ -12,8 +12,8 @@ import (
 )
 
 type Billing interface {
-	Subscribe(ctx context.Context, userID, resource rstypes.Resource, resourceKind rstypes.Kind) error
-	Unsubscribe(ctx context.Context, userID, resource rstypes.Resource) error
+	Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error
+	Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error
 
 	GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error)
 	GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error)
@@ -108,7 +108,7 @@ func NewDummyBillingClient() Billing {
 	}
 }
 
-func (b dummyBillingClient) Subscribe(ctx context.Context, userID, resource rstypes.Resource, resourceKind rstypes.Kind) error {
+func (b dummyBillingClient) Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error {
 	b.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"tariff_id":   resource.TariffID,
@@ -118,7 +118,7 @@ func (b dummyBillingClient) Subscribe(ctx context.Context, userID, resource rsty
 	return nil
 }
 
-func (b dummyBillingClient) Unsubscribe(ctx context.Context, userID, resource rstypes.Resource) error {
+func (b dummyBillingClient) Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error {
 	b.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"resource_id": resource.ID,
