@@ -75,7 +75,7 @@ func setupDB(connStr, migrationAddr string) (models.DB, error) {
 func setupAuthClient(addr string) (clients.AuthSvc, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return clients.NewAuthSvcStub(), nil
+		return clients.NewDummyAuthSvc(), nil
 	case addr != "":
 		return clients.NewAuthSvcGRPC(addr)
 	default:
@@ -98,7 +98,7 @@ func setupBillingClient(addr string) (clients.Billing, error) {
 func setupKubeClient(addr string) (clients.Kube, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return clients.NewKubeStub(), nil
+		return clients.NewDummyKube(), nil
 	case addr != "":
 		return clients.NewKubeHTTP(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
@@ -109,7 +109,7 @@ func setupKubeClient(addr string) (clients.Kube, error) {
 func setupMailerClient(addr string) (clients.Mailer, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return clients.NewMailerStub(), nil
+		return clients.NewDummyMailer(), nil
 	case addr != "":
 		return clients.NewMailerHTTP(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
