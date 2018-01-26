@@ -10,14 +10,14 @@
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/json-types"
-  packages = ["errors","mail-templater","misc","resource-service","user-manager"]
-  revision = "11778115e611d726072c8b5cf2c026f5116c4f95"
+  packages = ["billing","errors","mail-templater","misc","resource-service","user-manager"]
+  revision = "cd7291892b13fb65f605d11b7eb30563bce5df0b"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "fbbbae93ebdec8d81056d5d2ad5e282ce4368c8e"
+  revision = "be58be569f33028518b079164fac34f35049b1f9"
 
 [[projects]]
   branch = "master"
@@ -154,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9a34adc59b522e005f6b2e7f84d8bed3b1a69dd536a61bf1e9c411e19074a8f1"
+  inputs-digest = "ff1798ead8a381a17bea287c3ee7672a51e1efda75320c92e7b798833b716365"
   solver-name = "gps-cdcl"
   solver-version = 1

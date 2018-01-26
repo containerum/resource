@@ -1,18 +1,25 @@
 package routes
 
 import (
-	"context"
+	"net/http"
 
-	umtypes "git.containerum.net/ch/json-types/user-manager"
-	"git.containerum.net/ch/utils"
-	"github.com/gin-gonic/gin"
+	"git.containerum.net/ch/json-types/errors"
 )
 
-// replaces user id in context with user id from query if it set and user is admin
-func substituteUserMiddleware(ctx *gin.Context) {
-	role := ctx.GetHeader(umtypes.UserIDHeader)
-	if userID, set := ctx.GetQuery("user-id"); set && role == "admin" {
-		rctx := context.WithValue(ctx.Request.Context(), utils.UserIDContextKey, userID)
-		ctx.Request = ctx.Request.WithContext(rctx)
+func handleError(err error) (int, *errors.Error) {
+	switch err.(type) {
+	case *errors.Error:
+		e := err.(*errors.Error)
+		if e.Code != 0 {
+			e.Code = 0
+			return e.Code, e
+		}
+		return http.StatusInternalServerError, e
+	default:
+		return http.StatusInternalServerError, errors.New(err.Error())
 	}
+}
+
+func badRequest(err error) (int, *errors.Error) {
+	return http.StatusBadRequest, errors.New(err.Error())
 }

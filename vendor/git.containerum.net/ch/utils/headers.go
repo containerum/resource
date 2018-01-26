@@ -43,6 +43,7 @@ var hdrToKey = map[string]interface{}{
 	umtypes.SessionIDHeader:   SessionIDContextKey,
 	umtypes.TokenIDHeader:     TokenIDContextKey,
 	umtypes.ClientIPHeader:    ClientIPContextKey,
+	umtypes.UserRoleHeader:    UserRoleContextKey,
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
