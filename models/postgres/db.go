@@ -16,10 +16,9 @@ import (
 )
 
 type pgDB struct {
-	conn *sqlx.DB // do not use for operations
-	qLog sqlx.QueryerContext
-	eLog sqlx.ExecerContext
-	log  *logrus.Entry
+	conn   *sqlx.DB // do not use for operations
+	extLog sqlx.ExtContext
+	log    *logrus.Entry
 
 	// for information
 	pgConnStr          string
@@ -44,10 +43,9 @@ func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
 	}
 
 	ret := &pgDB{
-		conn: conn,
-		log:  log,
-		qLog: chutils.NewSQLXContextQueryLogger(conn, log),
-		eLog: chutils.NewSQLXContextExecLogger(conn, log),
+		conn:   conn,
+		log:    log,
+		extLog: chutils.NewSQLXExtContextLogger(conn, log),
 	}
 
 	m, err := ret.migrateUp(migrations)
@@ -94,10 +92,9 @@ func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 	}
 
 	arg := &pgDB{
-		conn: db.conn,
-		log:  e,
-		eLog: chutils.NewSQLXContextExecLogger(tx, e),
-		qLog: chutils.NewSQLXContextQueryLogger(tx, e),
+		conn:   db.conn,
+		log:    e,
+		extLog: chutils.NewSQLXExtContextLogger(tx, e),
 	}
 
 	// needed for recovering panics in transactions.

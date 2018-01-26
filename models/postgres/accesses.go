@@ -12,7 +12,7 @@ import (
 func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *auth.ResourcesAccess, err error) {
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 		SELECT kind, resource_label, resource_id, new_access_level
 		FROM permissions
 		WHERE owner_user_id = user_id AND user_id = $1 AND kind in ('namespace', 'volume')`, userID)
@@ -54,7 +54,7 @@ func (db *pgDB) setResourceAccess(ctx context.Context,
 		"new_access_level": access,
 	}).Debugf("set %s access", kind)
 
-	_, err = db.eLog.ExecContext(ctx, `
+	_, err = db.extLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions

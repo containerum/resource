@@ -18,7 +18,7 @@ func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (ex
 	entry.Debug("check if namespace exists")
 
 	var count int
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		SELECT count(ns.*)
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'namespace'
@@ -49,7 +49,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return
 	}
 
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		INSERT INTO namespaces
 		(
 			tariff_id,
@@ -72,7 +72,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return err
 	}
 
-	_, err = db.eLog.ExecContext(ctx, `
+	_, err = db.extLog.ExecContext(ctx, `
 			INSERT INTO permissions
 			(
 				kind,
@@ -96,7 +96,7 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 		"page":     page,
 		"per_page": perPage,
 	}).Debugf("get raw namespaces (filters %#v)", filters)
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 			SELECT ns.*, p.*
 			FROM namespaces ns
 			JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'Namespace'
@@ -142,7 +142,7 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 	}).Debugf("get raw user namespaces (filters %#v)", filters)
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 			SELECT ns.*, p.*
 			FROM namespaces ns
 			JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
@@ -243,7 +243,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		"label":   label,
 	}).Debug("get namespace by label")
 
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
@@ -259,7 +259,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		return
 	}
 
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 		SELECT v.*, p.*
 		FROM namespace_volume nv
 		JOIN volumes v ON v.id = nv.vol_id
@@ -291,7 +291,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		"label":   label,
 	}).Debug("get user namespace with user permissions")
 
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
@@ -307,7 +307,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		return
 	}
 
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 		SELECT * 
 		FROM permissions 
 		WHERE user_id != owner_user_id AND 
@@ -336,7 +336,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 		"label":   label,
 	}).Debug("delete user namespace by label")
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -361,7 +361,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err error) {
 	db.log.WithField("user_id", userID).Debug("delete user namespace by label")
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -398,7 +398,7 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		return
 	}
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		UPDATE permissions
 		SET resource_label = $2
 		WHERE owner_user_id = $1 AND
@@ -420,7 +420,7 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, userID, label string, names
 		"label":   label,
 	}).Debugf("update namespace to %#v", namespace)
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions

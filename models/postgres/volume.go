@@ -19,7 +19,7 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 	entry.Debug("check if volume exists")
 
 	var count int
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		SELECT count(ns.*)
 		FROM volumes ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'volume'
@@ -47,7 +47,7 @@ func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 	if err != nil {
 		return
 	}
-	rows, err := db.qLog.QueryxContext(ctx, query, args...)
+	rows, err := db.extLog.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return
 	}
@@ -84,7 +84,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		return
 	}
 
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		INSERT INTO volumes
 		(
 			tariff_id,
@@ -104,7 +104,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		return
 	}
 
-	_, err = db.eLog.ExecContext(ctx, `
+	_, err = db.extLog.ExecContext(ctx, `
 		INSERT INTO permissions
 		(
 			kind,
@@ -126,7 +126,7 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 	ret = make([]rstypes.VolumeWithPermission, 0)
 	db.log.WithField("user_id", userID).Debugf("get user volumes (filters %#v)", filters)
 
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 		SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
@@ -177,7 +177,8 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 		"page":     page,
 		"per_page": perPage,
 	}).Debug("get all volumes")
-	rows, err := db.qLog.QueryxContext(ctx, `
+
+	rows, err := db.extLog.QueryxContext(ctx, `
 			SELECT v.*, p.*
 			FROM volumes v
 			JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
@@ -230,7 +231,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 		"label":   label,
 	}).Debug("get user volume by label")
 
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
@@ -250,7 +251,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		"label":   label,
 	}).Debug("get volume with user permissions")
 
-	err = db.qLog.QueryRowxContext(ctx, `
+	err = db.extLog.QueryRowxContext(ctx, `
 		SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
@@ -266,7 +267,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		return
 	}
 
-	rows, err := db.qLog.QueryxContext(ctx, `
+	rows, err := db.extLog.QueryxContext(ctx, `
 		SELECT *
 		FROM permissions
 		WHERE resource_kind = 'volume' AND resource_id = $1`, ret.ID)
@@ -294,7 +295,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		"label":   label,
 	}).Debug("delete user volume by label")
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -316,7 +317,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err error) {
 	db.log.WithField("user_id", userID).Debug("delete all user volumes")
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -342,7 +343,7 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 		"new_label": newLabel,
 	}).Debug("rename user volume")
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		UPDATE permissions
 		SET resource_label = $2
 		WHERE owner_user_id = $1 AND
@@ -364,7 +365,7 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 		"label":   label,
 	}).Debugf("update volume to %#v", volume)
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -397,7 +398,7 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 func (db *pgDB) SetVolumeActiveByID(ctx context.Context, id string, active bool) (err error) {
 	db.log.WithField("id", id).Debug("activating volume")
 
-	result, err := db.eLog.ExecContext(ctx, `UPDATE volumes SET active = $2 WHERE id = $1`, id, active)
+	result, err := db.extLog.ExecContext(ctx, `UPDATE volumes SET active = $2 WHERE id = $1`, id, active)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -415,7 +416,7 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 		"active":  active,
 	}).Debug("activating volume")
 
-	result, err := db.eLog.ExecContext(ctx, `
+	result, err := db.extLog.ExecContext(ctx, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions

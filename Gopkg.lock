@@ -17,7 +17,7 @@
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "be58be569f33028518b079164fac34f35049b1f9"
+  revision = "f8c59a2a35c0df3606909acdecbeefc721e4c60b"
 
 [[projects]]
   branch = "master"
@@ -78,12 +78,6 @@
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
   version = "v0.0.3"
-
-[[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -154,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ff1798ead8a381a17bea287c3ee7672a51e1efda75320c92e7b798833b716365"
+  inputs-digest = "f1adc39b38f5312840028dad28a2a74fea65e79db53afc1bca62c4092a5f738c"
   solver-name = "gps-cdcl"
   solver-version = 1
