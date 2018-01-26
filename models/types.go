@@ -10,6 +10,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 )
 
+// DB is an interface to resource-service database
 type DB interface {
 	CreateNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error
 	GetUserNamespaces(ctx context.Context, userID string, filters *NamespaceFilterParams) ([]rstypes.NamespaceWithVolumes, error)

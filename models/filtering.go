@@ -21,6 +21,7 @@ func init() {
 	mapFields(reflect.TypeOf(VolumeFilterParams{}), volFilterMap)
 }
 
+// NamespaceFilterParams is a special struct to apply sql filters to in namespaces retrieving requests.
 type NamespaceFilterParams struct {
 	NotDeleted bool `filter:"not_deleted"` // include only namespaces which marked as not deleted
 	Deleted    bool `filter:"deleted"`     // include only namespaces which marked as deleted
@@ -29,6 +30,7 @@ type NamespaceFilterParams struct {
 	Owners     bool `filter:"owned"`       // include only namespaces which user owns
 }
 
+// ParseNamespaceFilterParams parses a string filters
 func ParseNamespaceFilterParams(filters ...string) (ret NamespaceFilterParams) {
 	value := reflect.ValueOf(&ret)
 	for _, filter := range filters {
@@ -39,6 +41,7 @@ func ParseNamespaceFilterParams(filters ...string) (ret NamespaceFilterParams) {
 	return
 }
 
+// VolumeFilterParams is a special struct to apply sql filters to in volumes retrieving requests.
 type VolumeFilterParams struct {
 	NotDeleted    bool `filter:"not_deleted"`    // include only volumes which marked as not deleted
 	Deleted       bool `filter:"deleted"`        // include only volumes which marked as deleted
@@ -49,6 +52,7 @@ type VolumeFilterParams struct {
 	NotPersistent bool `filter:"not_persistent"` // include only non-persistent volumes
 }
 
+// ParseVolumeFilterParams parses a string filters
 func ParseVolumeFilterParams(filters ...string) (ret VolumeFilterParams) {
 	value := reflect.ValueOf(&ret)
 	for _, filter := range filters {
