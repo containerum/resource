@@ -20,13 +20,18 @@ type pgDB struct {
 	qLog sqlx.QueryerContext
 	eLog sqlx.ExecerContext
 	log  *logrus.Entry
+
+	// for information
+	pgConnStr          string
+	migrations         string
+	migrationsVerstion string
 }
 
 // DBConnect initializes connection to postgresql database.
 // github.com/jmoiron/sqlx used to to get work with database.
 // Function tries to ping database and apply migrations using github.com/mattes/migrate.
 // If migrations applying failed database goes to dirty state and requires manual conflict resolution.
-func DBConnect(pgConnStr string) (models.DB, error) {
+func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
 	log := logrus.WithField("component", "postgres_db")
 	log.Infoln("Connecting to ", pgConnStr)
 	conn, err := sqlx.Open("postgres", pgConnStr)
@@ -45,12 +50,19 @@ func DBConnect(pgConnStr string) (models.DB, error) {
 		eLog: chutils.NewSQLXContextExecLogger(conn, log),
 	}
 
-	m, err := ret.migrateUp("migrations")
+	m, err := ret.migrateUp(migrations)
 	if err != nil {
 		return nil, err
 	}
-	version, _, _ := m.Version()
-	log.WithField("version", version).Infoln("Migrate up")
+	version, dirty, err := m.Version()
+	log.WithError(err).WithFields(logrus.Fields{
+		"dirty":   dirty,
+		"version": version,
+	}).Infoln("Migrate up")
+
+	ret.pgConnStr = pgConnStr
+	ret.migrations = migrations
+	ret.migrationsVerstion = fmt.Sprintf("%v; dirty = %v", version, dirty)
 
 	return ret, nil
 }
@@ -61,7 +73,7 @@ func (db *pgDB) migrateUp(path string) (*migrate.Migrate, error) {
 	if err != nil {
 		return nil, err
 	}
-	m, err := migrate.NewWithDatabaseInstance("file://"+path, "clickhouse", instance)
+	m, err := migrate.NewWithDatabaseInstance(path, "clickhouse", instance)
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +125,11 @@ func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 	}(f(ctx, arg))
 
 	return
+}
+
+func (db *pgDB) String() string {
+	return fmt.Sprintf("address: %s, migrations path: %s (version: %s)",
+		db.pgConnStr, db.migrations, db.migrationsVerstion)
 }
 
 func (db *pgDB) Close() error {

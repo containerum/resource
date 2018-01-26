@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"reflect"
 
+	"git.containerum.net/ch/resource-service/clients"
+	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/resource-service/models/postgres"
 	"git.containerum.net/ch/resource-service/server"
-	"git.containerum.net/ch/resource-service/server/other"
+	"git.containerum.net/ch/resource-service/server/impl"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -58,65 +61,81 @@ func setupLogger() error {
 	return nil
 }
 
-func setupAuthClient(addr string) (other.AuthSvc, error) {
+func setupDB(connStr, migrationAddr string) (models.DB, error) {
+	if connStr == "" {
+		return nil, errors.New("db connection string was not specified")
+	}
+	if migrationAddr == "" {
+		return nil, errors.New("migrations address was not specified")
+	}
+
+	return postgres.DBConnect(connStr, migrationAddr)
+}
+
+func setupAuthClient(addr string) (clients.AuthSvc, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return other.NewAuthSvcStub(), nil
+		return clients.NewAuthSvcStub(), nil
 	case addr != "":
-		return other.NewAuthSvcGRPC(addr)
+		return clients.NewAuthSvcGRPC(addr)
 	default:
 		return nil, errors.New("missing configuration for auth service")
 	}
 }
 
-func setupBillingClient(addr string) (other.Billing, error) {
+func setupBillingClient(addr string) (clients.Billing, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return other.NewBillingStub(), nil
-	case addr != "":
-		return other.NewBillingHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+		return clients.NewDummyBillingClient(), nil
+	// TODO: implement it
+	//case addr != "":
+	//	return clients.NewBillingHTTP(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
 		return nil, errors.New("missing configuration for billing service")
 	}
 }
 
-func setupKubeClient(addr string) (other.Kube, error) {
+func setupKubeClient(addr string) (clients.Kube, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return other.NewKubeStub(), nil
+		return clients.NewKubeStub(), nil
 	case addr != "":
-		return other.NewKubeHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+		return clients.NewKubeHTTP(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
 		return nil, errors.New("missing configuration for kube service")
 	}
 }
 
-func setupMailerClient(addr string) (other.Mailer, error) {
+func setupMailerClient(addr string) (clients.Mailer, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return other.NewMailerStub(), nil
+		return clients.NewMailerStub(), nil
 	case addr != "":
-		return other.NewMailerHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+		return clients.NewMailerHTTP(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
 		return nil, errors.New("missing configuration for mailer service")
 	}
 }
 
-func setupVolumesClient(addr string) (other.VolumeSvc, error) {
+// TODO: implement it
+/*func setupVolumesClient(addr string) (clients.VolumeSvc, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		return other.NewVolumeSvcStub(), nil
+		return clients.NewVolumeSvcStub(), nil
 	case addr != "":
-		return other.NewVolumeSvcHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+		return clients.NewVolumeSvcHTTP(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
 		return nil, errors.New("missing configuration for volume service")
 	}
-}
+}*/
 
-func setupServer() (server.ResourceSvcInterface, error) {
-	var clients server.ResourceSvcClients
+func setupServer() (server.ResourceService, error) {
+	var clients server.ResourceServiceClients
 
 	var err error
+	if clients.DB, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
+		return nil, err
+	}
 	if clients.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
 		return nil, err
 	}
@@ -126,30 +145,23 @@ func setupServer() (server.ResourceSvcInterface, error) {
 	if clients.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
 		return nil, err
 	}
-	if clients.Mailer, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
+	if clients.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
 		return nil, err
 	}
-	if clients.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
+	/*	if clients.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
 		return nil, err
-	}
+	}*/
 
 	// print info about clients which implements Stringer
 	v := reflect.ValueOf(clients)
-	// trick to take type of interface, because of reflect.TypeOf((fmt.Stringer)(nil)) throws panic
-	stringer := reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 	for i := 0; i < reflect.TypeOf(clients).NumField(); i++ {
 		f := v.Field(i)
-		if f.Type().ConvertibleTo(stringer) {
-			logrus.Infof("%s", f.Interface())
+		if str, ok := f.Interface().(fmt.Stringer); ok {
+			logrus.Infof("%s", str)
 		}
 	}
-	logrus.Infof("database url=%s", os.Getenv("DB_URL"))
-	logrus.Infof("database migrations url=%s", os.Getenv("MIGRATION_URL"))
 
-	srv, err := server.NewResourceSvc(clients, os.Getenv("DB_URL"))
-	if err != nil {
-		return nil, errors.New("srv.Initialize error: " + err.Error())
-	}
+	srv := impl.NewResourceServiceImpl(clients)
 	return srv, nil
 }
 

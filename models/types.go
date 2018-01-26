@@ -19,7 +19,7 @@ type DB interface {
 	DeleteUserNamespaceByLabel(ctx context.Context, userID, label string) error
 	DeleteAllUserNamespaces(ctx context.Context, userID string) error
 	RenameNamespace(ctx context.Context, userID, oldLabel, newLabel string) error
-	ResizeNamespace(ctx *context.Context, userID, label string, namespace *rstypes.Namespace) error
+	ResizeNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error
 
 	CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
 	GetUserVolumes(ctx context.Context, userID, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)

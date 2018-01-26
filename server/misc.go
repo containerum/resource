@@ -46,4 +46,5 @@ func Parallel(funcs ...func() error) (ret []error) {
 		}(f)
 	}
 	wg.Wait()
+	return
 }

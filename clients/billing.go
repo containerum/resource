@@ -17,6 +17,9 @@ type Billing interface {
 
 	GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error)
 	GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error)
+
+	//ActivateNamespaceTariff(ctx context.Context, ...)
+	//ActivateVolumeTariff(ctx, ...)
 }
 
 // Data for dummy client

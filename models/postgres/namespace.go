@@ -414,7 +414,7 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 	return
 }
 
-func (db *pgDB) ResizeNamespace(ctx *context.Context, userID, label string, namespace *rstypes.Namespace) (err error) {
+func (db *pgDB) ResizeNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
