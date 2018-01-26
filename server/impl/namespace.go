@@ -90,21 +90,27 @@ func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context,
 	}
 
 	// remove some data for user
-	if !isAdmin {
-		for i := range ret {
-			ret[i].AccessLevel = ret[i].NewAccessLevel
-			ret[i].NewAccessLevel = ""
-
-			ret[i].ID = ""
-			ret[i].Limited = nil
-			for j := range ret[i].Volume {
-				ret[i].Volume[j].AccessLevel = ret[i].Volume[j].NewAccessLevel
-				ret[i].Volume[j].NewAccessLevel = ""
-
-				ret[i].Volume[j].ID = ""
-				ret[i].Volume[j].Limited = nil
-			}
-		}
+	for i := range ret {
+		rs.filterNamespaceWithVolume(isAdmin, &ret[i])
 	}
+	return ret, nil
+}
+
+func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error) {
+	userID := utils.MustGetUserID(ctx)
+	isAdmin := server.IsAdminRole(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"admin":   isAdmin,
+		"label":   label,
+	}).Info("get user namespace")
+
+	ret, err := rs.DB.GetUserNamespaceByLabel(ctx, userID, label)
+	if err != nil {
+		return rstypes.NamespaceWithVolumes{}, server.HandleDBError(err)
+	}
+
+	rs.filterNamespaceWithVolume(isAdmin, &ret)
+
 	return ret, nil
 }

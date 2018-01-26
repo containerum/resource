@@ -22,7 +22,7 @@ func createNamespaceHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func getUserNamespaceHandler(ctx *gin.Context) {
+func getUserNamespacesHandler(ctx *gin.Context) {
 	var params rstypes.GetAllResourcesQueryParams
 	if err := ctx.ShouldBindQuery(&params); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
@@ -30,6 +30,16 @@ func getUserNamespaceHandler(ctx *gin.Context) {
 	}
 
 	resp, err := srv.GetUserNamespaces(ctx.Request.Context(), &params)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func getUserNamespaceHandler(ctx *gin.Context) {
+	resp, err := srv.GetUserNamespace(ctx.Request.Context(), ctx.Param("label"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return

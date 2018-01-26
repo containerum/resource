@@ -16,20 +16,17 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
+	app.Use(utils.RequireHeaders(umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	app.Use(utils.SubstituteUserMiddleware)
 
 	rstypes.RegisterCustomTagsGin(binding.Validator)
 
 	ns := app.Group("/namespace")
 	{
-		ns.POST("",
-			utils.RequireHeaders(umtypes.UserIDHeader, umtypes.UserRoleHeader),
-			utils.RequireAdminRole,
-			utils.SubstituteUserMiddleware,
-			createNamespaceHandler)
+		ns.POST("", utils.RequireAdminRole, createNamespaceHandler)
 
-		ns.GET("",
-			utils.RequireHeaders(umtypes.UserIDHeader, umtypes.UserRoleHeader),
-			utils.SubstituteUserMiddleware,
-			getUserNamespaceHandler)
+		ns.GET("", getUserNamespacesHandler)
+
+		ns.GET("/:label", getUserNamespaceHandler)
 	}
 }
