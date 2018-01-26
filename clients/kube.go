@@ -13,6 +13,7 @@ import (
 	"gopkg.in/resty.v1"
 )
 
+// Kube is an interface to kube-api service
 type Kube interface {
 	CreateNamespace(ctx context.Context, name string, cpu, memory int, label string, access rstypes.PermissionStatus) error
 	SetNamespaceQuota(ctx context.Context, name string, cpu, memory int, label string, access rstypes.PermissionStatus) error
@@ -26,6 +27,7 @@ type kube struct {
 
 const namespaceHeader = "x-user-namespace"
 
+// NewKubeHTTP creates http client to kube-api service.
 func NewKubeHTTP(u *url.URL) Kube {
 	log := logrus.WithField("component", "kube_client")
 	client := resty.New().
@@ -137,15 +139,16 @@ func (kub kube) String() string {
 	return fmt.Sprintf("kube api http client: url=%v", kub.client.HostURL)
 }
 
-type kubeStub struct {
+type kubeDummy struct {
 	log *logrus.Entry
 }
 
-func NewKubeStub() Kube {
-	return kubeStub{log: logrus.WithField("component", "kube_stub")}
+// NewDummyKube creates a dummy client to kube-api service. It does nothing but logs actions.
+func NewDummyKube() Kube {
+	return kubeDummy{log: logrus.WithField("component", "kube_stub")}
 }
 
-func (kub kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory int, label string, access rstypes.PermissionStatus) error {
+func (kub kubeDummy) CreateNamespace(_ context.Context, name string, cpu, memory int, label string, access rstypes.PermissionStatus) error {
 	kub.log.WithFields(logrus.Fields{
 		"name":   name,
 		"cpu":    cpu,
@@ -156,12 +159,12 @@ func (kub kubeStub) CreateNamespace(_ context.Context, name string, cpu, memory 
 	return nil
 }
 
-func (kub kubeStub) DeleteNamespace(_ context.Context, name string) error {
+func (kub kubeDummy) DeleteNamespace(_ context.Context, name string) error {
 	kub.log.WithField("name", name).Infoln("delete namespace")
 	return nil
 }
 
-func (kub kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memory int, label string, access rstypes.PermissionStatus) error {
+func (kub kubeDummy) SetNamespaceQuota(_ context.Context, name string, cpu, memory int, label string, access rstypes.PermissionStatus) error {
 	kub.log.WithFields(logrus.Fields{
 		"name":   name,
 		"cpu":    cpu,
@@ -172,6 +175,6 @@ func (kub kubeStub) SetNamespaceQuota(_ context.Context, name string, cpu, memor
 	return nil
 }
 
-func (kubeStub) String() string {
+func (kubeDummy) String() string {
 	return "kube api dummy"
 }

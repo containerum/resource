@@ -16,6 +16,7 @@ import (
 	"gopkg.in/resty.v1"
 )
 
+// Mailer is an interface to mail-templater service
 type Mailer interface {
 	SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error
 	SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error
@@ -29,6 +30,7 @@ type mailerHTTP struct {
 	log    *logrus.Entry
 }
 
+// NewMailerHTTP creates http client to mail-templater service.
 func NewMailerHTTP(u *url.URL) Mailer {
 	log := logrus.WithField("component", "mail_client")
 	client := resty.New().
@@ -121,15 +123,16 @@ func (ml mailerHTTP) String() string {
 	return fmt.Sprintf("mail service http client: url=%v", ml.client.HostURL)
 }
 
-type mailerStub struct {
+type mailerDummy struct {
 	log *logrus.Entry
 }
 
-func NewMailerStub() Mailer {
-	return mailerStub{log: logrus.WithField("component", "mailer_stub")}
+// NewDummyMailer creates dummy client to mail-templater service. It does nothing but logs actions.
+func NewDummyMailer() Mailer {
+	return mailerDummy{log: logrus.WithField("component", "mailer_stub")}
 }
 
-func (ml mailerStub) SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error {
+func (ml mailerDummy) SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -137,7 +140,7 @@ func (ml mailerStub) SendNamespaceCreated(ctx context.Context, userID, nsLabel s
 	return nil
 }
 
-func (ml mailerStub) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error {
+func (ml mailerDummy) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -145,7 +148,7 @@ func (ml mailerStub) SendNamespaceDeleted(ctx context.Context, userID, nsLabel s
 	return nil
 }
 
-func (ml mailerStub) SendVolumeCreated(ctx context.Context, userID, label string, t btypes.VolumeTariff) error {
+func (ml mailerDummy) SendVolumeCreated(ctx context.Context, userID, label string, t btypes.VolumeTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
@@ -153,7 +156,7 @@ func (ml mailerStub) SendVolumeCreated(ctx context.Context, userID, label string
 	return nil
 }
 
-func (ml mailerStub) SendVolumeDeleted(ctx context.Context, userID, label string, t btypes.VolumeTariff) error {
+func (ml mailerDummy) SendVolumeDeleted(ctx context.Context, userID, label string, t btypes.VolumeTariff) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
@@ -161,6 +164,6 @@ func (ml mailerStub) SendVolumeDeleted(ctx context.Context, userID, label string
 	return nil
 }
 
-func (mailerStub) String() string {
+func (mailerDummy) String() string {
 	return "mail service dummy"
 }

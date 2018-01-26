@@ -11,6 +11,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 )
 
+// Billing is an interface to billing service
 type Billing interface {
 	Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error
 	Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error
@@ -105,6 +106,7 @@ func init() {
 	}
 }
 
+// NewDummyBilling creates a dummy billing service client. It does nothing but logs actions.
 func NewDummyBillingClient() Billing {
 	return dummyBillingClient{
 		log: logrus.WithField("component", "billing_dummy"),

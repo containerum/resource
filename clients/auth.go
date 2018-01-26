@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// AuthSvc is an interface to auth service
 type AuthSvc interface {
 	UpdateUserAccess(ctx context.Context, userID string) error
 
@@ -28,6 +29,7 @@ type authSvcGRPC struct {
 	conn   *grpc.ClientConn
 }
 
+// NewAuthSvcGRPC creates grpc client to auth service. It does nothing but logs actions.
 func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 	ret := authSvcGRPC{
 		log:  logrus.WithField("component", "auth_client"),
@@ -60,25 +62,26 @@ func (as authSvcGRPC) Close() error {
 	return as.conn.Close()
 }
 
-type authSvcStub struct {
+type authSvcDummy struct {
 	log *logrus.Entry
 }
 
-func NewAuthSvcStub() AuthSvc {
-	return authSvcStub{
+// NewDummyAuthSvc creates dummy auth client
+func NewDummyAuthSvc() AuthSvc {
+	return authSvcDummy{
 		log: logrus.WithField("component", "auth_stub"),
 	}
 }
 
-func (as authSvcStub) UpdateUserAccess(ctx context.Context, userID string) error {
+func (as authSvcDummy) UpdateUserAccess(ctx context.Context, userID string) error {
 	as.log.WithField("user_id", userID).Infoln("update user access")
 	return nil
 }
 
-func (authSvcStub) String() string {
+func (authSvcDummy) String() string {
 	return "ch-auth client dummy"
 }
 
-func (authSvcStub) Close() error {
+func (authSvcDummy) Close() error {
 	return nil
 }
