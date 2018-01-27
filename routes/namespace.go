@@ -91,3 +91,18 @@ func deleteAllUserNamespacesHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func renameUserNamespaceHandler(ctx *gin.Context) {
+	var req rstypes.RenameNamespaceRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	if err := srv.RenameUserNamespace(ctx.Request.Context(), ctx.Param("label"), req.NewLabel); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

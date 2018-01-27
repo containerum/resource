@@ -30,6 +30,7 @@ type ResourceService interface {
 	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
 	DeleteUserNamespace(ctx context.Context, label string) error
 	DeleteAllUserNamespaces(ctx context.Context) error
+	RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error
 
 	io.Closer
 }

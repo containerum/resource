@@ -5,8 +5,6 @@ import (
 
 	"strings"
 
-	"database/sql"
-
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -187,12 +185,8 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 
 		return nil
 	})
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		return models.ErrLabeledResourceNotExists
-	default:
-		return models.WrapDBError(err)
+	if err != nil {
+		return server.HandleDBError(err)
 	}
 
 	go func() {
@@ -228,14 +222,33 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 		// TODO: unsubscribe all on billing
 
 		// TODO: update user access on auth
+		return nil
 	})
 	if err != nil {
-		return err
+		return server.HandleDBError(err)
 	}
 
 	go func() {
 		// TODO: send email
 	}()
+
+	return nil
+}
+
+func (rs *resourceServiceImpl) RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":   userID,
+		"old_label": oldLabel,
+		"new_label": newLabel,
+	}).Info("rename user namespace")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		return tx.RenameNamespace(ctx, userID, oldLabel, newLabel)
+	})
+	if err != nil {
+		return server.HandleDBError(err)
+	}
 
 	return nil
 }
