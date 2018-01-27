@@ -79,9 +79,12 @@ func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context,
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"admin":   isAdmin,
-	}).Infof("get user namespaces (params %#v)", params)
+		"user_id":  userID,
+		"admin":    isAdmin,
+		"page":     params.Page,
+		"per_page": params.PerPage,
+		"filters":  params.Filters,
+	}).Info("get user namespaces")
 
 	filters := models.ParseNamespaceFilterParams(strings.Split(params.Filters, ",")...)
 	ret, err := rs.DB.GetAllNamespaces(ctx, params.Page, params.PerPage, &filters)
@@ -111,6 +114,23 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 	}
 
 	rs.filterNamespaceWithVolume(isAdmin, &ret)
+
+	return ret, nil
+}
+
+func (rs *resourceServiceImpl) GetAllNamespaces(ctx context.Context,
+	params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error) {
+	rs.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+		"filters":  params.Filters,
+	}).Info("get all namespaces")
+
+	filters := models.ParseNamespaceFilterParams(strings.Split(params.Filters, ",")...)
+	ret, err := rs.DB.GetAllNamespaces(ctx, params.Page, params.PerPage, &filters)
+	if err != nil {
+		return nil, server.HandleDBError(err)
+	}
 
 	return ret, nil
 }

@@ -57,3 +57,19 @@ func getUserNamespaceAccessesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func getAllNamespacesHandler(ctx *gin.Context) {
+	var params rstypes.GetAllResourcesQueryParams
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	resp, err := srv.GetAllNamespaces(ctx, &params)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}

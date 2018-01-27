@@ -27,9 +27,9 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ns.POST("", utils.RequireAdminRole, createNamespaceHandler)
 
 		ns.GET("", getUserNamespacesHandler)
-
 		ns.GET("/:label", getUserNamespaceHandler)
-
 		ns.GET("/:label/access", utils.RequireAdminRole, getUserNamespaceAccessesHandler)
 	}
+
+	app.GET("/namespaces", utils.RequireAdminRole, getAllNamespacesHandler)
 }
