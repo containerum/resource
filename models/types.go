@@ -39,6 +39,7 @@ type DB interface {
 	SetVolumeAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
 
 	UnlinkNamespaceVolumes(ctx context.Context, userID, namespaceLabel string) ([]rstypes.Volume, error)
+	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise

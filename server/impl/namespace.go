@@ -172,7 +172,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 			return unlinkErr
 		}
 
-		// TODO: send request to stop volumes
+		// TODO: stop volumes on volume service
 		_ = deactivatedVols
 
 		if delErr := tx.DeleteUserNamespaceByLabel(ctx, userID, label); delErr != nil {
@@ -183,7 +183,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 			return unsubErr
 		}
 
-		// TODO: update user access
+		// TODO: update user access on auth service
 
 		return nil
 	})
@@ -199,6 +199,42 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 		if err := rs.Mail.SendNamespaceDeleted(ctx, userID, nsToDelete.ResourceLabel); err != nil {
 			logrus.WithError(err).Error("send namespace deleted mail failed")
 		}
+	}()
+
+	return nil
+}
+
+func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) error {
+	userID := utils.MustGetUserID(ctx)
+	logrus.WithField("user_id", userID).Info("delete all user namespaces")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		unlinkedVols, unlinkErr := rs.DB.UnlinkAllNamespaceVolumes(ctx, userID)
+		if unlinkErr != nil {
+			return unlinkErr
+		}
+
+		if delErr := rs.DB.DeleteAllUserVolumes(ctx, userID); delErr != nil {
+			return delErr
+		}
+
+		if delErr := rs.DB.DeleteAllUserNamespaces(ctx, userID); delErr != nil {
+			return delErr
+		}
+
+		_ = unlinkedVols
+		// TODO: stop volumes on volume service
+
+		// TODO: unsubscribe all on billing
+
+		// TODO: update user access on auth
+	})
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		// TODO: send email
 	}()
 
 	return nil

@@ -33,5 +33,11 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ns.DELETE("/:label", deleteUserNamespaceHandler)
 	}
 
-	app.GET("/namespaces", utils.RequireAdminRole, getAllNamespacesHandler)
+	nss := app.Group("/namespaces")
+	{
+		nss.GET("", utils.RequireAdminRole, getAllNamespacesHandler)
+
+		nss.DELETE("", utils.RequireAdminRole, deleteAllUserNamespacesHandler)
+	}
+
 }

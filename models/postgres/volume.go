@@ -474,6 +474,7 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context,
 	err = sqlx.SelectContext(ctx, db.extLog, unlinkedVolumes, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
@@ -494,9 +495,39 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context,
 		RETURNING *`)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
+	}
+
+	return
+}
+
+func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (unlinkedVolumes []rstypes.Volume, err error) {
+	params := map[string]interface{}{
+		"user_id": userID,
+	}
+
+	db.log.WithFields(params).Debug("unlink all namespaces volumes")
+
+	unlinkedVolumes = make([]rstypes.Volume, 0)
+	query, args, _ := sqlx.Named(`
+		WITH user_namespaces AS (
+			SELECT ns.id
+			FROM namespaces ns
+			JOIN permissions p ON p.owner_user_id = :user_id AND p.kind = 'namespace' 
+		)
+		DELETE FROM namespace_volume
+		WHERE ns_id IN (SELECT * FROM user_namespaces)
+		RETURNING *`,
+		params)
+	err = sqlx.SelectContext(ctx, db.extLog, unlinkedVolumes, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+		err = nil
+	default:
+		err = models.WrapDBError(err)
 	}
 
 	return

@@ -281,6 +281,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 	err = sqlx.SelectContext(ctx, db.extLog, ret.Volume, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
@@ -328,6 +329,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 	err = sqlx.SelectContext(ctx, db.extLog, ret.Users, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
