@@ -276,3 +276,61 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error {
+	userID := utils.MustGetUserID(ctx)
+	isAdmin := server.IsAdminRole(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"new_tariff_id": newTariffID,
+		"label":         label,
+		"admin":         isAdmin,
+	}).Info("resize user namespace")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		ns, getErr := tx.GetUserNamespaceByLabel(ctx, userID, label)
+		if getErr != nil {
+			return getErr
+		}
+
+		if ns.TariffID == newTariffID {
+			return server.ErrTariffIsSame
+		}
+
+		newTariff, getErr := rs.Billing.GetNamespaceTariff(ctx, newTariffID)
+		if getErr != nil {
+			return getErr
+		}
+
+		if !newTariff.Active {
+			return server.ErrTariffInactive
+		}
+
+		if !isAdmin && !newTariff.Public {
+			return server.ErrTariffNotPublic
+		}
+
+		// TODO: maybe check if user wil have exceeded quota
+		ns.TariffID = newTariff.ID
+		ns.CPU = newTariff.CPULimit
+		ns.RAM = newTariff.MemoryLimit
+		ns.MaxExternalServices = newTariff.ExternalServices
+		ns.MaxIntServices = newTariff.InternalServices
+		ns.MaxTraffic = newTariff.Traffic
+
+		if updErr := tx.ResizeNamespace(ctx, userID, label, &ns.Namespace); updErr != nil {
+			return updErr
+		}
+
+		return nil
+	})
+	if err != nil {
+		return server.HandleDBError(err)
+	}
+
+	go func() {
+		// TODO: send namespace resized email
+	}()
+
+	return nil
+}

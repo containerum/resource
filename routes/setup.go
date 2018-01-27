@@ -34,6 +34,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 		ns.PUT("/:label/name", renameUserNamespaceHandler)
 		ns.PUT("/:label/access", utils.RequireAdminRole, setUserNamespaceAccessHandler)
+		ns.PUT("/:label", resizeNamespaceHandler)
 	}
 
 	nss := app.Group("/namespaces")

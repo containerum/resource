@@ -6,6 +6,8 @@ import (
 
 	"context"
 
+	"net/http"
+
 	btypes "git.containerum.net/ch/json-types/billing"
 	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
@@ -138,7 +140,7 @@ func (b dummyBillingClient) GetNamespaceTariff(ctx context.Context, tariffID str
 			return nsTariff, nil
 		}
 	}
-	return btypes.NamespaceTariff{}, errors.New("no such namespace tariff")
+	return btypes.NamespaceTariff{}, errors.NewWithCode("no such namespace tariff", http.StatusNotFound)
 }
 
 func (b dummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error) {
@@ -148,7 +150,7 @@ func (b dummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string
 			return volumeTariff, nil
 		}
 	}
-	return btypes.VolumeTariff{}, errors.New("no such volume tariff")
+	return btypes.VolumeTariff{}, errors.NewWithCode("no such volume tariff", http.StatusNotFound)
 }
 
 func (b dummyBillingClient) String() string {

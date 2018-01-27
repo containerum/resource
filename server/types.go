@@ -32,11 +32,15 @@ type ResourceService interface {
 	DeleteAllUserNamespaces(ctx context.Context) error
 	RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error
 	SetUserNamespaceAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error
+	ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error
 
 	io.Closer
 }
 
 // "Business-logic" errors
 var (
-	ErrPermission = errors.NewWithCode("permission denied", http.StatusForbidden)
+	ErrPermission      = errors.NewWithCode("permission denied", http.StatusForbidden)
+	ErrTariffIsSame    = errors.NewWithCode("provided tariff is current tariff", http.StatusConflict)
+	ErrTariffInactive  = errors.NewWithCode("provided tariff is inactive", http.StatusForbidden)
+	ErrTariffNotPublic = errors.NewWithCode("provided tariff is not public", http.StatusForbidden)
 )
