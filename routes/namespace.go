@@ -73,3 +73,12 @@ func getAllNamespacesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func deleteUserNamespaceHandler(ctx *gin.Context) {
+	if err := srv.DeleteUserNamespace(ctx.Request.Context(), ctx.Param("label")); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

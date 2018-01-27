@@ -19,10 +19,10 @@ import (
 // Mailer is an interface to mail-templater service
 type Mailer interface {
 	SendNamespaceCreated(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error
-	SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error
+	SendNamespaceDeleted(ctx context.Context, userID, nsLabel string) error
 
-	SendVolumeCreated(ctx context.Context, userID, nsLabel string, t btypes.VolumeTariff) error
-	SendVolumeDeleted(ctx context.Context, userID, nsLabel string, t btypes.VolumeTariff) error
+	SendVolumeCreated(ctx context.Context, userID, volLabel string, t btypes.VolumeTariff) error
+	SendVolumeDeleted(ctx context.Context, userID, volLabel string) error
 }
 
 type mailerHTTP struct {
@@ -86,7 +86,7 @@ func (ml mailerHTTP) SendNamespaceCreated(ctx context.Context, userID, nsLabel s
 	return nil
 }
 
-func (ml mailerHTTP) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error {
+func (ml mailerHTTP) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string) error {
 	err := ml.sendRequest(ctx, "ns_deleted", userID, map[string]interface{}{
 		"NAMESPACE": nsLabel,
 	})
@@ -109,7 +109,7 @@ func (ml mailerHTTP) SendVolumeCreated(ctx context.Context, userID, volLabel str
 	return nil
 }
 
-func (ml mailerHTTP) SendVolumeDeleted(ctx context.Context, userID, volLabel string, t btypes.VolumeTariff) error {
+func (ml mailerHTTP) SendVolumeDeleted(ctx context.Context, userID, volLabel string) error {
 	err := ml.sendRequest(ctx, "vol_deleted", userID, map[string]interface{}{
 		"VOLUME": volLabel,
 	})
@@ -140,11 +140,11 @@ func (ml mailerDummy) SendNamespaceCreated(ctx context.Context, userID, nsLabel 
 	return nil
 }
 
-func (ml mailerDummy) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string, t btypes.NamespaceTariff) error {
+func (ml mailerDummy) SendNamespaceDeleted(ctx context.Context, userID, nsLabel string) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
-	}).Infof("send namespace deleted with tariff %+v", t)
+	}).Infof("send namespace deleted")
 	return nil
 }
 
@@ -156,11 +156,11 @@ func (ml mailerDummy) SendVolumeCreated(ctx context.Context, userID, label strin
 	return nil
 }
 
-func (ml mailerDummy) SendVolumeDeleted(ctx context.Context, userID, label string, t btypes.VolumeTariff) error {
+func (ml mailerDummy) SendVolumeDeleted(ctx context.Context, userID, label string) error {
 	ml.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"vol_label": label,
-	}).Infof("send volume deleted with tariff %+v", t)
+	}).Infof("send volume deleted with tariff")
 	return nil
 }
 

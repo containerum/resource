@@ -28,6 +28,7 @@ type ResourceService interface {
 	GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error)
 	GetAllNamespaces(ctx context.Context, params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
 	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
+	DeleteUserNamespace(ctx context.Context, label string) error
 
 	io.Closer
 }

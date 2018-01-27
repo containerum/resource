@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"git.containerum.net/ch/resource-service/models"
 	chutils "git.containerum.net/ch/utils"
 	"github.com/jmoiron/sqlx"
@@ -121,6 +123,14 @@ func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 		}
 	}(f(ctx, arg))
 
+	return
+}
+
+func createValues(vals []string) (ret string) {
+	for _, v := range vals {
+		ret += "('" + v + "'), "
+	}
+	ret = strings.TrimSuffix(ret, ", ")
 	return
 }
 

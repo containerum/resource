@@ -39,10 +39,10 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 	nsIDs []string, nsMap map[string]rstypes.NamespaceWithVolumes) (err error) {
 	db.log.Debugf("add volumes to namespaces %v", nsIDs)
-	var volsWithNsID []struct {
+	volsWithNsID := make([]struct {
 		rstypes.VolumeWithPermission
 		NsID string `db:"ns_id"`
-	}
+	}, 0)
 	query, args, _ := sqlx.In(`
 		SELECT v.*, perm.*, nv.ns_id
 		FROM namespace_volume nv
@@ -443,6 +443,60 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
 		err = models.ErrLabeledResourceNotExists
+	}
+
+	return
+}
+
+func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context,
+	userID, namespaceLabel string) (deactivatedVolumes []rstypes.Volume, err error) {
+	params := map[string]interface{}{
+		"user_id":         userID,
+		"namespace_label": namespaceLabel,
+	}
+
+	db.log.WithFields(params).Debug("unlink namespace volumes")
+	query, args, _ := sqlx.Named(`
+		WITH user_namespace AS (
+			SELECT resource_id
+			FROM permissions
+			WHERE owner_user_id = user_id AND
+					kind = 'namespace' AND
+					user_id = :user_id AND
+					resource_label = :namespace_label
+		)
+		DELETE FROM namespace_volume
+		WHERE ns_id IN (user_namespace)
+		RETURNING vol_id`,
+		params)
+
+	unlinkedVolumes := make([]string, 0)
+	err = sqlx.SelectContext(ctx, db.extLog, unlinkedVolumes, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	// deactivate all volumes that was is not linked to any namespace
+	deactivatedVolumes = make([]rstypes.Volume, 0)
+	err = sqlx.SelectContext(ctx, db.extLog, deactivatedVolumes, `
+		WITH vols_to_deactivate AS (
+			VALUES `+createValues(unlinkedVolumes)+`
+			EXCEPT
+			SELECT DISTINCT vol_id
+			FROM namespace_volume
+		)
+		UPDATE volumes
+		SET active = FALSE
+		WHERE id IN (SELECT * FROM vols_to_deactivate)
+		RETURNING *`)
+	switch err {
+	case nil, sql.ErrNoRows:
+	default:
+		err = models.WrapDBError(err)
+		return
 	}
 
 	return

@@ -5,6 +5,8 @@ import (
 
 	"strings"
 
+	"database/sql"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -148,4 +150,56 @@ func (rs *resourceServiceImpl) GetUserNamespaceAccesses(ctx context.Context, lab
 	}
 
 	return ret, nil
+}
+
+func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label string) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	}).Info("delete user namespace")
+
+	var nsToDelete rstypes.NamespaceWithPermission
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		ns, getNsErr := tx.GetUserNamespaceByLabel(ctx, userID, label)
+		if getNsErr != nil {
+			return getNsErr
+		}
+		nsToDelete = ns.NamespaceWithPermission
+
+		deactivatedVols, unlinkErr := tx.UnlinkNamespaceVolumes(ctx, userID, label)
+		if unlinkErr != nil {
+			return unlinkErr
+		}
+
+		// TODO: send request to stop volumes
+		_ = deactivatedVols
+
+		if delErr := tx.DeleteUserNamespaceByLabel(ctx, userID, label); delErr != nil {
+			return delErr
+		}
+
+		if unsubErr := rs.Billing.Unsubscribe(ctx, userID, ns.Resource); unsubErr != nil {
+			return unsubErr
+		}
+
+		// TODO: update user access
+
+		return nil
+	})
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		return models.ErrLabeledResourceNotExists
+	default:
+		return models.WrapDBError(err)
+	}
+
+	go func() {
+		if err := rs.Mail.SendNamespaceDeleted(ctx, userID, nsToDelete.ResourceLabel); err != nil {
+			logrus.WithError(err).Error("send namespace deleted mail failed")
+		}
+	}()
+
+	return nil
 }

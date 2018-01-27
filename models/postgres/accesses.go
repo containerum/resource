@@ -13,10 +13,10 @@ import (
 func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *auth.ResourcesAccess, err error) {
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
-	var accessObjects []struct {
+	accessObjects := make([]struct {
 		Kind string
 		*auth.AccessObject
-	}
+	}, 0)
 	err = sqlx.GetContext(ctx, db.extLog, accessObjects, `
 		SELECT kind, resource_label, resource_id, new_access_level
 		FROM permissions

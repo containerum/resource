@@ -109,7 +109,7 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 		NamespaceFilterParams: filters,
 	}
 
-	var namespaces []rstypes.NamespaceWithPermission
+	namespaces := make([]rstypes.NamespaceWithPermission, 0)
 	query, args, _ := sqlx.Named(`
 		SELECT ns.*, p.*
 		FROM namespaces ns
@@ -169,7 +169,7 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 		ORDER BY ns.create_time DESC`,
 		params)
 
-	var namespaces []rstypes.NamespaceWithPermission
+	namespaces := make([]rstypes.NamespaceWithPermission, 0)
 	err = sqlx.SelectContext(ctx, db.extLog, namespaces, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
