@@ -23,11 +23,11 @@ func init() {
 
 // NamespaceFilterParams is a special struct to apply sql filters to in namespaces retrieving requests.
 type NamespaceFilterParams struct {
-	NotDeleted bool `filter:"not_deleted"` // include only namespaces which marked as not deleted
-	Deleted    bool `filter:"deleted"`     // include only namespaces which marked as deleted
-	Limited    bool `filter:"limited"`     // include only namespaces which marked as limited
-	NotLimited bool `filter:"not_limited"` // include only namespaces which marked as not limited
-	Owners     bool `filter:"owned"`       // include only namespaces which user owns
+	NotDeleted bool `filter:"not_deleted" db:"not_deleted"` // include only namespaces which marked as not deleted
+	Deleted    bool `filter:"deleted" db:"deleted"`         // include only namespaces which marked as deleted
+	Limited    bool `filter:"limited" db:"limited"`         // include only namespaces which marked as limited
+	NotLimited bool `filter:"not_limited" db:"not_limited"` // include only namespaces which marked as not limited
+	Owners     bool `filter:"owned" db:"owned"`             // include only namespaces which user owns
 }
 
 // ParseNamespaceFilterParams parses a string filters
@@ -43,13 +43,13 @@ func ParseNamespaceFilterParams(filters ...string) (ret NamespaceFilterParams) {
 
 // VolumeFilterParams is a special struct to apply sql filters to in volumes retrieving requests.
 type VolumeFilterParams struct {
-	NotDeleted    bool `filter:"not_deleted"`    // include only volumes which marked as not deleted
-	Deleted       bool `filter:"deleted"`        // include only volumes which marked as deleted
-	Limited       bool `filter:"limited"`        // include only volumes which marked as limited
-	NotLimited    bool `filter:"not_limited"`    // include only volumes which marked as not limited
-	Owners        bool `filter:"owned"`          // include only volumes which user owns
-	Persistent    bool `filter:"persistent"`     // include only persistent volumes
-	NotPersistent bool `filter:"not_persistent"` // include only non-persistent volumes
+	NotDeleted    bool `filter:"not_deleted" db:"not_deleted"`       // include only volumes which marked as not deleted
+	Deleted       bool `filter:"deleted" db:"deleted"`               // include only volumes which marked as deleted
+	Limited       bool `filter:"limited" db:"limited"`               // include only volumes which marked as limited
+	NotLimited    bool `filter:"not_limited" db:"not_limited"`       // include only volumes which marked as not limited
+	Owners        bool `filter:"owned" db:"owned"`                   // include only volumes which user owns
+	Persistent    bool `filter:"persistent" db:"persistent"`         // include only persistent volumes
+	NotPersistent bool `filter:"not_persistent" db:"not_persistent"` // include only non-persistent volumes
 }
 
 // ParseVolumeFilterParams parses a string filters

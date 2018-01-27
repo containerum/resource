@@ -7,23 +7,25 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
 func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (exists bool, err error) {
-	entry := db.log.WithFields(logrus.Fields{
+	queryFields := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,
-	})
+	}
+	entry := db.log.WithFields(queryFields)
 	entry.Debug("check if namespace exists")
 
 	var count int
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		SELECT count(ns.*)
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'namespace'
-		WHERE p.user_id = $1 AND p.resource_label = $2`,
-		userID, label).Scan(&count)
+		WHERE p.user_id = :user_id AND p.resource_label = :label`, queryFields)
+	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -38,7 +40,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
-	}).Infof("creating namespace %#v", namespace)
+	}).Debugf("creating namespace %#v", namespace)
 
 	var exists bool
 	if exists, err = db.isNamespaceExists(ctx, userID, label); err != nil {
@@ -49,7 +51,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return
 	}
 
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		INSERT INTO namespaces
 		(
 			tariff_id,
@@ -59,35 +61,35 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 			max_int_services,
 			max_traffic,
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING *`,
-		namespace.TariffID,
-		namespace.RAM,
-		namespace.CPU,
-		namespace.MaxExternalServices,
-		namespace.MaxIntServices,
-		namespace.MaxTraffic).StructScan(namespace)
+		VALUES (:tariff_id, :ram, :cpu, :max_ext_services, :max_int_services, :max_traffic)
+		RETURNING *`, namespace)
+	err = sqlx.GetContext(ctx, db.extLog, namespace, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return err
 	}
 
-	_, err = db.extLog.ExecContext(ctx, `
-			INSERT INTO permissions
-			(
-				kind,
-				resource_id,
-				resource_label
-				owner_user_id,
-				user_id
-			)
-			VALUES ('namespace', $1, $2, $3, $3)`, namespace.ID, label, userID)
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
+		INSERT INTO permissions
+		(
+			kind,
+			resource_id,
+			resource_label
+			owner_user_id,
+			user_id
+		)
+		VALUES ('namespace', :resource_id, :resource_label, :user_id, :user_id)`,
+		map[string]interface{}{
+			"resource_id":    namespace.ID,
+			"resource_label": label,
+			"user_id":        userID,
+		})
 	if err != nil {
 		err = models.WrapDBError(err)
-		return err
+		return
 	}
 
-	return err
+	return
 }
 
 func (db *pgDB) getNamespacesRaw(ctx context.Context,
@@ -96,40 +98,42 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 		"page":     page,
 		"per_page": perPage,
 	}).Debugf("get raw namespaces (filters %#v)", filters)
-	rows, err := db.extLog.QueryxContext(ctx, `
-			SELECT ns.*, p.*
-			FROM namespaces ns
-			JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'Namespace'
-			WHERE
-				(NOT ns.deleted OR NOT $3) AND
-				(ns.deleted OR NOT $4) AND
-				(p.limited OR NOT $5) AND
-				(NOT p.limited OR NOT $6) AND
-				(p.user_id = p.owner_user_id OR NOT $7)
-			ORDER BY ns.create_time DESC
-			LIMIT $1
-			OFFSET $2`,
-		perPage,
-		(page-1)*perPage,
-		filters.NotDeleted,
-		filters.Deleted,
-		filters.Limited,
-		filters.NotLimited,
-		filters.Owners)
+
+	params := struct {
+		Limit  int `db:"limit"`
+		Offset int `db:"offset"`
+		*models.NamespaceFilterParams
+	}{
+		Limit:                 page,
+		Offset:                (perPage - 1) * page,
+		NamespaceFilterParams: filters,
+	}
+
+	var namespaces []rstypes.NamespaceWithPermission
+	query, args, _ := sqlx.Named(`
+		SELECT ns.*, p.*
+		FROM namespaces ns
+		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'Namespace'
+		WHERE
+			(NOT ns.deleted OR NOT :not_deleted) AND
+			(ns.deleted OR NOT :deleted) AND
+			(p.limited OR NOT :limited) AND
+			(NOT p.limited OR NOT :not_limited) AND
+			(p.user_id = p.owner_user_id OR NOT :owned)
+		ORDER BY ns.create_time DESC
+		LIMIT :limit
+		OFFSET :offset`,
+		params)
+	err = sqlx.SelectContext(ctx, db.extLog, namespaces, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
 	}
-	defer rows.Close()
 
 	nsMap = make(map[string]rstypes.NamespaceWithVolumes)
-	for rows.Next() {
-		var ns rstypes.NamespaceWithPermission
-		if err = rows.StructScan(&ns); err != nil {
-			return
-		}
-		nsIDs = append(nsIDs, ns.ID)
-		nsMap[ns.ID] = rstypes.NamespaceWithVolumes{
-			NamespaceWithPermission: ns,
+	for _, v := range namespaces {
+		nsIDs = append(nsIDs, v.ID)
+		nsMap[v.ID] = rstypes.NamespaceWithVolumes{
+			NamespaceWithPermission: v,
 			Volume:                  []rstypes.VolumeWithPermission{},
 		}
 	}
@@ -142,38 +146,40 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 	}).Debugf("get raw user namespaces (filters %#v)", filters)
-	rows, err := db.extLog.QueryxContext(ctx, `
-			SELECT ns.*, p.*
-			FROM namespaces ns
-			JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-			WHERE
-				p.user_id = $1 AND
-				(NOT ns.deleted OR NOT $2) AND
-				(ns.deleted OR NOT $3) AND
-				(p.limited OR NOT $4) AND
-				(NOT p.limited OR NOT $5) AND
-				(p.user_id = p.owner_user_id OR NOT $6)
-			ORDER BY ns.create_time DESC`,
-		userID,
-		filters.NotDeleted,
-		filters.Deleted,
-		filters.Limited,
-		filters.NotLimited,
-		filters.Owners)
+
+	params := struct {
+		UserID string `db:"user_id"`
+		*models.NamespaceFilterParams
+	}{
+		UserID:                userID,
+		NamespaceFilterParams: filters,
+	}
+
+	query, args, _ := sqlx.Named(`
+		SELECT ns.*, p.*
+		FROM namespaces ns
+		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
+		WHERE
+			p.user_id = :user_id AND
+			(NOT ns.deleted OR NOT :not_deleted) AND
+			(ns.deleted OR NOT :deleted) AND
+			(p.limited OR NOT :limited) AND
+			(NOT p.limited OR NOT :not_limited) AND
+			(p.user_id = p.owner_user_id OR NOT :owned)
+		ORDER BY ns.create_time DESC`,
+		params)
+
+	var namespaces []rstypes.NamespaceWithPermission
+	err = sqlx.SelectContext(ctx, db.extLog, namespaces, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
 	}
-	defer rows.Close()
 
 	nsMap = make(map[string]rstypes.NamespaceWithVolumes)
-	for rows.Next() {
-		var ns rstypes.NamespaceWithPermission
-		if err = rows.StructScan(&ns); err != nil {
-			return
-		}
-		nsIDs = append(nsIDs, ns.ID)
-		nsMap[ns.ID] = rstypes.NamespaceWithVolumes{
-			NamespaceWithPermission: ns,
+	for _, v := range namespaces {
+		nsIDs = append(nsIDs, v.ID)
+		nsMap[v.ID] = rstypes.NamespaceWithVolumes{
+			NamespaceWithPermission: v,
 			Volume:                  []rstypes.VolumeWithPermission{},
 		}
 	}
@@ -243,12 +249,16 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		"label":   label,
 	}).Debug("get namespace by label")
 
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-		WHERE p.user_id = $1 AND p.resource_label = $2`, userID, label).
-		StructScan(&ret.NamespaceWithPermission)
+		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
+		map[string]interface{}{
+			"user_id":        userID,
+			"resource_label": label,
+		})
+	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -259,26 +269,21 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		return
 	}
 
-	rows, err := db.extLog.QueryxContext(ctx, `
+	query, args, _ = sqlx.Named(`
 		SELECT v.*, p.*
 		FROM namespace_volume nv
 		JOIN volumes v ON v.id = nv.vol_id
 		JOIN permissions p ON p.resource_id = nv.vol_id AND p.kind = 'volume'
-		WHERE nv.ns_id = $1`, ret.ID)
-	if err != nil {
+		WHERE nv.ns_id = :ns_id`,
+		map[string]interface{}{
+			"ns_id": ret.ID,
+		})
+	err = sqlx.SelectContext(ctx, db.extLog, ret.Volume, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+	default:
 		err = models.WrapDBError(err)
 		return
-	}
-	defer rows.Close()
-
-	ret.Volume = make([]rstypes.VolumeWithPermission, 0)
-	for rows.Next() {
-		var volume rstypes.VolumeWithPermission
-		if err = rows.StructScan(&volume); err != nil {
-			err = models.WrapDBError(err)
-			return
-		}
-		ret.Volume = append(ret.Volume, volume)
 	}
 
 	return
@@ -291,12 +296,16 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		"label":   label,
 	}).Debug("get user namespace with user permissions")
 
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-		WHERE p.user_id = $1 AND p.resource_label = $2`, userID, label).
-		StructScan(&ret.NamespaceWithPermission)
+		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
+		map[string]interface{}{
+			"user_id":        userID,
+			"resource_label": label,
+		})
+	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -307,24 +316,21 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		return
 	}
 
-	rows, err := db.extLog.QueryxContext(ctx, `
+	query, args, _ = sqlx.Named(`
 		SELECT * 
 		FROM permissions 
 		WHERE user_id != owner_user_id AND 
-				resource_id = $1 AND 
-				resource_kind = 'namespace'`, ret.ID)
-	if err != nil {
+				resource_id = :resource_id AND 
+				resource_kind = 'namespace'`,
+		map[string]interface{}{
+			"resource_id": ret.ID,
+		})
+	err = sqlx.SelectContext(ctx, db.extLog, ret.Users, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+	default:
 		err = models.WrapDBError(err)
 		return
-	}
-
-	for rows.Next() {
-		var pr rstypes.PermissionRecord
-		if err = rows.StructScan(&pr); err != nil {
-			err = models.WrapDBError(err)
-			return
-		}
-		ret.Users = append(ret.Users, pr)
 	}
 
 	return
@@ -336,18 +342,22 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 		"label":   label,
 	}).Debug("delete user namespace by label")
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
-					user_id = $1 AND 
-					resource_label = $2 AND
+					user_id = :user_id AND 
+					resource_label = :resource_label AND
 					resource_kind = 'namespace'
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_ns)`, userID, label)
+		WHERE id IN (SELECT * FROM user_ns)`,
+		map[string]interface{}{
+			"user_id":        userID,
+			"resource_label": label,
+		})
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -361,17 +371,20 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err error) {
 	db.log.WithField("user_id", userID).Debug("delete user namespace by label")
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
-					user_id = $1 AND 
+					user_id = :user_id AND 
 					resource_kind = 'namespace'
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_ns)`, userID)
+		WHERE id IN (SELECT * FROM user_ns)`,
+		map[string]interface{}{
+			"user_id": userID,
+		})
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -383,11 +396,12 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 }
 
 func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel string) (err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id":   userID,
-		"old_label": oldLabel,
-		"new_label": newLabel,
-	}).Debug("rename namespace")
+	params := map[string]interface{}{
+		"user_id":            userID,
+		"old_resource_label": oldLabel,
+		"new_resource_label": newLabel,
+	}
+	db.log.WithFields(params).Debug("rename namespace")
 
 	var exists bool
 	if exists, err = db.isNamespaceExists(ctx, userID, newLabel); err != nil {
@@ -398,12 +412,13 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		return
 	}
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		UPDATE permissions
-		SET resource_label = $2
-		WHERE owner_user_id = $1 AND
+		SET resource_label = :new_resource_label
+		WHERE owner_user_id = :user_id AND
 				resource_kind = 'namespace' AND
-				resource_label = $3`, userID, newLabel, oldLabel)
+				resource_label = :old_resource_label`,
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -420,7 +435,17 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, userID, label string, names
 		"label":   label,
 	}).Debugf("update namespace to %#v", namespace)
 
-	result, err := db.extLog.ExecContext(ctx, `
+	params := struct {
+		UserID string `db:"user_id"`
+		Label  string `db:"resource_label"`
+		*rstypes.Namespace
+	}{
+		UserID:    userID,
+		Label:     label,
+		Namespace: namespace,
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -438,14 +463,7 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, userID, label string, names
 			max_int_services = $7,
 			max_traffic = $8
 		WHERE id IN (SELECT * FROM user_ns)`,
-		userID,
-		label,
-		namespace.TariffID,
-		namespace.RAM,
-		namespace.CPU,
-		namespace.MaxExternalServices,
-		namespace.MaxIntServices,
-		namespace.MaxTraffic)
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}

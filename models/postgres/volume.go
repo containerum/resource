@@ -12,19 +12,20 @@ import (
 )
 
 func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exists bool, err error) {
-	entry := db.log.WithFields(logrus.Fields{
+	params := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,
-	})
+	}
+	entry := db.log.WithFields(params)
 	entry.Debug("check if volume exists")
 
 	var count int
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		SELECT count(ns.*)
 		FROM volumes ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'volume'
-		WHERE p.user_id = $1 AND p.resource_label = $2`,
-		userID, label).Scan(&count)
+		WHERE p.user_id = $1 AND p.resource_label = $2`, params)
+	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -38,32 +39,24 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 	nsIDs []string, nsMap map[string]rstypes.NamespaceWithVolumes) (err error) {
 	db.log.Debugf("add volumes to namespaces %v", nsIDs)
-	query, args, err := sqlx.In(`
+	var volsWithNsID []struct {
+		rstypes.VolumeWithPermission
+		NsID string `db:"ns_id"`
+	}
+	query, args, _ := sqlx.In(`
 		SELECT v.*, perm.*, nv.ns_id
 		FROM namespace_volume nv
 		JOIN volumes v ON nv.vol_id = v.id
 		JOIN permissions perm ON perm.resource_id = v.id
 		WHERE nv.ns_id IN (?)`, nsIDs)
+	err = sqlx.SelectContext(ctx, db.extLog, volsWithNsID, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
 	}
-	rows, err := db.extLog.QueryxContext(ctx, query, args...)
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var volWithNsID struct {
-			rstypes.VolumeWithPermission
-			NsID string `db:"ns_id"`
-		}
-		if err = rows.StructScan(&volWithNsID); err != nil {
-			return
-		}
-		ns := nsMap[volWithNsID.NsID]
-		ns.Volume = append(ns.Volume, volWithNsID.VolumeWithPermission)
-		nsMap[volWithNsID.NsID] = ns
+	for _, v := range volsWithNsID {
+		ns := nsMap[v.NsID]
+		ns.Volume = append(ns.Volume, v.VolumeWithPermission)
+		nsMap[v.NsID] = ns
 	}
 
 	return
@@ -84,7 +77,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		return
 	}
 
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		INSERT INTO volumes
 		(
 			tariff_id,
@@ -92,19 +85,16 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 			replicas,
 			is_persistent,
 		)
-		VALUES ($1, $2, $3, $4)
+		VALUES (:tariff_id, :capacity, :replicas, :is_persistent)
 		RETURNING *`,
-		volume.TariffID,
-		volume.Capacity,
-		volume.Replicas,
-		volume.Persistent).
-		StructScan(volume)
+		volume)
+	err = sqlx.GetContext(ctx, db.extLog, volume, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
 
-	_, err = db.extLog.ExecContext(ctx, `
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
 		INSERT INTO permissions
 		(
 			kind,
@@ -113,7 +103,12 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 			owner_user_id,
 			user_id
 		)
-		VALUES ('volume', $1, $2, $3, $3)`, volume.ID, label, userID)
+		VALUES ('volume', :resource_id, :resource_label, :user_id, :user_id)`,
+		map[string]interface{}{
+			"resource_id": volume.ID,
+			"label":       label,
+			"user_id":     userID,
+		})
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -122,48 +117,40 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 }
 
 func (db *pgDB) GetUserVolumes(ctx context.Context,
-	userID, filters *models.VolumeFilterParams) (ret []rstypes.VolumeWithPermission, err error) {
+	userID string, filters *models.VolumeFilterParams) (ret []rstypes.VolumeWithPermission, err error) {
 	ret = make([]rstypes.VolumeWithPermission, 0)
 	db.log.WithField("user_id", userID).Debugf("get user volumes (filters %#v)", filters)
 
-	rows, err := db.extLog.QueryxContext(ctx, `
+	params := struct {
+		UserID string `db:"user_id"`
+		*models.VolumeFilterParams
+	}{
+		UserID:             userID,
+		VolumeFilterParams: filters,
+	}
+	query, args, _ := sqlx.Named(`
 		SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE 
-			p.user_id = $1 AND
-			(NOT v.deleted OR NOT $2) AND
-			(v.deleted OR NOT $3) AND
-			(p.limited OR NOT $4) AND
-			(NOT p.limited OR NOT $5) AND
-			(p.owner_user_id = p_user_id OR NOT $6) AND
-			(p.is_persistent OR NOT $7) AND
-			(NOT p.is_persistent OR NOT $8)
+			p.user_id = :user_id AND
+			(NOT v.deleted OR NOT :not_deleted) AND
+			(v.deleted OR NOT :deleted) AND
+			(p.limited OR NOT :limited) AND
+			(NOT p.limited OR NOT :not_limited) AND
+			(p.owner_user_id = p_user_id OR NOT :owned) AND
+			(p.is_persistent OR NOT :persistent) AND
+			(NOT p.is_persistent OR NOT :not_persistent)
 		ORDER BY v.create_time DESC`,
-		userID,
-		filters.NotDeleted,
-		filters.Deleted,
-		filters.Limited,
-		filters.NotLimited,
-		filters.Owners,
-		filters.Persistent,
-		filters.NotPersistent)
-	if err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-	defer rows.Close()
+		params)
 
-	for rows.Next() {
-		var vol rstypes.VolumeWithPermission
-		if err = rows.StructScan(&vol); err != nil {
-			return
-		}
-		ret = append(ret, vol)
-	}
-
-	if len(ret) == 0 {
+	err = sqlx.SelectContext(ctx, db.extLog, ret, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrResourceNotExists
+	default:
+		err = models.WrapDBError(err)
 	}
 
 	return
@@ -178,47 +165,39 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 		"per_page": perPage,
 	}).Debug("get all volumes")
 
-	rows, err := db.extLog.QueryxContext(ctx, `
+	params := struct {
+		Limit  int `db:"limit"`
+		Offset int `db:"offset"`
+		*models.VolumeFilterParams
+	}{
+		Limit:              perPage,
+		Offset:             (page - 1) * perPage,
+		VolumeFilterParams: filters,
+	}
+	query, args, _ := sqlx.Named(`
 			SELECT v.*, p.*
 			FROM volumes v
 			JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 			WHERE 
-				(NOT v.deleted OR NOT $3) AND
-				(v.deleted OR NOT $4) AND
-				(p.limited OR NOT $5) AND
-				(NOT p.limited OR NOT $6) AND
-				(p.owner_user_id = p_user_id OR NOT $7) AND
-				(p.is_persistent OR NOT $8) AND
-				(NOT p.is_persistent OR NOT $9)
+				(NOT v.deleted OR NOT :not_deleted) AND
+				(v.deleted OR NOT :deleted) AND
+				(p.limited OR NOT :limited) AND
+				(NOT p.limited OR NOT :not_limited) AND
+				(p.owner_user_id = p_user_id OR NOT :owned) AND
+				(p.is_persistent OR NOT :persistent) AND
+				(NOT p.is_persistent OR NOT :not_persistent)
 			ORDER BY v.create_time DESC
-			LIMIT $1
-			OFFSET $2`,
-		page,
-		(page-1)*perPage,
-		filters.NotDeleted,
-		filters.Deleted,
-		filters.Limited,
-		filters.NotLimited,
-		filters.Owners,
-		filters.Persistent,
-		filters.NotPersistent)
-	if err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-	defer rows.Close()
+			LIMIT :limit
+			OFFSET :offset`,
+		params)
 
-	for rows.Next() {
-		var volume rstypes.VolumeWithPermission
-		if err = rows.StructScan(&volume); err != nil {
-			err = models.WrapDBError(err)
-			return
-		}
-		ret = append(ret, volume)
-	}
-
-	if len(ret) == 0 {
+	err = sqlx.SelectContext(ctx, db.extLog, ret, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrResourceNotExists
+	default:
+		err = models.WrapDBError(err)
 	}
 
 	return
@@ -226,18 +205,24 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 
 func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 	userID, label string) (ret rstypes.VolumeWithPermission, err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Debug("get user volume by label")
+	params := map[string]interface{}{
+		"user_id":        userID,
+		"resource_label": label,
+	}
+	db.log.WithFields(params).Debug("get user volume by label")
 
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = p.owner_user_id AND p.user_id = $1 AND p.resource_label = $2`,
-		userID, label).StructScan(&ret)
-	if err != nil {
+		WHERE p.user_id = p.owner_user_id AND p.user_id = :user_id AND p.resource_label = :resource_label`,
+		params)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrResourceNotExists
+	default:
 		err = models.WrapDBError(err)
 	}
 
@@ -246,17 +231,19 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 
 func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	userID, label string) (ret rstypes.VolumeWithUserPermissions, err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Debug("get volume with user permissions")
+	params := map[string]interface{}{
+		"user_id":        userID,
+		"resource_label": label,
+	}
+	db.log.WithFields(params).Debug("get volume with user permissions")
 
-	err = db.extLog.QueryRowxContext(ctx, `
+	query, args, _ := sqlx.Named(`
 		SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = p.owner_user_id AND p.user_id = $1 AND p.resource_label = $2`,
-		userID, label).StructScan(&ret.VolumeWithPermission)
+		params)
+	err = sqlx.GetContext(ctx, db.extLog, &ret.VolumeWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -267,43 +254,47 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		return
 	}
 
-	rows, err := db.extLog.QueryxContext(ctx, `
+	query, args, _ = sqlx.Named(`
 		SELECT *
 		FROM permissions
-		WHERE resource_kind = 'volume' AND resource_id = $1`, ret.ID)
-	if err != nil {
+		WHERE owner_user_id != user_id AND
+				resource_kind = 'volume' AND
+				resource_id = :resource_id`,
+		map[string]interface{}{
+			"resource_id": ret.ID,
+		})
+	err = sqlx.SelectContext(ctx, db.extLog, ret.Users, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrResourceNotExists
+	default:
 		err = models.WrapDBError(err)
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var perm rstypes.PermissionRecord
-		if err = rows.StructScan(&perm); err != nil {
-			err = models.WrapDBError(err)
-			return
-		}
-		ret.Users = append(ret.Users, perm)
 	}
 
 	return
 }
 
 func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Debug("delete user volume by label")
+	params := map[string]interface{}{
+		"user_id":        userID,
+		"resource_label": label,
+	}
+	db.log.WithFields(params).Debug("delete user volume by label")
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
-			WHERE user_id = owner_user_id AND kind = 'volume' AND user_id = $1 AND resource_label = $2
+			WHERE user_id = owner_user_id AND
+					kind = 'volume' AND
+					user_id = :user_id AND 
+					resource_label = :resource_label
 		)
 		UPDATE volumes
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_vol)`, userID, label)
+		WHERE id IN (SELECT * FROM user_vol)`,
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -315,17 +306,23 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 }
 
 func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err error) {
-	db.log.WithField("user_id", userID).Debug("delete all user volumes")
+	params := map[string]interface{}{
+		"user_id": userID,
+	}
+	db.log.WithFields(params).Debug("delete all user volumes")
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
-			WHERE user_id = owner_user_id AND kind = 'volume' AND user_id = $1
+			WHERE user_id = owner_user_id AND 
+					kind = 'volume' AND 
+					user_id = :user_id
 		)
 		UPDATE volumes
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_vol)`, userID)
+		WHERE id IN (SELECT * FROM user_vol)`,
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -337,18 +334,20 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err er
 }
 
 func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) (err error) {
-	db.log.WithFields(logrus.Fields{
+	params := map[string]interface{}{
 		"user_id":   userID,
 		"old_label": oldLabel,
 		"new_label": newLabel,
-	}).Debug("rename user volume")
+	}
+	db.log.WithFields(params).Debug("rename user volume")
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		UPDATE permissions
-		SET resource_label = $2
-		WHERE owner_user_id = $1 AND
+		SET resource_label = :old_label
+		WHERE owner_user_id = :user_id AND
 				resource_kind = 'volume' AND
-				resource_label = $3`, userID, newLabel, oldLabel)
+				resource_label = :new_label`,
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -365,26 +364,31 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 		"label":   label,
 	}).Debugf("update volume to %#v", volume)
 
-	result, err := db.extLog.ExecContext(ctx, `
+	params := struct {
+		UserID string `db:"user_id"`
+		Label  string `db:"label"`
+		*rstypes.Volume
+	}{
+		UserID: userID,
+		Label:  label,
+		Volume: volume,
+	}
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
-				user_id = $1 AND 
+				user_id = :user_id AND 
 				resource_kind = 'volume' AND
-				resource_label = $2
+				resource_label = :label
 		)
 		UPDATE volumes
 		SET
-			tariff_id = $3,
-			capacity = $4,
-			replicas = $5
+			tariff_id = :tariff_id,
+			capacity = :capacity,
+			replicas = :replicas
 		WHERE id IN (SELECT * FROM user_vol)`,
-		userID,
-		label,
-		volume.TariffID,
-		volume.Capacity,
-		volume.Replicas)
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -396,9 +400,13 @@ func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *
 }
 
 func (db *pgDB) SetVolumeActiveByID(ctx context.Context, id string, active bool) (err error) {
-	db.log.WithField("id", id).Debug("activating volume")
+	params := map[string]interface{}{
+		"id":     id,
+		"active": active,
+	}
+	db.log.WithFields(params).Debug("activating volume by id")
 
-	result, err := db.extLog.ExecContext(ctx, `UPDATE volumes SET active = $2 WHERE id = $1`, id, active)
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `UPDATE volumes SET active = :id WHERE id = :active`, params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -410,13 +418,14 @@ func (db *pgDB) SetVolumeActiveByID(ctx context.Context, id string, active bool)
 }
 
 func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, active bool) (err error) {
-	db.log.WithFields(logrus.Fields{
+	params := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,
 		"active":  active,
-	}).Debug("activating volume")
+	}
+	db.log.WithFields(params).Debug("activating user volume")
 
-	result, err := db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -427,7 +436,8 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 		)
 		UPDATE volumes 
 		SET active = $2 
-		WHERE id IN (SELECT * FROM user_vol)`, userID, label, active)
+		WHERE id IN (SELECT * FROM user_vol)`,
+		params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}

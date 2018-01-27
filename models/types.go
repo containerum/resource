@@ -23,7 +23,7 @@ type DB interface {
 	ResizeNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error
 
 	CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
-	GetUserVolumes(ctx context.Context, userID, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
+	GetUserVolumes(ctx context.Context, userID string, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
 	GetAllVolumes(ctx context.Context, page, perPage int, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
 	GetUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.VolumeWithPermission, error)
 	GetVolumeWithUserPermissions(ctx context.Context, userID, label string) (rstypes.VolumeWithUserPermissions, error)

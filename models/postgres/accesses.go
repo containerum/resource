@@ -6,13 +6,18 @@ import (
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
 func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *auth.ResourcesAccess, err error) {
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
-	rows, err := db.extLog.QueryxContext(ctx, `
+	var accessObjects []struct {
+		Kind string
+		*auth.AccessObject
+	}
+	err = sqlx.GetContext(ctx, db.extLog, accessObjects, `
 		SELECT kind, resource_label, resource_id, new_access_level
 		FROM permissions
 		WHERE owner_user_id = user_id AND user_id = $1 AND kind in ('namespace', 'volume')`, userID)
@@ -20,26 +25,19 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 		err = models.WrapDBError(err)
 		return
 	}
-	defer rows.Close()
 
 	ret = &auth.ResourcesAccess{
 		Volume:    make([]*auth.AccessObject, 0),
 		Namespace: make([]*auth.AccessObject, 0),
 	}
-	for rows.Next() {
-		var obj auth.AccessObject
-		var kind string
-		if err = rows.Scan(&kind, &obj.Label, &obj.Id, &obj.Access); err != nil {
-			err = models.WrapDBError(err)
-			return
-		}
-		switch kind {
+	for _, obj := range accessObjects {
+		switch obj.Kind {
 		case "namespace":
-			ret.Namespace = append(ret.Namespace, &obj)
+			ret.Namespace = append(ret.Namespace, obj.AccessObject)
 		case "volume":
-			ret.Volume = append(ret.Volume, &obj)
+			ret.Volume = append(ret.Volume, obj.AccessObject)
 		default:
-			db.log.Errorf("unexpected kind %s", kind)
+			db.log.Errorf("unexpected kind %s", obj.Kind)
 		}
 	}
 
@@ -54,20 +52,30 @@ func (db *pgDB) setResourceAccess(ctx context.Context,
 		"new_access_level": access,
 	}).Debugf("set %s access", kind)
 
-	_, err = db.extLog.ExecContext(ctx, `
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
-					user_id = $1 AND 
-					resource_label = $2 AND
-					resource_kind = $3
+					user_id = :user_id AND 
+					resource_label = :resource_label AND
+					resource_kind = :resource_kind
 		)
 		UPDATE permissions
-		SET new_access_level = $4
-		WHERE resource_id IN (SELECT * FROM user_ns)`, userID, label, kind, access)
+		SET new_access_level = :access_level
+		WHERE resource_id IN (SELECT * FROM user_ns)`,
+		map[string]interface{}{
+			"user_id":        userID,
+			"resource_label": label,
+			"resource_kind":  kind,
+			"access_level":   access,
+		})
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+
+	if count, _ := result.RowsAffected(); count == 0 {
+		err = models.ErrLabeledResourceNotExists
 	}
 
 	return
