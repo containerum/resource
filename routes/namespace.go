@@ -106,3 +106,18 @@ func renameUserNamespaceHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func setUserNamespaceAccessHandler(ctx *gin.Context) {
+	var req rstypes.SetNamespaceAccessRequest
+	if err := ctx.ShouldBindJSON(req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	if err := srv.SetUserNamespaceAccess(ctx.Request.Context(), ctx.Param("label"), req.Access); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

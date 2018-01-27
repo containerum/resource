@@ -252,3 +252,27 @@ func (rs *resourceServiceImpl) RenameUserNamespace(ctx context.Context, oldLabel
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":          userID,
+		"label":            label,
+		"new_access_level": newAccessLevel,
+	}).Info("change user namespace access level")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		if setErr := tx.SetNamespaceAccess(ctx, userID, label, newAccessLevel); setErr != nil {
+			return setErr
+		}
+
+		// TODO: update user access on auth
+
+		return nil
+	})
+	if err != nil {
+		return server.HandleDBError(err)
+	}
+
+	return nil
+}
