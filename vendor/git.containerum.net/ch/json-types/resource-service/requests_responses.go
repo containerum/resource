@@ -44,7 +44,7 @@ type GetUserNamespaceResponse = NamespaceWithVolumes
 
 type GetAllNamespacesResponse = []NamespaceWithVolumes
 
-type GetNamespaceAccessResponse = NamespaceWithPermission
+type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
 
 type RenameNamespaceRequest = RenameResourceRequest
 

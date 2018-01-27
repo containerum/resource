@@ -15,6 +15,7 @@ type resourceServiceImpl struct {
 	log *logrus.Entry
 }
 
+// NewResourceServiceImpl creates a resource-service
 func NewResourceServiceImpl(clients server.ResourceServiceClients) server.ResourceService {
 	return &resourceServiceImpl{
 		ResourceServiceClients: clients,

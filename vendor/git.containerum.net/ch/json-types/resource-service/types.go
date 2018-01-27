@@ -29,7 +29,7 @@ const (
 )
 
 type Resource struct {
-	ID         string          `json:"id" db:"id,omitempty"`
+	ID         string          `json:"id,omitempty" db:"id"`
 	CreateTime string          `json:"create_time,omitempty" db:"create_time"`
 	Deleted    bool            `json:"deleted,omitempty" db:"deleted"`
 	DeleteTime misc.PqNullTime `json:"delete_time,omitempty" db:"delete_time"`

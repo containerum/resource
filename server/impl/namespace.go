@@ -114,3 +114,18 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 
 	return ret, nil
 }
+
+func (rs *resourceServiceImpl) GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	}).Info("get user namespace accesses")
+
+	ret, err := rs.DB.GetNamespaceWithUserPermissions(ctx, userID, label)
+	if err != nil {
+		return rstypes.GetUserNamespaceAccessesResponse{}, server.HandleDBError(err)
+	}
+
+	return ret, nil
+}

@@ -9,6 +9,7 @@ import (
 	"git.containerum.net/ch/resource-service/models"
 )
 
+// HandleDBError translates database errors to one type *"git.containerum.net/ch/json-types/errors".Error
 func HandleDBError(err error) error {
 	switch err {
 	case nil:
@@ -31,6 +32,7 @@ func HandleDBError(err error) error {
 	}
 }
 
+// Parallel runs functions in dedicated goroutines and waits for ending
 func Parallel(funcs ...func() error) (ret []error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(funcs))

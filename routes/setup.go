@@ -11,6 +11,7 @@ import (
 
 var srv server.ResourceService
 
+// SetupRoutes sets up a router
 func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 	srv = server
 
@@ -28,5 +29,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ns.GET("", getUserNamespacesHandler)
 
 		ns.GET("/:label", getUserNamespaceHandler)
+
+		ns.GET("/:label/access", utils.RequireAdminRole, getUserNamespaceAccessesHandler)
 	}
 }
