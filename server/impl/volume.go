@@ -189,3 +189,19 @@ func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
 
 	return vols, nil
 }
+
+func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	}).Info("get user volume accesses")
+
+	ret, err := rs.DB.GetVolumeWithUserPermissions(ctx, userID, label)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return rstypes.VolumeWithUserPermissions{}, err
+	}
+
+	return ret, nil
+}

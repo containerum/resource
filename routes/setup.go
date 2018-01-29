@@ -50,6 +50,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 		vol.GET("", getUserVolumesHandler)
 		vol.GET("/:label", getUserVolumeHandler)
+		vol.GET("/:label/access", utils.RequireAdminRole, getUserNamespaceAccessesHandler)
 
 		vol.DELETE("/:label", deleteUserVolumeHandler)
 	}

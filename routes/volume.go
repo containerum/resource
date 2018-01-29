@@ -67,11 +67,21 @@ func getAllVolumesHandler(ctx *gin.Context) {
 		return
 	}
 
-	vols, err := srv.GetAllVolumes(ctx, &params)
+	vols, err := srv.GetAllVolumes(ctx.Request.Context(), &params)
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, vols)
+}
+
+func getUserVolumeAccessesHandler(ctx *gin.Context) {
+	resp, err := srv.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
