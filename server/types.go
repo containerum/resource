@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 
+	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/clients"
@@ -44,6 +45,8 @@ type ResourceService interface {
 	RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error
 	SetUserVolumeAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error
 	ResizeUserVolume(ctx context.Context, label string, newTariffID string) error
+
+	GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error)
 
 	io.Closer
 }
