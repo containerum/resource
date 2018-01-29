@@ -305,9 +305,10 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	return
 }
 
-func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err error) {
+func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deletePersistent bool) (err error) {
 	params := map[string]interface{}{
-		"user_id": userID,
+		"user_id":           userID,
+		"delete_persistent": deletePersistent,
 	}
 	db.log.WithFields(params).Debug("delete all user volumes")
 
@@ -321,7 +322,8 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string) (err er
 		)
 		UPDATE volumes
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_vol)`,
+		WHERE id IN (SELECT * FROM user_vol) AND
+				(is_persistent AND :delete_persistent)`,
 		params)
 	if err != nil {
 		err = models.WrapDBError(err)

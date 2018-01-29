@@ -60,6 +60,8 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 
 		// TODO: update user access
 
+		// TODO: create non-persistent volume
+
 		return nil
 	})
 	if err = server.HandleDBError(err); err != nil {
@@ -213,7 +215,7 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 			return unlinkErr
 		}
 
-		if delErr := rs.DB.DeleteAllUserVolumes(ctx, userID); delErr != nil {
+		if delErr := rs.DB.DeleteAllUserVolumes(ctx, userID, false); delErr != nil {
 			return delErr
 		}
 
