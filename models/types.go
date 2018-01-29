@@ -15,19 +15,20 @@ type DB interface {
 	CreateNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error
 	GetUserNamespaces(ctx context.Context, userID string, filters *NamespaceFilterParams) ([]rstypes.NamespaceWithVolumes, error)
 	GetAllNamespaces(ctx context.Context, page, perPage int, filters *NamespaceFilterParams) ([]rstypes.NamespaceWithVolumes, error)
-	GetUserNamespaceByLabel(ctx context.Context, userID string, label string) (rstypes.NamespaceWithVolumes, error)
+	GetUserNamespaceByLabel(ctx context.Context, userID, label string) (rstypes.NamespaceWithPermission, error)
+	GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID string, label string) (rstypes.NamespaceWithVolumes, error)
 	GetNamespaceWithUserPermissions(ctx context.Context, userID, label string) (rstypes.NamespaceWithUserPermissions, error)
-	DeleteUserNamespaceByLabel(ctx context.Context, userID, label string) error
+	DeleteUserNamespaceByLabel(ctx context.Context, userID, label string) (rstypes.Namespace, error)
 	DeleteAllUserNamespaces(ctx context.Context, userID string) error
 	RenameNamespace(ctx context.Context, userID, oldLabel, newLabel string) error
-	ResizeNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error
+	ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) (err error)
 
 	CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
 	GetUserVolumes(ctx context.Context, userID string, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
 	GetAllVolumes(ctx context.Context, page, perPage int, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
 	GetUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.VolumeWithPermission, error)
 	GetVolumeWithUserPermissions(ctx context.Context, userID, label string) (rstypes.VolumeWithUserPermissions, error)
-	DeleteUserVolumeByLabel(ctx context.Context, userID, label string) error
+	DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.Volume, error)
 	DeleteAllUserVolumes(ctx context.Context, userID string, deletePersistent bool) error
 	RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) error
 	ResizeVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
@@ -38,8 +39,9 @@ type DB interface {
 	SetNamespaceAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
 	SetVolumeAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
 
-	UnlinkNamespaceVolumes(ctx context.Context, userID, namespaceLabel string) ([]rstypes.Volume, error)
+	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
+	UnlinkVolumeEverywhere(ctx context.Context, volume *rstypes.Volume) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise

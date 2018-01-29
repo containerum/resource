@@ -243,11 +243,11 @@ func (db *pgDB) GetUserNamespaces(ctx context.Context, userID string,
 	return
 }
 
-func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label string) (ret rstypes.NamespaceWithVolumes, err error) {
+func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label string) (ret rstypes.NamespaceWithPermission, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
-	}).Debug("get namespace by label")
+	}).Debug("get namespace with volumes by label")
 
 	query, args, _ := sqlx.Named(`
 		SELECT ns.*, p.*
@@ -258,7 +258,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 			"user_id":        userID,
 			"resource_label": label,
 		})
-	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -269,7 +269,21 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		return
 	}
 
-	query, args, _ = sqlx.Named(`
+	return
+}
+
+func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, label string) (ret rstypes.NamespaceWithVolumes, err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	}).Debug("get namespace with volumes by label")
+
+	ret.NamespaceWithPermission, err = db.GetUserNamespaceByLabel(ctx, userID, label)
+	if err != nil {
+		return
+	}
+
+	query, args, _ := sqlx.Named(`
 		SELECT v.*, p.*
 		FROM namespace_volume nv
 		JOIN volumes v ON v.id = nv.vol_id
@@ -338,13 +352,14 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 	return
 }
 
-func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label string) (err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Debug("delete user namespace by label")
+func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label string) (namespace rstypes.Namespace, err error) {
+	params := map[string]interface{}{
+		"user_id":        userID,
+		"resource_label": label,
+	}
+	db.log.WithFields(params).Debug("delete user namespace by label")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
+	query, args, _ := sqlx.Named(`
 		WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
@@ -355,16 +370,18 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_ns)`,
-		map[string]interface{}{
-			"user_id":        userID,
-			"resource_label": label,
-		})
-	if err != nil {
-		err = models.WrapDBError(err)
-	}
-	if rows, _ := result.RowsAffected(); rows == 0 {
+		WHERE id IN (SELECT * FROM user_ns)
+		RETURNING *`,
+		params)
+	err = sqlx.GetContext(ctx, db.extLog, &namespace, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
 	}
 
 	return
@@ -431,46 +448,30 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 	return
 }
 
-func (db *pgDB) ResizeNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) (err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Debugf("update namespace to %#v", namespace)
+func (db *pgDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) (err error) {
+	db.log.WithField("namespace_id", namespace.ID).Debugf("update namespace to %#v", namespace)
 
-	params := struct {
-		UserID string `db:"user_id"`
-		Label  string `db:"resource_label"`
-		*rstypes.Namespace
-	}{
-		UserID:    userID,
-		Label:     label,
-		Namespace: namespace,
-	}
-
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
-		WITH user_ns AS (
-			SELECT resource_id
-			FROM permissions
-			WHERE owner_user_id = user_id AND 
-				user_id = $1 AND 
-				resource_kind = 'namespace' AND
-				resource_label = $2
-		)
+	query, args, _ := sqlx.Named(`
 		UPDATE namespaces
 		SET
-			tariff_id = $3,
-			ram = $4,
-			cpu = $5,
-			max_ext_services = $6,
-			max_int_services = $7,
-			max_traffic = $8
-		WHERE id IN (SELECT * FROM user_ns)`,
-		params)
-	if err != nil {
-		err = models.WrapDBError(err)
-	}
-	if rows, _ := result.RowsAffected(); rows == 0 {
+			tariff_id = :tariff_id,
+			ram = :ram,
+			cpu = :cpu,
+			max_ext_services = :max_ext_services,
+			max_int_services = :max_int_services,
+			max_traffic = :max_traffic
+		WHERE id = :id
+		RETURNING *`,
+		namespace)
+	err = sqlx.GetContext(ctx, db.extLog, namespace, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
 	}
 
 	return

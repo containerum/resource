@@ -111,7 +111,7 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 		"label":   label,
 	}).Info("get user namespace")
 
-	ret, err := rs.DB.GetUserNamespaceByLabel(ctx, userID, label)
+	ret, err := rs.DB.GetUserNamespaceWithVolumesByLabel(ctx, userID, label)
 	if err != nil {
 		return rstypes.NamespaceWithVolumes{}, server.HandleDBError(err)
 	}
@@ -160,15 +160,15 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 		"label":   label,
 	}).Info("delete user namespace")
 
-	var nsToDelete rstypes.NamespaceWithPermission
+	var nsToDelete rstypes.Namespace
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		ns, getNsErr := tx.GetUserNamespaceByLabel(ctx, userID, label)
-		if getNsErr != nil {
-			return getNsErr
+		if ns, delNsErr := tx.DeleteUserNamespaceByLabel(ctx, userID, label); delNsErr != nil {
+			return delNsErr
+		} else {
+			nsToDelete = ns
 		}
-		nsToDelete = ns.NamespaceWithPermission
 
-		deactivatedVols, unlinkErr := tx.UnlinkNamespaceVolumes(ctx, userID, label)
+		deactivatedVols, unlinkErr := tx.UnlinkNamespaceVolumes(ctx, &nsToDelete)
 		if unlinkErr != nil {
 			return unlinkErr
 		}
@@ -176,15 +176,11 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 		// TODO: stop volumes on volume service
 		_ = deactivatedVols
 
-		if delErr := rs.Kube.DeleteNamespace(ctx, nsToDelete.Namespace); delErr != nil {
+		if delErr := rs.Kube.DeleteNamespace(ctx, nsToDelete); delErr != nil {
 			return delErr
 		}
 
-		if delErr := tx.DeleteUserNamespaceByLabel(ctx, userID, label); delErr != nil {
-			return delErr
-		}
-
-		if unsubErr := rs.Billing.Unsubscribe(ctx, userID, ns.Resource); unsubErr != nil {
+		if unsubErr := rs.Billing.Unsubscribe(ctx, userID, nsToDelete.Resource); unsubErr != nil {
 			return unsubErr
 		}
 
@@ -197,7 +193,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 	}
 
 	go func() {
-		if err := rs.Mail.SendNamespaceDeleted(ctx, userID, nsToDelete.ResourceLabel); err != nil {
+		if err := rs.Mail.SendNamespaceDeleted(ctx, userID, label); err != nil {
 			logrus.WithError(err).Error("send namespace deleted mail failed")
 		}
 	}()
@@ -321,11 +317,11 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 		ns.MaxIntServices = newTariff.InternalServices
 		ns.MaxTraffic = newTariff.Traffic
 
-		if updErr := tx.ResizeNamespace(ctx, userID, label, &ns.Namespace); updErr != nil {
+		if updErr := tx.ResizeNamespace(ctx, &ns.Namespace); updErr != nil {
 			return updErr
 		}
 
-		if updErr := rs.Kube.SetNamespaceQuota(ctx, label, ns.NamespaceWithPermission); updErr != nil {
+		if updErr := rs.Kube.SetNamespaceQuota(ctx, label, ns); updErr != nil {
 			return updErr
 		}
 

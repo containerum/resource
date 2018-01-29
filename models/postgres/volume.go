@@ -275,14 +275,14 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	return
 }
 
-func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (err error) {
+func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (volume rstypes.Volume, err error) {
 	params := map[string]interface{}{
 		"user_id":        userID,
 		"resource_label": label,
 	}
 	db.log.WithFields(params).Debug("delete user volume by label")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
+	query, args, _ := sqlx.Named(`
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -293,13 +293,18 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		)
 		UPDATE volumes
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_vol)`,
+		WHERE id IN (SELECT * FROM user_vol)
+		RETURNING *`,
 		params)
-	if err != nil {
-		err = models.WrapDBError(err)
-	}
-	if rows, _ := result.RowsAffected(); rows == 0 {
+	err = sqlx.GetContext(ctx, db.extLog, &volume, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
 	}
 
 	return
@@ -450,27 +455,13 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 	return
 }
 
-func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context,
-	userID, namespaceLabel string) (deactivatedVolumes []rstypes.Volume, err error) {
-	params := map[string]interface{}{
-		"user_id":         userID,
-		"namespace_label": namespaceLabel,
-	}
-
-	db.log.WithFields(params).Debug("unlink namespace volumes")
+func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) (deactivatedVolumes []rstypes.Volume, err error) {
+	db.log.WithField("namespace_id", namespace.ID).Debug("unlink namespace volumes")
 	query, args, _ := sqlx.Named(`
-		WITH user_namespace AS (
-			SELECT resource_id
-			FROM permissions
-			WHERE owner_user_id = user_id AND
-					kind = 'namespace' AND
-					user_id = :user_id AND
-					resource_label = :namespace_label
-		)
 		DELETE FROM namespace_volume
-		WHERE ns_id IN (user_namespace)
+		WHERE ns_id = :id
 		RETURNING vol_id`,
-		params)
+		namespace)
 
 	unlinkedVolumes := make([]string, 0)
 	err = sqlx.SelectContext(ctx, db.extLog, unlinkedVolumes, db.extLog.Rebind(query), args...)
@@ -529,6 +520,26 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
+		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
+func (db *pgDB) UnlinkVolumeEverywhere(ctx context.Context, volume *rstypes.Volume) (err error) {
+	db.log.WithField("volume_id", volume.ID).Debug("unlink volume from everywhere")
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
+		DELETE FROM namespace_volume
+		WHERE vol_id = :id`, volume)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
+		DELETE FROM deployment_volume
+		WHERE vol_id = :id`, volume)
+	if err != nil {
 		err = models.WrapDBError(err)
 	}
 
