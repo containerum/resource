@@ -10,15 +10,16 @@ type timeValue struct {
 	v interface{}
 }
 
-type Timed struct {
+type timed struct {
 	cache   map[interface{}]timeValue
 	timeout time.Duration
 
 	mu *sync.RWMutex
 }
 
-func NewTimed(timeout time.Duration) *Timed {
-	c := &Timed{
+// NewTimed returns cache where resources have TTL. If TTL expired, it will not return value by key.
+func NewTimed(timeout time.Duration) Cache {
+	c := &timed{
 		cache:   make(map[interface{}]timeValue),
 		timeout: timeout,
 		mu:      &sync.RWMutex{},
@@ -26,7 +27,7 @@ func NewTimed(timeout time.Duration) *Timed {
 	return c
 }
 
-func (c *Timed) Get(k interface{}) (v interface{}, cached bool) {
+func (c *timed) Get(k interface{}) (v interface{}, cached bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -34,14 +35,16 @@ func (c *Timed) Get(k interface{}) (v interface{}, cached bool) {
 	if !cached || time.Now().Sub(tv.t) > c.timeout {
 		cached = false
 		delete(c.cache, k)
+		return
 	}
 
-	return tv.v, true
+	v = tv.v
+	return
 }
 
-func (c *Timed) Set(k interface{}, v interface{}) {
+func (c *timed) Set(k interface{}, v interface{}) {
 	tv := timeValue{time.Now(), v}
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.cache[k] = tv
-	c.mu.Unlock()
 }

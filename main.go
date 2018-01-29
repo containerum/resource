@@ -9,7 +9,7 @@ import (
 
 	"context"
 
-	"git.containerum.net/ch/resource-service/httpapi"
+	"git.containerum.net/ch/resource-service/routes"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -38,7 +38,7 @@ func main() {
 	g.Use(gin.RecoveryWithWriter(logrus.WithField("component", "gin_recovery").WriterLevel(logrus.ErrorLevel)))
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 
-	exitOnError(httpapi.SetupGinEngine(srv, g))
+	routes.SetupRoutes(g, srv)
 
 	// for graceful shutdown
 	httpsrv := &http.Server{

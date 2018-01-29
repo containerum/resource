@@ -1,0 +1,70 @@
+package routes
+
+import (
+	rstypes "git.containerum.net/ch/json-types/resource-service"
+	umtypes "git.containerum.net/ch/json-types/user-manager"
+	"git.containerum.net/ch/resource-service/server"
+	"git.containerum.net/ch/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+)
+
+var srv server.ResourceService
+
+// SetupRoutes sets up a router
+func SetupRoutes(app *gin.Engine, server server.ResourceService) {
+	srv = server
+
+	app.Use(utils.SaveHeaders)
+	app.Use(utils.PrepareContext)
+	app.Use(utils.RequireHeaders(umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	app.Use(utils.SubstituteUserMiddleware)
+
+	rstypes.RegisterCustomTagsGin(binding.Validator)
+
+	ns := app.Group("/namespace")
+	{
+		ns.POST("", createNamespaceHandler)
+
+		ns.GET("", getUserNamespacesHandler)
+		ns.GET("/:label", getUserNamespaceHandler)
+		ns.GET("/:label/access", utils.RequireAdminRole, getUserNamespaceAccessesHandler)
+
+		ns.DELETE("/:label", deleteUserNamespaceHandler)
+
+		ns.PUT("/:label/name", renameUserNamespaceHandler)
+		ns.PUT("/:label/access", utils.RequireAdminRole, setUserNamespaceAccessHandler)
+		ns.PUT("/:label", resizeUserNamespaceHandler)
+	}
+
+	nss := app.Group("/namespaces")
+	{
+		nss.GET("", utils.RequireAdminRole, getAllNamespacesHandler)
+
+		nss.DELETE("", utils.RequireAdminRole, deleteAllUserNamespacesHandler)
+	}
+
+	vol := app.Group("/volume")
+	{
+		vol.POST("", createVolumeHandler)
+
+		vol.GET("", getUserVolumesHandler)
+		vol.GET("/:label", getUserVolumeHandler)
+		vol.GET("/:label/access", utils.RequireAdminRole, getUserVolumeAccessesHandler)
+
+		vol.DELETE("/:label", deleteUserVolumeHandler)
+
+		vol.PUT("/:label/name", renameUserVolumeHandler)
+		vol.PUT("/:label/access", utils.RequireAdminRole, setUserVolumeAccessHandler)
+		vol.PUT("/:label", resizeUserVolumeHandler)
+	}
+
+	vols := app.Group("/volumes")
+	{
+		vols.GET("", utils.RequireAdminRole, getAllVolumesHandler)
+
+		vols.DELETE("", utils.RequireAdminRole, deleteAllUserVolumesHandler)
+	}
+
+	app.GET("/access", getUserResourceAccessesHandler)
+}

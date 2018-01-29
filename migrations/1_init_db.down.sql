@@ -1,9 +1,0 @@
-BEGIN TRANSACTION;
-DROP TABLE namespaces;
-DROP TABLE accesses;
-DROP TABLE log;
-DROP TYPE ResourceKind;
-DROP TYPE AccessLevel;
-COMMIT TRANSACTION;
-
-DROP EXTENSION IF EXISTS "uuid-ossp";
