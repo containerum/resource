@@ -55,6 +55,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		vol.DELETE("/:label", deleteUserVolumeHandler)
 
 		vol.PUT("/:label/name", renameUserVolumeHandler)
+		vol.PUT("/:label/access", utils.RequireAdminRole, setUserVolumeAccessHandler)
 	}
 
 	vols := app.Group("/volumes")

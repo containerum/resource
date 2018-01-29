@@ -99,3 +99,17 @@ func renameUserVolumeHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func setUserVolumeAccessHandler(ctx *gin.Context) {
+	var req rstypes.SetVolumeAccessRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+	if err := srv.SetUserVolumeAccess(ctx.Request.Context(), ctx.Param("label"), req.Access); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

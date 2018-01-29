@@ -224,3 +224,22 @@ func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, n
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":          userID,
+		"label":            label,
+		"new_access_level": newAccessLevel,
+	}).Info("change user volume access level")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		return tx.SetVolumeAccess(ctx, userID, label, newAccessLevel)
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}

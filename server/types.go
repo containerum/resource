@@ -42,6 +42,7 @@ type ResourceService interface {
 	DeleteUserVolume(ctx context.Context, label string) error
 	DeleteAllUserVolumes(ctx context.Context) error
 	RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error
+	SetUserVolumeAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error
 
 	io.Closer
 }
