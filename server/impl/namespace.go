@@ -27,9 +27,8 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 		return
 	}
 
-	if !isAdmin && !tariff.Public {
-		err = server.ErrPermission
-		return
+	if chkErr := checkTariff(tariff.Tariff, isAdmin); chkErr != nil {
+		return chkErr
 	}
 
 	newNamespace := rstypes.Namespace{
@@ -42,17 +41,19 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 	}
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if err := tx.CreateNamespace(ctx, userID, req.Label, &newNamespace); err != nil {
-			return err
+		if createErr := tx.CreateNamespace(ctx, userID, req.Label, &newNamespace); createErr != nil {
+			return createErr
 		}
 
-		if err := rs.Kube.CreateNamespace(ctx,
-			newNamespace.ID, newNamespace.CPU, newNamespace.RAM, req.Label, rstypes.PermissionStatusOwner); err != nil {
-			return err
+		if createErr := rs.Kube.CreateNamespace(ctx, req.Label, rstypes.NamespaceWithPermission{
+			Namespace:        newNamespace,
+			PermissionRecord: rstypes.PermissionRecord{AccessLevel: rstypes.PermissionStatusOwner},
+		}); createErr != nil {
+			return createErr
 		}
 
-		if err := rs.Billing.Subscribe(ctx, userID, newNamespace.Resource, rstypes.KindNamespace); err != nil {
-			return err
+		if createErr := rs.Billing.Subscribe(ctx, userID, newNamespace.Resource, rstypes.KindNamespace); createErr != nil {
+			return createErr
 		}
 
 		// TODO: tariff activation
@@ -172,6 +173,10 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 
 		// TODO: stop volumes on volume service
 		_ = deactivatedVols
+
+		if delErr := rs.Kube.DeleteNamespace(ctx, nsToDelete.Namespace); delErr != nil {
+			return delErr
+		}
 
 		if delErr := tx.DeleteUserNamespaceByLabel(ctx, userID, label); delErr != nil {
 			return delErr
@@ -302,12 +307,8 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			return getErr
 		}
 
-		if !newTariff.Active {
-			return server.ErrTariffInactive
-		}
-
-		if !isAdmin && !newTariff.Public {
-			return server.ErrTariffNotPublic
+		if chkErr := checkTariff(newTariff.Tariff, isAdmin); chkErr != nil {
+			return chkErr
 		}
 
 		// TODO: maybe check if user wil have exceeded quota
@@ -319,6 +320,10 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 		ns.MaxTraffic = newTariff.Traffic
 
 		if updErr := tx.ResizeNamespace(ctx, userID, label, &ns.Namespace); updErr != nil {
+			return updErr
+		}
+
+		if updErr := rs.Kube.SetNamespaceQuota(ctx, label, ns.NamespaceWithPermission); updErr != nil {
 			return updErr
 		}
 

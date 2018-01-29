@@ -34,6 +34,8 @@ type ResourceService interface {
 	SetUserNamespaceAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error
 	ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error
 
+	CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error
+
 	io.Closer
 }
 

@@ -4,6 +4,7 @@ import (
 	"io"
 	"reflect"
 
+	"git.containerum.net/ch/json-types/billing"
 	"git.containerum.net/ch/json-types/errors"
 	"git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/server"
@@ -62,4 +63,15 @@ func (rs *resourceServiceImpl) filterNamespaceWithVolume(isAdmin bool, nsvol *re
 	for i := range nsvol.Volume {
 		rs.filterVolume(isAdmin, &nsvol.Volume[i])
 	}
+}
+
+func checkTariff(tariff billing.Tariff, isAdmin bool) error {
+	if !tariff.Active {
+		return server.ErrTariffInactive
+	}
+	if !isAdmin && !tariff.Public {
+		return server.ErrTariffNotPublic
+	}
+
+	return nil
 }

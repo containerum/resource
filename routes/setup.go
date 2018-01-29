@@ -24,7 +24,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	ns := app.Group("/namespace")
 	{
-		ns.POST("", utils.RequireAdminRole, createNamespaceHandler)
+		ns.POST("", createNamespaceHandler)
 
 		ns.GET("", getUserNamespacesHandler)
 		ns.GET("/:label", getUserNamespaceHandler)
@@ -44,4 +44,8 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		nss.DELETE("", utils.RequireAdminRole, deleteAllUserNamespacesHandler)
 	}
 
+	vol := app.Group("/volume")
+	{
+		vol.POST("", createVolumeHanler)
+	}
 }
