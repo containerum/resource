@@ -75,14 +75,10 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 
 	var volToDelete rstypes.Volume
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if vol, getVolErr := tx.DeleteUserVolumeByLabel(ctx, userID, label); err != nil {
-			return getVolErr
+		if vol, delVolErr := tx.DeleteUserVolumeByLabel(ctx, userID, label); delVolErr != nil {
+			return delVolErr
 		} else {
 			volToDelete = vol
-		}
-
-		if unlinkErr := tx.UnlinkVolumeEverywhere(ctx, &volToDelete); err != nil {
-			return unlinkErr
 		}
 
 		if unsubErr := rs.Billing.Unsubscribe(ctx, userID, volToDelete.Resource); unsubErr != nil {
@@ -105,6 +101,29 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 			rs.log.WithError(err).Error("send volume deleted email failed")
 		}
 	}()
+
+	return
+}
+
+func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithField("user_id", userID).Info("delete all user volumes")
+
+	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		if delErr := tx.DeleteAllUserVolumes(ctx, userID, true); err != nil {
+			return delErr
+		}
+
+		// TODO: unsibscribe all tariffs
+
+		// TODO: delete all volumes in gluster
+
+		// TODO: update auth
+		return nil
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+	}
 
 	return
 }

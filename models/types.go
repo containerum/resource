@@ -41,7 +41,6 @@ type DB interface {
 
 	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
-	UnlinkVolumeEverywhere(ctx context.Context, volume *rstypes.Volume) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise

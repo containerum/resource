@@ -307,6 +307,21 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		return
 	}
 
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
+		DELETE FROM namespace_volume
+		WHERE vol_id = :id`, volume)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
+		DELETE FROM deployment_volume
+		WHERE vol_id = :id`, volume)
+	if err != nil {
+		err = models.WrapDBError(err)
+	}
+
 	return
 }
 
@@ -317,7 +332,7 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 	}
 	db.log.WithFields(params).Debug("delete all user volumes")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
+	query, args, _ := sqlx.Named(`
 		WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
@@ -326,15 +341,32 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 					user_id = :user_id
 		)
 		UPDATE volumes
-		SET deleted = TRUE
+		SET deleted = TRUE, active = FALSE
 		WHERE id IN (SELECT * FROM user_vol) AND
 				(is_persistent AND :delete_persistent)`,
 		params)
-	if err != nil {
-		err = models.WrapDBError(err)
-	}
-	if rows, _ := result.RowsAffected(); rows == 0 {
+	volIDs := make([]string, 0)
+	err = sqlx.SelectContext(ctx, db.extLog, volIDs, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	query, args, _ = sqlx.In(`DELETE FROM namespace_volume WHERE vol_id IN (?)`, volIDs)
+	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	query, args, _ = sqlx.In(`DELETE FROM deployment_volume WHERE vol_id IN (?)`, volIDs)
+	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
+		err = models.WrapDBError(err)
+		return
 	}
 
 	return
@@ -520,26 +552,6 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = models.WrapDBError(err)
-	}
-
-	return
-}
-
-func (db *pgDB) UnlinkVolumeEverywhere(ctx context.Context, volume *rstypes.Volume) (err error) {
-	db.log.WithField("volume_id", volume.ID).Debug("unlink volume from everywhere")
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
-		DELETE FROM namespace_volume
-		WHERE vol_id = :id`, volume)
-	if err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
-		DELETE FROM deployment_volume
-		WHERE vol_id = :id`, volume)
-	if err != nil {
 		err = models.WrapDBError(err)
 	}
 

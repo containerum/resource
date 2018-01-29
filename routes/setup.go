@@ -50,4 +50,9 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 		vol.DELETE("/:label", deleteUserVolumeHandler)
 	}
+
+	vols := app.Group("/volumes")
+	{
+		vols.DELETE("", utils.RequireAdminRole, deleteAllUserVolumes)
+	}
 }

@@ -36,6 +36,7 @@ type ResourceService interface {
 
 	CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error
 	DeleteUserVolume(ctx context.Context, label string) error
+	DeleteAllUserVolumes(ctx context.Context) error
 
 	io.Closer
 }

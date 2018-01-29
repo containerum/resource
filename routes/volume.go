@@ -30,3 +30,12 @@ func deleteUserVolumeHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func deleteAllUserVolumes(ctx *gin.Context) {
+	if err := srv.DeleteAllUserVolumes(ctx.Request.Context()); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
