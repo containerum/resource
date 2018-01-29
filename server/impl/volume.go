@@ -171,3 +171,21 @@ func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) 
 
 	return vol, nil
 }
+
+func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
+	params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error) {
+	rs.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+		"filters":  params.Filters,
+	}).Info("get all volumes")
+
+	filters := models.ParseVolumeFilterParams(strings.Split(params.Filters, ",")...)
+	vols, err := rs.DB.GetAllVolumes(ctx, params.Page, params.PerPage, &filters)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
+	}
+
+	return vols, nil
+}

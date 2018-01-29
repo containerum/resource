@@ -59,3 +59,19 @@ func getUserVolumeHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, vol)
 }
+
+func getAllVolumesHandler(ctx *gin.Context) {
+	var params rstypes.GetAllResourcesQueryParams
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	vols, err := srv.GetAllVolumes(ctx, &params)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, vols)
+}
