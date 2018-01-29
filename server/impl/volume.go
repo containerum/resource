@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 
+	"strings"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -10,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) (err error) {
+func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -22,7 +24,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 
 	tariff, err := rs.Billing.GetVolumeTariff(ctx, req.TariffID)
 	if err != nil {
-		return
+		return err
 	}
 	if chkErr := checkTariff(tariff.Tariff, isAdmin); chkErr != nil {
 		return chkErr
@@ -55,6 +57,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 	})
 	if err != nil {
 		err = server.HandleDBError(err)
+		return err
 	}
 
 	go func() {
@@ -63,10 +66,10 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 		}
 	}()
 
-	return
+	return err
 }
 
-func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label string) (err error) {
+func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label string) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -74,7 +77,7 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 	}).Info("delete user volume")
 
 	var volToDelete rstypes.Volume
-	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		if vol, delVolErr := tx.DeleteUserVolumeByLabel(ctx, userID, label); delVolErr != nil {
 			return delVolErr
 		} else {
@@ -93,7 +96,7 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 	})
 	if err != nil {
 		err = server.HandleDBError(err)
-		return
+		return err
 	}
 
 	go func() {
@@ -102,7 +105,7 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 		}
 	}()
 
-	return
+	return nil
 }
 
 func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err error) {
@@ -126,4 +129,25 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err er
 	}
 
 	return
+}
+
+func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters string) ([]rstypes.VolumeWithPermission, error) {
+	userID := utils.MustGetUserID(ctx)
+	isAdmin := server.IsAdminRole(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"admin":   isAdmin,
+		"filters": filters,
+	}).Info("get user volumes")
+
+	filterstr := models.ParseVolumeFilterParams(strings.Split(filters, ",")...)
+	vols, err := rs.DB.GetUserVolumes(ctx, userID, &filterstr)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
+	}
+
+	rs.filterVolumes(isAdmin, vols)
+
+	return vols, nil
 }

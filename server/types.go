@@ -24,7 +24,7 @@ type ResourceServiceClients struct {
 // ResourceService is an interface for resource-service operations.
 type ResourceService interface {
 	CreateNamespace(ctx context.Context, req *rstypes.CreateNamespaceRequest) (err error)
-	GetUserNamespaces(ctx context.Context, params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
+	GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error)
 	GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error)
 	GetAllNamespaces(ctx context.Context, params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
 	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
@@ -35,6 +35,7 @@ type ResourceService interface {
 	ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error
 
 	CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error
+	GetUserVolumes(ctx context.Context, filters string) ([]rstypes.VolumeWithPermission, error)
 	DeleteUserVolume(ctx context.Context, label string) error
 	DeleteAllUserVolumes(ctx context.Context) error
 

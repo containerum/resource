@@ -75,3 +75,9 @@ func checkTariff(tariff billing.Tariff, isAdmin bool) error {
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) filterVolumes(isAdmin bool, volumes []resource.VolumeWithPermission) {
+	for i := range volumes {
+		rs.filterVolume(isAdmin, &volumes[i])
+	}
+}

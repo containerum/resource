@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes.CreateNamespaceRequest) (err error) {
+func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes.CreateNamespaceRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -24,7 +24,7 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 
 	tariff, err := rs.Billing.GetNamespaceTariff(ctx, req.TariffID)
 	if err != nil {
-		return
+		return err
 	}
 
 	if chkErr := checkTariff(tariff.Tariff, isAdmin); chkErr != nil {
@@ -65,7 +65,7 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 		return nil
 	})
 	if err = server.HandleDBError(err); err != nil {
-		return
+		return err
 	}
 
 	go func() {
@@ -74,23 +74,20 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 		}
 	}()
 
-	return
+	return nil
 }
 
-func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context,
-	params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error) {
+func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"admin":    isAdmin,
-		"page":     params.Page,
-		"per_page": params.PerPage,
-		"filters":  params.Filters,
+		"user_id": userID,
+		"admin":   isAdmin,
+		"filters": filters,
 	}).Info("get user namespaces")
 
-	filters := models.ParseNamespaceFilterParams(strings.Split(params.Filters, ",")...)
-	ret, err := rs.DB.GetAllNamespaces(ctx, params.Page, params.PerPage, &filters)
+	filterstr := models.ParseNamespaceFilterParams(strings.Split(filters, ",")...)
+	ret, err := rs.DB.GetUserNamespaces(ctx, userID, &filterstr)
 	if err != nil {
 		return nil, server.HandleDBError(err)
 	}
