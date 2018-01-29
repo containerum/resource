@@ -56,11 +56,11 @@ type ResizeNamespaceRequest = ResizeResourceRequest
 
 type CreateVolumeRequest = CreateResourceRequest
 
-type GetUserVolumesRequest = []VolumeWithPermission
+type GetUserVolumesResponse = []VolumeWithPermission
 
-type GetUserVolumeRequest = VolumeWithPermission
+type GetUserVolumeResponse = VolumeWithPermission
 
-type GetAllVolumesRequest = []VolumeWithPermission
+type GetAllVolumesResponse = []VolumeWithPermission
 
 type GetVolumeAccessesResponse = VolumeWithUserPermissions
 

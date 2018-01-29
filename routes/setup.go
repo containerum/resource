@@ -49,6 +49,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		vol.POST("", createVolumeHandler)
 
 		vol.GET("", getUserVolumesHandler)
+		vol.GET("/:label", getUserVolumeHandler)
 
 		vol.DELETE("/:label", deleteUserVolumeHandler)
 	}

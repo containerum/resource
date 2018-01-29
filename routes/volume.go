@@ -41,11 +41,21 @@ func deleteAllUserVolumesHandler(ctx *gin.Context) {
 }
 
 func getUserVolumesHandler(ctx *gin.Context) {
-	vols, err := srv.GetUserVolumes(ctx, ctx.Query("filters"))
+	vols, err := srv.GetUserVolumes(ctx.Request.Context(), ctx.Query("filters"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, vols)
+}
+
+func getUserVolumeHandler(ctx *gin.Context) {
+	vol, err := srv.GetUserVolume(ctx.Request.Context(), ctx.Param("label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, vol)
 }

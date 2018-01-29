@@ -35,7 +35,8 @@ type ResourceService interface {
 	ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error
 
 	CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error
-	GetUserVolumes(ctx context.Context, filters string) ([]rstypes.VolumeWithPermission, error)
+	GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error)
+	GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error)
 	DeleteUserVolume(ctx context.Context, label string) error
 	DeleteAllUserVolumes(ctx context.Context) error
 

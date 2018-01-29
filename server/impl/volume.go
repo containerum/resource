@@ -131,7 +131,7 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err er
 	return
 }
 
-func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters string) ([]rstypes.VolumeWithPermission, error) {
+func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -150,4 +150,24 @@ func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters strin
 	rs.filterVolumes(isAdmin, vols)
 
 	return vols, nil
+}
+
+func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error) {
+	userID := utils.MustGetUserID(ctx)
+	isAdmin := server.IsAdminRole(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"admin":   isAdmin,
+		"label":   label,
+	}).Info("get user volume")
+
+	vol, err := rs.DB.GetUserVolumeByLabel(ctx, userID, label)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return rstypes.VolumeWithPermission{}, err
+	}
+
+	rs.filterVolume(isAdmin, &vol)
+
+	return vol, nil
 }
