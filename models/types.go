@@ -31,7 +31,7 @@ type DB interface {
 	DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.Volume, error)
 	DeleteAllUserVolumes(ctx context.Context, userID string, deletePersistent bool) error
 	RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) error
-	ResizeVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
+	ResizeVolume(ctx context.Context, volume *rstypes.Volume) error
 	SetVolumeActiveByID(ctx context.Context, id string, active bool) error
 	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
 

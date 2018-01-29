@@ -116,7 +116,7 @@ func setUserNamespaceAccessHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func resizeNamespaceHandler(ctx *gin.Context) {
+func resizeUserNamespaceHandler(ctx *gin.Context) {
 	var req rstypes.ResizeNamespaceRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))

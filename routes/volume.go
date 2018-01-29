@@ -113,3 +113,16 @@ func setUserVolumeAccessHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func resizeUserVolumeHandler(ctx *gin.Context) {
+	var req rstypes.ResizeVolumeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+	}
+	if err := srv.ResizeUserVolume(ctx.Request.Context(), ctx.Param("label"), req.NewTariffID); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

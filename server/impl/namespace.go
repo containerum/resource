@@ -306,7 +306,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			return chkErr
 		}
 
-		// TODO: maybe check if user wil have exceeded quota
+		// TODO: maybe check if user will have exceeded quota
 		ns.TariffID = newTariff.ID
 		ns.CPU = newTariff.CPULimit
 		ns.RAM = newTariff.MemoryLimit

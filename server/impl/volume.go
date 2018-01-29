@@ -243,3 +243,57 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label string, newTariffID string) error {
+	userID := utils.MustGetUserID(ctx)
+	isAdmin := server.IsAdminRole(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"new_tariff_id": newTariffID,
+		"label":         label,
+		"admin":         isAdmin,
+	}).Info("resize user namespace")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		vol, getErr := tx.GetUserVolumeByLabel(ctx, userID, label)
+		if getErr != nil {
+			return getErr
+		}
+
+		if vol.TariffID == newTariffID {
+			return server.ErrTariffIsSame
+		}
+
+		newTariff, getErr := rs.Billing.GetVolumeTariff(ctx, newTariffID)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := checkTariff(newTariff.Tariff, isAdmin); chkErr != nil {
+			return chkErr
+		}
+
+		// TODO: maybe check if user will have exceeded quota
+		vol.TariffID = newTariff.ID
+		vol.Replicas = newTariff.ReplicasLimit
+		vol.Capacity = newTariff.StorageLimit
+
+		if updErr := tx.ResizeVolume(ctx, &vol.Volume); updErr != nil {
+			return updErr
+		}
+
+		// TODO: resize volume in gluster
+
+		return nil
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	go func() {
+		// TODO: send volume resize email
+	}()
+
+	return nil
+}

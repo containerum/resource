@@ -406,42 +406,26 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 	return
 }
 
-func (db *pgDB) ResizeVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) (err error) {
-	db.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Debugf("update volume to %#v", volume)
+func (db *pgDB) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err error) {
+	db.log.WithField("volume_id", volume.ID).Debugf("update volume to %#v", volume)
 
-	params := struct {
-		UserID string `db:"user_id"`
-		Label  string `db:"label"`
-		*rstypes.Volume
-	}{
-		UserID: userID,
-		Label:  label,
-		Volume: volume,
-	}
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
-		WITH user_vol AS (
-			SELECT resource_id
-			FROM permissions
-			WHERE owner_user_id = user_id AND 
-				user_id = :user_id AND 
-				resource_kind = 'volume' AND
-				resource_label = :label
-		)
+	query, args, _ := sqlx.Named(`
 		UPDATE volumes
 		SET
 			tariff_id = :tariff_id,
 			capacity = :capacity,
 			replicas = :replicas
-		WHERE id IN (SELECT * FROM user_vol)`,
-		params)
-	if err != nil {
-		err = models.WrapDBError(err)
-	}
-	if rows, _ := result.RowsAffected(); rows == 0 {
+		WHERE id = :id`,
+		volume)
+	err = sqlx.GetContext(ctx, db.extLog, volume, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
 	}
 
 	return
