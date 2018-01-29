@@ -380,6 +380,15 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 	}
 	db.log.WithFields(params).Debug("rename user volume")
 
+	exists, err := db.isVolumeExists(ctx, userID, newLabel)
+	if err != nil {
+		return
+	}
+	if exists {
+		err = models.ErrLabeledResourceExists
+		return
+	}
+
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
 		UPDATE permissions
 		SET resource_label = :old_label

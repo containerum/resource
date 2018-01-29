@@ -85,3 +85,17 @@ func getUserVolumeAccessesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func renameUserVolumeHandler(ctx *gin.Context) {
+	var req rstypes.RenameVolumeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+	if err := srv.RenameUserVolume(ctx.Request.Context(), ctx.Param("label"), req.NewLabel); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

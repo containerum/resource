@@ -205,3 +205,22 @@ func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label 
 
 	return ret, nil
 }
+
+func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":   userID,
+		"old_label": oldLabel,
+		"new_label": newLabel,
+	}).Info("rename user volume")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		return tx.RenameVolume(ctx, userID, oldLabel, newLabel)
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}
