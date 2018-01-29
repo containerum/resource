@@ -6,6 +6,8 @@ import (
 
 	"context"
 
+	"time"
+
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/billing"
 	"git.containerum.net/ch/json-types/errors"
@@ -50,6 +52,10 @@ func (rs *resourceServiceImpl) filterNamespace(isAdmin bool, ns *resource.Namesp
 		ns.Limited = nil
 		ns.NewAccessLevel = ns.AccessLevel
 		ns.NewAccessLevel = ""
+		ns.CreateTime = time.Time{}
+		ns.Deleted = nil
+		ns.DeleteTime.IsNull = true
+		ns.AccessLevelChangeTime = time.Time{}
 	}
 }
 
@@ -59,6 +65,11 @@ func (rs *resourceServiceImpl) filterVolume(isAdmin bool, vol *resource.VolumeWi
 		vol.Limited = nil
 		vol.NewAccessLevel = vol.AccessLevel
 		vol.NewAccessLevel = ""
+		vol.Deleted = nil
+		vol.DeleteTime.IsNull = true
+		vol.AccessLevelChangeTime = time.Time{}
+		vol.CreateTime = time.Time{}
+		vol.Replicas = 0
 	}
 }
 
