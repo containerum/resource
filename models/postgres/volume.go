@@ -83,7 +83,8 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 			tariff_id,
 			capacity,
 			replicas,
-			is_persistent,
+			is_persistent
+
 		)
 		VALUES (:tariff_id, :capacity, :replicas, :is_persistent)
 		RETURNING *`,
