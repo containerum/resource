@@ -59,7 +59,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 			cpu,
 			max_ext_services,
 			max_int_services,
-			max_traffic,
+			max_traffic
 		)
 		VALUES (:tariff_id, :ram, :cpu, :max_ext_services, :max_int_services, :max_traffic)
 		RETURNING *`, namespace)
