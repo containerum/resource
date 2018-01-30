@@ -105,7 +105,7 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 		*models.NamespaceFilterParams
 	}{
 		Limit:                 page,
-		Offset:                (perPage - 1) * page,
+		Offset:                (page - 1) * perPage,
 		NamespaceFilterParams: filters,
 	}
 
