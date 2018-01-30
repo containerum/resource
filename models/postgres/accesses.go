@@ -59,7 +59,7 @@ func (db *pgDB) setResourceAccess(ctx context.Context,
 			WHERE owner_user_id = user_id AND 
 					user_id = :user_id AND 
 					resource_label = :resource_label AND
-					resource_kind = :resource_kind
+					kind = :resource_kind
 		)
 		UPDATE permissions
 		SET new_access_level = :access_level
