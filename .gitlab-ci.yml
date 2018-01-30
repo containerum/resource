@@ -1,6 +1,6 @@
 stages:
-  - build
   - test
+  - build
   - deploy
 
 .create_tag: &create_tag
@@ -63,11 +63,11 @@ migrations-test:
   services:
     - docker:dind
     - postgres:latest
-  image: docker:latest
+  image: golang:1.9-alpine
   stage: test
   script:
-    - docker build --pull -f Dockerfile.migrationtests -t ${CI_REGISTRY_IMAGE}-psql-migrations-test:${TAG} .
-    - 'docker run --rm
-      -e DB_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_PORT_5432_TCP_ADDR/$POSTGRES_DB?sslmode=disable"
-      -e MIGRATIONS_DIR
-      ${CI_REGISTRY_IMAGE}-psql-migrations-test:${TAG}'
+    - apk add --no-cache git
+    - go get -v -t "postgres" github.com/mattes/migrate/cli
+    - export DB_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_PORT_5432_TCP_ADDR/$POSTGRES_DB?sslmode=disable"
+    - cli -verbose -path=$MIGRATIONS_DIR -database=$DB_URL up
+    - cli -verbose -path=$MIGRATIONS_DIR -database=$DB_URL down
