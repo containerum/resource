@@ -23,7 +23,7 @@ func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (ex
 	query, args, _ := sqlx.Named(`
 		SELECT count(ns.*)
 		FROM namespaces ns
-		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'namespace'
+		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :label`, queryFields)
 	err = sqlx.GetContext(ctx, db.extLog, &count, db.conn.Rebind(query), args...)
 	if err != nil {
@@ -336,7 +336,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		FROM permissions 
 		WHERE user_id != owner_user_id AND 
 				resource_id = :resource_id AND 
-				resource_kind = 'namespace'`,
+				kind = 'namespace'`,
 		map[string]interface{}{
 			"resource_id": ret.ID,
 		})
@@ -366,7 +366,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 			WHERE owner_user_id = user_id AND 
 					user_id = :user_id AND 
 					resource_label = :resource_label AND
-					resource_kind = 'namespace'
+					kind = 'namespace'
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
@@ -396,7 +396,7 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
 					user_id = :user_id AND 
-					resource_kind = 'namespace'
+					kind = 'namespace'
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
@@ -435,7 +435,7 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		UPDATE permissions
 		SET resource_label = :new_resource_label
 		WHERE owner_user_id = :user_id AND
-				resource_kind = 'namespace' AND
+				kind = 'namespace' AND
 				resource_label = :old_resource_label`,
 		params)
 	if err != nil {

@@ -23,7 +23,7 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 	query, args, _ := sqlx.Named(`
 		SELECT count(ns.*)
 		FROM volumes ns
-		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'volume'
+		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'volume'
 		WHERE p.user_id = $1 AND p.resource_label = $2`, params)
 	err = sqlx.GetContext(ctx, db.extLog, &count, db.conn.Rebind(query), args...)
 	if err != nil {
@@ -258,7 +258,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		SELECT *
 		FROM permissions
 		WHERE owner_user_id != user_id AND
-				resource_kind = 'volume' AND
+				kind = 'volume' AND
 				resource_id = :resource_id`,
 		map[string]interface{}{
 			"resource_id": ret.ID,
@@ -393,7 +393,7 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 		UPDATE permissions
 		SET resource_label = :old_label
 		WHERE owner_user_id = :user_id AND
-				resource_kind = 'volume' AND
+				kind = 'volume' AND
 				resource_label = :new_label`,
 		params)
 	if err != nil {
@@ -463,7 +463,7 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
 				user_id = $1 AND 
-				resource_kind = 'volume' AND
+				kind = 'volume' AND
 				resource_label = $2
 		)
 		UPDATE volumes 
