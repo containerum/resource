@@ -74,7 +74,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		(
 			kind,
 			resource_id,
-			resource_label
+			resource_label,
 			owner_user_id,
 			user_id
 		)
