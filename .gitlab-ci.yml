@@ -61,7 +61,6 @@ migrations-test:
     MIGRATIONS_DIR: ./migrations
     DOCKER_HOST: tcp://docker:2375
   services:
-    - docker:dind
     - postgres:latest
   image: golang:1.9-alpine
   stage: test
