@@ -25,7 +25,7 @@ func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (ex
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :label`, queryFields)
-	err = sqlx.GetContext(ctx, db.extLog, &count, db.conn.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -63,7 +63,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		)
 		VALUES (:tariff_id, :ram, :cpu, :max_ext_services, :max_int_services, :max_traffic)
 		RETURNING *`, namespace)
-	err = sqlx.GetContext(ctx, db.extLog, namespace, db.conn.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, namespace, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return err
@@ -124,7 +124,7 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 		LIMIT :limit
 		OFFSET :offset`,
 		params)
-	err = sqlx.SelectContext(ctx, db.extLog, &namespaces, db.conn.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &namespaces, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
 	}
@@ -170,7 +170,7 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 		params)
 
 	namespaces := make([]rstypes.NamespaceWithPermission, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &namespaces, db.conn.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &namespaces, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
 	}
@@ -258,7 +258,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 			"user_id":        userID,
 			"resource_label": label,
 		})
-	err = sqlx.GetContext(ctx, db.extLog, &ret, db.conn.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -292,7 +292,7 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		map[string]interface{}{
 			"ns_id": ret.ID,
 		})
-	err = sqlx.SelectContext(ctx, db.extLog, &ret.Volume, db.conn.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret.Volume, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -320,7 +320,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 			"user_id":        userID,
 			"resource_label": label,
 		})
-	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.conn.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -340,7 +340,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		map[string]interface{}{
 			"resource_id": ret.ID,
 		})
-	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.conn.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -373,7 +373,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 		WHERE id IN (SELECT * FROM user_ns)
 		RETURNING *`,
 		params)
-	err = sqlx.GetContext(ctx, db.extLog, &namespace, db.conn.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &namespace, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -463,7 +463,7 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespac
 		WHERE id = :id
 		RETURNING *`,
 		namespace)
-	err = sqlx.GetContext(ctx, db.extLog, namespace, db.conn.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, namespace, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
