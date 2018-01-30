@@ -17,8 +17,8 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 		Kind string
 		*auth.AccessObject
 	}, 0)
-	err = sqlx.GetContext(ctx, db.extLog, accessObjects, `
-		SELECT kind, resource_label, resource_id, new_access_level
+	err = sqlx.SelectContext(ctx, db.extLog, &accessObjects, `
+		SELECT kind, resource_label AS label, resource_id AS id, new_access_level AS access
 		FROM permissions
 		WHERE owner_user_id = user_id AND user_id = $1 AND kind in ('namespace', 'volume')`, userID)
 	if err != nil {

@@ -10,9 +10,9 @@ func handleError(err error) (int, *errors.Error) {
 	switch err.(type) {
 	case *errors.Error:
 		e := err.(*errors.Error)
-		if e.Code != 0 {
+		if code := e.Code; code != 0 {
 			e.Code = 0
-			return e.Code, e
+			return code, e
 		}
 		return http.StatusInternalServerError, e
 	default:

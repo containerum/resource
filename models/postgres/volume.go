@@ -25,7 +25,7 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 		FROM volumes ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.resource_kind = 'volume'
 		WHERE p.user_id = $1 AND p.resource_label = $2`, params)
-	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &count, db.conn.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -49,7 +49,7 @@ func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 		JOIN volumes v ON nv.vol_id = v.id
 		JOIN permissions perm ON perm.resource_id = v.id
 		WHERE nv.ns_id IN (?)`, nsIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, volsWithNsID, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &volsWithNsID, db.conn.Rebind(query), args...)
 	if err != nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		VALUES (:tariff_id, :capacity, :replicas, :is_persistent)
 		RETURNING *`,
 		volume)
-	err = sqlx.GetContext(ctx, db.extLog, volume, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, volume, db.conn.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -144,7 +144,7 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 		ORDER BY v.create_time DESC`,
 		params)
 
-	err = sqlx.SelectContext(ctx, db.extLog, ret, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -191,7 +191,7 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 			OFFSET :offset`,
 		params)
 
-	err = sqlx.SelectContext(ctx, db.extLog, ret, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -217,7 +217,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = p.owner_user_id AND p.user_id = :user_id AND p.resource_label = :resource_label`,
 		params)
-	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -243,7 +243,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = p.owner_user_id AND p.user_id = $1 AND p.resource_label = $2`,
 		params)
-	err = sqlx.GetContext(ctx, db.extLog, &ret.VolumeWithPermission, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &ret.VolumeWithPermission, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -263,7 +263,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		map[string]interface{}{
 			"resource_id": ret.ID,
 		})
-	err = sqlx.SelectContext(ctx, db.extLog, ret.Users, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -296,7 +296,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		WHERE id IN (SELECT * FROM user_vol)
 		RETURNING *`,
 		params)
-	err = sqlx.GetContext(ctx, db.extLog, &volume, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &volume, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -346,7 +346,7 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 				(is_persistent AND :delete_persistent)`,
 		params)
 	volIDs := make([]string, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, volIDs, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &volIDs, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -358,13 +358,13 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 	}
 
 	query, args, _ = sqlx.In(`DELETE FROM namespace_volume WHERE vol_id IN (?)`, volIDs)
-	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
+	if _, err = db.extLog.ExecContext(ctx, db.conn.Rebind(query), args...); err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
 
 	query, args, _ = sqlx.In(`DELETE FROM deployment_volume WHERE vol_id IN (?)`, volIDs)
-	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
+	if _, err = db.extLog.ExecContext(ctx, db.conn.Rebind(query), args...); err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
@@ -417,7 +417,7 @@ func (db *pgDB) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err e
 			replicas = :replicas
 		WHERE id = :id`,
 		volume)
-	err = sqlx.GetContext(ctx, db.extLog, volume, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, volume, db.conn.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -489,7 +489,7 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.N
 		namespace)
 
 	unlinkedVolumes := make([]string, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, unlinkedVolumes, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &unlinkedVolumes, db.conn.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -500,7 +500,7 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.N
 
 	// deactivate all volumes that was is not linked to any namespace
 	deactivatedVolumes = make([]rstypes.Volume, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, deactivatedVolumes, `
+	err = sqlx.SelectContext(ctx, db.extLog, &deactivatedVolumes, `
 		WITH vols_to_deactivate AS (
 			VALUES `+createValues(unlinkedVolumes)+`
 			EXCEPT
@@ -540,7 +540,7 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 		WHERE ns_id IN (SELECT * FROM user_namespaces)
 		RETURNING *`,
 		params)
-	err = sqlx.SelectContext(ctx, db.extLog, unlinkedVolumes, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &unlinkedVolumes, db.conn.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
