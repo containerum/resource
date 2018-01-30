@@ -261,7 +261,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 				kind = 'volume' AND
 				resource_id = :resource_id`,
 		map[string]interface{}{
-			"resource_id": ret.ID,
+			"resource_id": ret.Resource.ID,
 		})
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.extLog.Rebind(query), args...)
 	switch err {

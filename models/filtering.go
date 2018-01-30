@@ -32,7 +32,7 @@ type NamespaceFilterParams struct {
 
 // ParseNamespaceFilterParams parses a string filters
 func ParseNamespaceFilterParams(filters ...string) (ret NamespaceFilterParams) {
-	value := reflect.ValueOf(&ret)
+	value := reflect.ValueOf(&ret).Elem()
 	for _, filter := range filters {
 		if field, hasField := nsFilterMap[filter]; hasField {
 			value.Field(field).SetBool(true)
@@ -54,7 +54,7 @@ type VolumeFilterParams struct {
 
 // ParseVolumeFilterParams parses a string filters
 func ParseVolumeFilterParams(filters ...string) (ret VolumeFilterParams) {
-	value := reflect.ValueOf(&ret)
+	value := reflect.ValueOf(&ret).Elem()
 	for _, filter := range filters {
 		if field, hasField := volFilterMap[filter]; hasField {
 			value.Field(field).SetBool(true)

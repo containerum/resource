@@ -38,7 +38,7 @@ func (nt PqNullTime) UnmarshalJSON(data []byte) error {
 // MarshalJSON extends a standard Time.Marshal functionality. If IsNull set to true, return nil data
 func (nt PqNullTime) MarshalJSON() ([]byte, error) {
 	if nt.IsNull {
-		return nil, nil
+		return []byte("null"), nil
 	}
 	return nt.Time.MarshalJSON()
 }

@@ -131,8 +131,8 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 
 	nsMap = make(map[string]rstypes.NamespaceWithVolumes)
 	for _, v := range namespaces {
-		nsIDs = append(nsIDs, v.ID)
-		nsMap[v.ID] = rstypes.NamespaceWithVolumes{
+		nsIDs = append(nsIDs, v.Resource.ID)
+		nsMap[v.Resource.ID] = rstypes.NamespaceWithVolumes{
 			NamespaceWithPermission: v,
 			Volume:                  []rstypes.VolumeWithPermission{},
 		}
@@ -177,8 +177,8 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 
 	nsMap = make(map[string]rstypes.NamespaceWithVolumes)
 	for _, v := range namespaces {
-		nsIDs = append(nsIDs, v.ID)
-		nsMap[v.ID] = rstypes.NamespaceWithVolumes{
+		nsIDs = append(nsIDs, v.Resource.ID)
+		nsMap[v.Resource.ID] = rstypes.NamespaceWithVolumes{
 			NamespaceWithPermission: v,
 			Volume:                  []rstypes.VolumeWithPermission{},
 		}
@@ -290,7 +290,7 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		JOIN permissions p ON p.resource_id = nv.vol_id AND p.kind = 'volume'
 		WHERE nv.ns_id = :ns_id`,
 		map[string]interface{}{
-			"ns_id": ret.ID,
+			"ns_id": ret.Resource.ID,
 		})
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Volume, db.extLog.Rebind(query), args...)
 	switch err {
@@ -338,7 +338,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 				resource_id = :resource_id AND 
 				kind = 'namespace'`,
 		map[string]interface{}{
-			"resource_id": ret.ID,
+			"resource_id": ret.Resource.ID,
 		})
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.extLog.Rebind(query), args...)
 	switch err {
