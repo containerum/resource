@@ -486,35 +486,23 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 
 func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) (deactivatedVolumes []rstypes.Volume, err error) {
 	db.log.WithField("namespace_id", namespace.ID).Debug("unlink namespace volumes")
-	query, args, _ := sqlx.Named( /* language=sql */
-		`DELETE FROM namespace_volume
-		WHERE ns_id = :id
-		RETURNING vol_id`,
-		namespace)
-
-	unlinkedVolumes := make([]string, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &unlinkedVolumes, db.extLog.Rebind(query), args...)
-	switch err {
-	case nil, sql.ErrNoRows:
-		err = nil
-	default:
-		err = models.WrapDBError(err)
-		return
-	}
 
 	// deactivate all volumes that was is not linked to any namespace
 	deactivatedVolumes = make([]rstypes.Volume, 0)
-	query, args, _ = sqlx.In( /* language=sql */ `
-		WITH vols_to_deactivate AS (
-			VALUES (?)
+	query, args, _ := sqlx.Named( /* language=sql */ `
+		WITH deleted_vols AS (
+			DELETE FROM namespace_volume
+			WHERE ns_id = :id
+			RETURNING vol_id
+		), vols_to_deactivate AS (
+			SELECT DISTINCT vol_id FROM deleted_vols
 			EXCEPT
-			SELECT DISTINCT vol_id
-			FROM namespace_volume
+			SELECT DISTINCT vol_id FROM namespace_volume
 		)
 		UPDATE volumes
 		SET active = FALSE
 		WHERE id IN (SELECT * FROM vols_to_deactivate)
-		RETURNING *`, unlinkedVolumes)
+		RETURNING *`, namespace)
 	err = sqlx.SelectContext(ctx, db.extLog, &deactivatedVolumes, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
@@ -540,10 +528,14 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 			SELECT ns.id
 			FROM namespaces ns
 			JOIN permissions p ON p.owner_user_id = :user_id AND p.kind = 'namespace' 
+		), deleted_vols AS (
+			DELETE FROM namespace_volume
+			WHERE ns_id IN (SELECT * FROM user_namespaces)
+			RETURNING *
 		)
-		DELETE FROM namespace_volume
-		WHERE ns_id IN (SELECT * FROM user_namespaces)
-		RETURNING *`,
+		SELECT * 
+		FROM volumes
+		WHERE id IN (SELECT * FROM deleted_vols)`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &unlinkedVolumes, db.extLog.Rebind(query), args...)
 	switch err {
