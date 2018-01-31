@@ -5,6 +5,7 @@ import (
 
 	"database/sql"
 
+	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/jmoiron/sqlx"
@@ -104,10 +105,10 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 			user_id
 		)
 		VALUES ('volume', :resource_id, :resource_label, :user_id, :user_id)`,
-		map[string]interface{}{
-			"resource_id": volume.ID,
-			"label":       label,
-			"user_id":     userID,
+		rstypes.PermissionRecord{
+			ResourceID:    misc.WrapString(volume.ID),
+			ResourceLabel: label,
+			UserID:        userID,
 		})
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -237,6 +238,8 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	}
 	db.log.WithFields(params).Debug("get volume with user permissions")
 
+	ret.Users = make([]rstypes.PermissionRecord, 0)
+
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT v.*, p.*
 		FROM volumes v
@@ -259,10 +262,8 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		FROM permissions
 		WHERE owner_user_id != user_id AND
 				kind = 'volume' AND
-				resource_id = :resource_id`,
-		map[string]interface{}{
-			"resource_id": ret.Resource.ID,
-		})
+				resource_id = :id`,
+		ret.Resource)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:

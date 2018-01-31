@@ -5,8 +5,6 @@ import (
 
 	"strings"
 
-	"database/sql"
-
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
@@ -35,7 +33,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 
 	newVolume := &rstypes.Volume{
 		Resource:   rstypes.Resource{TariffID: tariff.ID},
-		Active:     misc.NullBool{NullBool: sql.NullBool{Bool: true, Valid: true}},
+		Active:     misc.WrapBool(true),
 		Capacity:   tariff.StorageLimit,
 		Replicas:   tariff.ReplicasLimit,
 		Persistent: true,

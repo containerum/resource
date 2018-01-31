@@ -6,9 +6,7 @@ import (
 )
 
 // NullBool is extended replacement for sql.NullBool
-type NullBool struct {
-	sql.NullBool
-}
+type NullBool sql.NullBool
 
 // UnmarshalJSON implements json.Unmarshaler interface. If received data is "null" it will mark it as not valid
 func (nb *NullBool) UnmarshalJSON(data []byte) (err error) {
@@ -27,4 +25,8 @@ func (nb NullBool) MarshalJSON() ([]byte, error) {
 		return []byte("null"), nil
 	}
 	return []byte(strconv.FormatBool(nb.Bool)), nil
+}
+
+func WrapBool(value bool) NullBool {
+	return NullBool{Valid: true, Bool: value}
 }

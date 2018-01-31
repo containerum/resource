@@ -5,6 +5,7 @@ import (
 
 	"database/sql"
 
+	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/jmoiron/sqlx"
@@ -79,11 +80,10 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 			user_id
 		)
 		VALUES ('namespace', :resource_id, :resource_label, :user_id, :user_id)`,
-		map[string]interface{}{
-			"resource_id":    namespace.ID,
-			"resource_label": label,
-			"user_id":        userID,
-		})
+		rstypes.PermissionRecord{
+			ResourceID:    misc.WrapString(namespace.ID),
+			ResourceLabel: label,
+			UserID:        userID})
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -254,10 +254,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
-		map[string]interface{}{
-			"user_id":        userID,
-			"resource_label": label,
-		})
+		rstypes.PermissionRecord{UserID: userID, ResourceLabel: label})
 	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
@@ -278,6 +275,8 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		"label":   label,
 	}).Debug("get namespace with volumes by label")
 
+	ret.Volume = make([]rstypes.VolumeWithPermission, 0)
+
 	ret.NamespaceWithPermission, err = db.GetUserNamespaceByLabel(ctx, userID, label)
 	if err != nil {
 		return
@@ -288,10 +287,8 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		FROM namespace_volume nv
 		JOIN volumes v ON v.id = nv.vol_id
 		JOIN permissions p ON p.resource_id = nv.vol_id AND p.kind = 'volume'
-		WHERE nv.ns_id = :ns_id`,
-		map[string]interface{}{
-			"ns_id": ret.Resource.ID,
-		})
+		WHERE nv.ns_id = :id`,
+		ret.Resource)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Volume, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
@@ -311,15 +308,14 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		"label":   label,
 	}).Debug("get user namespace with user permissions")
 
+	ret.Users = make([]rstypes.PermissionRecord, 0)
+
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
-		map[string]interface{}{
-			"user_id":        userID,
-			"resource_label": label,
-		})
+		rstypes.PermissionRecord{UserID: userID, ResourceLabel: label})
 	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
@@ -335,11 +331,9 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		`SELECT * 
 		FROM permissions 
 		WHERE user_id != owner_user_id AND 
-				resource_id = :resource_id AND 
+				resource_id = :id AND 
 				kind = 'namespace'`,
-		map[string]interface{}{
-			"resource_id": ret.Resource.ID,
-		})
+		ret.Resource)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Users, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
@@ -401,9 +395,7 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 		UPDATE namespaces
 		SET deleted = TRUE
 		WHERE id IN (SELECT * FROM user_ns)`,
-		map[string]interface{}{
-			"user_id": userID,
-		})
+		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
