@@ -42,3 +42,7 @@ func (nt NullTime) MarshalJSON() ([]byte, error) {
 	}
 	return nt.Time.MarshalJSON()
 }
+
+func WrapTime(value time.Time) NullTime {
+	return NullTime{Valid: true, Time: value}
+}

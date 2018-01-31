@@ -3,9 +3,7 @@ package misc
 import "database/sql"
 
 // NullString is extended replacement for sql.NullString
-type NullString struct {
-	sql.NullString
-}
+type NullString sql.NullString
 
 // MarshalJSON marshals string directly to json. If it is null (valid == false), marshals as "null"
 func (ns NullString) MarshalJSON() ([]byte, error) {
@@ -24,4 +22,8 @@ func (ns *NullString) UnmarshalJSON(data []byte) error {
 	ns.String = string(data)
 	ns.Valid = true
 	return nil
+}
+
+func WrapString(value string) NullString {
+	return NullString{Valid: true, String: value}
 }

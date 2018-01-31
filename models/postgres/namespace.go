@@ -81,7 +81,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		)
 		VALUES ('namespace', :resource_id, :resource_label, :user_id, :user_id)`,
 		rstypes.PermissionRecord{
-			ResourceID:    misc.NullString{NullString: sql.NullString{Valid: true, String: userID}},
+			ResourceID:    misc.WrapString(namespace.ID),
 			ResourceLabel: label,
 			UserID:        userID})
 	if err != nil {

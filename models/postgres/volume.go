@@ -106,7 +106,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		)
 		VALUES ('volume', :resource_id, :resource_label, :user_id, :user_id)`,
 		rstypes.PermissionRecord{
-			ResourceID:    misc.NullString{NullString: sql.NullString{String: volume.ID, Valid: true}},
+			ResourceID:    misc.WrapString(volume.ID),
 			ResourceLabel: label,
 			UserID:        userID,
 		})
