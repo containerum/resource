@@ -20,8 +20,8 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 	entry.Debug("check if volume exists")
 
 	var count int
-	query, args, _ := sqlx.Named(`
-		SELECT count(ns.*)
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT count(ns.*)
 		FROM volumes ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'volume'
 		WHERE p.user_id = $1 AND p.resource_label = $2`, params)
@@ -43,8 +43,8 @@ func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 		rstypes.VolumeWithPermission
 		NsID string `db:"ns_id"`
 	}, 0)
-	query, args, _ := sqlx.In(`
-		SELECT v.*, perm.*, nv.ns_id
+	query, args, _ := sqlx.In( /* language=sql */
+		`SELECT v.*, perm.*, nv.ns_id
 		FROM namespace_volume nv
 		JOIN volumes v ON nv.vol_id = v.id
 		JOIN permissions perm ON perm.resource_id = v.id
@@ -77,8 +77,8 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		return
 	}
 
-	query, args, _ := sqlx.Named(`
-		INSERT INTO volumes
+	query, args, _ := sqlx.Named( /* language=sql */
+		`INSERT INTO volumes
 		(
 			tariff_id,
 			capacity,
@@ -94,12 +94,12 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
-		INSERT INTO permissions
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`INSERT INTO permissions
 		(
 			kind,
 			resource_id,
-			resource_label
+			resource_label,
 			owner_user_id,
 			user_id
 		)
@@ -128,8 +128,8 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 		UserID:             userID,
 		VolumeFilterParams: filters,
 	}
-	query, args, _ := sqlx.Named(`
-		SELECT v.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE 
@@ -138,9 +138,9 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 			(v.deleted OR NOT :deleted) AND
 			(p.limited OR NOT :limited) AND
 			(NOT p.limited OR NOT :not_limited) AND
-			(p.owner_user_id = p_user_id OR NOT :owned) AND
-			(p.is_persistent OR NOT :persistent) AND
-			(NOT p.is_persistent OR NOT :not_persistent)
+			(p.owner_user_id = p.user_id OR NOT :owned) AND
+			(v.is_persistent OR NOT :persistent) AND
+			(NOT v.is_persistent OR NOT :not_persistent)
 		ORDER BY v.create_time DESC`,
 		params)
 
@@ -174,8 +174,8 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 		Offset:             (page - 1) * perPage,
 		VolumeFilterParams: filters,
 	}
-	query, args, _ := sqlx.Named(`
-			SELECT v.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT v.*, p.*
 			FROM volumes v
 			JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 			WHERE 
@@ -183,9 +183,9 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 				(v.deleted OR NOT :deleted) AND
 				(p.limited OR NOT :limited) AND
 				(NOT p.limited OR NOT :not_limited) AND
-				(p.owner_user_id = p_user_id OR NOT :owned) AND
-				(p.is_persistent OR NOT :persistent) AND
-				(NOT p.is_persistent OR NOT :not_persistent)
+				(p.owner_user_id = p.user_id OR NOT :owned) AND
+				(v.is_persistent OR NOT :persistent) AND
+				(NOT v.is_persistent OR NOT :not_persistent)
 			ORDER BY v.create_time DESC
 			LIMIT :limit
 			OFFSET :offset`,
@@ -211,8 +211,8 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 	}
 	db.log.WithFields(params).Debug("get user volume by label")
 
-	query, args, _ := sqlx.Named(`
-		SELECT v.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = p.owner_user_id AND p.user_id = :user_id AND p.resource_label = :resource_label`,
@@ -237,8 +237,8 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	}
 	db.log.WithFields(params).Debug("get volume with user permissions")
 
-	query, args, _ := sqlx.Named(`
-		SELECT v.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = p.owner_user_id AND p.user_id = $1 AND p.resource_label = $2`,
@@ -254,8 +254,8 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		return
 	}
 
-	query, args, _ = sqlx.Named(`
-		SELECT *
+	query, args, _ = sqlx.Named( /* language=sql */
+		`SELECT *
 		FROM permissions
 		WHERE owner_user_id != user_id AND
 				kind = 'volume' AND
@@ -282,8 +282,8 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	}
 	db.log.WithFields(params).Debug("delete user volume by label")
 
-	query, args, _ := sqlx.Named(`
-		WITH user_vol AS (
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE user_id = owner_user_id AND
@@ -307,17 +307,19 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
-		DELETE FROM namespace_volume
-		WHERE vol_id = :id`, volume)
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`DELETE FROM namespace_volume
+		WHERE vol_id = :id`,
+		volume)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
-		DELETE FROM deployment_volume
-		WHERE vol_id = :id`, volume)
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`DELETE FROM deployment_volume
+		WHERE vol_id = :id`,
+		volume)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -332,8 +334,8 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 	}
 	db.log.WithFields(params).Debug("delete all user volumes")
 
-	query, args, _ := sqlx.Named(`
-		WITH user_vol AS (
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE user_id = owner_user_id AND 
@@ -357,13 +359,13 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 		return
 	}
 
-	query, args, _ = sqlx.In(`DELETE FROM namespace_volume WHERE vol_id IN (?)`, volIDs)
+	query, args, _ = sqlx.In( /* language=sql */ `DELETE FROM namespace_volume WHERE vol_id IN (?)`, volIDs)
 	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
 
-	query, args, _ = sqlx.In(`DELETE FROM deployment_volume WHERE vol_id IN (?)`, volIDs)
+	query, args, _ = sqlx.In( /* language=sql */ `DELETE FROM deployment_volume WHERE vol_id IN (?)`, volIDs)
 	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -389,8 +391,8 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 		return
 	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
-		UPDATE permissions
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`UPDATE permissions
 		SET resource_label = :old_label
 		WHERE owner_user_id = :user_id AND
 				kind = 'volume' AND
@@ -409,8 +411,8 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 func (db *pgDB) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err error) {
 	db.log.WithField("volume_id", volume.ID).Debugf("update volume to %#v", volume)
 
-	query, args, _ := sqlx.Named(`
-		UPDATE volumes
+	query, args, _ := sqlx.Named( /* language=sql */
+		`UPDATE volumes
 		SET
 			tariff_id = :tariff_id,
 			capacity = :capacity,
@@ -438,7 +440,8 @@ func (db *pgDB) SetVolumeActiveByID(ctx context.Context, id string, active bool)
 	}
 	db.log.WithFields(params).Debug("activating volume by id")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `UPDATE volumes SET active = :id WHERE id = :active`, params)
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`UPDATE volumes SET active = :id WHERE id = :active`, params)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
@@ -457,8 +460,8 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 	}
 	db.log.WithFields(params).Debug("activating user volume")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
-		WITH user_vol AS (
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`WITH user_vol AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
@@ -482,8 +485,8 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 
 func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) (deactivatedVolumes []rstypes.Volume, err error) {
 	db.log.WithField("namespace_id", namespace.ID).Debug("unlink namespace volumes")
-	query, args, _ := sqlx.Named(`
-		DELETE FROM namespace_volume
+	query, args, _ := sqlx.Named( /* language=sql */
+		`DELETE FROM namespace_volume
 		WHERE ns_id = :id
 		RETURNING vol_id`,
 		namespace)
@@ -500,9 +503,9 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.N
 
 	// deactivate all volumes that was is not linked to any namespace
 	deactivatedVolumes = make([]rstypes.Volume, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &deactivatedVolumes, `
+	query, args, _ = sqlx.In( /* language=sql */ `
 		WITH vols_to_deactivate AS (
-			VALUES `+createValues(unlinkedVolumes)+`
+			VALUES (?)
 			EXCEPT
 			SELECT DISTINCT vol_id
 			FROM namespace_volume
@@ -510,7 +513,8 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.N
 		UPDATE volumes
 		SET active = FALSE
 		WHERE id IN (SELECT * FROM vols_to_deactivate)
-		RETURNING *`)
+		RETURNING *`, unlinkedVolumes)
+	err = sqlx.SelectContext(ctx, db.extLog, &deactivatedVolumes, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -530,8 +534,8 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 	db.log.WithFields(params).Debug("unlink all namespaces volumes")
 
 	unlinkedVolumes = make([]rstypes.Volume, 0)
-	query, args, _ := sqlx.Named(`
-		WITH user_namespaces AS (
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH user_namespaces AS (
 			SELECT ns.id
 			FROM namespaces ns
 			JOIN permissions p ON p.owner_user_id = :user_id AND p.kind = 'namespace' 
