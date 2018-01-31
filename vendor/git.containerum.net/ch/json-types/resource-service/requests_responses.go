@@ -38,11 +38,23 @@ type ResizeResourceRequest struct {
 
 type CreateNamespaceRequest = CreateResourceRequest
 
-type GetUserNamespacesResponse = []NamespaceWithVolumes
+type GetUserNamespacesResponse []NamespaceWithVolumes
+
+func (r GetUserNamespacesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
 
 type GetUserNamespaceResponse = NamespaceWithVolumes
 
-type GetAllNamespacesResponse = []NamespaceWithVolumes
+type GetAllNamespacesResponse []NamespaceWithVolumes
+
+func (r GetAllNamespacesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
 
 type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
 
@@ -56,11 +68,23 @@ type ResizeNamespaceRequest = ResizeResourceRequest
 
 type CreateVolumeRequest = CreateResourceRequest
 
-type GetUserVolumesResponse = []VolumeWithPermission
+type GetUserVolumesResponse []VolumeWithPermission
+
+func (r GetUserVolumesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
 
 type GetUserVolumeResponse = VolumeWithPermission
 
-type GetAllVolumesResponse = []VolumeWithPermission
+type GetAllVolumesResponse []VolumeWithPermission
+
+func (r GetAllVolumesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
 
 type GetVolumeAccessesResponse = VolumeWithUserPermissions
 

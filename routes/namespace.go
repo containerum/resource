@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,6 +30,8 @@ func getUserNamespacesHandler(ctx *gin.Context) {
 		return
 	}
 
+	utils.MaskForNonAdmin(ctx, resp)
+
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -38,6 +41,8 @@ func getUserNamespaceHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
+
+	utils.MaskForNonAdmin(ctx, &resp)
 
 	ctx.JSON(http.StatusOK, resp)
 }

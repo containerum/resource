@@ -79,10 +79,8 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 
 func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id": userID,
-		"admin":   isAdmin,
 		"filters": filters,
 	}).Info("get user namespaces")
 
@@ -92,19 +90,13 @@ func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context, filters st
 		return nil, server.HandleDBError(err)
 	}
 
-	// remove some data for user
-	for i := range ret {
-		rs.filterNamespaceWithVolume(isAdmin, &ret[i])
-	}
 	return ret, nil
 }
 
 func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id": userID,
-		"admin":   isAdmin,
 		"label":   label,
 	}).Info("get user namespace")
 
@@ -112,8 +104,6 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 	if err != nil {
 		return rstypes.NamespaceWithVolumes{}, server.HandleDBError(err)
 	}
-
-	rs.filterNamespaceWithVolume(isAdmin, &ret)
 
 	return ret, nil
 }

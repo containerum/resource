@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -47,6 +48,8 @@ func getUserVolumesHandler(ctx *gin.Context) {
 		return
 	}
 
+	utils.MaskForNonAdmin(ctx, vols)
+
 	ctx.JSON(http.StatusOK, vols)
 }
 
@@ -56,6 +59,8 @@ func getUserVolumeHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
+
+	utils.MaskForNonAdmin(ctx, &vol)
 
 	ctx.JSON(http.StatusOK, vol)
 }

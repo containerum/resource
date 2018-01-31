@@ -5,6 +5,9 @@ import (
 
 	"strings"
 
+	"database/sql"
+
+	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -32,7 +35,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 
 	newVolume := &rstypes.Volume{
 		Resource:   rstypes.Resource{TariffID: tariff.ID},
-		Active:     new(bool),
+		Active:     misc.NullBool{NullBool: sql.NullBool{Bool: true, Valid: true}},
 		Capacity:   tariff.StorageLimit,
 		Replicas:   tariff.ReplicasLimit,
 		Persistent: true,
@@ -133,10 +136,8 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err er
 
 func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id": userID,
-		"admin":   isAdmin,
 		"filters": filters,
 	}).Info("get user volumes")
 
@@ -146,8 +147,6 @@ func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters strin
 		err = server.HandleDBError(err)
 		return nil, err
 	}
-
-	rs.filterVolumes(isAdmin, vols)
 
 	return vols, nil
 }
@@ -166,8 +165,6 @@ func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) 
 		err = server.HandleDBError(err)
 		return rstypes.VolumeWithPermission{}, err
 	}
-
-	rs.filterVolume(isAdmin, &vol)
 
 	return vol, nil
 }
