@@ -6,12 +6,9 @@ import (
 
 	"context"
 
-	"time"
-
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/billing"
 	"git.containerum.net/ch/json-types/errors"
-	"git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
@@ -46,40 +43,6 @@ func (rs *resourceServiceImpl) Close() error {
 	return nil
 }
 
-func (rs *resourceServiceImpl) filterNamespace(isAdmin bool, ns *resource.NamespaceWithPermission) {
-	if !isAdmin {
-		ns.ID = ""
-		ns.Limited = nil
-		ns.NewAccessLevel = ns.AccessLevel
-		ns.NewAccessLevel = ""
-		ns.CreateTime = time.Time{}
-		ns.Deleted = nil
-		ns.DeleteTime.IsNull = true
-		ns.AccessLevelChangeTime = time.Time{}
-	}
-}
-
-func (rs *resourceServiceImpl) filterVolume(isAdmin bool, vol *resource.VolumeWithPermission) {
-	if !isAdmin {
-		vol.ID = ""
-		vol.Limited = nil
-		vol.NewAccessLevel = vol.AccessLevel
-		vol.NewAccessLevel = ""
-		vol.Deleted = nil
-		vol.DeleteTime.IsNull = true
-		vol.AccessLevelChangeTime = time.Time{}
-		vol.CreateTime = time.Time{}
-		vol.Replicas = 0
-	}
-}
-
-func (rs *resourceServiceImpl) filterNamespaceWithVolume(isAdmin bool, nsvol *resource.NamespaceWithVolumes) {
-	rs.filterNamespace(isAdmin, &nsvol.NamespaceWithPermission)
-	for i := range nsvol.Volume {
-		rs.filterVolume(isAdmin, &nsvol.Volume[i])
-	}
-}
-
 func checkTariff(tariff billing.Tariff, isAdmin bool) error {
 	if !tariff.Active {
 		return server.ErrTariffInactive
@@ -89,12 +52,6 @@ func checkTariff(tariff billing.Tariff, isAdmin bool) error {
 	}
 
 	return nil
-}
-
-func (rs *resourceServiceImpl) filterVolumes(isAdmin bool, volumes []resource.VolumeWithPermission) {
-	for i := range volumes {
-		rs.filterVolume(isAdmin, &volumes[i])
-	}
 }
 
 func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error) {

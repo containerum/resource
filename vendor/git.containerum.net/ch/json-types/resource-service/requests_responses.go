@@ -40,11 +40,37 @@ type CreateNamespaceRequest = CreateResourceRequest
 
 type GetUserNamespacesResponse = []NamespaceWithVolumes
 
+func (r GetUserNamespacesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
+
 type GetUserNamespaceResponse = NamespaceWithVolumes
+
+func (r *GetUserNamespaceResponse) Mask() {
+	r.NamespaceWithPermission.Mask()
+	for i := range r.Volume {
+		r.Volume[i].Mask()
+	}
+}
 
 type GetAllNamespacesResponse = []NamespaceWithVolumes
 
+func (r GetAllNamespacesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
+
 type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
+
+func (r GetUserNamespaceAccessesResponse) Mask() {
+	r.NamespaceWithPermission.Mask()
+	for i := range r.Users {
+		r.Users[i].Mask()
+	}
+}
 
 type RenameNamespaceRequest = RenameResourceRequest
 
@@ -58,9 +84,21 @@ type CreateVolumeRequest = CreateResourceRequest
 
 type GetUserVolumesResponse = []VolumeWithPermission
 
+func (r GetUserVolumesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
+
 type GetUserVolumeResponse = VolumeWithPermission
 
 type GetAllVolumesResponse = []VolumeWithPermission
+
+func (r GetAllVolumesResponse) Mask() {
+	for i := range r {
+		r[i].Mask()
+	}
+}
 
 type GetVolumeAccessesResponse = VolumeWithUserPermissions
 
