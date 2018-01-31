@@ -65,11 +65,11 @@ func (db *pgDB) setResourceAccess(ctx context.Context,
 		UPDATE permissions
 		SET new_access_level = :access_level
 		WHERE resource_id IN (SELECT * FROM user_ns)`,
-		map[string]interface{}{
-			"user_id":        userID,
-			"resource_label": label,
-			"resource_kind":  kind,
-			"access_level":   access,
+		rstypes.PermissionRecord{
+			UserID:        userID,
+			Kind:          kind,
+			ResourceLabel: label,
+			AccessLevel:   access,
 		})
 	if err != nil {
 		err = models.WrapDBError(err)
