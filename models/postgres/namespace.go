@@ -20,8 +20,8 @@ func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (ex
 	entry.Debug("check if namespace exists")
 
 	var count int
-	query, args, _ := sqlx.Named(`
-		SELECT count(ns.*)
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT count(ns.*)
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :label`, queryFields)
@@ -51,8 +51,8 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return
 	}
 
-	query, args, _ := sqlx.Named(`
-		INSERT INTO namespaces
+	query, args, _ := sqlx.Named( /* language=sql */
+		`INSERT INTO namespaces
 		(
 			tariff_id,
 			ram,
@@ -69,8 +69,8 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return err
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, `
-		INSERT INTO permissions
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`INSERT INTO permissions
 		(
 			kind,
 			resource_id,
@@ -110,8 +110,8 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 	}
 
 	namespaces := make([]rstypes.NamespaceWithPermission, 0)
-	query, args, _ := sqlx.Named(`
-		SELECT ns.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE
@@ -155,8 +155,8 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 		NamespaceFilterParams: filters,
 	}
 
-	query, args, _ := sqlx.Named(`
-		SELECT ns.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE
@@ -249,8 +249,8 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 		"label":   label,
 	}).Debug("get namespace with volumes by label")
 
-	query, args, _ := sqlx.Named(`
-		SELECT ns.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
@@ -283,8 +283,8 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		return
 	}
 
-	query, args, _ := sqlx.Named(`
-		SELECT v.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT v.*, p.*
 		FROM namespace_volume nv
 		JOIN volumes v ON v.id = nv.vol_id
 		JOIN permissions p ON p.resource_id = nv.vol_id AND p.kind = 'volume'
@@ -311,8 +311,8 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		"label":   label,
 	}).Debug("get user namespace with user permissions")
 
-	query, args, _ := sqlx.Named(`
-		SELECT ns.*, p.*
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT ns.*, p.*
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
@@ -331,8 +331,8 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 		return
 	}
 
-	query, args, _ = sqlx.Named(`
-		SELECT * 
+	query, args, _ = sqlx.Named( /* language=sql */
+		`SELECT * 
 		FROM permissions 
 		WHERE user_id != owner_user_id AND 
 				resource_id = :resource_id AND 
@@ -359,8 +359,8 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 	}
 	db.log.WithFields(params).Debug("delete user namespace by label")
 
-	query, args, _ := sqlx.Named(`
-		WITH user_ns AS (
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
@@ -390,8 +390,8 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err error) {
 	db.log.WithField("user_id", userID).Debug("delete user namespace by label")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
-		WITH user_ns AS (
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`WITH user_ns AS (
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
@@ -431,8 +431,8 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		return
 	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, `
-		UPDATE permissions
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`UPDATE permissions
 		SET resource_label = :new_resource_label
 		WHERE owner_user_id = :user_id AND
 				kind = 'namespace' AND
@@ -451,8 +451,8 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 func (db *pgDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) (err error) {
 	db.log.WithField("namespace_id", namespace.ID).Debugf("update namespace to %#v", namespace)
 
-	query, args, _ := sqlx.Named(`
-		UPDATE namespaces
+	query, args, _ := sqlx.Named( /* language=sql */
+		`UPDATE namespaces
 		SET
 			tariff_id = :tariff_id,
 			ram = :ram,
