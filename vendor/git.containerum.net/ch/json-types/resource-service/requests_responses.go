@@ -38,7 +38,7 @@ type ResizeResourceRequest struct {
 
 type CreateNamespaceRequest = CreateResourceRequest
 
-type GetUserNamespacesResponse = []NamespaceWithVolumes
+type GetUserNamespacesResponse []NamespaceWithVolumes
 
 func (r GetUserNamespacesResponse) Mask() {
 	for i := range r {
@@ -48,14 +48,7 @@ func (r GetUserNamespacesResponse) Mask() {
 
 type GetUserNamespaceResponse = NamespaceWithVolumes
 
-func (r *GetUserNamespaceResponse) Mask() {
-	r.NamespaceWithPermission.Mask()
-	for i := range r.Volume {
-		r.Volume[i].Mask()
-	}
-}
-
-type GetAllNamespacesResponse = []NamespaceWithVolumes
+type GetAllNamespacesResponse []NamespaceWithVolumes
 
 func (r GetAllNamespacesResponse) Mask() {
 	for i := range r {
@@ -64,13 +57,6 @@ func (r GetAllNamespacesResponse) Mask() {
 }
 
 type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
-
-func (r GetUserNamespaceAccessesResponse) Mask() {
-	r.NamespaceWithPermission.Mask()
-	for i := range r.Users {
-		r.Users[i].Mask()
-	}
-}
 
 type RenameNamespaceRequest = RenameResourceRequest
 
@@ -82,7 +68,7 @@ type ResizeNamespaceRequest = ResizeResourceRequest
 
 type CreateVolumeRequest = CreateResourceRequest
 
-type GetUserVolumesResponse = []VolumeWithPermission
+type GetUserVolumesResponse []VolumeWithPermission
 
 func (r GetUserVolumesResponse) Mask() {
 	for i := range r {
@@ -92,7 +78,7 @@ func (r GetUserVolumesResponse) Mask() {
 
 type GetUserVolumeResponse = VolumeWithPermission
 
-type GetAllVolumesResponse = []VolumeWithPermission
+type GetAllVolumesResponse []VolumeWithPermission
 
 func (r GetAllVolumesResponse) Mask() {
 	for i := range r {
