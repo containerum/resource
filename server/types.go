@@ -20,6 +20,7 @@ type ResourceServiceClients struct {
 	Kube    clients.Kube
 	Mail    clients.Mailer
 	Billing clients.Billing
+	User    clients.UserManagerClient
 }
 
 // ResourceService is an interface for resource-service operations.

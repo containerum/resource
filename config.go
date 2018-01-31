@@ -129,6 +129,18 @@ func setupMailerClient(addr string) (clients.Mailer, error) {
 	}
 }*/
 
+func setupUserClient(addr string) (clients.UserManagerClient, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		// TODO: stub
+		return nil, errors.New("user-manager stub not implemented")
+	case addr != "":
+		return clients.NewHTTPUserManagerClient(&url.URL{Scheme: "http", Host: addr}), nil
+	default:
+		return nil, errors.New("missing configuration for user-manager service")
+	}
+}
+
 func setupServer() (server.ResourceService, error) {
 	var clients server.ResourceServiceClients
 
@@ -151,6 +163,9 @@ func setupServer() (server.ResourceService, error) {
 	/*	if clients.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
 		return nil, err
 	}*/
+	if clients.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
+		return nil, err
+	}
 
 	// print info about clients which implements Stringer
 	v := reflect.ValueOf(clients)
