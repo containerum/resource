@@ -216,7 +216,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 		`SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = p.owner_user_id AND p.user_id = :user_id AND p.resource_label = :resource_label`,
+		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -244,7 +244,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 		`SELECT v.*, p.*
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = p.owner_user_id AND p.user_id = $1 AND p.resource_label = $2`,
+		WHERE p.user_id = $1 AND p.resource_label = $2`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &ret.VolumeWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
