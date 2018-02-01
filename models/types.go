@@ -36,11 +36,13 @@ type DB interface {
 	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
 
 	GetUserResourceAccesses(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
-	SetNamespaceAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
-	SetVolumeAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
+	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error)
 
 	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
+
+	// admin action
+	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise

@@ -125,21 +125,6 @@ func (rs *resourceServiceImpl) GetAllNamespaces(ctx context.Context,
 	return ret, nil
 }
 
-func (rs *resourceServiceImpl) GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error) {
-	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Info("get user namespace accesses")
-
-	ret, err := rs.DB.GetNamespaceWithUserPermissions(ctx, userID, label)
-	if err != nil {
-		return rstypes.GetUserNamespaceAccessesResponse{}, server.HandleDBError(err)
-	}
-
-	return ret, nil
-}
-
 func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label string) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -235,30 +220,6 @@ func (rs *resourceServiceImpl) RenameUserNamespace(ctx context.Context, oldLabel
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.RenameNamespace(ctx, userID, oldLabel, newLabel)
-	})
-	if err != nil {
-		return server.HandleDBError(err)
-	}
-
-	return nil
-}
-
-func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error {
-	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
-		"user_id":          userID,
-		"label":            label,
-		"new_access_level": newAccessLevel,
-	}).Info("change user namespace access level")
-
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if setErr := tx.SetNamespaceAccess(ctx, userID, label, newAccessLevel); setErr != nil {
-			return setErr
-		}
-
-		// TODO: update user access on auth
-
-		return nil
 	})
 	if err != nil {
 		return server.HandleDBError(err)

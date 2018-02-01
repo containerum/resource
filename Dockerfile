@@ -14,6 +14,7 @@ ENV MIGRATION_URL="file:///migration" \
     KUBE_ADDR="" \
     MAILER_ADDR="" \
     VOLUMES_ADDR="" \
+    USER_ADDR="" \
     LISTEN_ADDR=""
 EXPOSE 1213
 ENTRYPOINT ["/resource-service"]

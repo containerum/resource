@@ -185,22 +185,6 @@ func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
 	return vols, nil
 }
 
-func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error) {
-	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"label":   label,
-	}).Info("get user volume accesses")
-
-	ret, err := rs.DB.GetVolumeWithUserPermissions(ctx, userID, label)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return rstypes.VolumeWithUserPermissions{}, err
-	}
-
-	return ret, nil
-}
-
 func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -211,25 +195,6 @@ func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, n
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.RenameVolume(ctx, userID, oldLabel, newLabel)
-	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
-
-	return nil
-}
-
-func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label string, newAccessLevel rstypes.PermissionStatus) error {
-	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
-		"user_id":          userID,
-		"label":            label,
-		"new_access_level": newAccessLevel,
-	}).Info("change user volume access level")
-
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		return tx.SetVolumeAccess(ctx, userID, label, newAccessLevel)
 	})
 	if err != nil {
 		err = server.HandleDBError(err)
