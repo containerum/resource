@@ -54,6 +54,8 @@ func getUserNamespaceAccessesHandler(ctx *gin.Context) {
 		return
 	}
 
+	utils.MaskForNonAdmin(ctx, &resp)
+
 	ctx.JSON(http.StatusOK, resp)
 }
 
