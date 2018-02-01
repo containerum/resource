@@ -147,9 +147,7 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		err = models.ErrResourceNotExists
+	case nil, sql.ErrNoRows:
 	default:
 		err = models.WrapDBError(err)
 	}
@@ -194,9 +192,7 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		err = models.ErrResourceNotExists
+	case nil, sql.ErrNoRows:
 	default:
 		err = models.WrapDBError(err)
 	}

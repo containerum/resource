@@ -202,7 +202,6 @@ func (db *pgDB) GetAllNamespaces(ctx context.Context,
 		return
 	}
 	if len(nsIDs) == 0 {
-		err = models.ErrResourceNotExists
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
@@ -228,7 +227,6 @@ func (db *pgDB) GetUserNamespaces(ctx context.Context, userID string,
 		return
 	}
 	if len(nsIDs) == 0 {
-		err = models.ErrResourceNotExists
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
