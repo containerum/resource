@@ -19,7 +19,7 @@ func getUserResourceAccessesHandler(ctx *gin.Context) {
 }
 
 func setUserResourceAccessesHandler(ctx *gin.Context) {
-	var req rstypes.SetResourceAccessRequest
+	var req rstypes.SetResourcesAccessRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
