@@ -49,6 +49,8 @@ type ResourceService interface {
 
 	GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error)
 
+	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
+
 	io.Closer
 }
 

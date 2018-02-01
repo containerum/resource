@@ -26,8 +26,7 @@ type GetAllResourcesQueryParams struct {
 }
 
 type SetResourceAccessRequest struct {
-	UserID string           `json:"user_id" binding:"uuid4"`
-	Access PermissionStatus `json:"access"`
+	Access PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
 }
 
 type ResizeResourceRequest struct {

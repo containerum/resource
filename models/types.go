@@ -42,6 +42,9 @@ type DB interface {
 	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
 
+	// admin action
+	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
+
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise
 	// May return ErrTransactionBegin if transaction start failed,
