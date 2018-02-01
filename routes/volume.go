@@ -15,7 +15,7 @@ func createVolumeHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.CreateNamespace(ctx.Request.Context(), &req); err != nil {
+	if err := srv.CreateVolume(ctx.Request.Context(), &req); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -79,18 +79,6 @@ func getAllVolumesHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, vols)
-}
-
-func getUserVolumeAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("label"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
-		return
-	}
-
-	utils.MaskForNonAdmin(ctx, &resp)
-
-	ctx.JSON(http.StatusOK, resp)
 }
 
 func renameUserVolumeHandler(ctx *gin.Context) {

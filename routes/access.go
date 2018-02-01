@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/utils"
 )
 
 func getUserResourceAccessesHandler(ctx *gin.Context) {
@@ -60,4 +61,28 @@ func setUserVolumeAccessHandler(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+func getUserNamespaceAccessesHandler(ctx *gin.Context) {
+	resp, err := srv.GetUserNamespaceAccesses(ctx.Request.Context(), ctx.Param("label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	utils.MaskForNonAdmin(ctx, &resp)
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func getUserVolumeAccessesHandler(ctx *gin.Context) {
+	resp, err := srv.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	utils.MaskForNonAdmin(ctx, &resp)
+
+	ctx.JSON(http.StatusOK, resp)
 }
