@@ -28,7 +28,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 		ns.GET("", getUserNamespacesHandler)
 		ns.GET("/:label", getUserNamespaceHandler)
-		ns.GET("/:label/access", utils.RequireAdminRole, getUserNamespaceAccessesHandler)
+		ns.GET("/:label/access", getUserNamespaceAccessesHandler)
 
 		ns.DELETE("/:label", deleteUserNamespaceHandler)
 
@@ -50,7 +50,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 		vol.GET("", getUserVolumesHandler)
 		vol.GET("/:label", getUserVolumeHandler)
-		vol.GET("/:label/access", utils.RequireAdminRole, getUserVolumeAccessesHandler)
+		vol.GET("/:label/access", getUserVolumeAccessesHandler)
 
 		vol.DELETE("/:label", deleteUserVolumeHandler)
 
