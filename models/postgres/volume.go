@@ -290,7 +290,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 		)
 		UPDATE volumes
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_vol)
+		WHERE id IN (SELECT resource_id FROM user_vol)
 		RETURNING *`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &volume, db.extLog.Rebind(query), args...)
@@ -341,7 +341,7 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 		)
 		UPDATE volumes
 		SET deleted = TRUE, active = FALSE
-		WHERE id IN (SELECT * FROM user_vol) AND
+		WHERE id IN (SELECT resource_id FROM user_vol) AND
 				(is_persistent AND :delete_persistent)`,
 		params)
 	volIDs := make([]string, 0)
@@ -468,7 +468,7 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 		)
 		UPDATE volumes 
 		SET active = $2 
-		WHERE id IN (SELECT * FROM user_vol)`,
+		WHERE id IN (SELECT resource_id FROM user_vol)`,
 		params)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -497,7 +497,7 @@ func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.N
 		)
 		UPDATE volumes
 		SET active = FALSE
-		WHERE id IN (SELECT * FROM vols_to_deactivate)
+		WHERE id IN (SELECT vol_id FROM vols_to_deactivate)
 		RETURNING *`, namespace)
 	err = sqlx.SelectContext(ctx, db.extLog, &deactivatedVolumes, db.extLog.Rebind(query), args...)
 	switch err {
@@ -526,12 +526,12 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 			JOIN permissions p ON p.owner_user_id = :user_id AND p.kind = 'namespace' 
 		), deleted_vols AS (
 			DELETE FROM namespace_volume
-			WHERE ns_id IN (SELECT * FROM user_namespaces)
-			RETURNING *
+			WHERE ns_id IN (SELECT id FROM user_namespaces)
+			RETURNING vol_id
 		)
 		SELECT * 
 		FROM volumes
-		WHERE id IN (SELECT * FROM deleted_vols)`,
+		WHERE id IN (SELECT vol_id FROM deleted_vols)`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &unlinkedVolumes, db.extLog.Rebind(query), args...)
 	switch err {
