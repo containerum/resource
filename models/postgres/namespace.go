@@ -202,7 +202,6 @@ func (db *pgDB) GetAllNamespaces(ctx context.Context,
 		return
 	}
 	if len(nsIDs) == 0 {
-		err = models.ErrResourceNotExists
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
@@ -228,7 +227,6 @@ func (db *pgDB) GetUserNamespaces(ctx context.Context, userID string,
 		return
 	}
 	if len(nsIDs) == 0 {
-		err = models.ErrResourceNotExists
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
@@ -364,7 +362,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_ns)
+		WHERE id IN (SELECT resource_id FROM user_ns)
 		RETURNING *`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &namespace, db.extLog.Rebind(query), args...)
@@ -394,7 +392,7 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 		)
 		UPDATE namespaces
 		SET deleted = TRUE
-		WHERE id IN (SELECT * FROM user_ns)`,
+		WHERE id IN (SELECT resource_id FROM user_ns)`,
 		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
 		err = models.WrapDBError(err)
