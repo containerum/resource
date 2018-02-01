@@ -130,7 +130,18 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 		VolumeFilterParams: filters,
 	}
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT v.*, p.*
+		`SELECT v.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE 
@@ -174,7 +185,18 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 		VolumeFilterParams: filters,
 	}
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT v.*, p.*
+		`SELECT v.*, 
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 			FROM volumes v
 			JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 			WHERE 
@@ -209,7 +231,18 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 	db.log.WithFields(params).Debug("get user volume by label")
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT v.*, p.*
+		`SELECT v.*, 
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
@@ -237,7 +270,18 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	ret.Users = make([]rstypes.PermissionRecord, 0)
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT v.*, p.*
+		`SELECT v.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = $1 AND p.resource_label = $2`,
