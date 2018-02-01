@@ -111,7 +111,18 @@ func (db *pgDB) getNamespacesRaw(ctx context.Context,
 
 	namespaces := make([]rstypes.NamespaceWithPermission, 0)
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT ns.*, p.*
+		`SELECT ns.*, 
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE
@@ -156,7 +167,18 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 	}
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT ns.*, p.*
+		`SELECT ns.*, 
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE
@@ -248,7 +270,18 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 	}).Debug("get namespace with volumes by label")
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT ns.*, p.*
+		`SELECT ns.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
@@ -281,7 +314,18 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 	}
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT v.*, p.*
+		`SELECT v.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM namespace_volume nv
 		JOIN volumes v ON v.id = nv.vol_id
 		JOIN permissions p ON p.resource_id = nv.vol_id AND p.kind = 'volume'
@@ -309,7 +353,18 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 	ret.Users = make([]rstypes.PermissionRecord, 0)
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT ns.*, p.*
+		`SELECT ns.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
