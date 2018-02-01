@@ -39,7 +39,7 @@ func NewHTTPUserManagerClient(url *url.URL) UserManagerClient {
 }
 
 func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoGetResponse, error) {
-	u.log.WithField("id", userID).Info("Get user info from")
+	u.log.WithField("id", userID).Info("get user info")
 	ret := umtypes.UserInfoGetResponse{}
 	resp, err := u.client.R().
 		SetContext(ctx).
@@ -52,4 +52,19 @@ func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string)
 		return nil, err.(*errors.Error)
 	}
 	return &ret, nil
+}
+
+type userManagerStub struct {
+	log *logrus.Entry
+}
+
+func NewUserManagerStub() UserManagerClient {
+	return &userManagerStub{
+		log: logrus.WithField("component", "user_manager_stub"),
+	}
+}
+
+func (u *userManagerStub) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoGetResponse, error) {
+	u.log.WithField("id", userID).Info("get user info")
+	return nil, nil
 }

@@ -132,8 +132,7 @@ func setupMailerClient(addr string) (clients.Mailer, error) {
 func setupUserClient(addr string) (clients.UserManagerClient, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
-		// TODO: stub
-		return nil, errors.New("user-manager stub not implemented")
+		return clients.NewUserManagerStub(), nil
 	case addr != "":
 		return clients.NewHTTPUserManagerClient(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
