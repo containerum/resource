@@ -45,51 +45,27 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 	return
 }
 
-func (db *pgDB) setResourceAccess(ctx context.Context,
-	kind rstypes.Kind, userID, label string, access rstypes.PermissionStatus) (err error) {
+func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error) {
 	db.log.WithFields(logrus.Fields{
-		"user_id":          userID,
-		"label":            label,
-		"new_access_level": access,
-	}).Debugf("set %s access", kind)
+		"user_id":      permRec.UserID,
+		"label":        permRec.ResourceLabel,
+		"access_level": permRec.AccessLevel,
+	}).Debugf("set %s access", permRec.Kind)
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
-		`WITH user_ns AS (
-			SELECT resource_id
-			FROM permissions
-			WHERE owner_user_id = user_id AND 
-					user_id = :user_id AND 
-					resource_label = :resource_label AND
-					kind = :resource_kind
-		)
-		UPDATE permissions
-		SET new_access_level = :access_level
-		WHERE resource_id IN (SELECT * FROM user_ns)`,
-		rstypes.PermissionRecord{
-			UserID:        userID,
-			Kind:          kind,
-			ResourceLabel: label,
-			AccessLevel:   access,
-		})
+	query, args, _ := sqlx.Named( /* language=sql */
+		`INSERT INTO permissions
+		(kind, user_id, resource_id, resource_label, access_level, new_access_level)
+		VALUES (:kind, :user_id, :resource_id, :resource_label, :access_level, :access_level)
+		ON CONFLICT (kind, resource_id, resource_label, user_id) DO UPDATE SET
+			access_level = EXCLUDED.access_level,
+			new_access_level = EXCLUDED.access_level,
+			access_level_change_time = now() AT TIME ZONE 'UTC'
+		RETURNING *`,
+		permRec)
+	err = sqlx.GetContext(ctx, db.extLog, permRec, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
-
-	if count, _ := result.RowsAffected(); count == 0 {
-		err = models.ErrLabeledResourceNotExists
-	}
-
-	return
-}
-
-func (db *pgDB) SetNamespaceAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) (err error) {
-	err = db.setResourceAccess(ctx, rstypes.KindNamespace, userID, label, access)
-
-	return
-}
-
-func (db *pgDB) SetVolumeAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) (err error) {
-	err = db.setResourceAccess(ctx, rstypes.KindVolume, userID, label, access)
 
 	return
 }

@@ -36,8 +36,7 @@ type DB interface {
 	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
 
 	GetUserResourceAccesses(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
-	SetNamespaceAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
-	SetVolumeAccess(ctx context.Context, userID, label string, access rstypes.PermissionStatus) error
+	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error)
 
 	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)

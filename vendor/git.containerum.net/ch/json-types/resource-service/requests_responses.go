@@ -25,7 +25,7 @@ type GetAllResourcesQueryParams struct {
 	Filters string `form:"filters"`
 }
 
-type SetResourceAccessRequest struct {
+type SetResourcesAccessRequest struct {
 	Access PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
 }
 
@@ -59,7 +59,10 @@ type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
 
 type RenameNamespaceRequest = RenameResourceRequest
 
-type SetNamespaceAccessRequest = SetResourceAccessRequest
+type SetNamespaceAccessRequest struct {
+	Username string           `json:"username" binding:"email"`
+	Access   PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
+}
 
 type ResizeNamespaceRequest = ResizeResourceRequest
 
@@ -89,7 +92,7 @@ type GetVolumeAccessesResponse = VolumeWithUserPermissions
 
 type RenameVolumeRequest = RenameResourceRequest
 
-type SetVolumeAccessRequest = SetResourceAccessRequest
+type SetVolumeAccessRequest = SetNamespaceAccessRequest
 
 type ResizeVolumeRequest = ResizeResourceRequest
 

@@ -33,7 +33,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ns.DELETE("/:label", deleteUserNamespaceHandler)
 
 		ns.PUT("/:label/name", renameUserNamespaceHandler)
-		ns.PUT("/:label/access", utils.RequireAdminRole, setUserNamespaceAccessHandler)
+		ns.PUT("/:label/access", setUserNamespaceAccessHandler)
 		ns.PUT("/:label", resizeUserNamespaceHandler)
 	}
 
@@ -55,7 +55,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		vol.DELETE("/:label", deleteUserVolumeHandler)
 
 		vol.PUT("/:label/name", renameUserVolumeHandler)
-		vol.PUT("/:label/access", utils.RequireAdminRole, setUserVolumeAccessHandler)
+		vol.PUT("/:label/access", setUserVolumeAccessHandler)
 		vol.PUT("/:label", resizeUserVolumeHandler)
 	}
 
@@ -67,4 +67,9 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 	}
 
 	app.GET("/access", getUserResourceAccessesHandler)
+
+	adm := app.Group("/adm")
+	{
+		adm.PUT("/access", utils.RequireAdminRole, setUserResourceAccessesHandler)
+	}
 }
