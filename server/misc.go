@@ -5,6 +5,7 @@ import (
 
 	"sync"
 
+	"git.containerum.net/ch/json-types/billing"
 	"git.containerum.net/ch/json-types/errors"
 	"git.containerum.net/ch/resource-service/models"
 )
@@ -49,6 +50,18 @@ func Parallel(funcs ...func() error) (ret []error) {
 	}
 	wg.Wait()
 	return
+}
+
+// CheckTariff checks if user has permissions to use tariff
+func CheckTariff(tariff billing.Tariff, isAdmin bool) error {
+	if !tariff.Active {
+		return ErrTariffInactive
+	}
+	if !isAdmin && !tariff.Public {
+		return ErrTariffNotPublic
+	}
+
+	return nil
 }
 
 // VolumeLabelFromNamespaceLabel generates label for non-persistent volume

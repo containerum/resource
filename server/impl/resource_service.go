@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
-	"git.containerum.net/ch/json-types/billing"
 	"git.containerum.net/ch/json-types/errors"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
@@ -40,17 +39,6 @@ func (rs *resourceServiceImpl) Close() error {
 	if len(errs) > 0 {
 		return errors.Format("%#v", errs)
 	}
-	return nil
-}
-
-func checkTariff(tariff billing.Tariff, isAdmin bool) error {
-	if !tariff.Active {
-		return server.ErrTariffInactive
-	}
-	if !isAdmin && !tariff.Public {
-		return server.ErrTariffNotPublic
-	}
-
 	return nil
 }
 

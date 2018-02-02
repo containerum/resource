@@ -28,7 +28,7 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 		return err
 	}
 
-	if chkErr := checkTariff(tariff.Tariff, isAdmin); chkErr != nil {
+	if chkErr := server.CheckTariff(tariff.Tariff, isAdmin); chkErr != nil {
 		return chkErr
 	}
 
@@ -270,7 +270,12 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			return getErr
 		}
 
-		if chkErr := checkTariff(newTariff.Tariff, isAdmin); chkErr != nil {
+		oldTariff, getErr := rs.Billing.GetNamespaceTariff(ctx, ns.TariffID)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := server.CheckTariff(newTariff.Tariff, isAdmin); chkErr != nil {
 			return chkErr
 		}
 
@@ -288,6 +293,34 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 
 		if updErr := rs.Kube.SetNamespaceQuota(ctx, label, ns); updErr != nil {
 			return updErr
+		}
+
+		// if namespace has connected volume and new tariff don`t have volumes, remove it
+		if oldTariff.VolumeSize > 0 && newTariff.VolumeSize <= 0 {
+			unlinkedVol, unlinkErr := tx.DeleteUserVolumeByLabel(ctx, userID, server.VolumeLabelFromNamespaceLabel(ns.ResourceLabel))
+			if unlinkErr != nil {
+				return unlinkErr
+			}
+
+			_ = unlinkedVol
+			// TODO: deactivate/delete volume in gluster
+		}
+
+		// if new namespace tariff has volumes and old don`t have, create it
+		if newTariff.VolumeSize > 0 && oldTariff.VolumeSize <= 0 {
+			newVolume := rstypes.Volume{
+				Resource:   rstypes.Resource{TariffID: newTariff.ID},
+				Active:     misc.WrapBool(false),
+				Capacity:   newTariff.VolumeSize,
+				Replicas:   2, // FIXME
+				Persistent: false,
+			}
+
+			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabelFromNamespaceLabel(ns.ResourceLabel), &newVolume); createErr != nil {
+				return createErr
+			}
+
+			// TODO: create volume in gluster
 		}
 
 		return nil

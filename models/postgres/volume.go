@@ -344,7 +344,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 					resource_label = :resource_label
 		)
 		UPDATE volumes
-		SET deleted = TRUE
+		SET deleted = TRUE, active = FALSE 
 		WHERE id IN (SELECT resource_id FROM user_vol)
 		RETURNING *`,
 		params)
@@ -360,8 +360,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	}
 
 	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
-		`DELETE FROM namespace_volume
-		WHERE vol_id = :id`,
+		`DELETE FROM namespace_volume WHERE vol_id = :id`,
 		volume)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -369,8 +368,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	}
 
 	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
-		`DELETE FROM deployment_volume
-		WHERE vol_id = :id`,
+		`DELETE FROM deployment_volume WHERE vol_id = :id`,
 		volume)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -578,7 +576,7 @@ func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (u
 		`WITH user_namespaces AS (
 			SELECT ns.id
 			FROM namespaces ns
-			JOIN permissions p ON p.owner_user_id = :user_id AND p.kind = 'namespace' 
+			JOIN permissions p ON p.owner_user_id = :user_id AND p.owner_user_id = p.user_id AND p.kind = 'namespace' 
 		), deleted_vols AS (
 			DELETE FROM namespace_volume
 			WHERE ns_id IN (SELECT id FROM user_namespaces)
