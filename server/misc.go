@@ -50,3 +50,8 @@ func Parallel(funcs ...func() error) (ret []error) {
 	wg.Wait()
 	return
 }
+
+// VolumeLabelFromNamespaceLabel generates label for non-persistent volume
+func VolumeLabelFromNamespaceLabel(label string) string {
+	return label + "-volume"
+}
