@@ -56,13 +56,14 @@ type Volume struct {
 
 	Active     misc.NullBool `json:"active,omitempty" db:"active"`
 	Capacity   int           `json:"capacity" db:"capacity"` // gigabytes
-	Replicas   int           `json:"replicas" db:"replicas"`
+	Replicas   int           `json:"replicas,omitempty" db:"replicas"`
 	Persistent bool          `json:"is_persistent" db:"is_persistent"`
 }
 
 func (v *Volume) Mask() {
 	v.Resource.Mask()
 	v.Active.Valid = false
+	v.Replicas = 0
 }
 
 type Deployment struct {
@@ -92,7 +93,7 @@ type PermissionRecord struct {
 	OwnerUserID           string           `json:"owner_user_id,omitempty" db:"owner_user_id"`
 	CreateTime            time.Time        `json:"create_time,omitempty" db:"create_time"`
 	UserID                string           `json:"user_id" db:"user_id"`
-	AccessLevel           PermissionStatus `json:"access_level" db:"access_level"`
+	AccessLevel           PermissionStatus `json:"access" db:"access_level"`
 	Limited               bool             `json:"limited,omitempty" db:"limited"`
 	AccessLevelChangeTime time.Time        `json:"access_level_change_time" db:"access_level_change_time"`
 	NewAccessLevel        PermissionStatus `json:"new_access_level,omitempty" db:"new_access_level"`
@@ -102,11 +103,13 @@ func (p *PermissionRecord) Mask() {
 	p.PermID = ""
 	p.Kind = "" // will be already known though
 	p.ResourceID.Valid = false
+	p.OwnerUserID = ""
 	p.CreateTime = time.Time{}
+	p.UserID = ""
 	p.AccessLevel = p.NewAccessLevel
-	p.NewAccessLevel = ""
-	p.AccessLevelChangeTime = time.Time{}
 	p.Limited = false
+	p.AccessLevelChangeTime = time.Time{}
+	p.NewAccessLevel = ""
 }
 
 // Types below is not for storing in db
@@ -145,24 +148,34 @@ func (nv *NamespaceWithVolumes) Mask() {
 
 type NamespaceWithUserPermissions struct {
 	NamespaceWithPermission
-	Users []PermissionRecord `json:"users"`
+	Users []PermissionRecord `json:"users,omitempty"`
 }
 
 func (nu *NamespaceWithUserPermissions) Mask() {
+	borrowed := nu.UserID != nu.OwnerUserID
 	nu.NamespaceWithPermission.Mask()
-	for i := range nu.Users {
-		nu.Users[i].Mask()
+	if borrowed {
+		nu.Users = nil
+	} else {
+		for i := range nu.Users {
+			nu.Users[i].Mask()
+		}
 	}
 }
 
 type VolumeWithUserPermissions struct {
 	VolumeWithPermission
-	Users []PermissionRecord `json:"users"`
+	Users []PermissionRecord `json:"users,omitempty"`
 }
 
 func (vp *VolumeWithUserPermissions) Mask() {
+	borrowed := vp.UserID != vp.OwnerUserID
 	vp.VolumeWithPermission.Mask()
-	for i := range vp.Users {
-		vp.Users[i].Mask()
+	if borrowed {
+		vp.Users = nil
+	} else {
+		for i := range vp.Users {
+			vp.Users[i].Mask()
+		}
 	}
 }
