@@ -40,6 +40,7 @@ type ResourceService interface {
 	GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error)
 	GetAllVolumes(ctx context.Context, params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error)
 	GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error)
+	GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error)
 	DeleteUserVolume(ctx context.Context, label string) error
 	DeleteAllUserVolumes(ctx context.Context) error
 	RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error

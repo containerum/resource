@@ -107,3 +107,15 @@ func resizeUserVolumeHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func getVolumesLinkedWithUserNamespaceHandler(ctx *gin.Context) {
+	resp, err := srv.GetVolumesLinkedWithUserNamespace(ctx.Request.Context(), ctx.Param("label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	utils.MaskForNonAdmin(ctx, &resp)
+
+	ctx.JSON(http.StatusOK, resp)
+}

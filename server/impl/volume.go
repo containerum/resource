@@ -151,10 +151,8 @@ func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters strin
 
 func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id": userID,
-		"admin":   isAdmin,
 		"label":   label,
 	}).Info("get user volume")
 
@@ -165,6 +163,22 @@ func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) 
 	}
 
 	return vol, nil
+}
+
+func (rs *resourceServiceImpl) GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id": userID,
+		"label":   label,
+	}).Info("get volumes linked with user namespace")
+
+	vols, err := rs.DB.GetVolumesLinkedWithUserNamespace(ctx, userID, label)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
+	}
+
+	return vols, nil
 }
 
 func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,

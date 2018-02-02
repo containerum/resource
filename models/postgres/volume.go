@@ -327,6 +327,62 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	return
 }
 
+func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, label string) (ret []rstypes.VolumeWithPermission, err error) {
+	params := map[string]interface{}{
+		"user_id":        userID,
+		"resource_label": label,
+	}
+	db.log.WithFields(params).Debug("get volumes linked with user namespace")
+
+	exist, err := db.isNamespaceExists(ctx, userID, label)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if !exist {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	ret = make([]rstypes.VolumeWithPermission, 0)
+
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH user_namespace AS (
+			SELECT resource_id
+			FROM permissions
+			WHERE user_id = owner_user_id AND 
+					user_id = :user_id AND 
+					kind = 'namespace' AND
+				  	resource_label = :resource_label
+		), namespace_volumes AS (
+			SELECT vol_id FROM namespace_volume WHERE ns_id IN (SELECT resource_id FROM user_namespace)
+		)
+		SELECT v.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
+		FROM volumes v
+		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
+		WHERE v.id IN (SELECT vol_id FROM namespace_volumes)`,
+		params)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+	default:
+		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
 func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (volume rstypes.Volume, err error) {
 	params := map[string]interface{}{
 		"user_id":        userID,
