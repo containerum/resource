@@ -27,7 +27,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 	if err != nil {
 		return err
 	}
-	if chkErr := checkTariff(tariff.Tariff, isAdmin); chkErr != nil {
+	if chkErr := server.CheckTariff(tariff.Tariff, isAdmin); chkErr != nil {
 		return chkErr
 	}
 
@@ -229,7 +229,7 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 			return getErr
 		}
 
-		if chkErr := checkTariff(newTariff.Tariff, isAdmin); chkErr != nil {
+		if chkErr := server.CheckTariff(newTariff.Tariff, isAdmin); chkErr != nil {
 			return chkErr
 		}
 
