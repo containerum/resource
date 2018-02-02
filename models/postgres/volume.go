@@ -22,10 +22,10 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 
 	var count int
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT count(ns.*)
-		FROM volumes ns
-		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'volume'
-		WHERE p.user_id = $1 AND p.resource_label = $2`, params)
+		`SELECT count(v.*)
+		FROM volumes v
+		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
+		WHERE p.user_id = :user_id AND p.resource_label = :label`, params)
 	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
