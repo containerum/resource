@@ -200,7 +200,7 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 			return unlinkErr
 		}
 
-		if delErr := rs.DB.DeleteAllUserVolumes(ctx, userID, false); delErr != nil {
+		if _, delErr := rs.DB.DeleteAllUserVolumes(ctx, userID, true); delErr != nil {
 			return delErr
 		}
 

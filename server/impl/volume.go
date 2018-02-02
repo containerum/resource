@@ -114,7 +114,7 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err er
 	rs.log.WithField("user_id", userID).Info("delete all user volumes")
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if delErr := tx.DeleteAllUserVolumes(ctx, userID, true); err != nil {
+		if _, delErr := tx.DeleteAllUserVolumes(ctx, userID, false); err != nil {
 			return delErr
 		}
 
