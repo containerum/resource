@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"strings"
 
@@ -84,8 +83,7 @@ func (db *pgDB) migrateUp(path string) (*migrate.Migrate, error) {
 }
 
 func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, tx models.DB) error) (err error) {
-	start := time.Now().Format(time.ANSIC)
-	e := db.log.WithField("transaction_at", start)
+	e := db.log.WithField("transaction_id", chutils.NewUUID())
 	e.Debugln("Begin transaction")
 	tx, txErr := db.conn.Beginx()
 	if txErr != nil {
