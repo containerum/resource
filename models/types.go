@@ -28,6 +28,7 @@ type DB interface {
 	GetAllVolumes(ctx context.Context, page, perPage int, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
 	GetUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.VolumeWithPermission, error)
 	GetVolumeWithUserPermissions(ctx context.Context, userID, label string) (rstypes.VolumeWithUserPermissions, error)
+	GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, label string) ([]rstypes.VolumeWithPermission, error)
 	DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.Volume, error)
 	DeleteAllUserVolumes(ctx context.Context, userID string, deletePersistent bool) error
 	RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) error
