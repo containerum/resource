@@ -5,6 +5,7 @@ import (
 
 	"strings"
 
+	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -50,6 +51,22 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 			PermissionRecord: rstypes.PermissionRecord{AccessLevel: rstypes.PermissionStatusOwner},
 		}); createErr != nil {
 			return createErr
+		}
+
+		if tariff.VolumeSize > 0 {
+			newVolume := rstypes.Volume{
+				Resource:   rstypes.Resource{TariffID: tariff.ID},
+				Active:     misc.WrapBool(false),
+				Capacity:   tariff.VolumeSize,
+				Replicas:   2, // FIXME
+				Persistent: false,
+			}
+
+			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabelFromNamespaceLabel(req.Label), &newVolume); createErr != nil {
+				return createErr
+			}
+
+			// TODO: create volume in gluster, do not return error
 		}
 
 		if createErr := rs.Billing.Subscribe(ctx, userID, newNamespace.Resource, rstypes.KindNamespace); createErr != nil {
