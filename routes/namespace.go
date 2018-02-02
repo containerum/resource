@@ -47,18 +47,6 @@ func getUserNamespaceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func getUserNamespaceAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserNamespaceAccesses(ctx.Request.Context(), ctx.Param("label"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
-		return
-	}
-
-	utils.MaskForNonAdmin(ctx, &resp)
-
-	ctx.JSON(http.StatusOK, resp)
-}
-
 func getAllNamespacesHandler(ctx *gin.Context) {
 	var params rstypes.GetAllResourcesQueryParams
 	if err := ctx.ShouldBindQuery(&params); err != nil {
