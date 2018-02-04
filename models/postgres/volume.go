@@ -433,10 +433,10 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	return
 }
 
-func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deletePersistent bool) (err error) {
+func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, nonPersistentOnly bool) (ret []rstypes.Volume, err error) {
 	params := map[string]interface{}{
-		"user_id":           userID,
-		"delete_persistent": deletePersistent,
+		"user_id":             userID,
+		"non_persistent_only": nonPersistentOnly,
 	}
 	db.log.WithFields(params).Debug("delete all user volumes")
 
@@ -450,29 +450,14 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, deleteP
 		)
 		UPDATE volumes
 		SET deleted = TRUE, active = FALSE
-		WHERE id IN (SELECT resource_id FROM user_vol) AND
-				(is_persistent AND :delete_persistent)`,
+		WHERE id IN (SELECT resource_id FROM user_vol) AND (NOT is_persistent OR NOT :non_persistent_only)
+		RETURNING *`,
 		params)
-	volIDs := make([]string, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &volIDs, db.extLog.Rebind(query), args...)
+	ret = make([]rstypes.Volume, 0)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		err = models.ErrLabeledResourceNotExists
-		return
+	case nil, sql.ErrNoRows:
 	default:
-		err = models.WrapDBError(err)
-		return
-	}
-
-	query, args, _ = sqlx.In( /* language=sql */ `DELETE FROM namespace_volume WHERE vol_id IN (?)`, volIDs)
-	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-
-	query, args, _ = sqlx.In( /* language=sql */ `DELETE FROM deployment_volume WHERE vol_id IN (?)`, volIDs)
-	if _, err = db.extLog.ExecContext(ctx, db.extLog.Rebind(query), args...); err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
