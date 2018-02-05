@@ -19,7 +19,13 @@ func createDeploymentHandler(ctx *gin.Context) {
 }
 
 func getDeploymentsHandler(ctx *gin.Context) {
-	// TODO
+	resp, err := srv.GetDeployments(ctx.Request.Context(), ctx.Param("ns_label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func getDeploymentByLabelHandler(ctx *gin.Context) {

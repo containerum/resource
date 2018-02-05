@@ -8,6 +8,7 @@ import (
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 )
 
 // DB is an interface to resource-service database
@@ -41,6 +42,8 @@ type DB interface {
 
 	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
+
+	GetDeployments(ctx context.Context, userID, nsLabel string) ([]kubtypes.Deployment, error)
 
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
