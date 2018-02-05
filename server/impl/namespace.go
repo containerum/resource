@@ -85,11 +85,9 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 		return err
 	}
 
-	go func() {
-		if err := rs.Mail.SendNamespaceCreated(ctx, userID, req.Label, tariff); err != nil {
-			logrus.WithError(err).Error("send namespace created email failed")
-		}
-	}()
+	if err := rs.Mail.SendNamespaceCreated(ctx, userID, req.Label, tariff); err != nil {
+		logrus.WithError(err).Error("send namespace created email failed")
+	}
 
 	return nil
 }
@@ -181,11 +179,9 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 		return server.HandleDBError(err)
 	}
 
-	go func() {
-		if err := rs.Mail.SendNamespaceDeleted(ctx, userID, label); err != nil {
-			logrus.WithError(err).Error("send namespace deleted mail failed")
-		}
-	}()
+	if err := rs.Mail.SendNamespaceDeleted(ctx, userID, label); err != nil {
+		logrus.WithError(err).Error("send namespace deleted mail failed")
+	}
 
 	return nil
 }
@@ -220,9 +216,7 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 		return server.HandleDBError(err)
 	}
 
-	go func() {
-		// TODO: send email
-	}()
+	// TODO: send email
 
 	return nil
 }
@@ -329,9 +323,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 		return server.HandleDBError(err)
 	}
 
-	go func() {
-		// TODO: send namespace resized email
-	}()
+	// TODO: send namespace resized email
 
 	return nil
 }

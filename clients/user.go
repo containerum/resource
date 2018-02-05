@@ -7,6 +7,7 @@ import (
 
 	"git.containerum.net/ch/json-types/errors"
 	umtypes "git.containerum.net/ch/json-types/user-manager"
+	"git.containerum.net/ch/utils"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
@@ -14,7 +15,8 @@ import (
 
 // UserManagerClient is interface to user-manager service
 type UserManagerClient interface {
-	UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoGetResponse, error)
+	UserInfoByLogin(ctx context.Context, login string) (*umtypes.UserInfoByLoginGetResponse, error)
+	UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoByIDGetResponse, error)
 }
 
 type httpUserManagerClient struct {
@@ -38,20 +40,34 @@ func NewHTTPUserManagerClient(url *url.URL) UserManagerClient {
 	}
 }
 
-func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoGetResponse, error) {
-	u.log.WithField("id", userID).Info("get user info")
-	ret := umtypes.UserInfoGetResponse{}
+func (u *httpUserManagerClient) UserInfoByLogin(ctx context.Context, login string) (*umtypes.UserInfoByLoginGetResponse, error) {
+	u.log.WithField("login", login).Info("get user info by login")
 	resp, err := u.client.R().
 		SetContext(ctx).
-		SetResult(&ret).
-		Get("/user/info/" + userID)
+		SetResult(umtypes.UserInfoByLoginGetResponse{}).
+		Get("/info/login/" + login)
 	if err != nil {
 		return nil, err
 	}
 	if err := resp.Error(); err != nil {
 		return nil, err.(*errors.Error)
 	}
-	return &ret, nil
+	return resp.Result().(*umtypes.UserInfoByLoginGetResponse), nil
+}
+
+func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoByIDGetResponse, error) {
+	u.log.WithField("id", userID).Info("get user info by id")
+	resp, err := u.client.R().
+		SetContext(ctx).
+		SetResult(umtypes.UserInfoByLoginGetResponse{}).
+		Get("/info/id/" + userID)
+	if err != nil {
+		return nil, err
+	}
+	if err := resp.Error(); err != nil {
+		return nil, err.(*errors.Error)
+	}
+	return resp.Result().(*umtypes.UserInfoByIDGetResponse), nil
 }
 
 type userManagerStub struct {
@@ -64,7 +80,24 @@ func NewUserManagerStub() UserManagerClient {
 	}
 }
 
-func (u *userManagerStub) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoGetResponse, error) {
-	u.log.WithField("id", userID).Info("get user info")
-	return nil, nil
+func (u *userManagerStub) UserInfoByLogin(ctx context.Context, login string) (*umtypes.UserInfoByLoginGetResponse, error) {
+	u.log.WithField("id", login).Info("get user info by login")
+	return &umtypes.UserInfoByLoginGetResponse{
+		ID:   utils.NewUUID(),
+		Role: "user",
+		Data: map[string]interface{}{
+			"email": login,
+		},
+	}, nil
+}
+
+func (u *userManagerStub) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoByIDGetResponse, error) {
+	u.log.WithField("id", userID).Info("get user info by id")
+	return &umtypes.UserInfoByIDGetResponse{
+		Login: "fake-" + userID + "@test.com",
+		Role:  "user",
+		Data: map[string]interface{}{
+			"email": "fake-" + userID + "@test.com",
+		},
+	}, nil
 }

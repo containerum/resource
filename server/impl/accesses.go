@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	"git.containerum.net/ch/grpc-proto-files/auth"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -48,7 +49,12 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 			return server.ErrResourceNotOwned
 		}
 
-		vol.PermissionRecord.UserID = "" // FIXME: retrieve from login via user-manager
+		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
+		if getErr != nil {
+			return getErr
+		}
+
+		vol.PermissionRecord.UserID = info.ID
 		vol.PermissionRecord.AccessLevel = req.Access
 
 		if setErr := tx.SetResourceAccess(ctx, &vol.PermissionRecord); setErr != nil {
@@ -86,7 +92,12 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 			return server.ErrResourceNotOwned
 		}
 
-		ns.PermissionRecord.UserID = "" // FIXME: retrieve from login via user-manager
+		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
+		if getErr != nil {
+			return getErr
+		}
+
+		ns.PermissionRecord.UserID = info.ID
 		ns.PermissionRecord.AccessLevel = req.Access
 
 		if setErr := tx.SetResourceAccess(ctx, &ns.PermissionRecord); setErr != nil {
@@ -131,6 +142,19 @@ func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label 
 	if err != nil {
 		err = server.HandleDBError(err)
 		return rstypes.VolumeWithUserPermissions{}, err
+	}
+
+	return ret, nil
+}
+
+func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithField("user_id", userID).Info("get all user accesses")
+
+	ret, err := rs.DB.GetUserResourceAccesses(ctx, userID)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
 	}
 
 	return ret, nil

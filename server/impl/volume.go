@@ -61,11 +61,9 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 		return err
 	}
 
-	go func() {
-		if err := rs.Mail.SendVolumeCreated(ctx, userID, req.Label, tariff); err != nil {
-			rs.log.WithError(err).Error("create volume email send failed")
-		}
-	}()
+	if err := rs.Mail.SendVolumeCreated(ctx, userID, req.Label, tariff); err != nil {
+		rs.log.WithError(err).Error("create volume email send failed")
+	}
 
 	return err
 }
@@ -100,11 +98,9 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 		return err
 	}
 
-	go func() {
-		if err := rs.Mail.SendVolumeDeleted(ctx, userID, label); err != nil {
-			rs.log.WithError(err).Error("send volume deleted email failed")
-		}
-	}()
+	if err := rs.Mail.SendVolumeDeleted(ctx, userID, label); err != nil {
+		rs.log.WithError(err).Error("send volume deleted email failed")
+	}
 
 	return nil
 }
@@ -265,9 +261,7 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 		return err
 	}
 
-	go func() {
-		// TODO: send volume resize email
-	}()
+	// TODO: send volume resize email
 
 	return nil
 }
