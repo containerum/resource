@@ -19,4 +19,5 @@ http://opentracing.io/documentation/
 https://github.com/opentracing/specification/blob/master/semantic_conventions.md
 
 */
+
 package grpc_opentracing

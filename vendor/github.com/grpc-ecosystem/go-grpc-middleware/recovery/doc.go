@@ -2,7 +2,7 @@
 // See LICENSE for licensing terms.
 
 /*
-`grpc_recovery` are intereceptors that recover from gRPC handler panics.
+`grpc_recovery` conversion of panics into gRPC errors
 
 Server Side Recovery Middleware
 

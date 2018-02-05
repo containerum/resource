@@ -11,20 +11,20 @@
 
 [gRPC Go](https://github.com/grpc/grpc-go) Middleware: interceptors, helpers, utilities.
 
-**Important** The repo recently moved to `github.com/grpc-ecosystem/go-grpc-middleware`, please update your import paths.
+**Important** The repo recently moved from `github.com/grpc-ecosystem/go-grpc-middleware`, please update your import paths.
 
 ## Middleware
 
 [gRPC Go](https://github.com/grpc/grpc-go) recently acquired support for
 Interceptors, i.e. [middleware](https://medium.com/@matryer/writing-middleware-in-golang-and-how-go-makes-it-so-much-fun-4375c1246e81#.gv7tdlghs) 
 that is executed either on the gRPC Server before the request is passed onto the user's application logic, or on the gRPC client either around the user call. It is a perfect way to implement
-common patterns: auth, logging, message, validation, retries or monitoring.
+common patters: auth, logging, message, validation, retries or monitoring.
 
 These are generic building blocks that make it easy to build multiple microservices easily.
 The purpose of this repository is to act as a go-to point for such reusable functionality. It contains
 some of them itself, but also will link to useful external repos.
 
-`grpc_middleware` itself provides support for chaining interceptors. See [Documentation](DOC.md), but here's an example:
+`grpc_middleware` itself provides support for chaining interceptors. Se [Documentation](DOC.md), but here's an example:
 
 ```go
 import "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -54,12 +54,12 @@ myServer := grpc.NewServer(
 *Please send a PR to add new interceptors or middleware to this list*
 
 #### Auth
-   * [`grpc_auth`](auth) - a customizable (via `AuthFunc`) piece of auth middleware 
+   * [`grpc_auth`](auth) - a customizable (via `AuthFunc) piece of auth middleware 
 
 #### Logging
    * [`grpc_ctxtags`](tags/) - a library that adds a `Tag` map to context, with data populated from request body
    * [`grpc_zap`](logging/zap/) - integration of [zap](https://github.com/uber-go/zap) logging library into gRPC handlers.
-   * [`grpc_logrus`](logging/logrus/) - integration of [logrus](https://github.com/sirupsen/logrus) logging library into gRPC handlers.
+   * [`grpc_logrus`](logging/logrus/) - integration of [logrus](https://github.com/Sirupsen/logrus) logging library into gRPC handlers.
 
 
 #### Monitoring

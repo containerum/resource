@@ -4,7 +4,7 @@
 package grpc_logrus
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"google.golang.org/grpc/grpclog"
 )
 

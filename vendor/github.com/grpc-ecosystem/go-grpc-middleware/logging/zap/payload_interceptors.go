@@ -1,3 +1,6 @@
+// Copyright 2017 Michal Witkowski. All Rights Reserved.
+// See LICENSE for licensing terms.
+
 package grpc_zap
 
 import (
@@ -7,7 +10,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags/zap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/net/context"
@@ -21,19 +23,19 @@ var (
 
 // PayloadUnaryServerInterceptor returns a new unary server interceptors that logs the payloads of requests.
 //
-// This *only* works when placed *after* the `grpc_zap.UnaryServerInterceptor`. However, the logging can be done to a
+// This *only* works when placed *after* the `grpc_logrus.UnaryServerInterceptor`. However, the logging can be done to a
 // separate instance of the logger.
 func PayloadUnaryServerInterceptor(logger *zap.Logger, decider grpc_logging.ServerPayloadLoggingDecider) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !decider(ctx, info.FullMethod, info.Server) {
 			return handler(ctx, req)
 		}
-		// Use the provided zap.Logger for logging but use the fields from context.
-		logEntry := logger.With(append(serverCallFields(info.FullMethod), ctx_zap.TagsToFields(ctx)...)...)
+		// Use the provided logrus.Entry for logging but use the fields from context.
+		logEntry := logger.With(append(serverCallFields(ctx, info.FullMethod), tagsFieldsToZapFields(ctx)...)...)
 		logProtoMessageAsJson(logEntry, req, "grpc.request.content", "server request payload logged as grpc.request.content field")
 		resp, err := handler(ctx, req)
 		if err == nil {
-			logProtoMessageAsJson(logEntry, resp, "grpc.response.content", "server response payload logged as grpc.request.content field")
+			logProtoMessageAsJson(logEntry, req, "grpc.response.content", "server response payload logged as grpc.request.content field")
 		}
 		return resp, err
 	}
@@ -41,14 +43,14 @@ func PayloadUnaryServerInterceptor(logger *zap.Logger, decider grpc_logging.Serv
 
 // PayloadUnaryServerInterceptor returns a new server server interceptors that logs the payloads of requests.
 //
-// This *only* works when placed *after* the `grpc_zap.StreamServerInterceptor`. However, the logging can be done to a
+// This *only* works when placed *after* the `grpc_logrus.StreamServerInterceptor`. However, the logging can be done to a
 // separate instance of the logger.
 func PayloadStreamServerInterceptor(logger *zap.Logger, decider grpc_logging.ServerPayloadLoggingDecider) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if !decider(stream.Context(), info.FullMethod, srv) {
 			return handler(srv, stream)
 		}
-		logEntry := logger.With(append(serverCallFields(info.FullMethod), ctx_zap.TagsToFields(stream.Context())...)...)
+		logEntry := logger.With(append(serverCallFields(stream.Context(), info.FullMethod), tagsFieldsToZapFields(stream.Context())...)...)
 		newStream := &loggingServerStream{ServerStream: stream, logger: logEntry}
 		return handler(srv, newStream)
 	}
@@ -127,22 +129,22 @@ func (l *loggingServerStream) RecvMsg(m interface{}) error {
 
 func logProtoMessageAsJson(logger *zap.Logger, pbMsg interface{}, key string, msg string) {
 	if p, ok := pbMsg.(proto.Message); ok {
-		logger.Check(zapcore.InfoLevel, msg).Write(zap.Object(key, &jsonpbObjectMarshaler{pb: p}))
+		logger.Check(zapcore.InfoLevel, msg).Write(zap.Object(key, &jsonpbMarshalleble{Message: p}))
 	}
 }
 
-type jsonpbObjectMarshaler struct {
-	pb proto.Message
+type jsonpbMarshalleble struct {
+	proto.Message
 }
 
-func (j *jsonpbObjectMarshaler) MarshalLogObject(e zapcore.ObjectEncoder) error {
+func (j *jsonpbMarshalleble) MarshalLogObject(e zapcore.ObjectEncoder) error {
 	// ZAP jsonEncoder deals with AddReflect by using json.MarshalObject. The same thing applies for consoleEncoder.
-	return e.AddReflected("msg", j)
+	return e.AddReflected("msg", j.Message)
 }
 
-func (j *jsonpbObjectMarshaler) MarshalJSON() ([]byte, error) {
+func (j *jsonpbMarshalleble) MarshalJSON() ([]byte, error) {
 	b := &bytes.Buffer{}
-	if err := JsonPbMarshaller.Marshal(b, j.pb); err != nil {
+	if err := JsonPbMarshaller.Marshal(b, j); err != nil {
 		return nil, fmt.Errorf("jsonpb serializer failed: %v", err)
 	}
 	return b.Bytes(), nil
