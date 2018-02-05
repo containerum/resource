@@ -21,7 +21,7 @@ Please see examples and tests for examples of use.
 
 ## <a name="pkg-imports">Imported Packages</a>
 
-- github.com/Sirupsen/logrus
+- github.com/sirupsen/logrus
 - [github.com/golang/protobuf/jsonpb](https://godoc.org/github.com/golang/protobuf/jsonpb)
 - [github.com/golang/protobuf/proto](https://godoc.org/github.com/golang/protobuf/proto)
 - [github.com/grpc-ecosystem/go-grpc-middleware](./../..)
