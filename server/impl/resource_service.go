@@ -4,12 +4,8 @@ import (
 	"io"
 	"reflect"
 
-	"context"
-
-	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/errors"
 	"git.containerum.net/ch/resource-service/server"
-	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,17 +36,4 @@ func (rs *resourceServiceImpl) Close() error {
 		return errors.Format("%#v", errs)
 	}
 	return nil
-}
-
-func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error) {
-	userID := utils.MustGetUserID(ctx)
-	rs.log.WithField("user_id", userID).Info("get all user accesses")
-
-	ret, err := rs.DB.GetUserResourceAccesses(ctx, userID)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
-
-	return ret, nil
 }
