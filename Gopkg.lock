@@ -11,13 +11,19 @@
   branch = "master"
   name = "git.containerum.net/ch/json-types"
   packages = ["billing","errors","mail-templater","misc","resource-service","user-manager"]
-  revision = "76be237300d2af2853274a48a2effe664c2d35d4"
+  revision = "efa6603433db0049b3f0e33549c347432b0d2e86"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
   revision = "508227f5dfd463f6f4ec0f433ce81b9d0c972b18"
+
+[[projects]]
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
+  version = "v1.0.4"
 
 [[projects]]
   branch = "master"
@@ -44,10 +50,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
+  branch = "better_docs"
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
-  packages = [".","logging","logging/logrus","tags","tags/logrus"]
-  revision = "d0c54e68681ec7999ac17864470f3bee6521ba2b"
+  packages = [".","logging","logging/logrus","tags"]
+  revision = "63e69ea2fcaa6764e67826381756e528db9203ab"
 
 [[projects]]
   branch = "master"

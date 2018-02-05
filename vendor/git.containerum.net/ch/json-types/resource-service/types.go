@@ -112,6 +112,46 @@ func (p *PermissionRecord) Mask() {
 	p.NewAccessLevel = ""
 }
 
+type Container struct {
+	ID       string `json:"id,omitempty" db:"id"`
+	DeployID string `json:"depl_id,omitempty" db:"depl_id"`
+	Name     string `json:"name" db:"name"`
+	Image    string `json:"image" db:"image"`
+	RAM      int    `json:"ram" db:"ram"`
+	CPU      int    `json:"cpu" db:"cpu"`
+}
+
+func (c *Container) Mask() {
+	c.ID = ""
+	c.DeployID = ""
+}
+
+type EnvironmentVariable struct {
+	EnvID       string `json:"id,omitempty" db:"env_id"`
+	ContainerID string `json:"container_id,omitempty" db:"container_id"`
+	Name        string `json:"name" db:"name"`
+	Value       string `json:"value" db:"value"`
+}
+
+func (e *EnvironmentVariable) Mask() {
+	e.EnvID = ""
+	e.ContainerID = ""
+}
+
+type VolumeMount struct {
+	MountID     string          `json:"id,omitempty" db:"mount_id"`
+	ContainerID string          `json:"container_id,omitempty" db:"container_id"`
+	VolumeID    string          `json:"volume_id,omitempty" db:"volume_id"`
+	MountPath   string          `json:"mount_path" db:"mount_path"`
+	SubPath     misc.NullString `json:"sub_path,omitempty" db:"sub_path"`
+}
+
+func (vm *VolumeMount) Mask() {
+	vm.MountID = ""
+	vm.ContainerID = ""
+	vm.VolumeID = ""
+}
+
 // Types below is not for storing in db
 
 type NamespaceWithPermission struct {
