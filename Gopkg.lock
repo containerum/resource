@@ -20,12 +20,6 @@
   revision = "508227f5dfd463f6f4ec0f433ce81b9d0c972b18"
 
 [[projects]]
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
-  version = "v1.0.4"
-
-[[projects]]
   branch = "master"
   name = "github.com/gin-contrib/sse"
   packages = ["."]
@@ -44,16 +38,16 @@
   revision = "783c7ee9c14eac0e65b501664b4f553291556b43"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["jsonpb","proto","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "bbd03ef6da3a115852eaf24c8a1c46aeb39aa175"
 
 [[projects]]
-  branch = "better_docs"
+  branch = "master"
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
-  packages = [".","logging","logging/logrus","tags"]
-  revision = "63e69ea2fcaa6764e67826381756e528db9203ab"
+  packages = [".","logging","logging/logrus","tags","tags/logrus"]
+  revision = "d0c54e68681ec7999ac17864470f3bee6521ba2b"
 
 [[projects]]
   branch = "master"
@@ -154,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "61d91b73981b00fc71a7f2d0d7b75b67d6b88c7d69b69745bd4837e26ba92e62"
+  inputs-digest = "1838d0d08b50129e1d6d460dfaa30825785db4e9459ca5aec94c2a75603e95f8"
   solver-name = "gps-cdcl"
   solver-version = 1
