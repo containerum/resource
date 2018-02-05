@@ -1,0 +1,3 @@
+ALTER TABLE deployments
+  ADD COLUMN replicas INTEGER NOT NULL DEFAULT 1,
+  ADD CONSTRAINT replicas_check CHECK (replicas BETWEEN 1 AND 15);
