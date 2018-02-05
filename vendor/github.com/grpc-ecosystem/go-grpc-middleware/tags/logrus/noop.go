@@ -1,9 +1,9 @@
-package grpc_logrus
+package ctx_logrus
 
 import (
 	"io/ioutil"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (

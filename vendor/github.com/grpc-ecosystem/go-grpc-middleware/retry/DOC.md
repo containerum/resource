@@ -4,7 +4,6 @@
 * [Overview](#pkg-overview)
 * [Imported Packages](#pkg-imports)
 * [Index](#pkg-index)
-* [Examples](#pkg-examples)
 
 ## <a name="pkg-overview">Overview</a>
 `grpc_retry` provides client-side request retry logic for gRPC.
@@ -47,12 +46,6 @@ Please see examples for more advanced use.
   * [func WithCodes(retryCodes ...codes.Code) CallOption](#WithCodes)
   * [func WithMax(maxRetries uint) CallOption](#WithMax)
   * [func WithPerRetryTimeout(timeout time.Duration) CallOption](#WithPerRetryTimeout)
-
-#### <a name="pkg-examples">Examples</a>
-* [Package (Deadlinecall)](#example__deadlinecall)
-* [Package (Dialcomplex)](#example__dialcomplex)
-* [Package (Dialsimple)](#example__dialsimple)
-* [Package (Simplecall)](#example__simplecall)
 
 #### <a name="pkg-files">Package files</a>
 [backoff.go](./backoff.go) [doc.go](./doc.go) [options.go](./options.go) [retry.go](./retry.go) 
@@ -125,7 +118,7 @@ For example waitBetween=1s and jitter=0.10 can generate waits between 900ms and 
 ## <a name="CallOption">type</a> [CallOption](./options.go#L94-L97)
 ``` go
 type CallOption struct {
-    grpc.CallOption // anonymously implement it, without knowing the private fields.
+    grpc.EmptyCallOption // make sure we implement private after() and before() fields so we don't panic.
     // contains filtered or unexported fields
 }
 ```
@@ -168,9 +161,9 @@ func WithPerRetryTimeout(timeout time.Duration) CallOption
 WithPerRetryTimeout sets the RPC timeout per call (including initial call) on this call, or this interceptor.
 
 The context.Deadline of the call takes precedence and sets the maximum time the whole invocation
-will take, but WithPerCallTimeout can be used to limit the RPC time per each call.
+will take, but WithPerRetryTimeout can be used to limit the RPC time per each call.
 
-For example, with context.Deadline = now + 10s, and WithPerCallTimeout(3 * time.Seconds), each
+For example, with context.Deadline = now + 10s, and WithPerRetryTimeout(3 * time.Seconds), each
 of the retry calls (including the initial one) will have a deadline of now + 3s.
 
 A value of 0 disables the timeout overrides completely and returns to each retry call using the

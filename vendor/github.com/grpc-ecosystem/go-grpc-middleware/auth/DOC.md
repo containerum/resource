@@ -4,7 +4,6 @@
 * [Overview](#pkg-overview)
 * [Imported Packages](#pkg-imports)
 * [Index](#pkg-index)
-* [Examples](#pkg-examples)
 
 ## <a name="pkg-overview">Overview</a>
 `grpc_auth` a generic server-side auth middleware for gRPC.
@@ -35,10 +34,6 @@ Please see examples for simple examples of use.
 * [func UnaryServerInterceptor(authFunc AuthFunc) grpc.UnaryServerInterceptor](#UnaryServerInterceptor)
 * [type AuthFunc](#AuthFunc)
 * [type ServiceAuthFuncOverride](#ServiceAuthFuncOverride)
-
-#### <a name="pkg-examples">Examples</a>
-* [Package (Authfunc)](#example__authfunc)
-* [Package (Serverconfig)](#example__serverconfig)
 
 #### <a name="pkg-files">Package files</a>
 [auth.go](./auth.go) [doc.go](./doc.go) [metadata.go](./metadata.go) 

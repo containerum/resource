@@ -6,6 +6,20 @@
 * [Index](#pkg-index)
 
 ## <a name="pkg-overview">Overview</a>
+`grpc_opentracing` adds OpenTracing
+
+### OpenTracing Interceptors
+These are both client-side and server-side interceptors for OpenTracing. They are a provider-agnostic, with backends
+such as Zipkin, or Google Stackdriver Trace.
+
+For a service that sends out requests and receives requests, you *need* to use both, otherwise downstream requests will
+not have the appropriate requests propagated.
+
+All server-side spans are tagged with grpc_ctxtags information.
+
+For more information see:
+<a href="http://opentracing.io/documentation/">http://opentracing.io/documentation/</a>
+<a href="https://github.com/opentracing/specification/blob/master/semantic_conventions.md">https://github.com/opentracing/specification/blob/master/semantic_conventions.md</a>
 
 ## <a name="pkg-imports">Imported Packages</a>
 
@@ -22,6 +36,7 @@
 
 ## <a name="pkg-index">Index</a>
 * [Constants](#pkg-constants)
+* [func ClientAddContextTags(ctx context.Context, tags opentracing.Tags) context.Context](#ClientAddContextTags)
 * [func StreamClientInterceptor(opts ...Option) grpc.StreamClientInterceptor](#StreamClientInterceptor)
 * [func StreamServerInterceptor(opts ...Option) grpc.StreamServerInterceptor](#StreamServerInterceptor)
 * [func UnaryClientInterceptor(opts ...Option) grpc.UnaryClientInterceptor](#UnaryClientInterceptor)
@@ -41,6 +56,14 @@ const (
     TagSpanId  = "trace.spanid"
 )
 ```
+
+## <a name="ClientAddContextTags">func</a> [ClientAddContextTags](./client_interceptors.go#L105)
+``` go
+func ClientAddContextTags(ctx context.Context, tags opentracing.Tags) context.Context
+```
+ClientAddContextTags returns a context with specified opentracing tags, which
+are used by UnaryClientInterceptor/StreamClientInterceptor when creating a
+new span.
 
 ## <a name="StreamClientInterceptor">func</a> [StreamClientInterceptor](./client_interceptors.go#L35)
 ``` go

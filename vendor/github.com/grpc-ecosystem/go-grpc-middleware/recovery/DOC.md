@@ -7,7 +7,7 @@
 * [Examples](#pkg-examples)
 
 ## <a name="pkg-overview">Overview</a>
-`grpc_recovery` conversion of panics into gRPC errors
+`grpc_recovery` are intereceptors that recover from gRPC handler panics.
 
 ### Server Side Recovery Middleware
 By default a panic will be converted into a gRPC error with `code.Internal`.
@@ -15,6 +15,45 @@ By default a panic will be converted into a gRPC error with `code.Internal`.
 Handling can be customised by providing an alternate recovery function.
 
 Please see examples for simple examples of use.
+
+#### Example:
+
+<details>
+<summary>Click to expand code.</summary>
+
+```go
+package grpc_recovery_test
+
+import (
+    "github.com/grpc-ecosystem/go-grpc-middleware"
+    "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+    "google.golang.org/grpc"
+)
+
+var (
+    customFunc grpc_recovery.RecoveryHandlerFunc
+)
+
+// Initialization shows an initialization sequence with a custom recovery handler func.
+func Example_initialization() {
+    // Shared options for the logger, with a custom gRPC code to log level function.
+    opts := []grpc_recovery.Option{
+        grpc_recovery.WithRecoveryHandler(customFunc),
+    }
+    // Create a server. Recovery handlers should typically be last in the chain so that other middleware
+    // (e.g. logging) can operate on the recovered state instead of being directly affected by any panic
+    _ = grpc.NewServer(
+        grpc_middleware.WithUnaryServerChain(
+            grpc_recovery.UnaryServerInterceptor(opts...),
+        ),
+        grpc_middleware.WithStreamServerChain(
+            grpc_recovery.StreamServerInterceptor(opts...),
+        ),
+    )
+}
+```
+
+</details>
 
 ## <a name="pkg-imports">Imported Packages</a>
 
