@@ -36,6 +36,20 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ns.PUT("/:label/name", renameUserNamespaceHandler)
 		ns.PUT("/:label/access", setUserNamespaceAccessHandler)
 		ns.PUT("/:label", resizeUserNamespaceHandler)
+
+		deployment := ns.Group("/:ns_label/deployment")
+		{
+			deployment.POST("", createDeploymentHandler)
+
+			deployment.GET("", getDeploymentsHandler)
+			deployment.GET("/:deploy_label", getDeploymentByLabelHandler)
+
+			deployment.DELETE("/:deploy_label", deleteDeploymentByLabelHandler)
+
+			deployment.PUT("/:deploy_label/image", setContainerImageHandler)
+			deployment.PUT("/:deploy_label", replaceDeploymentHandler)
+			deployment.PUT("/:deploy_label/replicas", setReplicasHandler)
+		}
 	}
 
 	nss := app.Group("/namespaces")
