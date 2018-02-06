@@ -41,7 +41,7 @@ func setUserNamespaceAccessHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.SetUserNamespaceAccess(ctx.Request.Context(), ctx.Param("label"), &req); err != nil {
+	if err := srv.SetUserNamespaceAccess(ctx.Request.Context(), ctx.Param("ns_label"), &req); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -55,7 +55,7 @@ func setUserVolumeAccessHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
-	if err := srv.SetUserVolumeAccess(ctx.Request.Context(), ctx.Param("label"), &req); err != nil {
+	if err := srv.SetUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), &req); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -64,7 +64,7 @@ func setUserVolumeAccessHandler(ctx *gin.Context) {
 }
 
 func getUserNamespaceAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserNamespaceAccesses(ctx.Request.Context(), ctx.Param("label"))
+	resp, err := srv.GetUserNamespaceAccesses(ctx.Request.Context(), ctx.Param("ns_label"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
@@ -76,7 +76,7 @@ func getUserNamespaceAccessesHandler(ctx *gin.Context) {
 }
 
 func getUserVolumeAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("label"))
+	resp, err := srv.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("vol_label"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
