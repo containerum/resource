@@ -353,6 +353,7 @@ func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
 		err = models.WrapDBError(err)
 		return
 	}
+	defer stmt.Close()
 
 	contMap = make(map[string]kubtypes.Container)
 	for _, container := range containers {
@@ -385,6 +386,7 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 		err = models.WrapDBError(err)
 		return
 	}
+	defer stmt.Close()
 
 	for id, container := range contMap {
 		if container.Env == nil {
@@ -428,6 +430,7 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, nsID string, contMa
 		err = models.WrapDBError(err)
 		return
 	}
+	defer stmt.Close()
 
 	for id, container := range contMap {
 		params["container_id"] = id
