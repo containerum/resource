@@ -24,3 +24,20 @@ func (rs *resourceServiceImpl) GetDeployments(ctx context.Context, nsLabel strin
 
 	return ret, nil
 }
+
+func (rs *resourceServiceImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}).Info("get deployment by label")
+
+	ret, err := rs.DB.GetDeploymentByLabel(ctx, userID, nsLabel, deplLabel)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return kubtypes.Deployment{}, err
+	}
+
+	return ret, nil
+}

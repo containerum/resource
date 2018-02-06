@@ -44,6 +44,7 @@ type DB interface {
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
 
 	GetDeployments(ctx context.Context, userID, nsLabel string) ([]kubtypes.Deployment, error)
+	GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error

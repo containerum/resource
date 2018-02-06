@@ -52,6 +52,7 @@ type ResourceService interface {
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
 
 	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
+	GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 

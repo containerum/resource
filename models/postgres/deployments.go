@@ -130,6 +130,29 @@ func (db *pgDB) getRawDeployments(ctx context.Context,
 	return
 }
 
+func convertEnv(envs []rstypes.EnvironmentVariable) (ret []kubtypes.Env) {
+	for _, envVar := range envs {
+		ret = append(ret, kubtypes.Env{
+			Name:  envVar.Name,
+			Value: envVar.Value,
+		})
+	}
+	return
+}
+
+func convertVols(vols []volumeMountWithName) (ret []kubtypes.Volume) {
+	for _, volume := range vols {
+		var volumeResp kubtypes.Volume
+		volumeResp.Name = volume.Name
+		volumeResp.MountPath = volume.MountPath
+		if volume.SubPath.Valid {
+			volumeResp.SubPath = &volume.SubPath.String
+		}
+		ret = append(ret, volumeResp)
+	}
+	return
+}
+
 func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Deployment, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
@@ -166,27 +189,97 @@ func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 			containerResp.Image = container.Image
 			// TODO: add resources description when model will be updated
 
-			containerResp.Env = &[]kubtypes.Env{}
-			for _, envVar := range containerEnv[container.ID] {
-				*containerResp.Env = append(*containerResp.Env, kubtypes.Env{
-					Name:  envVar.Name,
-					Value: envVar.Value,
-				})
-			}
+			env := convertEnv(containerEnv[container.ID])
+			containerResp.Env = &env
 
-			containerResp.Volume = &[]kubtypes.Volume{}
-			for _, volume := range containerVols[container.ID] {
-				var volumeResp kubtypes.Volume
-				volumeResp.Name = volume.Name
-				volumeResp.MountPath = volume.MountPath
-				if volume.SubPath.Valid {
-					volumeResp.SubPath = &volume.SubPath.String
-				}
-				*containerResp.Volume = append(*containerResp.Volume, volumeResp)
-			}
+			vols := convertVols(containerVols[container.ID])
+			containerResp.Volume = &vols
 		}
 
 		ret = append(ret, deployResp)
+	}
+
+	return
+}
+
+func (db *pgDB) getDeploymentContainers(ctx context.Context,
+	deploy rstypes.Deployment) (ret []rstypes.Container, ids []string, err error) {
+	db.log.WithField("deploy_id", deploy.ID).Debug("get deployment containers")
+
+	query, args, _ := sqlx.Named( /* language=sql */ `SELECT * FROM containers WHERE depl_id = :id`, deploy)
+	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+	var containerIDs []string
+	for _, v := range ret {
+		containerIDs = append(containerIDs, v.ID)
+	}
+
+	return
+}
+
+func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (ret kubtypes.Deployment, err error) {
+	params := map[string]interface{}{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}
+	db.log.WithFields(params).Debug("get deployment by label")
+
+	var rawDeploy rstypes.Deployment
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT *
+		FROM deployments d
+		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
+		WHERE d.name := :deploy_label AND 
+				p.user_id = :user_id AND 
+				p.resource_label = :ns_label`,
+		params)
+	err = sqlx.GetContext(ctx, db.extLog, &rawDeploy, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+	ret.Name = rawDeploy.Name
+	ret.Replicas = rawDeploy.Replicas
+	// TODO: add resources description when model will be updated
+
+	rawContainers, containerIDs, err := db.getDeploymentContainers(ctx, rawDeploy)
+	if err != nil {
+		return
+	}
+
+	containerVols, err := db.getContainersVolumes(ctx, containerIDs)
+	if err != nil {
+		return
+	}
+
+	containerEnv, err := db.getContainersEnvironments(ctx, containerIDs)
+	if err != nil {
+		return
+	}
+
+	for _, container := range rawContainers {
+		var containerResp kubtypes.Container
+		containerResp.Name = container.Name
+		containerResp.Image = container.Image
+
+		env := convertEnv(containerEnv[container.ID])
+		containerResp.Env = &env
+
+		vols := convertVols(containerVols[container.ID])
+		containerResp.Volume = &vols
+
+		ret.Containers = append(ret.Containers, containerResp)
 	}
 
 	return
