@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (exists bool, err error) {
+func (db *pgDB) getNamespaceID(ctx context.Context, userID, label string) (id string, err error) {
 	queryFields := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,
@@ -20,20 +20,22 @@ func (db *pgDB) isNamespaceExists(ctx context.Context, userID, label string) (ex
 	entry := db.log.WithFields(queryFields)
 	entry.Debug("check if namespace exists")
 
-	var count int
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT count(ns.*)
-		FROM namespaces ns
-		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-		WHERE p.user_id = :user_id AND p.resource_label = :label`, queryFields)
-	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
-	if err != nil {
+		`SELECT resource_id
+		FROM permissions
+		WHERE kind = 'namespace' AND user_id = :user_id AND resource_label = :label`, queryFields)
+	err = sqlx.GetContext(ctx, db.extLog, &id, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		id = ""
+		err = nil
+	default:
 		err = models.WrapDBError(err)
 		return
 	}
 
-	entry.Debugf("found %d namespaces", count)
-	exists = count > 0
+	entry.Debugf("found namespace %s", id)
 	return
 }
 
@@ -43,11 +45,11 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		"label":   label,
 	}).Debugf("creating namespace %#v", namespace)
 
-	var exists bool
-	if exists, err = db.isNamespaceExists(ctx, userID, label); err != nil {
+	var nsID string
+	if nsID, err = db.getNamespaceID(ctx, userID, label); err != nil {
 		return
 	}
-	if exists {
+	if nsID != "" {
 		err = models.ErrLabeledResourceExists
 		return
 	}
@@ -478,11 +480,11 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 	}
 	db.log.WithFields(params).Debug("rename namespace")
 
-	var exists bool
-	if exists, err = db.isNamespaceExists(ctx, userID, newLabel); err != nil {
+	var nsID string
+	if nsID, err = db.getNamespaceID(ctx, userID, newLabel); err != nil {
 		return
 	}
-	if exists {
+	if nsID != "" {
 		err = models.ErrLabeledResourceExists
 		return
 	}

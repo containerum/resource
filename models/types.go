@@ -43,6 +43,7 @@ type DB interface {
 	UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) ([]rstypes.Volume, error)
 	UnlinkAllNamespaceVolumes(ctx context.Context, userID string) ([]rstypes.Volume, error)
 
+	CreateDeployment(ctx context.Context, userID, nsLabel string, deployment kubtypes.Deployment) (bool, error)
 	GetDeployments(ctx context.Context, userID, nsLabel string) ([]kubtypes.Deployment, error)
 	GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 
