@@ -75,6 +75,7 @@ type Deployment struct {
 	CreateTime  time.Time     `json:"create_time,omitempty" db:"create_time"`
 	Deleted     bool          `json:"deleted,omitempty" db:"deleted"`
 	DeleteTime  misc.NullTime `json:"delete_time,omitempty" db:"delete_time"`
+	Replicas    int           `json:"replicas" db:"replicas"`
 }
 
 func (d *Deployment) Mask() {

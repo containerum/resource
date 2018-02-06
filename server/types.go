@@ -9,6 +9,7 @@ import (
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/clients"
 	"git.containerum.net/ch/resource-service/models"
 )
@@ -49,6 +50,9 @@ type ResourceService interface {
 	GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error)
 	SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
+
+	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
+	GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
