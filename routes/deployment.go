@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	kubtypes "git.containerum.net/ch/kube-api/pkg/model"
+	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +14,10 @@ func createDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	// TODO
+	if err := srv.CreateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
 	ctx.Status(http.StatusOK)
 }
 

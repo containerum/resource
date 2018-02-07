@@ -36,7 +36,7 @@ func getUserNamespacesHandler(ctx *gin.Context) {
 }
 
 func getUserNamespaceHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserNamespace(ctx.Request.Context(), ctx.Param("label"))
+	resp, err := srv.GetUserNamespace(ctx.Request.Context(), ctx.Param("ns_label"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
@@ -64,7 +64,7 @@ func getAllNamespacesHandler(ctx *gin.Context) {
 }
 
 func deleteUserNamespaceHandler(ctx *gin.Context) {
-	if err := srv.DeleteUserNamespace(ctx.Request.Context(), ctx.Param("label")); err != nil {
+	if err := srv.DeleteUserNamespace(ctx.Request.Context(), ctx.Param("ns_label")); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -88,7 +88,7 @@ func renameUserNamespaceHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.RenameUserNamespace(ctx.Request.Context(), ctx.Param("label"), req.NewLabel); err != nil {
+	if err := srv.RenameUserNamespace(ctx.Request.Context(), ctx.Param("ns_label"), req.NewLabel); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -103,7 +103,7 @@ func resizeUserNamespaceHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.ResizeUserNamespace(ctx.Request.Context(), ctx.Param("label"), req.NewTariffID); err != nil {
+	if err := srv.ResizeUserNamespace(ctx.Request.Context(), ctx.Param("ns_label"), req.NewTariffID); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}

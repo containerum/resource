@@ -27,15 +27,15 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ns.POST("", createNamespaceHandler)
 
 		ns.GET("", getUserNamespacesHandler)
-		ns.GET("/:label", getUserNamespaceHandler)
-		ns.GET("/:label/access", getUserNamespaceAccessesHandler)
-		ns.GET("/:label/volumes", getVolumesLinkedWithUserNamespaceHandler)
+		ns.GET("/:ns_label", getUserNamespaceHandler)
+		ns.GET("/:ns_label/access", getUserNamespaceAccessesHandler)
+		ns.GET("/:ns_label/volumes", getVolumesLinkedWithUserNamespaceHandler)
 
-		ns.DELETE("/:label", deleteUserNamespaceHandler)
+		ns.DELETE("/:ns_label", deleteUserNamespaceHandler)
 
-		ns.PUT("/:label/name", renameUserNamespaceHandler)
-		ns.PUT("/:label/access", setUserNamespaceAccessHandler)
-		ns.PUT("/:label", resizeUserNamespaceHandler)
+		ns.PUT("/:ns_label/name", renameUserNamespaceHandler)
+		ns.PUT("/:ns_label/access", setUserNamespaceAccessHandler)
+		ns.PUT("/:ns_label", resizeUserNamespaceHandler)
 
 		deployment := ns.Group("/:ns_label/deployment")
 		{
@@ -64,14 +64,14 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		vol.POST("", createVolumeHandler)
 
 		vol.GET("", getUserVolumesHandler)
-		vol.GET("/:label", getUserVolumeHandler)
-		vol.GET("/:label/access", getUserVolumeAccessesHandler)
+		vol.GET("/:vol_label", getUserVolumeHandler)
+		vol.GET("/:vol_label/access", getUserVolumeAccessesHandler)
 
-		vol.DELETE("/:label", deleteUserVolumeHandler)
+		vol.DELETE("/:vol_label", deleteUserVolumeHandler)
 
-		vol.PUT("/:label/name", renameUserVolumeHandler)
-		vol.PUT("/:label/access", setUserVolumeAccessHandler)
-		vol.PUT("/:label", resizeUserVolumeHandler)
+		vol.PUT("/:vol_label/name", renameUserVolumeHandler)
+		vol.PUT("/:vol_label/access", setUserVolumeAccessHandler)
+		vol.PUT("/:vol_label", resizeUserVolumeHandler)
 	}
 
 	vols := app.Group("/volumes")

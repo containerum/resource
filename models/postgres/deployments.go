@@ -32,6 +32,7 @@ func (db *pgDB) getContainersVolumes(ctx context.Context,
 	err = sqlx.SelectContext(ctx, db.extLog, &vols, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
@@ -56,6 +57,7 @@ func (db *pgDB) getContainersEnvironments(ctx context.Context,
 	err = sqlx.SelectContext(ctx, db.extLog, &envs, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
@@ -118,6 +120,7 @@ func (db *pgDB) getRawDeployments(ctx context.Context,
 	err = sqlx.SelectContext(ctx, db.extLog, &deployments, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
+		err = nil
 	default:
 		err = models.WrapDBError(err)
 		return
@@ -280,6 +283,217 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 		containerResp.Volume = &vols
 
 		ret.Containers = append(ret.Containers, containerResp)
+	}
+
+	return
+}
+
+func (db *pgDB) getDeployID(ctx context.Context, nsID, deplLabel string) (id string, err error) {
+	params := map[string]interface{}{
+		"ns_id":        nsID,
+		"deploy_label": deplLabel,
+	}
+	db.log.WithFields(params).Debug("get deploy id")
+
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT id
+		FROM deployments
+		WHERE ns_id = :ns_id AND name = :deploy_label`,
+		params)
+	err = sqlx.GetContext(ctx, db.extLog, &id, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = nil
+		id = ""
+	default:
+		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
+func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
+	deployment kubtypes.Deployment) (id string, firstInNamespace bool, err error) {
+	db.log.WithField("ns_id", nsID).Debugf("create raw deployment %#v", deployment)
+
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH ns_deploys AS (
+			SELECT * FROM deployments WHERE ns_id = :ns_id
+		)
+		INSERT INTO deployments
+		(ns_id, name, ram, cpu, image)
+		VALUES (:ns_id, :name, :ram, :cpu, :replicas)
+		RETURNING id, NOT EXISTS(SELECT * from ns_deploys)`,
+		rstypes.Deployment{
+			NamespaceID: nsID,
+			Name:        deployment.Name,
+			RAM:         1, // FIXME
+			CPU:         1, // FIXME
+			Replicas:    deployment.Replicas,
+		})
+	err = db.extLog.QueryRowxContext(ctx, db.extLog.Rebind(query), args...).Scan(&id, &firstInNamespace)
+	if err != nil {
+		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
+func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
+	containers []kubtypes.Container) (contMap map[string]kubtypes.Container, err error) {
+	db.log.WithField("deploy_id", deplID).Debugf("create deployment containers %#v", containers)
+
+	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+		`INSERT INTO containers
+		(depl_id, name, image, cpu, ram)
+		VALUES (:depl_id, :name, :image, :cpu, :ram)
+		RETURNING id`)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	defer stmt.Close()
+
+	contMap = make(map[string]kubtypes.Container)
+	for _, container := range containers {
+		var containerID string
+		err = stmt.GetContext(ctx, &containerID, rstypes.Container{
+			DeployID: deplID,
+			Name:     container.Name,
+			Image:    container.Image,
+			CPU:      1, // FIXME
+			RAM:      1, // FIXME
+		})
+		if err != nil {
+			err = models.WrapDBError(err)
+			return
+		}
+		contMap[containerID] = container
+	}
+
+	return
+}
+
+func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kubtypes.Container) (err error) {
+	db.log.Debugf("create containers environments %#v", contMap)
+
+	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+		`INSERT INTO env_vars
+		(container_id, name, value)
+		VALUES (:container_id, :name, :value)`)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	defer stmt.Close()
+
+	for id, container := range contMap {
+		if container.Env == nil {
+			continue
+		}
+		for _, env := range *container.Env {
+			_, err = stmt.ExecContext(ctx, rstypes.EnvironmentVariable{
+				ContainerID: id,
+				Name:        env.Name,
+				Value:       env.Value,
+			})
+			if err != nil {
+				err = models.WrapDBError(err)
+				return
+			}
+		}
+	}
+
+	return
+}
+
+func (db *pgDB) createContainersVolumes(ctx context.Context, nsID string, contMap map[string]kubtypes.Container) (err error) {
+	params := map[string]interface{}{"ns_id": nsID}
+	db.log.WithFields(params).Debugf("create containers volumes %#v", contMap)
+
+	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+		`WITH vol_id_name AS (
+			SELECT p.resource_label, p.resource_id
+			FROM permissions p
+			JOIN namespace_volume nv ON p.resource_id = nv.vol_id AND p.kind = 'volume' AND nv.ns_id = :ns_id
+		)
+		INSERT INTO volume_mounts
+		(container_id, volume_id, mount_path, sub_path)
+		VALUES (
+			:container_id, 
+			(SELECT resource_label FROM vol_id_name WHERE resource_label = :vol_name), 
+			:mount_path, 
+			:sub_path
+		)`)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	defer stmt.Close()
+
+	for id, container := range contMap {
+		params["container_id"] = id
+		if container.Volume == nil {
+			continue
+		}
+		for _, v := range *container.Volume {
+			params["vol_name"] = v.Name
+			params["mount_path"] = v.MountPath
+			params["sub_path"] = v.SubPath
+			_, err = stmt.ExecContext(ctx, params)
+			if err != nil {
+				err = models.WrapDBError(err)
+				return
+			}
+		}
+	}
+
+	return
+}
+
+func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
+	deployment kubtypes.Deployment) (firstInNamespace bool, err error) {
+	params := map[string]interface{}{
+		"user_id":  userID,
+		"ns_label": nsLabel,
+	}
+	db.log.WithFields(params).Debug("create deployment %#v", deployment)
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	deplID, err := db.getDeployID(ctx, nsID, deployment.Name)
+	if err != nil {
+		return
+	}
+	if deplID != "" {
+		err = models.ErrLabeledResourceExists
+		return
+	}
+
+	deplID, firstInNamespace, err = db.createRawDeployment(ctx, nsID, deployment)
+	if err != nil {
+		return
+	}
+
+	contMap, err := db.createDeploymentContainers(ctx, nsID, deployment.Containers)
+	if err != nil {
+		return
+	}
+
+	if err = db.createContainersEnvs(ctx, contMap); err != nil {
+		return
+	}
+
+	if err = db.createContainersVolumes(ctx, nsID, contMap); err != nil {
+		return
 	}
 
 	return

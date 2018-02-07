@@ -334,12 +334,12 @@ func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, l
 	}
 	db.log.WithFields(params).Debug("get volumes linked with user namespace")
 
-	exist, err := db.isNamespaceExists(ctx, userID, label)
+	nsID, err := db.getNamespaceID(ctx, userID, label)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
 	}
-	if !exist {
+	if nsID == "" {
 		err = models.ErrLabeledResourceNotExists
 		return
 	}

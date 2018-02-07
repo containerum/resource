@@ -24,7 +24,7 @@ func createVolumeHandler(ctx *gin.Context) {
 }
 
 func deleteUserVolumeHandler(ctx *gin.Context) {
-	if err := srv.DeleteUserVolume(ctx.Request.Context(), ctx.Param("label")); err != nil {
+	if err := srv.DeleteUserVolume(ctx.Request.Context(), ctx.Param("vol_label")); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -54,7 +54,7 @@ func getUserVolumesHandler(ctx *gin.Context) {
 }
 
 func getUserVolumeHandler(ctx *gin.Context) {
-	vol, err := srv.GetUserVolume(ctx.Request.Context(), ctx.Param("label"))
+	vol, err := srv.GetUserVolume(ctx.Request.Context(), ctx.Param("vol_label"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
@@ -87,7 +87,7 @@ func renameUserVolumeHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
-	if err := srv.RenameUserVolume(ctx.Request.Context(), ctx.Param("label"), req.NewLabel); err != nil {
+	if err := srv.RenameUserVolume(ctx.Request.Context(), ctx.Param("vol_label"), req.NewLabel); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -100,7 +100,7 @@ func resizeUserVolumeHandler(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 	}
-	if err := srv.ResizeUserVolume(ctx.Request.Context(), ctx.Param("label"), req.NewTariffID); err != nil {
+	if err := srv.ResizeUserVolume(ctx.Request.Context(), ctx.Param("vol_label"), req.NewTariffID); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -109,7 +109,7 @@ func resizeUserVolumeHandler(ctx *gin.Context) {
 }
 
 func getVolumesLinkedWithUserNamespaceHandler(ctx *gin.Context) {
-	resp, err := srv.GetVolumesLinkedWithUserNamespace(ctx.Request.Context(), ctx.Param("label"))
+	resp, err := srv.GetVolumesLinkedWithUserNamespace(ctx.Request.Context(), ctx.Param("vol_label"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
