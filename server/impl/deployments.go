@@ -65,7 +65,37 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 		return nil
 	})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}
+
+func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}).Info("delete deployment")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		lastInNamespace, delErr := tx.DeleteDeployment(ctx, userID, nsLabel, deplLabel)
+		if delErr != nil {
+			return delErr
+		}
+
+		// TODO: delete deployment in kube
+
+		if lastInNamespace {
+			// TODO: deactivate volume in gluster
+		}
+
+		return nil
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
 		return err
 	}
 

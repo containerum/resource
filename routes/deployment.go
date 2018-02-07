@@ -42,7 +42,13 @@ func getDeploymentByLabelHandler(ctx *gin.Context) {
 }
 
 func deleteDeploymentByLabelHandler(ctx *gin.Context) {
-	// TODO
+	err := srv.DeleteDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func setContainerImageHandler(ctx *gin.Context) {

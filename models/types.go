@@ -46,6 +46,7 @@ type DB interface {
 	CreateDeployment(ctx context.Context, userID, nsLabel string, deployment kubtypes.Deployment) (bool, error)
 	GetDeployments(ctx context.Context, userID, nsLabel string) ([]kubtypes.Deployment, error)
 	GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (kubtypes.Deployment, error)
+	DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel string) (bool, error)
 
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
