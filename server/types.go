@@ -51,6 +51,7 @@ type ResourceService interface {
 	SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
 
+	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
 	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
 	GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 
