@@ -498,3 +498,48 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 
 	return
 }
+
+func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel string) (lastInNamespace bool, err error) {
+	params := map[string]interface{}{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}
+	db.log.WithFields(params).Debug("delete deployment")
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`UPDATE deployments
+		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
+		WHERE ns_id := ns_id AND name = :name`,
+		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count == 0 {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	var activeDeployCount int
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT count(*) FROM deployments WHERE ns_id = :ns_id AND NOT deleted`,
+		rstypes.Deployment{NamespaceID: nsID})
+	err = sqlx.GetContext(ctx, db.extLog, &activeDeployCount, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	lastInNamespace = activeDeployCount <= 0
+	return
+}
