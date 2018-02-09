@@ -26,7 +26,7 @@ CREATE OR REPLACE FUNCTION check_unique_service_name() RETURNS TRIGGER AS $check
       JOIN services s ON d.id = s.deploy_id
       WHERE d.ns_id = service_namespace AND s.name = NEW.name
     ) THEN
-      RAISE EXCEPTION 'service with name % already exists in namespace, can`t add', NEW.name
+      RAISE EXCEPTION 'service with name % already exists in namespace, can`t add', NEW.name;
     END IF;
 
     RETURN NEW;
