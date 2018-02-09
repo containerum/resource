@@ -54,16 +54,17 @@ type Namespace struct {
 type Volume struct {
 	Resource
 
-	Active     misc.NullBool `json:"active,omitempty" db:"active"`
-	Capacity   int           `json:"capacity" db:"capacity"` // gigabytes
-	Replicas   int           `json:"replicas,omitempty" db:"replicas"`
-	Persistent bool          `json:"is_persistent" db:"is_persistent"`
+	Active      misc.NullBool   `json:"active,omitempty" db:"active"`
+	Capacity    int             `json:"capacity" db:"capacity"` // gigabytes
+	Replicas    int             `json:"replicas,omitempty" db:"replicas"`
+	NamespaceID misc.NullString `json:"namespace_id,omitempty" db:"ns_id"`
 }
 
 func (v *Volume) Mask() {
 	v.Resource.Mask()
 	v.Active.Valid = false
 	v.Replicas = 0
+	v.NamespaceID.Valid = false
 }
 
 type Deployment struct {
