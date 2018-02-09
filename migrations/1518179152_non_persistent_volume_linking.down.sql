@@ -5,5 +5,3 @@ UPDATE volumes SET is_persistent = ns_id IS NOT NULL;
 
 ALTER TABLE volumes
   DROP COLUMN ns_id;
-
-DROP INDEX non_persistent_vols_index;
