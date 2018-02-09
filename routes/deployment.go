@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
 )
@@ -72,5 +73,16 @@ func replaceDeploymentHandler(ctx *gin.Context) {
 }
 
 func setReplicasHandler(ctx *gin.Context) {
-	// TODO
+	var req rstypes.SetReplicasRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+	err := srv.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
