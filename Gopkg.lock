@@ -11,13 +11,7 @@
   branch = "master"
   name = "git.containerum.net/ch/json-types"
   packages = ["billing","errors","mail-templater","misc","resource-service","user-manager"]
-  revision = "503d602069bfc7361381c46790894d8d203fd189"
-
-[[projects]]
-  branch = "17-refactor-get-service-method"
-  name = "git.containerum.net/ch/kube-api"
-  packages = ["pkg/model"]
-  revision = "4957f2849ec160428fb13c33d207f8b7d6912b90"
+  revision = "f004317b8203b24068c241e33768496255b9052d"
 
 [[projects]]
   branch = "master"
@@ -50,28 +44,10 @@
   revision = "783c7ee9c14eac0e65b501664b4f553291556b43"
 
 [[projects]]
-  name = "github.com/gogo/protobuf"
-  packages = ["proto","sortkeys"]
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/golang/glog"
-  packages = ["."]
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
-
-[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["jsonpb","proto","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
   revision = "bbd03ef6da3a115852eaf24c8a1c46aeb39aa175"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/google/gofuzz"
-  packages = ["."]
-  revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
 
 [[projects]]
   branch = "master"
@@ -114,12 +90,6 @@
   packages = ["."]
   revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
   version = "v1.0.4"
-
-[[projects]]
-  name = "github.com/spf13/pflag"
-  packages = ["."]
-  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
-  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -170,12 +140,6 @@
   version = "v8.18.2"
 
 [[projects]]
-  name = "gopkg.in/inf.v0"
-  packages = ["."]
-  revision = "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4"
-  version = "v0.9.0"
-
-[[projects]]
   name = "gopkg.in/resty.v1"
   packages = ["."]
   revision = "00cb083b8cdc8b0fb1e1f5ebe24bbc23e0ff0cf6"
@@ -187,21 +151,9 @@
   packages = ["."]
   revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
 
-[[projects]]
-  branch = "master"
-  name = "k8s.io/api"
-  packages = ["apps/v1","core/v1"]
-  revision = "65f67c9cb59d466d2eb758ad9d5ad016eb43c2aa"
-
-[[projects]]
-  branch = "master"
-  name = "k8s.io/apimachinery"
-  packages = ["pkg/api/resource","pkg/apis/meta/v1","pkg/conversion","pkg/conversion/queryparams","pkg/fields","pkg/labels","pkg/runtime","pkg/runtime/schema","pkg/selection","pkg/types","pkg/util/errors","pkg/util/intstr","pkg/util/json","pkg/util/net","pkg/util/runtime","pkg/util/sets","pkg/util/validation","pkg/util/validation/field","pkg/util/wait","pkg/watch","third_party/forked/golang/reflect"]
-  revision = "b29a2d60548358f302231eeb5359d57ed9adebc2"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "15aeaaabcc83e4063da627c8ad088d7c19ef622d7d550fa5699456c9a29a4e2b"
+  inputs-digest = "ac857a596bb275dd23dfcdd0af94a3c72be23310f05a1e0af96075b93770584f"
   solver-name = "gps-cdcl"
   solver-version = 1
