@@ -137,7 +137,13 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 	}).Info("set deployment replicas %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		return tx.SetDeploymentReplicas(ctx, userID, nsLabel, deplLabel, req.Replicas)
+		if setErr := tx.SetDeploymentReplicas(ctx, userID, nsLabel, deplLabel, req.Replicas); setErr != nil {
+			return setErr
+		}
+
+		// TODO: set replicas in kube
+
+		return nil
 	})
 	if err != nil {
 		err = server.HandleDBError(err)
