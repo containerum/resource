@@ -328,10 +328,12 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 			p.limited,
 			p.access_level_change_time,
 			p.new_access_level
-		FROM namespace_volume nv
-		JOIN volumes v ON v.id = nv.vol_id
-		JOIN permissions p ON p.resource_id = nv.vol_id AND p.kind = 'volume'
-		WHERE nv.ns_id = :id`,
+		FROM volumes v
+		JOIN volume_mounts vm ON v.id = vm.volume_id
+		JOIN permissions p ON p.resource_id = vm.volume_id AND p.kind = 'volume'
+		JOIN containers c ON vm.container_id = c.id
+		JOIN deployments d ON c.depl_id = d.id
+		WHERE d.ns_id = :id`,
 		ret.Resource)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret.Volume, db.extLog.Rebind(query), args...)
 	switch err {

@@ -414,9 +414,9 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, nsID string, contMa
 
 	stmt, err := db.preparer.PrepareNamed( /* language=sql */
 		`WITH vol_id_name AS (
-			SELECT p.resource_label, p.resource_id
-			FROM permissions p
-			JOIN namespace_volume nv ON p.resource_id = nv.vol_id AND p.kind = 'volume' AND nv.ns_id = :ns_id
+			SELECT resource_label, resource_id
+			FROM permissions
+			WHERE kind = 'volume' -- TODO
 		)
 		INSERT INTO volume_mounts
 		(container_id, volume_id, mount_path, sub_path)

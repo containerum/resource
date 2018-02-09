@@ -155,13 +155,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 			nsToDelete = ns
 		}
 
-		deactivatedVols, unlinkErr := tx.UnlinkNamespaceVolumes(ctx, &nsToDelete)
-		if unlinkErr != nil {
-			return unlinkErr
-		}
-
 		// TODO: stop volumes on volume service
-		_ = deactivatedVols
 
 		if delErr := rs.Kube.DeleteNamespace(ctx, nsToDelete); delErr != nil {
 			return delErr
@@ -191,11 +185,6 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 	logrus.WithField("user_id", userID).Info("delete all user namespaces")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		unlinkedVols, unlinkErr := rs.DB.UnlinkAllNamespaceVolumes(ctx, userID)
-		if unlinkErr != nil {
-			return unlinkErr
-		}
-
 		if _, delErr := rs.DB.DeleteAllUserVolumes(ctx, userID, true); delErr != nil {
 			return delErr
 		}
@@ -204,7 +193,6 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 			return delErr
 		}
 
-		_ = unlinkedVols
 		// TODO: stop volumes on volume service
 
 		// TODO: unsubscribe all on billing

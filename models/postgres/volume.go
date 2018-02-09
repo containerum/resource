@@ -45,11 +45,13 @@ func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 		NsID string `db:"ns_id"`
 	}, 0)
 	query, args, _ := sqlx.In( /* language=sql */
-		`SELECT v.*, perm.*, nv.ns_id
-		FROM namespace_volume nv
-		JOIN volumes v ON nv.vol_id = v.id
+		`SELECT v.*, perm.*, d.ns_id
+		FROM volumes v
+		JOIN volume_mounts vm ON v.id = vm.volume_id
+		JOIN containers c ON vm.container_id = c.id
+		JOIN deployments d ON c.depl_id = d.id
 		JOIN permissions perm ON perm.resource_id = v.id
-		WHERE nv.ns_id IN (?)`, nsIDs)
+		WHERE d.ns_id IN (?)`, nsIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, &volsWithNsID, db.extLog.Rebind(query), args...)
 	if err != nil {
 		return
@@ -225,8 +227,8 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 	userID, label string) (ret rstypes.VolumeWithPermission, err error) {
 	params := map[string]interface{}{
-		"user_id":        userID,
-		"resource_label": label,
+		"user_id": userID,
+		"label":   label,
 	}
 	db.log.WithFields(params).Debug("get user volume by label")
 
@@ -245,7 +247,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
+		WHERE p.user_id = :user_id AND p.resource_label = :label`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -262,8 +264,8 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	userID, label string) (ret rstypes.VolumeWithUserPermissions, err error) {
 	params := map[string]interface{}{
-		"user_id":        userID,
-		"resource_label": label,
+		"user_id": userID,
+		"label":   label,
 	}
 	db.log.WithFields(params).Debug("get volume with user permissions")
 
@@ -284,7 +286,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = $1 AND p.resource_label = $2`,
+		WHERE p.user_id = :user_id AND p.resource_label = :label`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &ret.VolumeWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
@@ -347,17 +349,7 @@ func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, l
 	ret = make([]rstypes.VolumeWithPermission, 0)
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`WITH user_namespace AS (
-			SELECT resource_id
-			FROM permissions
-			WHERE user_id = owner_user_id AND 
-					user_id = :user_id AND 
-					kind = 'namespace' AND
-				  	resource_label = :resource_label
-		), namespace_volumes AS (
-			SELECT vol_id FROM namespace_volume WHERE ns_id IN (SELECT resource_id FROM user_namespace)
-		)
-		SELECT v.*,
+		`SELECT v.*,
 			p.id AS perm_id,
 			p.kind,
 			p.resource_id,
@@ -370,8 +362,11 @@ func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, l
 			p.access_level_change_time,
 			p.new_access_level
 		FROM volumes v
-		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE v.id IN (SELECT vol_id FROM namespace_volumes)`,
+		JOIN volume_mounts vm ON v.id = vm.volume_id
+		JOIN containers c ON vm.container_id = c.id
+		JOIN deployments d ON c.depl_id = d.id
+		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
+		WHERE p.user_id = :user_id AND p.resource_label = :label`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -413,21 +408,6 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	default:
 		err = models.WrapDBError(err)
 		return
-	}
-
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
-		`DELETE FROM namespace_volume WHERE vol_id = :id`,
-		volume)
-	if err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
-		`DELETE FROM deployment_volume WHERE vol_id = :id`,
-		volume)
-	if err != nil {
-		err = models.WrapDBError(err)
 	}
 
 	return
@@ -569,70 +549,6 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
 		err = models.ErrLabeledResourceNotExists
-	}
-
-	return
-}
-
-func (db *pgDB) UnlinkNamespaceVolumes(ctx context.Context, namespace *rstypes.Namespace) (deactivatedVolumes []rstypes.Volume, err error) {
-	db.log.WithField("namespace_id", namespace.ID).Debug("unlink namespace volumes")
-
-	// deactivate all volumes that was is not linked to any namespace
-	deactivatedVolumes = make([]rstypes.Volume, 0)
-	query, args, _ := sqlx.Named( /* language=sql */ `
-		WITH deleted_vols AS (
-			DELETE FROM namespace_volume
-			WHERE ns_id = :id
-			RETURNING vol_id
-		), vols_to_deactivate AS (
-			SELECT DISTINCT vol_id FROM deleted_vols
-			EXCEPT
-			SELECT DISTINCT vol_id FROM namespace_volume
-		)
-		UPDATE volumes
-		SET active = FALSE
-		WHERE id IN (SELECT vol_id FROM vols_to_deactivate)
-		RETURNING *`, namespace)
-	err = sqlx.SelectContext(ctx, db.extLog, &deactivatedVolumes, db.extLog.Rebind(query), args...)
-	switch err {
-	case nil, sql.ErrNoRows:
-		err = nil
-	default:
-		err = models.WrapDBError(err)
-		return
-	}
-
-	return
-}
-
-func (db *pgDB) UnlinkAllNamespaceVolumes(ctx context.Context, userID string) (unlinkedVolumes []rstypes.Volume, err error) {
-	params := map[string]interface{}{
-		"user_id": userID,
-	}
-
-	db.log.WithFields(params).Debug("unlink all namespaces volumes")
-
-	unlinkedVolumes = make([]rstypes.Volume, 0)
-	query, args, _ := sqlx.Named( /* language=sql */
-		`WITH user_namespaces AS (
-			SELECT ns.id
-			FROM namespaces ns
-			JOIN permissions p ON p.owner_user_id = :user_id AND p.owner_user_id = p.user_id AND p.kind = 'namespace' 
-		), deleted_vols AS (
-			DELETE FROM namespace_volume
-			WHERE ns_id IN (SELECT id FROM user_namespaces)
-			RETURNING vol_id
-		)
-		SELECT * 
-		FROM volumes
-		WHERE id IN (SELECT vol_id FROM deleted_vols)`,
-		params)
-	err = sqlx.SelectContext(ctx, db.extLog, &unlinkedVolumes, db.extLog.Rebind(query), args...)
-	switch err {
-	case nil, sql.ErrNoRows:
-		err = nil
-	default:
-		err = models.WrapDBError(err)
 	}
 
 	return
