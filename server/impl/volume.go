@@ -37,7 +37,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 		Capacity: tariff.StorageLimit,
 		Replicas: tariff.ReplicasLimit,
 	}
-	newVolume.NamespaceID.Valid = false // make non-persistent
+	newVolume.NamespaceID.Valid = false // make always persistent
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		if createErr := tx.CreateVolume(ctx, userID, req.Label, newVolume); createErr != nil {
