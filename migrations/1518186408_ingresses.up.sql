@@ -34,6 +34,8 @@ CREATE OR REPLACE FUNCTION check_unique_for_user_domain() RETURNS TRIGGER AS $ch
     ) THEN
       RAISE EXCEPTION 'ingress domain % already added for user, can`t add', NEW.custom_domain;
     END IF;
+
+    RETURN NEW;
   END;
 $check_unique_for_user_domain$ LANGUAGE plpgsql;
 
