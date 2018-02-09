@@ -96,6 +96,17 @@ type SetVolumeAccessRequest = SetNamespaceAccessRequest
 
 type ResizeVolumeRequest = ResizeResourceRequest
 
+// Deployments
+
+type SetReplicasRequest struct {
+	Replicas int `json:"replicas" binding:"gte=1,lte=15"`
+}
+
+type SetContainerImageRequest struct {
+	ContainerName string `json:"container_name" binding:"required,dns"`
+	Image         string `json:"image" binding:"required,docker_image"`
+}
+
 // Other
 
 // GetUserAccessResponse is response for special request needed for auth server (actually for creating tokens)
@@ -103,16 +114,38 @@ type GetUserAccessesResponse = auth.ResourcesAccess
 
 // custom tag registration
 
+var funcs = map[string]validator.Func{
+	"dns":          dnsValidationFunc,
+	"docker_image": dockerImageValidationFunc,
+}
+
 func RegisterCustomTags(validate *validator.Validate) error {
-	return validate.RegisterValidation("dns", dnsValidationFunc)
+	for tag, fn := range funcs {
+		if err := validate.RegisterValidation(tag, fn); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func RegisterCustomTagsGin(validate binding.StructValidator) error {
-	return validate.RegisterValidation("dns", dnsValidationFunc)
+	for tag, fn := range funcs {
+		if err := validate.RegisterValidation(tag, fn); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-var dnsLabel = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+var (
+	dnsLabel    = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+	dockerImage = regexp.MustCompile(`(?:.+/)?([^:]+)(?::.+)?`)
+)
 
 func dnsValidationFunc(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	return dnsLabel.MatchString(field.String())
+}
+
+func dockerImageValidationFunc(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	return dockerImage.MatchString(field.String())
 }
