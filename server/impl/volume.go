@@ -32,12 +32,12 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 	}
 
 	newVolume := &rstypes.Volume{
-		Resource:   rstypes.Resource{TariffID: tariff.ID},
-		Active:     misc.WrapBool(true),
-		Capacity:   tariff.StorageLimit,
-		Replicas:   tariff.ReplicasLimit,
-		Persistent: true,
+		Resource: rstypes.Resource{TariffID: tariff.ID},
+		Active:   misc.WrapBool(true),
+		Capacity: tariff.StorageLimit,
+		Replicas: tariff.ReplicasLimit,
 	}
+	newVolume.NamespaceID.Valid = false // make non-persistent
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		if createErr := tx.CreateVolume(ctx, userID, req.Label, newVolume); createErr != nil {

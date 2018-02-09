@@ -408,21 +408,21 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 	return
 }
 
-func (db *pgDB) createContainersVolumes(ctx context.Context, nsID string, contMap map[string]kubtypes.Container) (err error) {
-	params := map[string]interface{}{"ns_id": nsID}
+func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
+	params := map[string]interface{}{"user_id": userID}
 	db.log.WithFields(params).Debugf("create containers volumes %#v", contMap)
 
 	stmt, err := db.preparer.PrepareNamed( /* language=sql */
 		`WITH vol_id_name AS (
 			SELECT resource_label, resource_id
 			FROM permissions
-			WHERE kind = 'volume' -- TODO
+			WHERE kind = 'volume' AND user_id = :user_id
 		)
 		INSERT INTO volume_mounts
 		(container_id, volume_id, mount_path, sub_path)
 		VALUES (
 			:container_id, 
-			(SELECT resource_label FROM vol_id_name WHERE resource_label = :vol_name), 
+			(SELECT resource_id FROM vol_id_name WHERE resource_label = :vol_name), 
 			:mount_path, 
 			:sub_path
 		)`)
@@ -492,7 +492,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 
-	if err = db.createContainersVolumes(ctx, nsID, contMap); err != nil {
+	if err = db.createContainersVolumes(ctx, userID, contMap); err != nil {
 		return
 	}
 

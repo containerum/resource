@@ -315,6 +315,7 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		return
 	}
 
+	// fetches persistent mounted volumes only
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT v.*,
 			p.id AS perm_id,
@@ -343,6 +344,37 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		err = models.WrapDBError(err)
 		return
 	}
+
+	var npv rstypes.VolumeWithPermission
+	query, args, _ = sqlx.Named( /* language=sql */
+		`SELECT v.*,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level
+		FROM volumes v
+		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
+		WHERE v.ns_id = :id`,
+		ret.Resource)
+	err = sqlx.GetContext(ctx, db.extLog, &npv, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = nil
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	ret.Volume = append(ret.Volume, npv)
 
 	return
 }

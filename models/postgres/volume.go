@@ -40,22 +40,70 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 	nsIDs []string, nsMap map[string]rstypes.NamespaceWithVolumes) (err error) {
 	db.log.Debugf("add volumes to namespaces %v", nsIDs)
-	volsWithNsID := make([]struct {
+	type volWithNsID struct {
 		rstypes.VolumeWithPermission
 		NsID string `db:"ns_id"`
-	}, 0)
+	}
+	volsWithNsID := make([]volWithNsID, 0)
 	query, args, _ := sqlx.In( /* language=sql */
-		`SELECT v.*, perm.*, d.ns_id
+		`SELECT v.*, 
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level,
+			d.ns_id
 		FROM volumes v
 		JOIN volume_mounts vm ON v.id = vm.volume_id
 		JOIN containers c ON vm.container_id = c.id
 		JOIN deployments d ON c.depl_id = d.id
-		JOIN permissions perm ON perm.resource_id = v.id
+		JOIN permissions p ON p.resource_id = v.id
 		WHERE d.ns_id IN (?)`, nsIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, &volsWithNsID, db.extLog.Rebind(query), args...)
-	if err != nil {
+	switch err {
+	case nil, sql.ErrNoRows:
+		err = nil
+	default:
+		err = models.WrapDBError(err)
 		return
 	}
+
+	// fetch non-persistent volumes
+	query, args, _ = sqlx.In( /* language=sql */
+		`SELECT v.*, 
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
+			p.create_time,
+			p.user_id,
+			p.access_level,
+			p.limited,
+			p.access_level_change_time,
+			p.new_access_level,
+			v.ns_id
+		FROM volumes v
+		JOIN permissions p ON p.resource_id = v.id
+		WHERE v.ns_id IN (?)`, nsIDs)
+	npvs := make([]volWithNsID, 0)
+	err = sqlx.SelectContext(ctx, db.extLog, &volsWithNsID, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil, sql.ErrNoRows:
+		err = nil
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	volsWithNsID = append(volsWithNsID, npvs...)
+
 	for _, v := range volsWithNsID {
 		ns := nsMap[v.NsID]
 		ns.Volume = append(ns.Volume, v.VolumeWithPermission)
@@ -86,9 +134,9 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 			tariff_id,
 			capacity,
 			replicas,
-			is_persistent
+			ns_id
 		)
-		VALUES (:tariff_id, :capacity, :replicas, :is_persistent)
+		VALUES (:tariff_id, :capacity, :replicas, :ns_id)
 		RETURNING *`,
 		volume)
 	err = sqlx.GetContext(ctx, db.extLog, volume, db.extLog.Rebind(query), args...)
@@ -153,8 +201,8 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 			(p.limited OR NOT :limited) AND
 			(NOT p.limited OR NOT :not_limited) AND
 			(p.owner_user_id = p.user_id OR NOT :owned) AND
-			(v.is_persistent OR NOT :persistent) AND
-			(NOT v.is_persistent OR NOT :not_persistent)
+			(v.ns_id = NULL OR NOT :persistent) AND
+			(v.ns_id != NULL OR NOT :not_persistent)
 		ORDER BY v.create_time DESC`,
 		params)
 
@@ -207,8 +255,8 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 				(p.limited OR NOT :limited) AND
 				(NOT p.limited OR NOT :not_limited) AND
 				(p.owner_user_id = p.user_id OR NOT :owned) AND
-				(v.is_persistent OR NOT :persistent) AND
-				(NOT v.is_persistent OR NOT :not_persistent)
+				(v.ns_id = NULL OR NOT :persistent) AND
+				(v.ns_id != NULL OR NOT :not_persistent)
 			ORDER BY v.create_time DESC
 			LIMIT :limit
 			OFFSET :offset`,
@@ -430,7 +478,7 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, nonPers
 		)
 		UPDATE volumes
 		SET deleted = TRUE, active = FALSE
-		WHERE id IN (SELECT resource_id FROM user_vol) AND (NOT is_persistent OR NOT :non_persistent_only)
+		WHERE id IN (SELECT resource_id FROM user_vol) AND (v.ns_id != NULL OR NOT :non_persistent_only)
 		RETURNING *`,
 		params)
 	ret = make([]rstypes.Volume, 0)
