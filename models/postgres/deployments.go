@@ -576,3 +576,80 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabe
 	_, err = db.CreateDeployment(ctx, userID, nsLabel, deploy)
 	return
 }
+
+func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplLabel string, replicas int) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+		"replicas":     replicas,
+	}).Debug("set deployment replicas")
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`UPDATE deployments
+		SET replicas = :replicas
+		WHERE ns_id = :ns_id AND name = :name`,
+		rstypes.Deployment{NamespaceID: nsID, Replicas: replicas, Name: deplLabel})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count == 0 {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	return
+}
+
+func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string,
+	req rstypes.SetContainerImageRequest) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}).Debugf("set container image %#v", req)
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	deplID, err := db.getDeployID(ctx, nsID, deplLabel)
+	if err != nil {
+		return
+	}
+	if deplID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`UPDATE containers
+		SET image = :image
+		WHERE depl_id = :depl_id AND name = :name`,
+		rstypes.Container{DeployID: deplID, Name: req.ContainerName, Image: req.Image})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count == 0 {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	return
+}

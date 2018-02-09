@@ -48,6 +48,8 @@ type DB interface {
 	GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 	DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel string) (bool, error)
 	ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabel string, deploy kubtypes.Deployment) error
+	SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplLabel string, replicas int) error
+	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
