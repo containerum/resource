@@ -134,7 +134,7 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"deploy_label": deplLabel,
-	}).Info("set deployment replicas %#v", req)
+	}).Infof("set deployment replicas %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		if setErr := tx.SetDeploymentReplicas(ctx, userID, nsLabel, deplLabel, req.Replicas); setErr != nil {
@@ -142,6 +142,31 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 		}
 
 		// TODO: set replicas in kube
+
+		return nil
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}
+
+func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}).Infof("set container image %#v", req)
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		if setErr := tx.SetContainerImage(ctx, userID, nsLabel, deplLabel, req); setErr != nil {
+			return setErr
+		}
+
+		// TODO: set container image in kube
 
 		return nil
 	})
