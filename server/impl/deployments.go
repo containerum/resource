@@ -101,3 +101,28 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypes.Deployment) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}).Infof("replacing deployment with %#v", deploy)
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		if replaceErr := tx.ReplaceDeployment(ctx, userID, nsLabel, deplLabel, deploy); replaceErr != nil {
+			return replaceErr
+		}
+
+		// TODO: replace deploy in kube
+
+		return nil
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}

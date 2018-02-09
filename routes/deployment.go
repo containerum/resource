@@ -56,7 +56,19 @@ func setContainerImageHandler(ctx *gin.Context) {
 }
 
 func replaceDeploymentHandler(ctx *gin.Context) {
-	// TODO
+	var req kubtypes.Deployment
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	err := srv.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func setReplicasHandler(ctx *gin.Context) {

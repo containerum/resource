@@ -543,3 +543,36 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 	lastInNamespace = activeDeployCount <= 0
 	return
 }
+
+func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabel string, deploy kubtypes.Deployment) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"deploy_label": deplLabel,
+	}).Debugf("replacing deployment with %#v", deploy)
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`DELETE FROM deployments
+		WHERE ns_id = :ns_id AND name = :name`,
+		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count == 0 {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	_, err = db.CreateDeployment(ctx, userID, nsLabel, deploy)
+	return
+}
