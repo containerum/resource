@@ -55,6 +55,7 @@ type ResourceService interface {
 	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
 	GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 	DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error
+	ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypes.Deployment) error
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
