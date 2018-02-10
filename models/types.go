@@ -49,6 +49,8 @@ type DB interface {
 	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
+	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.DomainEntry, error)
+	GetDomain(ctx context.Context, domain string) (rstypes.DomainEntry, error)
 
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error

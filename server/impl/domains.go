@@ -6,6 +6,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
+	"github.com/sirupsen/logrus"
 )
 
 func (rs *resourceServiceImpl) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error {
@@ -19,4 +20,31 @@ func (rs *resourceServiceImpl) AddDomain(ctx context.Context, req rstypes.AddDom
 	}
 
 	return err
+}
+
+func (rs *resourceServiceImpl) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error) {
+	rs.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+	}).Info("get all domains")
+
+	resp, err := rs.DB.GetAllDomains(ctx, params)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (rs *resourceServiceImpl) GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error) {
+	rs.log.WithField("domain", domain).Info("get domain")
+
+	resp, err := rs.DB.GetDomain(ctx, domain)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return rstypes.GetDomainResponse{}, err
+	}
+
+	return resp, nil
 }

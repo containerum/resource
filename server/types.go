@@ -60,6 +60,8 @@ type ResourceService interface {
 	SetContainerImage(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
+	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error)
+	GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error)
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
