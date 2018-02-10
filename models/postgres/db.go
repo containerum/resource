@@ -35,12 +35,9 @@ type pgDB struct {
 func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
 	log := logrus.WithField("component", "postgres_db")
 	log.Infoln("Connecting to ", pgConnStr)
-	conn, err := sqlx.Open("postgres", pgConnStr)
+	conn, err := sqlx.Connect("postgres", pgConnStr)
 	if err != nil {
-		log.WithError(err).Errorln("Postgres connection failed")
-		return nil, err
-	}
-	if pingErr := conn.Ping(); pingErr != nil {
+		log.WithError(err).Errorln("postgres connection failed")
 		return nil, err
 	}
 
