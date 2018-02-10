@@ -107,6 +107,19 @@ type SetContainerImageRequest struct {
 	Image         string `json:"image" binding:"required,docker_image"`
 }
 
+// Domains
+
+type AddDomainRequest = DomainEntry
+
+type GetAllDomainsQueryParams struct {
+	Page    int `form:"page" binding:"gt=0"`
+	PerPage int `form:"per_page" binding:"gt=0"`
+}
+
+type GetAllDomainsResponse = []DomainEntry
+
+type GetDomainResponse = DomainEntry
+
 // Other
 
 // GetUserAccessResponse is response for special request needed for auth server (actually for creating tokens)
