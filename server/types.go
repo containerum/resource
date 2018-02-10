@@ -59,6 +59,8 @@ type ResourceService interface {
 	SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetReplicasRequest) error
 	SetContainerImage(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
+	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
+
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
 	io.Closer

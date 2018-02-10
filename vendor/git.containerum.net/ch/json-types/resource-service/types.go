@@ -154,6 +154,12 @@ func (vm *VolumeMount) Mask() {
 	vm.VolumeID = ""
 }
 
+type Domain struct {
+	IP          string `json:"ip" db:"ip"`
+	Domain      string `json:"domain" db:"domain"`
+	DomainGroup string `json:"domain_group" db:"domain_group"`
+}
+
 // Types below is not for storing in db
 
 type NamespaceWithPermission struct {
@@ -220,4 +226,10 @@ func (vp *VolumeWithUserPermissions) Mask() {
 			vp.Users[i].Mask()
 		}
 	}
+}
+
+type DomainEntry struct {
+	Domain      string   `json:"domain" binding:"required"`
+	DomainGroup string   `json:"domain_group"`
+	IP          []string `json:"ip" binding:"required,dive,ip"`
 }

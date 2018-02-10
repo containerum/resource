@@ -83,8 +83,13 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	app.GET("/access", getUserResourceAccessesHandler)
 
-	adm := app.Group("/adm")
+	domain := app.Group("/domain", utils.RequireAdminRole)
 	{
-		adm.PUT("/access", utils.RequireAdminRole, setUserResourceAccessesHandler)
+		domain.POST("", addDomainHandler)
+	}
+
+	adm := app.Group("/adm", utils.RequireAdminRole)
+	{
+		adm.PUT("/access", setUserResourceAccessesHandler)
 	}
 }

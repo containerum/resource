@@ -48,6 +48,8 @@ type DB interface {
 	SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplLabel string, replicas int) error
 	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
+	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
+
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
 
