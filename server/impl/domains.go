@@ -48,3 +48,14 @@ func (rs *resourceServiceImpl) GetDomain(ctx context.Context, domain string) (rs
 
 	return resp, nil
 }
+
+func (rs *resourceServiceImpl) DeleteDomain(ctx context.Context, domain string) error {
+	rs.log.WithField("domain", domain).Info("delete domain")
+
+	if err := rs.DB.DeleteDomain(ctx, domain); err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}

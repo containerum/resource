@@ -103,3 +103,20 @@ func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Dom
 
 	return
 }
+
+func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
+	db.log.WithField("domain", domain).Debug("delete domain")
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`DELETE FROM domains WHERE domain = :domain`,
+		rstypes.Domain{Domain: domain})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count == 0 {
+		err = models.ErrLabeledResourceNotExists
+	}
+
+	return
+}

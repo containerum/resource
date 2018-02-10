@@ -62,6 +62,7 @@ type ResourceService interface {
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
 	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error)
 	GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error)
+	DeleteDomain(ctx context.Context, domain string) error
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
