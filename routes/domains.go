@@ -47,3 +47,12 @@ func getDomainHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func deleteDomainHandler(ctx *gin.Context) {
+	if err := srv.DeleteDomain(ctx.Request.Context(), ctx.Param("domain")); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}

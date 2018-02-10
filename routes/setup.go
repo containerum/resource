@@ -89,6 +89,8 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 		domain.GET("", getAllDomainsHandler)
 		domain.GET("/:domain", getDomainHandler)
+
+		domain.DELETE("/:domain", deleteDomainHandler)
 	}
 
 	adm := app.Group("/adm", utils.RequireAdminRole)
