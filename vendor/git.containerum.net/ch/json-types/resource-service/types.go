@@ -160,6 +160,28 @@ type Domain struct {
 	DomainGroup string `json:"domain_group" db:"domain_group"`
 }
 
+type DomainEntry struct {
+	Domain      string   `json:"domain" binding:"required"`
+	DomainGroup string   `json:"domain_group"`
+	IP          []string `json:"ip" binding:"required,dive,ip"`
+}
+
+type IngressType string
+
+const (
+	IngressHTTP        IngressType = "http"
+	IngressHTTPS                   = "https"
+	IngressCustomHTTPS             = "custom_https"
+)
+
+type IngressEntry struct {
+	ID        string      `json:"id,omitempty" db:"id"`
+	Domain    string      `json:"domain" db:"custom_domain"`
+	Type      IngressType `json:"type" db:"type"`
+	ServiceID string      `json:"service_id" db:"service_id"`
+	CreatedAt time.Time   `json:"created_at" db:"created_at"`
+}
+
 // Types below is not for storing in db
 
 type NamespaceWithPermission struct {
@@ -226,10 +248,4 @@ func (vp *VolumeWithUserPermissions) Mask() {
 			vp.Users[i].Mask()
 		}
 	}
-}
-
-type DomainEntry struct {
-	Domain      string   `json:"domain" binding:"required"`
-	DomainGroup string   `json:"domain_group"`
-	IP          []string `json:"ip" binding:"required,dive,ip"`
 }

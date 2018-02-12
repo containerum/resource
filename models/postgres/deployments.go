@@ -483,7 +483,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 
-	contMap, err := db.createDeploymentContainers(ctx, nsID, deployment.Containers)
+	contMap, err := db.createDeploymentContainers(ctx, deplID, deployment.Containers)
 	if err != nil {
 		return
 	}

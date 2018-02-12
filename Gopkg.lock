@@ -11,13 +11,13 @@
   branch = "master"
   name = "git.containerum.net/ch/json-types"
   packages = ["billing","errors","mail-templater","misc","resource-service","user-manager"]
-  revision = "3adb6ea57dcf29b5c8b2c2b8b80ae0a5b20e60a4"
+  revision = "f3d3c923fc75f158c2594a385663ce1135af1dd8"
 
 [[projects]]
-  branch = "master"
+  branch = "develop"
   name = "git.containerum.net/ch/kube-client"
   packages = ["pkg/model"]
-  revision = "d965e2820ef5d9114444c770d4b5f09e7044df90"
+  revision = "052e50f5251a61fa378676d9e04bda4ac3bfdf04"
 
 [[projects]]
   branch = "master"
@@ -154,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ac857a596bb275dd23dfcdd0af94a3c72be23310f05a1e0af96075b93770584f"
+  inputs-digest = "6e5415a36b8e1f6a552563e7b7349f0de5ccd096c48a9eeefb6c1e4439a278a5"
   solver-name = "gps-cdcl"
   solver-version = 1

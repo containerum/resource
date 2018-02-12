@@ -5,6 +5,8 @@ import (
 
 	"regexp"
 
+	"time"
+
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"github.com/gin-gonic/gin/binding"
 	"gopkg.in/go-playground/validator.v8"
@@ -119,6 +121,31 @@ type GetAllDomainsQueryParams struct {
 type GetAllDomainsResponse = []DomainEntry
 
 type GetDomainResponse = DomainEntry
+
+// Ingresses
+
+// Ingress is a basic type for ingress-related responses
+type Ingress struct {
+	Domain    string      `json:"domain" binding:"required"`
+	Type      IngressType `json:"type" binding:"eq=http|eq=https|eq=custom_https"`
+	Service   string      `json:"service" binding:"required,dns"`
+	CreatedAt *time.Time  `json:"created_at,omitempty" binding:"-"`
+}
+
+type CreateIngressRequest struct {
+	Ingress
+	TLS *struct {
+		Cert string `json:"crt" binding:"base64"`
+		Key  string `json:"key" binding:"base64"`
+	} `json:"tls,omitempty" binding:"omitempty"`
+}
+
+type GetIngressesResponse []Ingress
+
+type GetIngressesQueryParams struct {
+	Page    int `form:"page" binding:"gt=0"`
+	PerPage int `form:"per_page" binding:"gt=0"`
+}
 
 // Other
 
