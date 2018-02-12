@@ -1,12 +1,12 @@
 FROM golang:1.9-alpine as builder
 WORKDIR /go/src/git.containerum.net/ch/resource-service
 COPY . .
-RUN CGO_ENABLED=0 go build -v -ldflags="-w -s -extldflags '-static'" -tags "jsoniter" -o /bin/resource-service
+RUN go build -v -ldflags="-w -s" -tags "jsoniter" -o /bin/resource-service
 
-FROM scratch
-COPY --from=builder /bin/resource-service /
-COPY --from=builder /go/src/git.containerum.net/ch/resource-service/migrations /migration
-ENV MIGRATION_URL="file:///migration" \
+FROM alpine:3.7
+COPY --from=builder /bin/resource-service /app
+COPY --from=builder /go/src/git.containerum.net/ch/resource-service/migrations /app/migrations
+ENV MIGRATION_URL="file:///app/migrations" \
     DB_URL="postgres://user:password@localhost:5432/resource_service?sslmode=disable" \
     MODE="release" \
     AUTH_ADDR="" \
@@ -17,4 +17,4 @@ ENV MIGRATION_URL="file:///migration" \
     USER_ADDR="" \
     LISTEN_ADDR=""
 EXPOSE 1213
-ENTRYPOINT ["/resource-service"]
+ENTRYPOINT ["/app/resource-service"]
