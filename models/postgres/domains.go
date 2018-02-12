@@ -48,6 +48,7 @@ func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQ
 		"per_page": params.PerPage,
 	}).Debug("get all domains")
 
+	domains = make([]rstypes.DomainEntry, 0)
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT * FROM domains LIMIT :limit OFFSET :offset`,
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
@@ -85,13 +86,13 @@ func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Dom
 		rstypes.Domain{Domain: domain})
 	dbEntries := make([]rstypes.Domain, 0)
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		err = models.ErrLabeledResourceNotExists
-		return
-	default:
+	if err != nil {
 		err = models.WrapDBError(err)
+		return
+	}
+
+	if len(dbEntries) == 0 {
+		err = models.ErrDomainNotExists
 		return
 	}
 
