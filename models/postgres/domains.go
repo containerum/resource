@@ -57,7 +57,6 @@ func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQ
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
-		return
 	default:
 		err = models.WrapDBError(err)
 		return
