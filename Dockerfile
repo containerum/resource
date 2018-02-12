@@ -4,6 +4,7 @@ COPY . .
 RUN go build -v -ldflags="-w -s" -tags "jsoniter" -o /bin/resource-service
 
 FROM alpine:3.7
+RUN mkdir -p /app
 COPY --from=builder /bin/resource-service /app
 COPY --from=builder /go/src/git.containerum.net/ch/resource-service/migrations /app/migrations
 ENV MIGRATION_URL="file:///app/migrations" \
@@ -17,4 +18,4 @@ ENV MIGRATION_URL="file:///app/migrations" \
     USER_ADDR="" \
     LISTEN_ADDR=""
 EXPOSE 1213
-ENTRYPOINT ["/app/resource-service"]
+CMD "/app/resource-service"
