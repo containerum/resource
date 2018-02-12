@@ -19,7 +19,7 @@ func HandleDBError(err error) error {
 		return errors.NewWithCode(err.Error(), http.StatusInternalServerError)
 	case models.ErrLabeledResourceNotExists, models.ErrResourceNotExists:
 		return errors.NewWithCode(err.Error(), http.StatusNotFound)
-	case models.ErrLabeledResourceExists, models.ErrResourceExists:
+	case models.ErrLabeledResourceExists, models.ErrResourceExists, models.ErrIngressExists:
 		return errors.NewWithCode(err.Error(), http.StatusConflict)
 	}
 

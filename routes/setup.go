@@ -7,13 +7,23 @@ import (
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"gopkg.in/go-playground/validator.v8"
 )
 
 var srv server.ResourceService
 
+var customValidator = validator.New(&validator.Config{TagName: "binding"})
+
+func setupValidator() {
+	// gin`s binding can not perform struct-level validations
+	customValidator.RegisterStructValidation(createIngressRequestValidate, rstypes.CreateIngressRequest{})
+}
+
 // SetupRoutes sets up a router
 func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 	srv = server
+
+	setupValidator()
 
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
@@ -49,6 +59,11 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 			deployment.PUT("/:deploy_label/image", setContainerImageHandler)
 			deployment.PUT("/:deploy_label", replaceDeploymentHandler)
 			deployment.PUT("/:deploy_label/replicas", setReplicasHandler)
+		}
+
+		ingress := ns.Group("/:ns_label/ingress")
+		{
+			ingress.POST("", createIngressHandler)
 		}
 	}
 

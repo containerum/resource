@@ -64,6 +64,8 @@ type ResourceService interface {
 	GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error)
 	DeleteDomain(ctx context.Context, domain string) error
 
+	CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error
+
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
 	io.Closer
