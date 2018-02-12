@@ -15,6 +15,8 @@ var srv server.ResourceService
 var customValidator = validator.New(&validator.Config{TagName: "binding"})
 
 func setupValidator() {
+	rstypes.RegisterCustomTags(customValidator)
+
 	// gin`s binding can not perform struct-level validations
 	customValidator.RegisterStructValidation(createIngressRequestValidate, rstypes.CreateIngressRequest{})
 }
