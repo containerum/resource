@@ -93,3 +93,4 @@ var (
 )
 
 var ErrIngressExists = errors.New("ingress for domain already exists")
+var ErrDomainNotExists = errors.New("this domain is not exists")
