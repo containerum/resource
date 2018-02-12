@@ -120,6 +120,12 @@ type GetAllDomainsResponse = []DomainEntry
 
 type GetDomainResponse = DomainEntry
 
+// Ingresses
+type GetAllIngressesQueryParams struct {
+	Page    int `form:"page" binding:"gt=0"`
+	PerPage int `form:"per_page" binding:"gt=0"`
+}
+
 // Other
 
 // GetUserAccessResponse is response for special request needed for auth server (actually for creating tokens)
