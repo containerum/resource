@@ -17,13 +17,11 @@ func (db *pgDB) isIngressExists(ctx context.Context, nsID, domain string) (exist
 	db.log.WithFields(params).Debug("check if ingress for domain exist")
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`WITH ns_services AS (
-			SELECT s.id
-			FROM services s
-			JOIN deployments d ON s.deploy_id = d.id 
-			WHERE d.ns_id = :ns_id
-		)
-		SELECT count(*)>0 FROM ingresses WHERE service_id IN (SELECT id FROM ns_services)`,
+		`SELECT count(i.*)>0 
+		FROM ingresses i 
+		JOIN services s ON i.service_id = s.id
+		JOIN deployments d ON s.deploy_id = d.id
+		WHERE d.ns_id = :ns_id`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &exist, db.extLog.Rebind(query), args...)
 	if err != nil {
@@ -70,6 +68,61 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		map[string]interface{}{"ns_id": nsID, "custom_domain": req.Domain, "type": req.Type, "service": req.Service})
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
+func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) (ret []rstypes.Ingress, err error) {
+	db.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+		"user_id":  userID,
+		"ns_label": nsLabel,
+	}).Debug("get all ingresses")
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	ret = make([]rstypes.Ingress, 0)
+	entries := make([]rstypes.IngressEntry, 0)
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT 
+			i.id,
+			i.custom_domain,
+			i.type,
+			s.name AS service_id, --hack to inject service name instead of id
+			i.created_at
+		FROM ingresses i 
+		JOIN services s ON i.service_id = s.id
+		JOIN deployments d ON s.deploy_id = d.id
+		WHERE d.ns_id = :ns_id
+		LIMIT :limit 
+		OFFSET :offset`,
+		map[string]interface{}{
+			"ns_id":  nsID,
+			"limit":  params.PerPage,
+			"offset": params.PerPage * (params.Page - 1),
+		})
+	err = sqlx.SelectContext(ctx, db.extLog, &entries, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	for _, v := range entries {
+		ret = append(ret, rstypes.Ingress{
+			Domain:    v.Domain,
+			Type:      v.Type,
+			Service:   v.ServiceID,
+			CreatedAt: &v.CreatedAt,
+		})
 	}
 
 	return
