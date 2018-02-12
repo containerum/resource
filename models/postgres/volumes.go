@@ -478,7 +478,7 @@ func (db *pgDB) DeleteAllUserVolumes(ctx context.Context, userID string, nonPers
 		)
 		UPDATE volumes
 		SET deleted = TRUE, active = FALSE
-		WHERE id IN (SELECT resource_id FROM user_vol) AND (v.ns_id != NULL OR NOT :non_persistent_only)
+		WHERE id IN (SELECT resource_id FROM user_vol) AND (ns_id IS NOT NULL OR NOT :non_persistent_only)
 		RETURNING *`,
 		params)
 	ret = make([]rstypes.Volume, 0)
