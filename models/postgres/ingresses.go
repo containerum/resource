@@ -18,7 +18,10 @@ func (db *pgDB) isIngressExists(ctx context.Context, nsID, domain string) (exist
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`WITH ns_services AS (
-			SELECT id FROM services WHERE deploy_id IN (SELECT id FROM deployments WHERE ns_id = :ns_id)
+			SELECT s.id
+			FROM services s
+			JOIN deployments d ON s.deploy_id = d.id 
+			WHERE d.ns_id = :ns_id
 		)
 		SELECT count(*)>0 FROM ingresses WHERE service_id IN (SELECT id FROM ns_services)`,
 		params)
@@ -54,14 +57,6 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		return
 	}
 
-	params := struct {
-		NsID string `db:"ns_id"`
-		rstypes.CreateIngressRequest
-	}{
-		NsID:                 nsID,
-		CreateIngressRequest: req,
-	}
-
 	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`WITH service_id_name AS (
 			SELECT DISTINCT id, name FROM services WHERE deploy_id IN (SELECT id FROM deployments WHERE ns_id = :ns_id)
@@ -70,9 +65,9 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		(custom_domain, type, service_id)
 		VALUES (:custom_domain, 
 			:type,
-			(SELECT id FROM service_id_name WHERE name = :service_name)
+			(SELECT id FROM service_id_name WHERE name = :service)
 		)`,
-		params)
+		map[string]interface{}{"ns_id": nsID, "custom_domain": req.Domain, "type": req.Type, "service": req.Service})
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
