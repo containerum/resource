@@ -38,7 +38,9 @@ type DB interface {
 	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
 
 	GetUserResourceAccesses(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
-	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error)
+	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
+	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) error
+	DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) error
 
 	CreateDeployment(ctx context.Context, userID, nsLabel string, deployment kubtypes.Deployment) (bool, error)
 	GetDeployments(ctx context.Context, userID, nsLabel string) ([]kubtypes.Deployment, error)
@@ -57,9 +59,6 @@ type DB interface {
 	GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
 	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) error
-
-	// admin action
-	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise
@@ -99,4 +98,7 @@ var (
 	ErrIngressExists    = errors.New("ingress for domain already exists")
 	ErrIngressNotExists = errors.New("ingress for domain not exists")
 )
+
 var ErrDomainNotExists = errors.New("this domain is not exists")
+
+var ErrAccessRecordNotExist = errors.New("access record for user not exists")

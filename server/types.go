@@ -48,8 +48,11 @@ type ResourceService interface {
 	ResizeUserVolume(ctx context.Context, label string, newTariffID string) error
 
 	GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error)
+	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 	SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
+	DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error
+	DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error
 
 	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
 	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
@@ -69,16 +72,15 @@ type ResourceService interface {
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
 	DeleteIngress(ctx context.Context, nsLabel, domain string) error
 
-	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
-
 	io.Closer
 }
 
 // "Business-logic" errors
 var (
-	ErrPermission       = errors.NewWithCode("permission denied", http.StatusForbidden)
-	ErrTariffIsSame     = errors.NewWithCode("provided tariff is current tariff", http.StatusConflict)
-	ErrTariffInactive   = errors.NewWithCode("provided tariff is inactive", http.StatusForbidden)
-	ErrTariffNotPublic  = errors.NewWithCode("provided tariff is not public", http.StatusForbidden)
-	ErrResourceNotOwned = errors.NewWithCode("can`t set access for resource which not owned by user", http.StatusForbidden)
+	ErrPermission        = errors.NewWithCode("permission denied", http.StatusForbidden)
+	ErrTariffIsSame      = errors.NewWithCode("provided tariff is current tariff", http.StatusConflict)
+	ErrTariffInactive    = errors.NewWithCode("provided tariff is inactive", http.StatusForbidden)
+	ErrTariffNotPublic   = errors.NewWithCode("provided tariff is not public", http.StatusForbidden)
+	ErrResourceNotOwned  = errors.NewWithCode("can`t set access for resource which not owned by user", http.StatusForbidden)
+	ErrDeleteOwnerAccess = errors.NewWithCode("owner can`t delete has own access to resource", http.StatusConflict)
 )

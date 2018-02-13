@@ -86,3 +86,33 @@ func getUserVolumeAccessesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func deleteUserNamespaceAccessHandler(ctx *gin.Context) {
+	var req rstypes.DeleteNamespaceAccessRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	if err := srv.DeleteUserNamespaceAccess(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+func deleteUserVolumeAccessHandler(ctx *gin.Context) {
+	var req rstypes.DeleteVolumeAccessRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	if err := srv.DeleteUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

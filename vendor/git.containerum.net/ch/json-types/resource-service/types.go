@@ -13,7 +13,6 @@ const (
 	KindVolume          = "volume"
 	KindExtService      = "extservice"
 	KindIntService      = "intservice"
-	KindDomain          = "domain"
 )
 
 type PermissionStatus string // constants PermissionStatusOwner, PermissionStatusRead

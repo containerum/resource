@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
+	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/jmoiron/sqlx"
@@ -126,6 +127,26 @@ func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 		rstypes.PermissionRecord{UserID: userID, NewAccessLevel: access})
 	if err != nil {
 		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
+func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"resource_id": resource.ID,
+		"user_id":     userID,
+	}).Debug("delete resource access")
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`DELETE FROM permissions WHERE (user_id, resource_id) = (:user_id, :resource_id) AND owner_user_id != user_id`,
+		rstypes.PermissionRecord{UserID: userID, ResourceID: misc.WrapString(resource.ID)})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count <= 0 {
+		err = models.ErrAccessRecordNotExist
 	}
 
 	return
