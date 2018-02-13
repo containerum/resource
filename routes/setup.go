@@ -90,7 +90,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		vol.GET("/:vol_label/access", getUserVolumeAccessesHandler)
 
 		vol.DELETE("/:vol_label", deleteUserVolumeHandler)
-		vol.DELETE("/:vol_label", deleteUserVolumeAccessHandler)
+		vol.DELETE("/:vol_label/access", deleteUserVolumeAccessHandler)
 
 		vol.PUT("/:vol_label/name", renameUserVolumeHandler)
 		vol.PUT("/:vol_label/access", setUserVolumeAccessHandler)
