@@ -456,7 +456,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}
-	db.log.WithFields(params).Debug("create deployment %#v", deployment)
+	db.log.WithFields(params).Debugf("create deployment %#v", deployment)
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
@@ -517,7 +517,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`UPDATE deployments
 		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
-		WHERE ns_id := ns_id AND name = :name`,
+		WHERE ns_id = :ns_id AND name = :name`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
 	if err != nil {
 		err = models.WrapDBError(err)
