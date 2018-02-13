@@ -57,6 +57,23 @@ func getUserIngressesHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+func getAllIngressesHandler(ctx *gin.Context) {
+	var params rstypes.GetIngressesQueryParams
+
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	resp, err := srv.GetAllIngresses(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
 func deleteIngressHandler(ctx *gin.Context) {
 	if err := srv.DeleteIngress(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("domain")); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))

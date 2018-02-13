@@ -53,6 +53,21 @@ func (rs *resourceServiceImpl) GetUserIngresses(ctx context.Context, nsLabel str
 	return resp, nil
 }
 
+func (rs *resourceServiceImpl) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
+	rs.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+	}).Info("get all ingresses")
+
+	resp, err := rs.DB.GetAllIngresses(ctx, params)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (rs *resourceServiceImpl) DeleteIngress(ctx context.Context, nsLabel, domain string) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
