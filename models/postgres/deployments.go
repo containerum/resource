@@ -221,7 +221,7 @@ func (db *pgDB) getDeploymentContainers(ctx context.Context,
 	db.log.WithField("deploy_id", deploy.ID).Debug("get deployment containers")
 
 	query, args, _ := sqlx.Named( /* language=sql */ `SELECT * FROM containers WHERE depl_id = :id`, deploy)
-	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 	default:
@@ -246,10 +246,10 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 
 	var rawDeploy rstypes.Deployment
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT *
+		`SELECT d.*
 		FROM deployments d
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
-		WHERE d.name := :deploy_label AND 
+		WHERE d.name = :deploy_label AND 
 				p.user_id = :user_id AND 
 				p.resource_label = :ns_label`,
 		params)
