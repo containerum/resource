@@ -136,7 +136,7 @@ func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resou
 	db.log.WithFields(logrus.Fields{
 		"resource_id": resource.ID,
 		"user_id":     userID,
-	})
+	}).Debug("delete resource access")
 
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`DELETE FROM permissions WHERE (user_id, resource_id) = (:user_id, :resource_id) AND owner_user_id != user_id`,
