@@ -54,11 +54,14 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`INSERT INTO permissions
-		(kind, user_id, resource_id, resource_label, access_level, new_access_level)
-		VALUES (:kind, :user_id, :resource_id, :resource_label, :access_level, :access_level)
+		(kind, owner_user_id, user_id, resource_id, resource_label, access_level, new_access_level)
+		VALUES (:kind, :owner_user_id, :user_id, :resource_id, :resource_label, :access_level, :access_level)
 		ON CONFLICT (kind, resource_id, resource_label, user_id) DO UPDATE SET
-			access_level = EXCLUDED.access_level,
-			new_access_level = EXCLUDED.access_level,
+			limited = (EXCLUDED.new_access_level > :new_access_level OR EXCLUDED.access_level > :new_access_level),
+			new_access_level = CASE WHEN EXCLUDED.new_access_level > :new_access_level 
+										OR EXCLUDED.access_level > :new_access_level 
+										THEN :new_access_level
+									ELSE EXCLUDED.access_level END,
 			access_level_change_time = now() AT TIME ZONE 'UTC'
 		RETURNING *`,
 		permRec)
