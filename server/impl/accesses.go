@@ -159,3 +159,67 @@ func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.Resou
 
 	return ret, nil
 }
+
+func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"ns_label":    nsLabel,
+		"target_user": req.Username,
+	}).Info("delete user namespace access")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		ns, getErr := tx.GetUserNamespaceByLabel(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
+		if ns.OwnerUserID == ns.UserID {
+			return server.ErrDeleteOwnerAccess
+		}
+
+		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
+		if getErr != nil {
+			return getErr
+		}
+
+		return tx.DeleteResourceAccess(ctx, ns.Resource, user.ID)
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}
+
+func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"vol_label":   volLabel,
+		"target_user": req.Username,
+	}).Info("delete user volume access")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		vol, getErr := tx.GetUserNamespaceByLabel(ctx, userID, volLabel)
+		if getErr != nil {
+			return getErr
+		}
+
+		if vol.OwnerUserID == vol.UserID {
+			return server.ErrDeleteOwnerAccess
+		}
+
+		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
+		if getErr != nil {
+			return getErr
+		}
+
+		return tx.DeleteResourceAccess(ctx, vol.Resource, user.ID)
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}

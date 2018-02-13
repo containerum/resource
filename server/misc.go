@@ -17,7 +17,8 @@ func HandleDBError(err error) error {
 		return nil
 	case models.ErrTransactionRollback, models.ErrTransactionBegin, models.ErrTransactionCommit:
 		return errors.NewWithCode(err.Error(), http.StatusInternalServerError)
-	case models.ErrLabeledResourceNotExists, models.ErrResourceNotExists, models.ErrDomainNotExists, models.ErrIngressNotExists:
+	case models.ErrLabeledResourceNotExists, models.ErrResourceNotExists, models.ErrDomainNotExists, models.ErrIngressNotExists,
+		models.ErrAccessRecordNotExist:
 		return errors.NewWithCode(err.Error(), http.StatusNotFound)
 	case models.ErrLabeledResourceExists, models.ErrResourceExists, models.ErrIngressExists:
 		return errors.NewWithCode(err.Error(), http.StatusConflict)
