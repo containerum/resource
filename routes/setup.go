@@ -66,6 +66,8 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		ingress := ns.Group("/:ns_label/ingress")
 		{
 			ingress.POST("", createIngressHandler)
+
+			ingress.GET("", getUserIngressesHandler)
 		}
 	}
 

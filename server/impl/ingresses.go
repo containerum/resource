@@ -33,3 +33,22 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) GetUserIngresses(ctx context.Context, nsLabel string,
+	params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+		"user_id":  userID,
+		"ns_label": nsLabel,
+	}).Info("get user ingresses")
+
+	resp, err := rs.DB.GetUserIngresses(ctx, userID, nsLabel, params)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return nil, err
+	}
+
+	return resp, nil
+}
