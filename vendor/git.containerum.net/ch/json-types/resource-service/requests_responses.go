@@ -35,6 +35,15 @@ type ResizeResourceRequest struct {
 	NewTariffID string `json:"tariff_id" binding:"uuid4"`
 }
 
+type SetResourceAccessRequest struct {
+	Username string           `json:"username" binding:"email"`
+	Access   PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
+}
+
+type DeleteResourceAccessRequest struct {
+	Username string `json:"username" binding:"email"`
+}
+
 // Namespaces
 
 type CreateNamespaceRequest = CreateResourceRequest
@@ -61,10 +70,9 @@ type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
 
 type RenameNamespaceRequest = RenameResourceRequest
 
-type SetNamespaceAccessRequest struct {
-	Username string           `json:"username" binding:"email"`
-	Access   PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
-}
+type SetNamespaceAccessRequest = SetResourcesAccessRequest
+
+type DeleteNamespaceAccessRequest = DeleteResourceAccessRequest
 
 type ResizeNamespaceRequest = ResizeResourceRequest
 
@@ -94,7 +102,9 @@ type GetVolumeAccessesResponse = VolumeWithUserPermissions
 
 type RenameVolumeRequest = RenameResourceRequest
 
-type SetVolumeAccessRequest = SetNamespaceAccessRequest
+type SetVolumeAccessRequest = SetResourceAccessRequest
+
+type DeleteVolumeAccessRequest = DeleteResourceAccessRequest
 
 type ResizeVolumeRequest = ResizeResourceRequest
 
