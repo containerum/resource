@@ -128,6 +128,43 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 	return
 }
 
+func (db *pgDB) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (ret []rstypes.Ingress, err error) {
+	db.log.WithFields(logrus.Fields{
+		"page":     params.Page,
+		"per_page": params.PerPage,
+	}).Debug("get all ingresses")
+
+	ret = make([]rstypes.Ingress, 0)
+	entries := make([]rstypes.IngressEntry, 0)
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT
+			i.id,
+			i.custom_domain,
+			i.type,
+			s.name AS service_id,
+			i.created_at
+		FROM ingresses i
+		JOIN services s on i.service_id = s.id
+		LIMIT :limit OFFSET :offset`,
+		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
+	err = sqlx.SelectContext(ctx, db.extLog, &entries, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	for _, v := range entries {
+		ret = append(ret, rstypes.Ingress{
+			Domain:    v.Domain,
+			Type:      v.Type,
+			Service:   v.ServiceID, // name here
+			CreatedAt: &v.CreatedAt,
+		})
+	}
+
+	return
+}
+
 func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
