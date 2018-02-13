@@ -56,3 +56,12 @@ func getUserIngressesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func deleteIngressHandler(ctx *gin.Context) {
+	if err := srv.DeleteIngress(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("domain")); err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

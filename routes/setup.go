@@ -68,6 +68,8 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 			ingress.POST("", createIngressHandler)
 
 			ingress.GET("", getUserIngressesHandler)
+
+			ingress.DELETE("/:domain", deleteIngressHandler)
 		}
 	}
 

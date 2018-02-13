@@ -127,3 +127,40 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 
 	return
 }
+
+func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"ns_label": nsLabel,
+		"domain":   domain,
+	}).Info("delete ingress")
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`WITH ns_services AS (
+			SELECT s.id 
+			FROM services s
+			JOIN deployments d ON s.deploy_id = d.id
+			WHERE d.ns_id = :ns_id
+		)
+		DELETE FROM ingresses
+		WHERE service_id IN (SELECT id FROM ns_services) AND custom_domain = :domain`,
+		map[string]interface{}{"ns_id": nsID, "domain": domain})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+	if count, _ := result.RowsAffected(); count <= 0 {
+		err = models.ErrIngressNotExists
+	}
+
+	return
+}

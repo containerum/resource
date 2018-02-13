@@ -66,6 +66,7 @@ type ResourceService interface {
 
 	CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error
 	GetUserIngresses(ctx context.Context, nsLabel string, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
+	DeleteIngress(ctx context.Context, nsLabel, domain string) error
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 
