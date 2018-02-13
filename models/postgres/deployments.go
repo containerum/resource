@@ -210,7 +210,7 @@ func (db *pgDB) getDeploymentContainers(ctx context.Context,
 	db.log.WithField("deploy_id", deploy.ID).Debug("get deployment containers")
 
 	query, args, _ := sqlx.Named( /* language=sql */ `SELECT * FROM containers WHERE depl_id = :id`, deploy)
-	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 	default:
