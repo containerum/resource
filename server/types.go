@@ -65,6 +65,7 @@ type ResourceService interface {
 	DeleteDomain(ctx context.Context, domain string) error
 
 	CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error
+	DeleteIngress(ctx context.Context, nsLabel, domain string) error
 
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 

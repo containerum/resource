@@ -54,6 +54,7 @@ type DB interface {
 	DeleteDomain(ctx context.Context, domain string) error
 
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
+	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) error
 
 	// admin action
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
@@ -92,5 +93,8 @@ var (
 	ErrResourceNotExists = errors.New("resource not exists")
 )
 
-var ErrIngressExists = errors.New("ingress for domain already exists")
+var (
+	ErrIngressExists    = errors.New("ingress for domain already exists")
+	ErrIngressNotExists = errors.New("ingress for domain not exists")
+)
 var ErrDomainNotExists = errors.New("this domain is not exists")
