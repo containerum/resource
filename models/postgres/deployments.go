@@ -322,14 +322,12 @@ func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
 			SELECT * FROM deployments WHERE ns_id = :ns_id
 		)
 		INSERT INTO deployments
-		(ns_id, name, ram, cpu, image)
-		VALUES (:ns_id, :name, :ram, :cpu, :replicas)
+		(ns_id, cpu, replicas)
+		VALUES (:ns_id, :name, :replicas)
 		RETURNING id, NOT EXISTS(SELECT * from ns_deploys)`,
 		rstypes.Deployment{
 			NamespaceID: nsID,
 			Name:        deployment.Name,
-			RAM:         1, // FIXME
-			CPU:         1, // FIXME
 			Replicas:    deployment.Replicas,
 		})
 	err = db.extLog.QueryRowxContext(ctx, db.extLog.Rebind(query), args...).Scan(&id, &firstInNamespace)
