@@ -134,6 +134,10 @@ func (db *pgDB) getRawDeployments(ctx context.Context,
 }
 
 func convertEnv(envs []rstypes.EnvironmentVariable) (ret []kubtypes.Env) {
+	if len(envs) == 0 {
+		ret = make([]kubtypes.Env, 0)
+		return
+	}
 	for _, envVar := range envs {
 		ret = append(ret, kubtypes.Env{
 			Name:  envVar.Name,
@@ -144,6 +148,10 @@ func convertEnv(envs []rstypes.EnvironmentVariable) (ret []kubtypes.Env) {
 }
 
 func convertVols(vols []volumeMountWithName) (ret []kubtypes.Volume) {
+	if len(vols) == 0 {
+		ret = make([]kubtypes.Volume, 0)
+		return
+	}
 	for _, volume := range vols {
 		var volumeResp kubtypes.Volume
 		volumeResp.Name = volume.Name
@@ -186,6 +194,7 @@ func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 		var deployResp kubtypes.Deployment
 		deployResp.Name = deploy.Name
 		deployResp.Replicas = deploy.Replicas
+		deployResp.Containers = make([]kubtypes.Container, 0)
 		for _, container := range containerMap[deploy.ID] {
 			var containerResp kubtypes.Container
 			containerResp.Name = container.Name
@@ -197,6 +206,8 @@ func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 
 			vols := convertVols(containerVols[container.ID])
 			containerResp.Volume = &vols
+
+			deployResp.Containers = append(deployResp.Containers, containerResp)
 		}
 
 		ret = append(ret, deployResp)
