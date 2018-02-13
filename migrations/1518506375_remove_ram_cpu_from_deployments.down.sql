@@ -40,7 +40,7 @@ $check_container_resource_quotas$ LANGUAGE plpgsql;
 
 ALTER TABLE deployments
   ADD COLUMN ram INTEGER CHECK (ram > 0),
-  ADD COLUMN cpu INTEGER CHECK (cpu > 0)
+  ADD COLUMN cpu INTEGER CHECK (cpu > 0);
 
 CREATE OR REPLACE FUNCTION check_deploy_resource_quotas() RETURNS TRIGGER AS $check_deploy_resource_quotas$
 DECLARE
