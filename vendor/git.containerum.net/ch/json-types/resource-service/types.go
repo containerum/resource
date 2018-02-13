@@ -71,8 +71,6 @@ type Deployment struct {
 	ID          string        `json:"id,omitempty" db:"id"`
 	NamespaceID string        `json:"namespace_id,omitempty" db:"ns_id"`
 	Name        string        `json:"name" db:"name"`
-	RAM         int           `json:"ram" db:"ram"`
-	CPU         int           `json:"cpu" db:"cpu"`
 	CreateTime  time.Time     `json:"create_time,omitempty" db:"create_time"`
 	Deleted     bool          `json:"deleted,omitempty" db:"deleted"`
 	DeleteTime  misc.NullTime `json:"delete_time,omitempty" db:"delete_time"`
