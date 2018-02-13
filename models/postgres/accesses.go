@@ -75,7 +75,18 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 			access_level = EXCLUDED.access_level,
 			new_access_level = EXCLUDED.access_level,
 			access_level_change_time = now() AT TIME ZONE 'UTC'
-		RETURNING *`,
+		RETURNING
+			id AS perm_id,
+			kind,
+			resource_id,
+			resource_label,
+			owner_user_id,
+			create_time,
+			user_id,
+			access_level,
+			limited,
+			access_level_change_time,
+			new_access_level`,
 		permRec)
 	err = sqlx.GetContext(ctx, db.extLog, permRec, db.extLog.Rebind(query), args...)
 	if err != nil {
