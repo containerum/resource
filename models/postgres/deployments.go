@@ -238,7 +238,7 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 		`SELECT *
 		FROM deployments d
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
-		WHERE d.name := :deploy_label AND 
+		WHERE d.name = :deploy_label AND 
 				p.user_id = :user_id AND 
 				p.resource_label = :ns_label`,
 		params)
