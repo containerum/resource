@@ -13,7 +13,7 @@ import (
 )
 
 type CreateResourceRequest struct {
-	TariffID string `json:"tariff-id" binding:"uuid4"`
+	TariffID string `json:"tariff_id" binding:"uuid4"`
 	Label    string `json:"label" binding:"required,dns"`
 }
 
