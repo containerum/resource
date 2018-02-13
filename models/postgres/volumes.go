@@ -297,7 +297,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE p.user_id = :user_id AND p.resource_label = :label`,
 		params)
-	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
