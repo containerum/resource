@@ -322,7 +322,7 @@ func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
 			SELECT * FROM deployments WHERE ns_id = :ns_id
 		)
 		INSERT INTO deployments
-		(ns_id, cpu, replicas)
+		(ns_id, name, replicas)
 		VALUES (:ns_id, :name, :replicas)
 		RETURNING id, NOT EXISTS(SELECT * from ns_deploys)`,
 		rstypes.Deployment{
