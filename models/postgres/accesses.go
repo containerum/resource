@@ -147,7 +147,6 @@ func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resou
 	}
 	if count, _ := result.RowsAffected(); count <= 0 {
 		err = models.ErrAccessRecordNotExist
-		return
 	}
 
 	return
