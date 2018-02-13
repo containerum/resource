@@ -53,9 +53,24 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 	}).Debugf("set %s access", permRec.Kind)
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`INSERT INTO permissions
-		(kind, user_id, resource_id, resource_label, access_level, new_access_level)
-		VALUES (:kind, :user_id, :resource_id, :resource_label, :access_level, :access_level)
+		`INSERT INTO permissions (
+			kind,
+			owner_user_id,
+			user_id,
+			resource_id,
+			resource_label,
+			access_level,
+			new_access_level
+		)
+		VALUES (
+			:kind,
+			:owner_user_id,
+			:user_id,
+			:resource_id,
+			:resource_label,
+			:access_level,
+			:access_level
+		)
 		ON CONFLICT (kind, resource_id, resource_label, user_id) DO UPDATE SET
 			access_level = EXCLUDED.access_level,
 			new_access_level = EXCLUDED.access_level,
