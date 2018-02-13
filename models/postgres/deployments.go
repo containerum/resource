@@ -235,7 +235,7 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 
 	var rawDeploy rstypes.Deployment
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT *
+		`SELECT d.*
 		FROM deployments d
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
 		WHERE d.name = :deploy_label AND 
