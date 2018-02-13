@@ -70,7 +70,7 @@ type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
 
 type RenameNamespaceRequest = RenameResourceRequest
 
-type SetNamespaceAccessRequest = SetResourcesAccessRequest
+type SetNamespaceAccessRequest = SetResourceAccessRequest
 
 type DeleteNamespaceAccessRequest = DeleteResourceAccessRequest
 
