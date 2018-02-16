@@ -57,6 +57,9 @@ type Volume struct {
 	Capacity    int             `json:"capacity" db:"capacity"` // gigabytes
 	Replicas    int             `json:"replicas,omitempty" db:"replicas"`
 	NamespaceID misc.NullString `json:"namespace_id,omitempty" db:"ns_id"`
+
+	GlusterName string `json:"gluster_name,omitempty" db:"gluster_name"`
+	StorageID   string `json:"storage_id,omitempty" db:"storage_name"`
 }
 
 func (v *Volume) Mask() {
@@ -64,6 +67,16 @@ func (v *Volume) Mask() {
 	v.Active.Valid = false
 	v.Replicas = 0
 	v.NamespaceID.Valid = false
+	v.GlusterName = ""
+	v.StorageID = ""
+}
+
+type Storage struct {
+	ID       string `json:"id,omitempty" db:"id"`
+	Name     string `json:"name" db:"name"`
+	Used     int    `json:"used" db:"used"`
+	Size     int    `json:"size" db:"size"`
+	Replicas int    `json:"replicas"`
 }
 
 type Deployment struct {
