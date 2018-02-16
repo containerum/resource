@@ -27,7 +27,7 @@
   branch = "develop"
   name = "git.containerum.net/ch/kube-client"
   packages = ["pkg/model"]
-  revision = "052e50f5251a61fa378676d9e04bda4ac3bfdf04"
+  revision = "cfe89b781ee281e8ed9014dbb52eeca3b59ab280"
 
 [[projects]]
   branch = "master"
@@ -246,6 +246,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6e5415a36b8e1f6a552563e7b7349f0de5ccd096c48a9eeefb6c1e4439a278a5"
+  inputs-digest = "d0dee69c1d53bb5d1099ddc033431939bf787ec6e10d850ebd7e7aa1522481a5"
   solver-name = "gps-cdcl"
   solver-version = 1
