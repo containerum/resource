@@ -59,7 +59,7 @@ type Volume struct {
 	NamespaceID misc.NullString `json:"namespace_id,omitempty" db:"ns_id"`
 
 	GlusterName string `json:"gluster_name,omitempty" db:"gluster_name"`
-	StorageID   string `json:"storage_id,omitempty" db:"storage_name"`
+	StorageID   string `json:"storage_id,omitempty" db:"storage_id"`
 }
 
 func (v *Volume) Mask() {
