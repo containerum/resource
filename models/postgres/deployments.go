@@ -115,7 +115,7 @@ func (db *pgDB) getRawDeployments(ctx context.Context,
 		FROM deployments d
 		JOIN namespaces ns ON d.ns_id = ns.id
 		JOIN permissions p ON ns.id = p.resource_id AND p.kind = 'namespace'
-		WHERE p.resource_label = :ns_label AND p.user_id = :user_id`,
+		WHERE p.resource_label = :ns_label AND p.user_id = :user_id AND NOT d.deleted`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &deployments, db.extLog.Rebind(query), args...)
 	switch err {
@@ -249,9 +249,7 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 		`SELECT d.*
 		FROM deployments d
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
-		WHERE d.name = :deploy_label AND 
-				p.user_id = :user_id AND 
-				p.resource_label = :ns_label`,
+		WHERE NOT d.deleted AND (d.name, p.user_id, p.resource_label) = (:deploy_label, :user_id, :ns_label)`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &rawDeploy, db.extLog.Rebind(query), args...)
 	switch err {
@@ -309,7 +307,7 @@ func (db *pgDB) getDeployID(ctx context.Context, nsID, deplLabel string) (id str
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT id
 		FROM deployments
-		WHERE ns_id = :ns_id AND name = :deploy_label`,
+		WHERE NOT deleted AND (ns_id, name) = (:ns_id, :deploy_label)`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &id, db.extLog.Rebind(query), args...)
 	switch err {
@@ -330,7 +328,7 @@ func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`WITH ns_deploys AS (
-			SELECT * FROM deployments WHERE ns_id = :ns_id
+			SELECT * FROM deployments WHERE ns_id = :ns_id AND NOT deleted
 		)
 		INSERT INTO deployments
 		(ns_id, name, replicas)
@@ -389,7 +387,7 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 
 	stmt, err := db.preparer.PrepareNamed( /* language=sql */
 		`INSERT INTO env_vars
-		(container_id, name, value)
+		(container_id, "name", "value")
 		VALUES (:container_id, :name, :value)`)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -528,7 +526,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`UPDATE deployments
 		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
-		WHERE ns_id = :ns_id AND name = :name`,
+		WHERE (ns_id, "name") = (:ns_id, :name) AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -569,9 +567,10 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabe
 		return
 	}
 
+	// assuming cascade removal of containers, etc.
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`DELETE FROM deployments
-		WHERE ns_id = :ns_id AND name = :name`,
+		WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
 	if err != nil {
 		err = models.WrapDBError(err)
