@@ -8,4 +8,4 @@ ALTER TABLE volumes
 
 DROP TABLE IF EXISTS storages;
 
-DROP EXTENSION IF EXISTS pgcrypto;
+DROP EXTENSION IF EXISTS "pgcrypto";
