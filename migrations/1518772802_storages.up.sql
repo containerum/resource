@@ -66,7 +66,7 @@ updated_vols AS (
     WHERE storage_id IS NULL
     RETURNING *
 )
-UPDATE storages SET used = (SELECT sum(capacity) FROM updated_vols WHERE storage_id = storages.id);
+UPDATE storages SET used = (SELECT COALESCE(sum(capacity),used) FROM updated_vols WHERE storage_id = storages.id);
 ALTER TABLE volumes ENABLE TRIGGER update_used_in_storage;
 
 ALTER TABLE volumes
