@@ -71,24 +71,31 @@ func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string)
 }
 
 type userManagerStub struct {
-	log *logrus.Entry
+	log         *logrus.Entry
+	givenLogins map[string]umtypes.UserInfoByLoginGetResponse
 }
 
 func NewUserManagerStub() UserManagerClient {
 	return &userManagerStub{
-		log: logrus.WithField("component", "user_manager_stub"),
+		log:         logrus.WithField("component", "user_manager_stub"),
+		givenLogins: make(map[string]umtypes.UserInfoByLoginGetResponse),
 	}
 }
 
 func (u *userManagerStub) UserInfoByLogin(ctx context.Context, login string) (*umtypes.UserInfoByLoginGetResponse, error) {
 	u.log.WithField("id", login).Info("get user info by login")
-	return &umtypes.UserInfoByLoginGetResponse{
-		ID:   utils.NewUUID(),
-		Role: "user",
-		Data: map[string]interface{}{
-			"email": login,
-		},
-	}, nil
+	resp, ok := u.givenLogins[login]
+	if !ok {
+		resp = umtypes.UserInfoByLoginGetResponse{
+			ID:   utils.NewUUID(),
+			Role: "user",
+			Data: map[string]interface{}{
+				"email": login,
+			},
+		}
+		u.givenLogins[login] = resp
+	}
+	return &resp, nil
 }
 
 func (u *userManagerStub) UserInfoByID(ctx context.Context, userID string) (*umtypes.UserInfoByIDGetResponse, error) {
