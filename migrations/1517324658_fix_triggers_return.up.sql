@@ -67,7 +67,7 @@ BEGIN
   IF OLD.user_id = OLD.owner_user_id THEN
     DELETE FROM permissions WHERE user_id = OLD.owner_user_id;
   END IF;
-  RETURN NULL;
+  RETURN OLD;
 END;
 $remove_users_on_remove_owner$ LANGUAGE plpgsql;
 
@@ -75,14 +75,14 @@ $remove_users_on_remove_owner$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION remove_namespace_perms() RETURNS TRIGGER AS $remove_namespace_perms$
 BEGIN
   DELETE FROM permissions WHERE resource_id = OLD.id;
-  RETURN NULL;
+  RETURN OLD;
 END;
 $remove_namespace_perms$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION remove_volume_perms() RETURNS TRIGGER AS $remove_volume_perms$
   BEGIN
     DELETE FROM permissions WHERE resource_id = OLD.id;
-    RETURN NULL;
+    RETURN OLD;
   END;
 $remove_volume_perms$ LANGUAGE plpgsql;
 
