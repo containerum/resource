@@ -29,15 +29,15 @@ CREATE OR REPLACE FUNCTION update_used_in_storage() RETURNS TRIGGER AS $update_u
   BEGIN
     CASE TG_OP
       WHEN 'INSERT' THEN
-        UPDATE storages SET used = used + NEW.capacity WHERE storage_id = NEW.storage_id;
+        UPDATE storages SET used = used + NEW.capacity WHERE id = NEW.storage_id;
       WHEN 'UPDATE' THEN
         IF NEW.deleted THEN
-          UPDATE storages SET used = used - OLD.capacity WHERE storage_id = NEW.storage_id;
+          UPDATE storages SET used = used - OLD.capacity WHERE id = NEW.storage_id;
         ELSE
-          UPDATE storages SET used = used - OLD.capacity + NEW.capacity WHERE storage_id = NEW.storage_id;
+          UPDATE storages SET used = used - OLD.capacity + NEW.capacity WHERE id = NEW.storage_id;
         END IF;
       WHEN 'DELETE' THEN
-        UPDATE storages SET used = used - OLD.capacity WHERE storage_id = NEW.storage_id;
+        UPDATE storages SET used = used - OLD.capacity WHERE id = NEW.storage_id;
     END CASE;
     RETURN NEW;
   END;
