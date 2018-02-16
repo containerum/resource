@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS storages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL UNIQUE,
-  used INTEGER NOT NULL DEFAULT 0 CHECK (used > 0),
+  used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0),
   size INTEGER NOT NULL CHECK (size > 0),
   replicas INTEGER NOT NULL CHECK (replicas > 0),
 
