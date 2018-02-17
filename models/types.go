@@ -60,6 +60,12 @@ type DB interface {
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
 	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) error
 
+	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
+	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
+	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
+	DeleteStorage(ctx context.Context, name string) error
+	ChooseAvailableStorage(ctx context.Context, minFree int) (rstypes.Storage, error)
+
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise
 	// May return ErrTransactionBegin if transaction start failed,

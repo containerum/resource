@@ -72,6 +72,11 @@ type ResourceService interface {
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
 	DeleteIngress(ctx context.Context, nsLabel, domain string) error
 
+	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
+	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
+	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
+	DeleteStorage(ctx context.Context, name string) error
+
 	io.Closer
 }
 
