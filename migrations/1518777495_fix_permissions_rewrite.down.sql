@@ -28,11 +28,11 @@ CREATE TRIGGER check_update_permissions BEFORE UPDATE ON permissions
 
 ALTER TYPE PERMISSION_STATUS RENAME TO PERMISSION_STATUS_OLD;
 CREATE TYPE PERMISSION_STATUS AS ENUM (
-  'none',
+  'owner',
   'read',
-  'readdelete',
   'write',
-  'owner'
+  'readdelete',
+  'none'
 );
 ALTER TABLE permissions
   ALTER COLUMN access_level DROP DEFAULT,

@@ -3,11 +3,11 @@ DROP FUNCTION IF EXISTS insert_owner_permissions();
 
 ALTER TYPE PERMISSION_STATUS RENAME TO PERMISSION_STATUS_OLD;
 CREATE TYPE PERMISSION_STATUS AS ENUM (
-  'owner',
+  'none',
   'read',
-  'write',
   'readdelete',
-  'none'
+  'write',
+  'owner'
 );
 ALTER TABLE permissions
   ALTER COLUMN access_level DROP DEFAULT,
