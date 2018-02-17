@@ -40,6 +40,12 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 	newVolume.NamespaceID.Valid = false // make always persistent
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		storage, selectErr := tx.ChooseAvailableStorage(ctx, tariff.StorageLimit)
+		if selectErr != nil {
+			return selectErr
+		}
+		newVolume.StorageID = storage.ID
+
 		if createErr := tx.CreateVolume(ctx, userID, req.Label, newVolume); createErr != nil {
 			return createErr
 		}
