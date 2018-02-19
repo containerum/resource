@@ -1,0 +1,7 @@
+ALTER TABLE storages
+  ADD COLUMN ips INET ARRAY;
+
+UPDATE storages SET ips = '{"0.0.0.0"}' WHERE ips IS NULL;
+
+ALTER TABLE storages
+  ALTER COLUMN ips SET NOT NULL;
