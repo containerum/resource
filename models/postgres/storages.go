@@ -15,10 +15,10 @@ func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequ
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`INSERT INTO storages
-		(name, size, replicas)
-		VALUES (:name, :size, :replicas)
+		(name, size, replicas, ips)
+		VALUES (:name, :size, :replicas, :ips)
 		RETURNING *`,
-		rstypes.Storage{Name: req.Name, Size: req.Size, Replicas: req.Replicas})
+		rstypes.Storage{Name: req.Name, Size: req.Size, Replicas: req.Replicas, IPs: req.IPs})
 	err = sqlx.GetContext(ctx, db.extLog, req, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -47,9 +47,13 @@ func (db *pgDB) UpdateStorage(ctx context.Context, name string, req rstypes.Upda
 
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`UPDATE storages
-		SET name = COALESCE(:name, name), replicas = COALESCE(:replicas, replicas), size = COALESCE(:size, size)
+		SET
+			name = COALESCE(:name, name),
+			replicas = COALESCE(:replicas, replicas),
+			size = COALESCE(:size, size),
+			ips = COALESCE(:ips, ips)
 		WHERE name = :oldname`,
-		map[string]interface{}{"oldname": name, "name": req.Name, "replicas": req.Replicas, "size": req.Size})
+		map[string]interface{}{"oldname": name, "name": req.Name, "replicas": req.Replicas, "size": req.Size, "ips": req.IPs})
 	if err != nil {
 		err = models.WrapDBError(err)
 		return err
