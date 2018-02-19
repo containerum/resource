@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS endpoints (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   namespace_id UUID NOT NULL REFERENCES namespaces (id) ON DELETE CASCADE,
   storage_id UUID NOT NULL REFERENCES storages (id) ON DELETE CASCADE,
-  service_exists BOOLEAN NOT NULL,
+  service_exists BOOLEAN,
 
   UNIQUE (namespace_id, storage_id)
 );
