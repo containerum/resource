@@ -118,6 +118,17 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		domain.DELETE("/:domain", deleteDomainHandler)
 	}
 
+	storage := app.Group("/storage", utils.RequireAdminRole)
+	{
+		storage.POST("", createStorageHandler)
+
+		storage.GET("", getStoragesHandler)
+
+		storage.PUT("/:storage_name", updateStorageHandler)
+
+		storage.DELETE("/:storage_name", deleteStorageHandler)
+	}
+
 	adm := app.Group("/adm", utils.RequireAdminRole)
 	{
 		adm.PUT("/access", setUserResourceAccessesHandler)
