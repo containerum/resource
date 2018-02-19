@@ -164,17 +164,19 @@ type UpdateIngressRequest struct {
 // Storages
 
 type CreateStorageRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Size     int    `json:"size" binding:"gt=0"`
-	Replicas int    `json:"replicas" binding:"gt=0"`
+	Name     string   `json:"name" binding:"required"`
+	Size     int      `json:"size" binding:"gt=0"`
+	Replicas int      `json:"replicas" binding:"gt=0"`
+	IPs      []string `json:"ips" binding:"gt=0"`
 }
 
 type GetStoragesResponse []Storage
 
 type UpdateStorageRequest struct {
-	Name     *string `json:"name,omitempty"`
-	Size     *int    `json:"size,omitempty" binding:"omitempty,gt=0"`
-	Replicas *int    `json:"replicas" binding:"omitempty,gt=0"`
+	Name     *string  `json:"name,omitempty"`
+	Size     *int     `json:"size,omitempty" binding:"omitempty,gt=0"`
+	Replicas *int     `json:"replicas" binding:"omitempty,gt=0"`
+	IPs      []string `json:"ips" binding:"omitempty,gt=0"`
 }
 
 // Other
