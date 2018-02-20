@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"git.containerum.net/ch/json-types/misc"
+	"github.com/lib/pq"
 )
 
 type Kind string // constants KindNamespace, KindVolume, ... It`s recommended to use strings.ToLower before comparsion
@@ -72,12 +73,12 @@ func (v *Volume) Mask() {
 }
 
 type Storage struct {
-	ID       string   `json:"id,omitempty" db:"id"`
-	Name     string   `json:"name" db:"name"`
-	Used     int      `json:"used" db:"used"`
-	Size     int      `json:"size" db:"size"`
-	Replicas int      `json:"replicas"`
-	IPs      []string `json:"ips" db:"ips"`
+	ID       string         `json:"id,omitempty" db:"id"`
+	Name     string         `json:"name" db:"name"`
+	Used     int            `json:"used" db:"used"`
+	Size     int            `json:"size" db:"size"`
+	Replicas int            `json:"replicas"`
+	IPs      pq.StringArray `json:"ips" db:"ips"`
 }
 
 type Deployment struct {
@@ -191,6 +192,48 @@ type IngressEntry struct {
 	Type      IngressType `json:"type" db:"type"`
 	ServiceID string      `json:"service_id" db:"service_id"`
 	CreatedAt time.Time   `json:"created_at" db:"created_at"`
+}
+
+type ServiceType string
+
+const (
+	ServiceInternal ServiceType = "internal"
+	ServiceExternal             = "external"
+)
+
+type Service struct {
+	ID        string      `json:"id,omitempty" db:"id"`
+	DeployID  string      `json:"deployment_id,omitempty" db:"depl_id"`
+	Name      string      `json:"name" db:"name"`
+	Type      ServiceType `json:"type" db:"type"`
+	CreatedAt time.Time   `json:"created_at,omitempty" db:"created_at"`
+}
+
+func (s *Service) Mask() {
+	s.ID = ""
+	s.DeployID = ""
+	s.CreatedAt = time.Time{}
+}
+
+type PortProtocol string
+
+const (
+	ProtocolTCP PortProtocol = "tcp"
+	ProtocolUDP              = "udp"
+)
+
+type Port struct {
+	ID         string       `json:"id,omitempty" db:"id"`
+	ServiceID  string       `json:"service_id" db:"service_id"`
+	Name       string       `json:"name" db:"name"`
+	Port       int          `json:"port" db:"port"`
+	TargetPort *int         `json:"target_port" db:"target_port"`
+	Protocol   PortProtocol `json:"protocol" db:"protocol"`
+}
+
+func (p *Port) Mask() {
+	p.ID = ""
+	p.ServiceID = ""
 }
 
 // Types below is not for storing in db
