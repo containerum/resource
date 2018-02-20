@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"git.containerum.net/ch/json-types/misc"
+	"github.com/lib/pq"
 )
 
 type Kind string // constants KindNamespace, KindVolume, ... It`s recommended to use strings.ToLower before comparsion
@@ -72,12 +73,12 @@ func (v *Volume) Mask() {
 }
 
 type Storage struct {
-	ID       string   `json:"id,omitempty" db:"id"`
-	Name     string   `json:"name" db:"name"`
-	Used     int      `json:"used" db:"used"`
-	Size     int      `json:"size" db:"size"`
-	Replicas int      `json:"replicas"`
-	IPs      []string `json:"ips" db:"ips"`
+	ID       string         `json:"id,omitempty" db:"id"`
+	Name     string         `json:"name" db:"name"`
+	Used     int            `json:"used" db:"used"`
+	Size     int            `json:"size" db:"size"`
+	Replicas int            `json:"replicas"`
+	IPs      pq.StringArray `json:"ips" db:"ips"`
 }
 
 type Deployment struct {

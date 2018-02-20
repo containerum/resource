@@ -7,6 +7,7 @@ import (
 	"git.containerum.net/ch/json-types/errors"
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
+	"git.containerum.net/ch/json-types/kube-api"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 )
@@ -65,6 +66,9 @@ type DB interface {
 	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
 	DeleteStorage(ctx context.Context, name string) error
 	ChooseAvailableStorage(ctx context.Context, minFree int) (rstypes.Storage, error)
+
+	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
+	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise
