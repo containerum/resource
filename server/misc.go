@@ -26,7 +26,7 @@ func HandleDBError(err error) error {
 
 	switch err.(type) {
 	case *models.DBError:
-		return errors.NewWithCode(err.Error(), http.StatusInternalServerError)
+		return err.(*models.DBError).Err
 	case *errors.Error:
 		return err
 	default:

@@ -5,6 +5,9 @@ import (
 
 	"database/sql"
 
+	"net/http"
+
+	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
@@ -415,9 +418,57 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 	return
 }
 
+func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
+	db.log.WithField("user_id", userID).Debugf("check volume exists for user, containers %#v", contMap)
+
+	volExistMap := make(map[string]bool)
+	for _, c := range contMap {
+		if c.Volume == nil {
+			continue
+		}
+		for _, v := range *c.Volume {
+			volExistMap[v.Name] = false
+		}
+	}
+
+	var existingVols []string
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT resource_label FROM permissions WHERE (kind, user_id) = ('volume', :user_id)`,
+		map[string]interface{}{"user_id": userID})
+	err = sqlx.SelectContext(ctx, db.extLog, &existingVols, db.extLog.Rebind(query), args...)
+	switch err {
+	case err, sql.ErrNoRows:
+		err = nil
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	for _, v := range existingVols {
+		volExistMap[v] = true
+	}
+
+	var nonExistingVolumes []string
+	for vol, exist := range volExistMap {
+		if !exist {
+			nonExistingVolumes = append(nonExistingVolumes, vol)
+		}
+	}
+
+	if len(nonExistingVolumes) > 0 {
+		err = errors.FormatWithCode(http.StatusNotFound, "volumes %#v are not exists", nonExistingVolumes)
+	}
+
+	return
+}
+
 func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
 	params := map[string]interface{}{"user_id": userID}
 	db.log.WithFields(params).Debugf("create containers volumes %#v", contMap)
+
+	if err = db.checkVolumesExists(ctx, userID, contMap); err != nil {
+		return
+	}
 
 	stmt, err := db.preparer.PrepareNamed( /* language=sql */
 		`WITH vol_id_name AS (

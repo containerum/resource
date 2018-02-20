@@ -16,12 +16,13 @@
   packages = [
     "billing",
     "errors",
+    "kube-api",
     "mail-templater",
     "misc",
     "resource-service",
     "user-manager"
   ]
-  revision = "46f2436002ac22c3d316a9e73f311a05c96ff6ad"
+  revision = "bc0482c81927732dd8b01678e482a1c285e79f93"
 
 [[projects]]
   branch = "develop"

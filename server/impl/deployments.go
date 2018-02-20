@@ -61,6 +61,21 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 			// TODO: activate volume in gluster
 		}
 
+		newEndpoints, epErr := tx.CreateGlusterEndpoints(ctx, userID, nsLabel)
+		if epErr != nil {
+			return epErr
+		}
+
+		for _, ep := range newEndpoints {
+			// TODO: create new endpoint in kube
+			// TODO: create gluster service in kube
+			_ = ep
+		}
+
+		if confErr := tx.ConfirmGlusterEndpoints(ctx, userID, nsLabel); confErr != nil {
+			return confErr
+		}
+
 		// TODO: create deployment in kube
 
 		return nil
