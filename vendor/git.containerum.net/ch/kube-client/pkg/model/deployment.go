@@ -1,14 +1,5 @@
 package model
 
-type Deployment struct {
-	Name            string             `json:"name" binding:"required"`
-	Replicas        int                `json:"replicas" binding:"required"`
-	Containers      []Container        `json:"containers" binding:"required,dive"`
-	ImagePullSecret *map[string]string `json:"image_pull_secret,omitempty"`
-	Status          *DeploymentStatus  `json:"status,omitempty"`
-	Hostname        *string            `json:"hostname,omitempty"`
-}
-
 type DeploymentStatus struct {
 	CreatedAt           int64 `json:"created_at"`
 	UpdatedAt           int64 `json:"updated_at"`
@@ -23,37 +14,39 @@ type UpdateReplicas struct {
 	Replicas int `json:"replicas" binding:"required"`
 }
 
-type ResourceDeployment struct {
-	Containers []Container       `json:"containers"`
-	Owner      *string           `json:"owner,omitempty"`
-	Labels     map[string]string `json:"labels"`
-	Name       string            `json:"name"`
-	Replicas   int               `json:"replicas"`
+type Deployment struct {
+	Status     *DeploymentStatus `json:"status,omitempty"` //
+	Containers []Container       `json:"containers"`       //
+	Labels     map[string]string `json:"labels,omitempty"` //
+	Name       string            `json:"name"`             // not UUID!
+	Replicas   int               `json:"replicas"`         //
 }
 
-type ResourceContainer struct {
-	Image     string `json:"image"`
-	Name      string `json:"name"`
-	Resources struct {
-		Requests Resource `json:"requests"`
-	} `json:"resources"`
-	Env          []ResourceEnv         `json:"env"`
-	Commands     []string              `json:"commands"`
-	Ports        []ResourcePort        `json:"ports"`
-	VolumeMounts []ResourceVolumeMount `json:"volumeMounts"`
+type Container struct {
+	Image        string            `json:"image"`                   //
+	Name         string            `json:"name"`                    // not UUID!
+	Limits       Resource          `json:"limits"`                  //
+	Env          []Env             `json:"env,omitempty"`           //
+	Commands     []string          `json:"commands,omitempty"`      //
+	Ports        []ContainerPort   `json:"ports,omitempty"`         //
+	VolumeMounts []ContainerVolume `json:"volume_mounts,omitempty"` //
+	ConfigMaps   []ContainerVolume `json:"config_maps,omitempty"`   //
 }
 
-type ResourceEnv struct {
+type Env struct {
 	Value string `json:"value"`
 	Name  string `json:"name"`
 }
 
-type ResourcePort struct {
-	ContainerPort int `json:"containerPort"`
+type ContainerPort struct {
+	Name     string   `json:"name"`
+	Port     int      `json:"port"`
+	Protocol Protocol `json:"protocol"`
 }
 
-type ResourceVolumeMount struct {
-	Name      string `json:"name"`
-	MountPath string `json:"mountPath"`
-	SubPath   string `json:"subPath"`
+type ContainerVolume struct {
+	Name      string  `json:"name"`
+	Mode      *string `json:"mode,omitempty"`
+	MountPath string  `json:"mount_path"`
+	SubPath   *string `json:"sub_path,omitempty"`
 }
