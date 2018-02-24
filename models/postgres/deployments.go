@@ -150,13 +150,13 @@ func convertEnv(envs []rstypes.EnvironmentVariable) (ret []kubtypes.Env) {
 	return
 }
 
-func convertVols(vols []volumeMountWithName) (ret []kubtypes.Volume) {
+func convertVols(vols []volumeMountWithName) (ret []kubtypes.ContainerVolume) {
 	if len(vols) == 0 {
-		ret = make([]kubtypes.Volume, 0)
+		ret = make([]kubtypes.ContainerVolume, 0)
 		return
 	}
 	for _, volume := range vols {
-		var volumeResp kubtypes.Volume
+		var volumeResp kubtypes.ContainerVolume
 		volumeResp.Name = volume.Name
 		volumeResp.MountPath = volume.MountPath
 		if volume.SubPath.Valid {
@@ -205,10 +205,10 @@ func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 			// TODO: add resources description when model will be updated
 
 			env := convertEnv(containerEnv[container.ID])
-			containerResp.Env = &env
+			containerResp.Env = env
 
 			vols := convertVols(containerVols[container.ID])
-			containerResp.Volume = &vols
+			containerResp.VolumeMounts = vols
 
 			deployResp.Containers = append(deployResp.Containers, containerResp)
 		}
@@ -289,10 +289,10 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 		containerResp.Image = container.Image
 
 		env := convertEnv(containerEnv[container.ID])
-		containerResp.Env = &env
+		containerResp.Env = env
 
 		vols := convertVols(containerVols[container.ID])
-		containerResp.Volume = &vols
+		containerResp.VolumeMounts = vols
 
 		ret.Containers = append(ret.Containers, containerResp)
 	}
@@ -399,10 +399,7 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 	defer stmt.Close()
 
 	for id, container := range contMap {
-		if container.Env == nil {
-			continue
-		}
-		for _, env := range *container.Env {
+		for _, env := range container.Env {
 			_, err = stmt.ExecContext(ctx, rstypes.EnvironmentVariable{
 				ContainerID: id,
 				Name:        env.Name,
@@ -423,10 +420,7 @@ func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 
 	volExistMap := make(map[string]bool)
 	for _, c := range contMap {
-		if c.Volume == nil {
-			continue
-		}
-		for _, v := range *c.Volume {
+		for _, v := range c.VolumeMounts {
 			volExistMap[v.Name] = false
 		}
 	}
@@ -492,10 +486,7 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, cont
 
 	for id, container := range contMap {
 		params["container_id"] = id
-		if container.Volume == nil {
-			continue
-		}
-		for _, v := range *container.Volume {
+		for _, v := range container.VolumeMounts {
 			params["vol_name"] = v.Name
 			params["mount_path"] = v.MountPath
 			params["sub_path"] = v.SubPath
