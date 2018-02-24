@@ -88,6 +88,30 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel, serviceType 
 		return
 	}
 
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`INSERT INTO permissions
+		(kind, resource_id, resource_label, owner_user_id, user_id)
+		VALUES (
+			(CASE :service_type
+				WHEN 'external' THEN 'extservice'
+				WHEN 'internal' THEN 'intservice'
+			END),
+			:service_id,
+			:service_name,
+			:user_id,
+			:user_id
+		)`,
+		map[string]interface{}{
+			"service_type": serviceType,
+			"service_id":   serviceID,
+			"service_name": req.Name,
+			"user_id":      userID,
+		})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
 	err = db.createServicePorts(ctx, serviceID, req.Ports)
 	return
 }
