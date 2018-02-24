@@ -77,6 +77,8 @@ type DB interface {
 	UpdateService(ctx context.Context, userID, nsLabel, serviceLabel, newServiceType string, req kubtypes.Service) error
 	DeleteService(ctx context.Context, userID, nsLabel, serviceLabel string) error
 
+	GetResourcesCount(ctx context.Context, userID string) (rstypes.GetResourcesCountResponse, error)
+
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise
 	// May return ErrTransactionBegin if transaction start failed,

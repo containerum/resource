@@ -83,6 +83,8 @@ type ResourceService interface {
 	UpdateService(ctx context.Context, nsLabel, serviceLabel string, req kubtypes.Service) error
 	DeleteService(ctx context.Context, nsLabel, serviceLabel string) error
 
+	GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error)
+
 	io.Closer
 }
 
