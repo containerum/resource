@@ -323,3 +323,37 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel
 	err = db.createServicePorts(ctx, serviceID, req.Ports)
 	return
 }
+
+func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceLabel string) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"ns_label":      nsLabel,
+		"service_label": serviceLabel,
+	}).Debug("delete service")
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`WITH service_to_update AS (
+			SELECT s.id
+			FROM services s
+			JOIN deployments d ON s.deploy_id = d.id
+			WHERE d.ns_id = :ns_id AND s.name = :name
+		)
+		UPDATE services
+		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
+		WHERE id = (SELECT id FROM service_to_update)`,
+		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})
+	if count, _ := result.RowsAffected(); count <= 0 {
+		err = models.ErrLabeledResourceNotExists
+	}
+
+	return
+}

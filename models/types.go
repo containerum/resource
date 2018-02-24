@@ -75,6 +75,7 @@ type DB interface {
 	GetServices(ctx context.Context, userID, nsLabel string) ([]kubtypes.Service, error)
 	GetService(ctx context.Context, userID, nsLabel, serviceLabel string) (kubtypes.Service, error)
 	UpdateService(ctx context.Context, userID, nsLabel, serviceLabel, newServiceType string, req kubtypes.Service) error
+	DeleteService(ctx context.Context, userID, nsLabel, serviceLabel string) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise

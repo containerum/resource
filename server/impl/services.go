@@ -129,3 +129,27 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 
 	return nil
 }
+
+func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, serviceLabel string) error {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"ns_label":      nsLabel,
+		"service_label": serviceLabel,
+	}).Info("delete service")
+
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		if delErr := tx.DeleteService(ctx, userID, nsLabel, serviceLabel); delErr != nil {
+			return delErr
+		}
+
+		// TODO: delete service in kube
+		return nil
+	})
+	if err != nil {
+		err = server.HandleDBError(err)
+		return err
+	}
+
+	return nil
+}

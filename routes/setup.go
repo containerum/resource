@@ -81,6 +81,8 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 			service.GET("/:service_label", getServiceHandler)
 
 			service.PUT("/:service_label", updateServiceHandler)
+
+			service.DELETE("/:service_label", deleteServiceHandler)
 		}
 	}
 

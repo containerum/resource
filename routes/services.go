@@ -58,3 +58,13 @@ func updateServiceHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusOK)
 }
+
+func deleteServiceHandler(ctx *gin.Context) {
+	err := srv.DeleteService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
