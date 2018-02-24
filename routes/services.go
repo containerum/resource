@@ -42,3 +42,19 @@ func getServiceHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func updateServiceHandler(ctx *gin.Context) {
+	var req kubtypes.Service
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(badRequest(err))
+		return
+	}
+
+	err := srv.UpdateService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"), req)
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}

@@ -270,3 +270,56 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 	ret = serviceMap[serviceEntry.ID]
 	return
 }
+
+func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel, newServiceType string, req kubtypes.Service) (err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":          userID,
+		"ns_label":         nsLabel,
+		"service_label":    serviceLabel,
+		"new_service_type": newServiceType,
+	}).Debugf("update service to %#v", req)
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	var serviceID string
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH service_to_update AS (
+			SELECT s.id
+			FROM services s
+			JOIN deployments d ON s.deploy_id = d.id
+			WHERE d.ns_id = :ns_id AND s.name = :name
+		)
+		UPDATE services
+		SET "type" = :new_type
+		WHERE id = (SELECT id FROM service_to_update)
+		RETURNING id`,
+		map[string]interface{}{"ns_id": nsID, "name": serviceLabel, "new_type": newServiceType})
+	err = sqlx.GetContext(ctx, db.extLog, &serviceID, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+		`DELETE FROM service_ports WHERE service_id = :service_id`,
+		map[string]interface{}{"servce_id": serviceID})
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	err = db.createServicePorts(ctx, serviceID, req.Ports)
+	return
+}
