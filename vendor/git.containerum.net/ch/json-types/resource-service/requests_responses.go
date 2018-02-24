@@ -181,6 +181,17 @@ type UpdateStorageRequest struct {
 
 // Other
 
+type GetResourcesCountResponse struct {
+	Namespaces  int `json:"namespaces"`
+	Volumes     int `json:"volumes"`
+	Deployments int `json:"deployments"`
+	ExtServices int `json:"external_services"`
+	IntServices int `json:"internal_services"`
+	Ingresses   int `json:"ingresses"`
+	Pods        int `json:"pods"`
+	Containers  int `json:"containers"`
+}
+
 // GetUserAccessResponse is response for special request needed for auth server (actually for creating tokens)
 type GetUserAccessesResponse = auth.ResourcesAccess
 

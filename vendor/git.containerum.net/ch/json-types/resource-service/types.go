@@ -202,17 +202,21 @@ const (
 )
 
 type Service struct {
-	ID        string      `json:"id,omitempty" db:"id"`
-	DeployID  string      `json:"deployment_id,omitempty" db:"depl_id"`
-	Name      string      `json:"name" db:"name"`
-	Type      ServiceType `json:"type" db:"type"`
-	CreatedAt time.Time   `json:"created_at,omitempty" db:"created_at"`
+	ID         string        `json:"id,omitempty" db:"id"`
+	DeployID   string        `json:"deployment_id,omitempty" db:"depl_id"`
+	Name       string        `json:"name" db:"name"`
+	Type       ServiceType   `json:"type" db:"type"`
+	CreatedAt  time.Time     `json:"created_at,omitempty" db:"created_at"`
+	Deleted    bool          `json:"deleted,omitempty" db:"deleted"`
+	DeleteTime misc.NullTime `json:"delete_time,omitempty" db:"delete_time"`
 }
 
 func (s *Service) Mask() {
 	s.ID = ""
 	s.DeployID = ""
 	s.CreatedAt = time.Time{}
+	s.Deleted = false
+	s.DeleteTime.Valid = false
 }
 
 type PortProtocol string
