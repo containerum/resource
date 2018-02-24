@@ -77,6 +77,8 @@ type ResourceService interface {
 	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
 	DeleteStorage(ctx context.Context, name string) error
 
+	CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error
+
 	io.Closer
 }
 

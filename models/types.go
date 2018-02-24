@@ -55,6 +55,7 @@ type DB interface {
 	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.DomainEntry, error)
 	GetDomain(ctx context.Context, domain string) (rstypes.DomainEntry, error)
 	DeleteDomain(ctx context.Context, domain string) error
+	ChooseRandomDomain(ctx context.Context) (rstypes.DomainEntry, error)
 
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
 	GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
@@ -69,6 +70,8 @@ type DB interface {
 
 	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
 	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
+
+	CreateService(ctx context.Context, userID, nsLabel, serviceType string, req kubtypes.Service) error
 
 	// Perform operations inside transaction
 	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise

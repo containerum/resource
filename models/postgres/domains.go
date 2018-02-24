@@ -120,3 +120,26 @@ func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 
 	return
 }
+
+func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.DomainEntry, err error) {
+	db.log.Debugf("choose random domain")
+
+	dbEntries := make([]rstypes.Domain, 0)
+	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, /* language=sql*/
+		`WITH rand_domain AS (
+			SELECT DISTINCT domain FROM domains ORDER BY RANDOM() LIMIT 1
+		)
+		SELECT * FROM domains WHERE domain = (SELECT domain FROM rand_domain)`)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	entry.Domain = dbEntries[0].Domain
+	entry.DomainGroup = dbEntries[0].DomainGroup
+	for _, v := range dbEntries {
+		entry.IP = append(entry.IP, v.IP)
+	}
+
+	return
+}

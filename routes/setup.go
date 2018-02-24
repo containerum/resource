@@ -72,6 +72,11 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 			ingress.DELETE("/:domain", deleteIngressHandler)
 		}
+
+		service := ns.Group("/:ns_label/service")
+		{
+			service.POST("", createServiceHandler)
+		}
 	}
 
 	nss := app.Group("/namespaces")
