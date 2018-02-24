@@ -32,6 +32,8 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 				return selectErr
 			}
 
+			// TODO: choose free port of domain
+
 			req.Domain = domain.Domain
 			req.IPs = domain.IP
 		}
@@ -50,4 +52,20 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 	}
 
 	return nil
+}
+
+func (rs *resourceServiceImpl) GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"ns_label": nsLabel,
+	}).Info("get services")
+
+	ret, err := rs.DB.GetServices(ctx, userID, nsLabel)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return make([]kubtypes.Service, 0), err
+	}
+
+	return ret, nil
 }

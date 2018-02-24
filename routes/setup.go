@@ -76,6 +76,8 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		service := ns.Group("/:ns_label/service")
 		{
 			service.POST("", createServiceHandler)
+
+			service.GET("", getServicesHandler)
 		}
 	}
 
