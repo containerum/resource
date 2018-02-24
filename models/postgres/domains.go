@@ -127,7 +127,7 @@ func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.DomainEnt
 	dbEntries := make([]rstypes.Domain, 0)
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, /* language=sql*/
 		`WITH rand_domain AS (
-			SELECT DISTINCT domain FROM domains ORDER BY RANDOM() LIMIT 1
+			SELECT domain FROM domains ORDER BY RANDOM() LIMIT 1
 		)
 		SELECT * FROM domains WHERE domain = (SELECT domain FROM rand_domain)`)
 	if err != nil {
