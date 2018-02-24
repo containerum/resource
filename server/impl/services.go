@@ -69,3 +69,19 @@ func (rs *resourceServiceImpl) GetServices(ctx context.Context, nsLabel string) 
 
 	return ret, nil
 }
+
+func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceLabel string) (kubtypes.Service, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"ns_label":      nsLabel,
+		"service_label": serviceLabel,
+	}).Info("get services")
+
+	ret, err := rs.DB.GetService(ctx, userID, nsLabel, serviceLabel)
+	if err != nil {
+		err = models.WrapDBError(err)
+	}
+
+	return ret, err
+}

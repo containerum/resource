@@ -79,6 +79,7 @@ type ResourceService interface {
 
 	CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error
 	GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error)
+	GetService(ctx context.Context, nsLabel, serviceLabel string) (kubtypes.Service, error)
 
 	io.Closer
 }

@@ -97,15 +97,14 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 
 	dbEntries := make([]rstypes.Service, 0)
 	query, args, _ := sqlx.Named( /* language=sql */
-		`WITH depl_id_name AS (
-			SELECT id, "name" FROM deployments WHERE ns_id = :ns_id
-		)
-		SELECT 
+		`SELECT 
 			s.id,
-			(SELECT depl_id_name.name FROM depl_id_name WHERE s.deploy_id = depl_id_name.id) AS deploy_id,
+			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS deploy_id,
 			s.name,
+			s.type,
 			s.created_at
-		FROM services s`,
+		FROM services s
+		WHERE NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID})
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
 	if err != nil {
@@ -189,5 +188,61 @@ func (db *pgDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []
 		ret = append(ret, v)
 	}
 
+	return
+}
+
+func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel string) (ret kubtypes.Service, err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"ns_label":      nsLabel,
+		"service_label": serviceLabel,
+	}).Debug("get service")
+
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = models.ErrLabeledResourceNotExists
+		return
+	}
+
+	var serviceEntry rstypes.Service
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT 
+			s.id,
+			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS deploy_id,
+			s.name,
+			s.type,
+			s.created_at
+		FROM services s
+		WHERE s.name = :name AND NOT s.deleted`,
+		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})
+	err = sqlx.GetContext(ctx, db.extLog, &serviceEntry, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrLabeledResourceNotExists
+		return
+	default:
+		err = models.WrapDBError(err)
+		return
+	}
+
+	serviceIDs := []string{serviceEntry.ID}
+	createdAt := serviceEntry.CreatedAt.Unix()
+	serviceMap := map[string]kubtypes.Service{
+		serviceEntry.ID: {
+			Name:      serviceEntry.Name,
+			CreatedAt: &createdAt,
+			Deploy:    serviceEntry.DeployID,
+		},
+	}
+
+	if err = db.getServicesPorts(ctx, serviceIDs, serviceMap); err != nil {
+		return
+	}
+
+	ret = serviceMap[serviceEntry.ID]
 	return
 }

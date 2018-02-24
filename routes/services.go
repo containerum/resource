@@ -31,3 +31,14 @@ func getServicesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func getServiceHandler(ctx *gin.Context) {
+	resp, err := srv.GetService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
+
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
