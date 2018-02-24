@@ -38,11 +38,15 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 			SELECT storage_id FROM ns_volumes
 			EXCEPT
 			SELECT storage_id FROM endpoints
+		), inserted_eps AS (
+			INSERT INTO endpoints
+			(namespace_id, storage_id, service_exists)
+			SELECT :ns_id, vwe.storage_id, FALSE FROM volumes_without_endpoints vwe
+			RETURNING storage_id
 		)
-		INSERT INTO endpoints
-		(namespace_id, storage_id, service_exists)
-		SELECT :ns_id, vwe.storage_id, FALSE FROM volumes_without_endpoints vwe
-		RETURNING (SELECT s.id, s.ips FROM storages s WHERE s.id = storage_id)`,
+		SELECT s.id, s.ips
+		FROM storages s
+		WHERE s.id IN (SELECT ie.storage_id FROM inserted_eps ie)`,
 		map[string]interface{}{"ns_id": nsID})
 	var storages []struct {
 		ID  string         `db:"id"`
