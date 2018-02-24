@@ -1,32 +1,19 @@
 package model
 
 type Ingress struct {
-	Name      string  `json:"name" binding:"required"`
-	CreatedAt *int64  `json:"created_at,omitempty"`
-	TLSSecret *string `json:"tls_secret,omitempty"`
-	Rule      Rule    `json:"rule" binding:"required"`
+	Name      string `json:"name"`
+	CreatedAt *int64 `json:"created_at,omitempty"`
+	Rules     []Rule `json:"rules"`
 }
 
 type Rule struct {
-	Host string `json:"host" binding:"required"`
-	Path Path   `json:"path" binding:"required"`
+	Host      string  `json:"host"`
+	TLSSecret *string `json:"tls_secret,omitempty"`
+	Path      []Path  `json:"path"`
 }
 
 type Path struct {
-	Path        string `json:"path" binding:"required"`
-	ServiceName string `json:"service_name" binding:"required"`
-	ServicePort int    `json:"service_port" binding:"required"`
-}
-
-type ResourceIngress struct {
-	Domain    string             `json:"domain"`
-	Type      string             `json:"type"`
-	CreatedAt *int64             `json:"created_at,omitempty"`
-	Service   string             `json:"service"`
-	TLS       *ResourceTLSsecret `json:"tls, omitempty"`
-}
-
-type ResourceTLSsecret struct {
-	Crt string `json:"crt"`
-	Key string `json:"key"`
+	Path        string `json:"path"`
+	ServiceName string `json:"service_name"`
+	ServicePort int    `json:"service_port"`
 }

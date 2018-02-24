@@ -8,22 +8,16 @@ const (
 	TCP Protocol = "TCP"
 )
 
-const (
-	External ServiceType = "external"
-	Internal ServiceType = "internal"
-)
-
 type Service struct {
-	Name      string      `json:"name" binding:"required"`
-	CreatedAt *int64      `json:"created_at,omitempty"`
-	Deploy    string      `json:"deploy,omitempty"`
-	IP        *[]string   `json:"ip,omitempty"`
-	Type      ServiceType `json:"type"`
-	Ports     []Port      `json:"ports" binding:"required,dive"`
-	Hidden    bool        `json:"hidden,omitempty"`
+	Name      string        `json:"name" binding:"required"`
+	CreatedAt *int64        `json:"created_at,omitempty"`
+	Deploy    string        `json:"deploy,omitempty"`
+	IPs       []string      `json:"ips,omitempty"`
+	Domain    string        `json:"domain,omitempty"`
+	Ports     []ServicePort `json:"ports" binding:"required,dive"`
 }
 
-type Port struct {
+type ServicePort struct {
 	Name       string   `json:"name" binding:"required"`
 	Port       int      `json:"port" binding:"required"`
 	TargetPort *int     `json:"target_port,omitempty"`
