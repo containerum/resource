@@ -126,7 +126,9 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS deploy_id,
 			s.name,
 			s.type,
-			s.created_at
+			s.created_at,
+			s.deleted,
+			s.delete_time
 		FROM services s
 		WHERE NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID})
@@ -238,7 +240,9 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS deploy_id,
 			s.name,
 			s.type,
-			s.created_at
+			s.created_at,
+			s.deleted,
+			s.delete_time
 		FROM services s
 		WHERE s.name = :name AND NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})

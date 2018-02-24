@@ -4,8 +4,12 @@ import (
 	"io"
 	"reflect"
 
+	"context"
+
 	"git.containerum.net/ch/json-types/errors"
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/server"
+	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,4 +40,17 @@ func (rs *resourceServiceImpl) Close() error {
 		return errors.Format("%#v", errs)
 	}
 	return nil
+}
+
+func (rs *resourceServiceImpl) GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error) {
+	userID := utils.MustGetUserID(ctx)
+	rs.log.WithField("user_id", userID).Info("get resources count")
+
+	ret, err := rs.DB.GetResourcesCount(ctx, userID)
+	if err != nil {
+		err = server.HandleDBError(err)
+		return ret, err
+	}
+
+	return ret, nil
 }

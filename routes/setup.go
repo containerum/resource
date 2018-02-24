@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	umtypes "git.containerum.net/ch/json-types/user-manager"
 	"git.containerum.net/ch/resource-service/server"
@@ -145,4 +147,16 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 	{
 		adm.PUT("/access", setUserResourceAccessesHandler)
 	}
+
+	app.GET("/resources", getResourcesCountHandler)
+}
+
+func getResourcesCountHandler(ctx *gin.Context) {
+	resp, err := srv.GetResourcesCount(ctx.Request.Context())
+	if err != nil {
+		ctx.AbortWithStatusJSON(handleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }

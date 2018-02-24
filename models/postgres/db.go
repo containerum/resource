@@ -14,6 +14,8 @@ import (
 	migdrv "github.com/mattes/migrate/database/postgres"
 	_ "github.com/mattes/migrate/source/file" // needed to load migrations scripts from files
 	"github.com/sirupsen/logrus"
+
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 )
 
 type pgDB struct {
@@ -139,4 +141,77 @@ func (db *pgDB) String() string {
 
 func (db *pgDB) Close() error {
 	return db.conn.Close()
+}
+
+func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstypes.GetResourcesCountResponse, err error) {
+	db.log.WithField("user_id", userID).Debug("get resources count")
+
+	var nsIDs []string
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT resource_id FROM permissions WHERE (user_id, kind) = (:user_id, 'namespace')`,
+		map[string]interface{}{"user_id": userID})
+	err = sqlx.SelectContext(ctx, db.extLog, &nsIDs, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	ret.Namespaces = len(nsIDs)
+
+	var volservs struct {
+		Volumes     int `db:"volcnt"`
+		ExtServices int `db:"extcnt"`
+		IntServices int `db:"intcnt"`
+	}
+	query, args, _ = sqlx.Named( /* language=sql */
+		`SELECT
+			count(*) FILTER (WHERE kind = 'volume') AS volcnt,
+			count(*) FILTER (WHERE kind = 'extservice') AS extcnt,
+			count(*) FILTER (WHERE kind = 'intservice') AS intcnt
+		FROM permissions
+		WHERE user_id = :user_id`,
+		map[string]interface{}{"user_id": userID})
+	err = sqlx.GetContext(ctx, db.extLog, &volservs, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	ret.Volumes = volservs.Volumes
+	ret.ExtServices = volservs.ExtServices
+	ret.IntServices = volservs.IntServices
+
+	var deplIDs []string
+	query, args, _ = sqlx.In( /* language=sql */ `SELECT * FROM deployments WHERE ns_id IN (?)`, nsIDs)
+	err = sqlx.SelectContext(ctx, db.extLog, deplIDs, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	ret.Deployments = len(deplIDs)
+
+	query, args, _ = sqlx.In( /* language=sql */
+		`SELECT count(*) 
+		FROM ingresses i
+		JOIN services s ON i.service_id = s.id
+		WHERE s.deploy_id IN (?)`,
+		deplIDs)
+	err = sqlx.GetContext(ctx, db.extLog, &ret.Ingresses, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+		return
+	}
+
+	query, args, _ = sqlx.In( /* language=sql */
+		`SELECT count(c.*)
+		FROM containers
+		WHERE depl_id IN (?)`,
+		deplIDs)
+	err = sqlx.GetContext(ctx, db.extLog, &ret.Containers, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = models.WrapDBError(err)
+	}
+
+	return
 }
