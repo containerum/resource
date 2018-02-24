@@ -123,7 +123,7 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT 
 			s.id,
-			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS deploy_id,
+			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS depl_id,
 			s.name,
 			s.type,
 			s.created_at
