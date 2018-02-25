@@ -14,20 +14,14 @@ import (
 func (db *pgDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (err error) {
 	db.log.Debugf("add domain %#v")
 
-	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`INSERT INTO domains
 		(ip, domain, domain_group)
 		VALUES (:ip, :domain, :domain_group)
 		ON CONFLICT (domain) DO UPDATE SET
 			ip = EXCLUDED.ip,
-			domain_group = EXCLUDED.domain_group`)
-	if err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-	defer stmt.Close()
-
-	_, err = stmt.ExecContext(ctx, req)
+			domain_group = EXCLUDED.domain_group`,
+		req)
 	if err != nil {
 		err = models.WrapDBError(err)
 	}
