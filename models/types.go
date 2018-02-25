@@ -52,10 +52,10 @@ type DB interface {
 	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
-	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.DomainEntry, error)
-	GetDomain(ctx context.Context, domain string) (rstypes.DomainEntry, error)
+	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.Domain, error)
+	GetDomain(ctx context.Context, domain string) (rstypes.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
-	ChooseRandomDomain(ctx context.Context) (rstypes.DomainEntry, error)
+	ChooseRandomDomain(ctx context.Context) (rstypes.Domain, error)
 
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
 	GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
