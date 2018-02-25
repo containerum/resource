@@ -167,15 +167,10 @@ func (vm *VolumeMount) Mask() {
 }
 
 type Domain struct {
-	IP          string `json:"ip" db:"ip"`
-	Domain      string `json:"domain" db:"domain"`
-	DomainGroup string `json:"domain_group" db:"domain_group"`
-}
-
-type DomainEntry struct {
-	Domain      string   `json:"domain" binding:"required"`
-	DomainGroup string   `json:"domain_group"`
-	IP          []string `json:"ip" binding:"required,dive,ip"`
+	ID          string         `json:"id,omitempty" binding:"-" db:"id"`
+	Domain      string         `json:"domain" binding:"required" db:"domain"`
+	DomainGroup string         `json:"domain_group" db:"domain_group"`
+	IP          pq.StringArray `json:"ip" binding:"required,dive,ip"`
 }
 
 type IngressType string

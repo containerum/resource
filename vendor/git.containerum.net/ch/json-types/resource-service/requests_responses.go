@@ -121,16 +121,16 @@ type SetContainerImageRequest struct {
 
 // Domains
 
-type AddDomainRequest = DomainEntry
+type AddDomainRequest = Domain
 
 type GetAllDomainsQueryParams struct {
 	Page    int `form:"page" binding:"gt=0"`
 	PerPage int `form:"per_page" binding:"gt=0"`
 }
 
-type GetAllDomainsResponse = []DomainEntry
+type GetAllDomainsResponse = []Domain
 
-type GetDomainResponse = DomainEntry
+type GetDomainResponse = Domain
 
 // Ingresses
 
