@@ -11,19 +11,19 @@ type Kind string // constants KindNamespace, KindVolume, ... It`s recommended to
 
 const (
 	KindNamespace  Kind = "namespace"
-	KindVolume          = "volume"
-	KindExtService      = "extservice"
-	KindIntService      = "intservice"
+	KindVolume     Kind = "volume"
+	KindExtService Kind = "extservice"
+	KindIntService Kind = "intservice"
 )
 
 type PermissionStatus string // constants PermissionStatusOwner, PermissionStatusRead
 
 const (
 	PermissionStatusOwner      PermissionStatus = "owner"
-	PermissionStatusRead                        = "read"
-	PermissionStatusWrite                       = "write"
-	PermissionStatusReadDelete                  = "readdelete"
-	PermissionStatusNone                        = "none"
+	PermissionStatusRead       PermissionStatus = "read"
+	PermissionStatusWrite      PermissionStatus = "write"
+	PermissionStatusReadDelete PermissionStatus = "readdelete"
+	PermissionStatusNone       PermissionStatus = "none"
 )
 
 type Resource struct {
@@ -167,15 +167,10 @@ func (vm *VolumeMount) Mask() {
 }
 
 type Domain struct {
-	IP          string `json:"ip" db:"ip"`
-	Domain      string `json:"domain" db:"domain"`
-	DomainGroup string `json:"domain_group" db:"domain_group"`
-}
-
-type DomainEntry struct {
-	Domain      string   `json:"domain" binding:"required"`
-	DomainGroup string   `json:"domain_group"`
-	IP          []string `json:"ip" binding:"required,dive,ip"`
+	ID          string         `json:"id,omitempty" binding:"-" db:"id"`
+	Domain      string         `json:"domain" binding:"required" db:"domain"`
+	DomainGroup string         `json:"domain_group" db:"domain_group"`
+	IP          pq.StringArray `json:"ip" binding:"required,dive,ip"`
 }
 
 type IngressType string
@@ -198,7 +193,7 @@ type ServiceType string
 
 const (
 	ServiceInternal ServiceType = "internal"
-	ServiceExternal             = "external"
+	ServiceExternal ServiceType = "external"
 )
 
 type Service struct {
@@ -223,7 +218,7 @@ type PortProtocol string
 
 const (
 	ProtocolTCP PortProtocol = "tcp"
-	ProtocolUDP              = "udp"
+	ProtocolUDP PortProtocol = "udp"
 )
 
 type Port struct {

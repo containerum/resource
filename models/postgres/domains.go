@@ -14,91 +14,52 @@ import (
 func (db *pgDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (err error) {
 	db.log.Debugf("add domain %#v")
 
-	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`INSERT INTO domains
 		(ip, domain, domain_group)
 		VALUES (:ip, :domain, :domain_group)
-		ON CONFLICT (ip) DO UPDATE SET
-			domain = EXCLUDED.domain, 
-			domain_group = EXCLUDED.domain_group`)
+		ON CONFLICT (domain) DO UPDATE SET
+			ip = EXCLUDED.ip,
+			domain_group = EXCLUDED.domain_group`,
+		req)
 	if err != nil {
 		err = models.WrapDBError(err)
-		return
-	}
-	defer stmt.Close()
-
-	for _, ip := range req.IP {
-		_, err = stmt.ExecContext(ctx, rstypes.Domain{
-			IP:          ip,
-			Domain:      req.Domain,
-			DomainGroup: req.DomainGroup,
-		})
-		if err != nil {
-			err = models.WrapDBError(err)
-			return
-		}
 	}
 
 	return
 }
 
-func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (domains []rstypes.DomainEntry, err error) {
+func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (domains []rstypes.Domain, err error) {
 	db.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
 	}).Debug("get all domains")
 
-	domains = make([]rstypes.DomainEntry, 0)
+	domains = make([]rstypes.Domain, 0)
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT * FROM domains LIMIT :limit OFFSET :offset`,
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
-	dbEntries := make([]rstypes.Domain, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
-	switch err {
-	case nil, sql.ErrNoRows:
-		err = nil
-	default:
+	err = sqlx.SelectContext(ctx, db.extLog, &domains, db.extLog.Rebind(query), args...)
+	if err != nil {
 		err = models.WrapDBError(err)
-		return
-	}
-
-	domainMap := make(map[string]rstypes.DomainEntry)
-	for _, v := range dbEntries {
-		entry := domainMap[v.Domain]
-		entry.Domain = v.Domain
-		entry.DomainGroup = v.DomainGroup
-		entry.IP = append(entry.IP, v.IP)
-		domainMap[v.Domain] = entry
-	}
-	for _, v := range domainMap {
-		domains = append(domains, v)
 	}
 
 	return
 }
 
-func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.DomainEntry, err error) {
+func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Domain, err error) {
 	db.log.WithField("domain", domain).Debug("get domain")
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT * FROM domains WHERE domain = :domain`,
 		rstypes.Domain{Domain: domain})
-	dbEntries := make([]rstypes.Domain, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
-	if err != nil {
-		err = models.WrapDBError(err)
-		return
-	}
-
-	if len(dbEntries) == 0 {
+	err = sqlx.GetContext(ctx, db.extLog, &entry, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
 		err = models.ErrDomainNotExists
-		return
-	}
-
-	entry.Domain = domain
-	entry.DomainGroup = dbEntries[0].DomainGroup
-	for _, v := range dbEntries {
-		entry.IP = append(entry.IP, v.IP)
+	default:
+		err = models.WrapDBError(err)
 	}
 
 	return
@@ -121,24 +82,17 @@ func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 	return
 }
 
-func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.DomainEntry, err error) {
+func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, err error) {
 	db.log.Debugf("choose random domain")
 
-	dbEntries := make([]rstypes.Domain, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, /* language=sql*/
-		`WITH rand_domain AS (
-			SELECT domain FROM domains ORDER BY RANDOM() LIMIT 1
-		)
-		SELECT * FROM domains WHERE domain = (SELECT domain FROM rand_domain)`)
-	if err != nil {
+	err = sqlx.SelectContext(ctx, db.extLog, &entry, /* language=sql*/
+		`SELECT * FROM domains ORDER BY RANDOM() LIMIT 1`)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = models.ErrDomainNotExists
+	default:
 		err = models.WrapDBError(err)
-		return
-	}
-
-	entry.Domain = dbEntries[0].Domain
-	entry.DomainGroup = dbEntries[0].DomainGroup
-	for _, v := range dbEntries {
-		entry.IP = append(entry.IP, v.IP)
 	}
 
 	return

@@ -52,10 +52,10 @@ type DB interface {
 	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
-	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.DomainEntry, error)
-	GetDomain(ctx context.Context, domain string) (rstypes.DomainEntry, error)
+	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.Domain, error)
+	GetDomain(ctx context.Context, domain string) (rstypes.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
-	ChooseRandomDomain(ctx context.Context) (rstypes.DomainEntry, error)
+	ChooseRandomDomain(ctx context.Context) (rstypes.Domain, error)
 
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
 	GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
@@ -71,10 +71,10 @@ type DB interface {
 	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
 	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
 
-	CreateService(ctx context.Context, userID, nsLabel, serviceType string, req kubtypes.Service) error
+	CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) error
 	GetServices(ctx context.Context, userID, nsLabel string) ([]kubtypes.Service, error)
 	GetService(ctx context.Context, userID, nsLabel, serviceLabel string) (kubtypes.Service, error)
-	UpdateService(ctx context.Context, userID, nsLabel, serviceLabel, newServiceType string, req kubtypes.Service) error
+	UpdateService(ctx context.Context, userID, nsLabel, serviceLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) error
 	DeleteService(ctx context.Context, userID, nsLabel, serviceLabel string) error
 
 	GetResourcesCount(ctx context.Context, userID string) (rstypes.GetResourcesCountResponse, error)
