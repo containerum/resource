@@ -38,10 +38,15 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 				return selectErr
 			}
 
-			// TODO: choose free port of domain
-
 			req.Domain = domain.Domain
 			req.IPs = domain.IP
+			for i := range req.Ports {
+				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+				if portSelectErr != nil {
+					return portSelectErr
+				}
+				req.Ports[i].Port = port
+			}
 		}
 
 		if createErr := tx.CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
@@ -103,16 +108,21 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		serviceType := determineServiceType(req)
 
-		if serviceType == "external" {
+		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr
 			}
 
-			// TODO: choose free port of domain
-
 			req.Domain = domain.Domain
 			req.IPs = domain.IP
+			for i := range req.Ports {
+				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+				if portSelectErr != nil {
+					return portSelectErr
+				}
+				req.Ports[i].Port = port
+			}
 		}
 
 		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceLabel, serviceType, req); updErr != nil {

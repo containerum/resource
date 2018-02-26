@@ -136,13 +136,14 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT 
 			s.id,
-			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS depl_id,
+			d.name AS depl_id,
 			s.name,
 			s.type,
 			s.created_at,
 			s.deleted,
 			s.delete_time
 		FROM services s
+		JOIN deployments d ON s.deploy_id = d.id
 		WHERE NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID})
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
@@ -171,14 +172,16 @@ func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, servi
 	dbEntries := make([]rstypes.Port, 0)
 	query, args, _ := sqlx.In( /* language=sql */
 		`SELECT
-			id,
-			service_id,
-			name,
-			port,
-			target_port,
-			protocol,
-			(SELECT d.domain FROM domains d WHERE d.id = domain_id) AS domain
-		FROM service_ports WHERE id IN (?)`, serviceIDs)
+			sp.id,
+			sp.service_id,
+			sp.name,
+			sp.port,
+			sp.target_port,
+			sp.protocol,
+			d.domain	
+		FROM service_ports sp
+		LEFT JOIN domains d ON sp.domain_id = d.id
+		WHERE sp.service_id IN (?)`, serviceIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -258,13 +261,14 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT 
 			s.id,
-			(SELECT deployments.name FROM deployments WHERE s.deploy_id = deployments.id) AS deploy_id,
+			d.name AS depl_id,
 			s.name,
 			s.type,
 			s.created_at,
 			s.deleted,
 			s.delete_time
 		FROM services s
+		JOIN deployments d ON s.deploy_id = d.id
 		WHERE s.name = :name AND NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})
 	err = sqlx.GetContext(ctx, db.extLog, &serviceEntry, db.extLog.Rebind(query), args...)

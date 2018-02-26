@@ -5,7 +5,10 @@ import (
 
 	"database/sql"
 
+	"strings"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
@@ -92,6 +95,22 @@ func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, e
 	case sql.ErrNoRows:
 		err = models.ErrDomainNotExists
 	default:
+		err = models.WrapDBError(err)
+	}
+
+	return
+}
+
+func (db *pgDB) ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (port int, err error) {
+	params := map[string]interface{}{
+		"domain":   domain,
+		"protocol": strings.ToLower(string(protocol)),
+	}
+	db.log.WithFields(params).Debug("choose free port for domain")
+
+	query, args, _ := sqlx.Named( /* language=sql */ `SELECT random_free_domain_port(:domain, :protocol)`, params)
+	err = sqlx.GetContext(ctx, db.extLog, &port, db.extLog.Rebind(query), args...)
+	if err != nil {
 		err = models.WrapDBError(err)
 	}
 
