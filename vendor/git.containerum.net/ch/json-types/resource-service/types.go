@@ -228,6 +228,7 @@ type Port struct {
 	Port       int          `json:"port" db:"port"`
 	TargetPort *int         `json:"target_port" db:"target_port"`
 	Protocol   PortProtocol `json:"protocol" db:"protocol"`
+	Domain     *string      `json:"domain" db:"domain"`
 }
 
 func (p *Port) Mask() {
