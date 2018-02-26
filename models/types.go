@@ -71,10 +71,10 @@ type DB interface {
 	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
 	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
 
-	CreateService(ctx context.Context, userID, nsLabel, serviceType string, req kubtypes.Service) error
+	CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) error
 	GetServices(ctx context.Context, userID, nsLabel string) ([]kubtypes.Service, error)
 	GetService(ctx context.Context, userID, nsLabel, serviceLabel string) (kubtypes.Service, error)
-	UpdateService(ctx context.Context, userID, nsLabel, serviceLabel, newServiceType string, req kubtypes.Service) error
+	UpdateService(ctx context.Context, userID, nsLabel, serviceLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) error
 	DeleteService(ctx context.Context, userID, nsLabel, serviceLabel string) error
 
 	GetResourcesCount(ctx context.Context, userID string) (rstypes.GetResourcesCountResponse, error)

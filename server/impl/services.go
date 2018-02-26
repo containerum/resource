@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -10,11 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func determineServiceType(req kubtypes.Service) string {
-	serviceType := "external"
+func determineServiceType(req kubtypes.Service) rstypes.ServiceType {
+	serviceType := rstypes.ServiceExternal
 	for _, port := range req.Ports {
 		if port.TargetPort != nil {
-			serviceType = "internal"
+			serviceType = rstypes.ServiceInternal
 			break
 		}
 	}
@@ -31,7 +32,7 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		serviceType := determineServiceType(req)
 
-		if serviceType == "external" {
+		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr

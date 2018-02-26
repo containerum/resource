@@ -44,7 +44,7 @@ func (db *pgDB) createServicePorts(ctx context.Context, serviceID string, ports 
 	return
 }
 
-func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel, serviceType string, req kubtypes.Service) (err error) {
+func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"type":     serviceType,
 		"user_id":  userID,
@@ -275,7 +275,7 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 	return
 }
 
-func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel, newServiceType string, req kubtypes.Service) (err error) {
+func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"ns_label":         nsLabel,
