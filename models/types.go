@@ -67,6 +67,7 @@ type DB interface {
 	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
 	DeleteStorage(ctx context.Context, name string) error
 	ChooseAvailableStorage(ctx context.Context, minFree int) (rstypes.Storage, error)
+	ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (int, error)
 
 	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
 	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
