@@ -14,13 +14,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) createServicePorts(ctx context.Context, serviceID string, ports []kubtypes.ServicePort) (err error) {
+func (db *pgDB) createServicePorts(ctx context.Context, serviceID, domain string,
+	serviceType rstypes.ServiceType, ports []kubtypes.ServicePort) (err error) {
 	db.log.WithField("service_id", serviceID).Debugf("add service ports %#v", ports)
 
-	stmt, err := db.preparer.PrepareNamed( /* language=sql */
-		`INSERT INTO service_ports
-		(service_id, name, port, target_port, protocol)
-		VALUES (:service_id, :name, :port, :target_port, :protocol)`)
+	var query string
+	switch serviceType {
+	case rstypes.ServiceInternal:
+		query = /* language=sql */ `INSERT INTO service_ports
+			(service_id, name, port, target_port, protocol, domain_id)
+			VALUES (:service_id, :name, :port, :target_port, :protocol, NULL)`
+	case rstypes.ServiceExternal:
+		query = /* language=sql */ `INSERT INTO service_ports
+			(service_id, name, port, target_port, protocol, domain_id)
+			SELECT :service_id, :name, :port, :target_port, :protocol, d.id
+			FROM domains d
+			WHERE d.domain = :domain`
+	}
+
+	stmt, err := db.preparer.PrepareNamed(query)
 	if err != nil {
 		err = models.WrapDBError(err)
 		return
@@ -34,6 +46,7 @@ func (db *pgDB) createServicePorts(ctx context.Context, serviceID string, ports 
 			Port:       port.Port,
 			TargetPort: port.TargetPort,
 			Protocol:   rstypes.PortProtocol(strings.ToLower(string(port.Protocol))),
+			Domain:     &domain,
 		})
 		if err != nil {
 			err = models.WrapDBError(err)
@@ -112,7 +125,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		return
 	}
 
-	err = db.createServicePorts(ctx, serviceID, req.Ports)
+	err = db.createServicePorts(ctx, serviceID, req.Domain, serviceType, req.Ports)
 	return
 }
 
@@ -157,7 +170,15 @@ func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, servi
 
 	dbEntries := make([]rstypes.Port, 0)
 	query, args, _ := sqlx.In( /* language=sql */
-		`SELECT * FROM service_ports WHERE id IN (?)`, serviceIDs)
+		`SELECT
+			id,
+			service_id,
+			name,
+			port,
+			target_port,
+			protocol,
+			(SELECT d.domain FROM domains d WHERE d.id = domain_id) AS domain
+		FROM service_ports WHERE id IN (?)`, serviceIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = models.WrapDBError(err)
@@ -324,7 +345,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel
 		return
 	}
 
-	err = db.createServicePorts(ctx, serviceID, req.Ports)
+	err = db.createServicePorts(ctx, serviceID, req.Domain, newServiceType, req.Ports)
 	return
 }
 
