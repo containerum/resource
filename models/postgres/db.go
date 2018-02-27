@@ -173,8 +173,8 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 	ret.IntServices = volservs.IntServices
 
 	var deplIDs []string
-	query, args, _ = sqlx.In( /* language=sql */ `SELECT * FROM deployments WHERE ns_id IN (?)`, nsIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, deplIDs, db.extLog.Rebind(query), args...)
+	query, args, _ = sqlx.In( /* language=sql */ `SELECT id FROM deployments WHERE ns_id IN (?)`, nsIDs)
+	err = sqlx.SelectContext(ctx, db.extLog, &deplIDs, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
@@ -194,11 +194,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		return
 	}
 
-	query, args, _ = sqlx.In( /* language=sql */
-		`SELECT count(c.*)
-		FROM containers c
-		WHERE depl_id IN (?)`,
-		deplIDs)
+	query, args, _ = sqlx.In( /* language=sql */ `SELECT count(*) FROM containers WHERE depl_id IN (?)`, deplIDs)
 	err = sqlx.GetContext(ctx, db.extLog, &ret.Containers, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase.Log(err, db.log)
