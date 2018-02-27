@@ -42,7 +42,7 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 		}
 
 		if vol.OwnerUserID != userID {
-			return rserrors.ErrResourceNotOwned
+			return rserrors.ErrResourceNotOwned()
 		}
 
 		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -81,7 +81,7 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 		}
 
 		if ns.OwnerUserID != userID {
-			return rserrors.ErrResourceNotOwned
+			return rserrors.ErrResourceNotOwned()
 		}
 
 		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -151,7 +151,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, ns
 		}
 
 		if ns.OwnerUserID == ns.UserID {
-			return rserrors.ErrDeleteOwnerAccess
+			return rserrors.ErrDeleteOwnerAccess()
 		}
 
 		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -179,7 +179,7 @@ func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLa
 		}
 
 		if vol.OwnerUserID == vol.UserID {
-			return rserrors.ErrDeleteOwnerAccess
+			return rserrors.ErrDeleteOwnerAccess()
 		}
 
 		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)

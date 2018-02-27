@@ -26,7 +26,7 @@ func (db *pgDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (er
 			domain_group = EXCLUDED.domain_group`,
 		req)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -44,7 +44,7 @@ func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQ
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
 	err = sqlx.SelectContext(ctx, db.extLog, &domains, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -60,9 +60,9 @@ func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Dom
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -75,11 +75,11 @@ func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 		`DELETE FROM domains WHERE domain = :domain`,
 		rstypes.Domain{Domain: domain})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 	}
 
 	return
@@ -93,9 +93,9 @@ func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, e
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -111,7 +111,7 @@ func (db *pgDB) ChooseDomainFreePort(ctx context.Context, domain string, protoco
 	query, args, _ := sqlx.Named( /* language=sql */ `SELECT random_free_domain_port(:domain, :protocol)`, params)
 	err = sqlx.GetContext(ctx, db.extLog, &port, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return

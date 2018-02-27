@@ -213,7 +213,7 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 		}
 
 		if vol.TariffID == newTariffID {
-			return rserrors.ErrTariffUnchanged.AddDetails("can`t change tariff to itself")
+			return rserrors.ErrTariffUnchanged().AddDetails("can`t change tariff to itself")
 		}
 
 		newTariff, getErr := rs.Billing.GetVolumeTariff(ctx, newTariffID)

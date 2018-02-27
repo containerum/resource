@@ -34,7 +34,7 @@ func (db *pgDB) createServicePorts(ctx context.Context, serviceID, domain string
 
 	stmt, err := db.preparer.PrepareNamed(query)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	defer stmt.Close()
@@ -49,7 +49,7 @@ func (db *pgDB) createServicePorts(ctx context.Context, serviceID, domain string
 			Domain:     &domain,
 		})
 		if err != nil {
-			err = rserrors.ErrDatabase.Log(err, db.log)
+			err = rserrors.ErrDatabase().Log(err, db.log)
 			return
 		}
 	}
@@ -69,7 +69,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -81,10 +81,10 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		map[string]interface{}{"deploy_id": deplID, "name": req.Name, "type": serviceType})
 	err = sqlx.GetContext(ctx, db.extLog, &serviceID, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -121,7 +121,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 			"user_id":      userID,
 		})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -148,7 +148,7 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 		map[string]interface{}{"ns_id": nsID})
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -184,7 +184,7 @@ func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, servi
 		WHERE sp.service_id IN (?)`, serviceIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (db *pgDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -253,7 +253,7 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -275,10 +275,10 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -313,7 +313,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -334,10 +334,10 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -345,7 +345,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel
 		`DELETE FROM service_ports WHERE service_id = :service_id`,
 		map[string]interface{}{"servce_id": serviceID})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -365,7 +365,7 @@ func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceLabel
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -381,7 +381,7 @@ func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceLabel
 		WHERE id = (SELECT id FROM service_to_update)`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 	}
 
 	return
