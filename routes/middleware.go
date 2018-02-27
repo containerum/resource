@@ -11,10 +11,10 @@ func handleError(err error) (int, *cherry.Err) {
 		e := err.(*cherry.Err)
 		return e.StatusHTTP, e
 	default:
-		return rserrors.ErrOther.StatusHTTP, rserrors.ErrOther.AddDetailsErr(err)
+		return rserrors.ErrOther().StatusHTTP, rserrors.ErrOther().AddDetailsErr(err)
 	}
 }
 
 func badRequest(err error) (int, *cherry.Err) {
-	return rserrors.ErrValidation.StatusHTTP, rserrors.ErrValidation.AddDetailsErr(err)
+	return rserrors.ErrValidation().StatusHTTP, rserrors.ErrValidation().AddDetailsErr(err)
 }

@@ -12,11 +12,11 @@
   name = "github.com/gin-gonic/gin"
 
 [[constraint]]
-  branch = "master"
+  revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
   name = "github.com/jmoiron/sqlx"
 
 [[constraint]]
-  branch = "master"
+  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
   name = "github.com/lib/pq"
 
 [[constraint]]

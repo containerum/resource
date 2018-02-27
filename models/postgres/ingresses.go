@@ -25,7 +25,7 @@ func (db *pgDB) isIngressExists(ctx context.Context, nsID, domain string) (exist
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &exist, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -42,7 +42,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		return
 	}
 	if exists {
-		err = rserrors.ErrResourceAlreadyExists.Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		)`,
 		map[string]interface{}{"ns_id": nsID, "custom_domain": req.Domain, "type": req.Type, "service": req.Service})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -86,7 +86,7 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -112,7 +112,7 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 		})
 	err = sqlx.SelectContext(ctx, db.extLog, &entries, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -149,7 +149,7 @@ func (db *pgDB) GetAllIngresses(ctx context.Context, params rstypes.GetIngresses
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
 	err = sqlx.SelectContext(ctx, db.extLog, &entries, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -177,7 +177,7 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -192,11 +192,11 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 		WHERE service_id IN (SELECT id FROM ns_services) AND custom_domain = :domain`,
 		map[string]interface{}{"ns_id": nsID, "domain": domain})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 	}
 
 	return

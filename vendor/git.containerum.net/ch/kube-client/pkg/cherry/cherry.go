@@ -3,7 +3,7 @@ package cherry
 import (
 	"bytes"
 	"fmt"
-	"strconv"
+	"net/http"
 )
 
 // ErrSID -- represents service ID of error
@@ -66,7 +66,7 @@ func BuildErr(SID ErrSID) func(string, int, ErrKind) *Err {
 // "unable to parse quota []"
 func (err *Err) Error() string {
 	buf := bytes.NewBufferString(" [" + err.ID.String() + "] " +
-		"HTTP " + strconv.Itoa(err.StatusHTTP) + " " +
+		http.StatusText(err.StatusHTTP) + " " +
 		err.Message)
 	detailsLen := len(err.Details)
 	if detailsLen > 0 {

@@ -48,7 +48,7 @@ var hdrToKey = map[string]interface{}{
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
-func RequireHeaders(errToReturn cherry.Err, headers ...string) gin.HandlerFunc {
+func RequireHeaders(errToReturn *cherry.Err, headers ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var notFoundHeaders []string
 		for _, v := range headers {
@@ -57,8 +57,9 @@ func RequireHeaders(errToReturn cherry.Err, headers ...string) gin.HandlerFunc {
 			}
 		}
 		if len(notFoundHeaders) > 0 {
-			err := errToReturn.AddDetailF("required headers %v was not provided", notFoundHeaders)
-			gonic.Gonic(err, ctx)
+			err := *errToReturn
+			err = *err.AddDetailF("required headers %v was not provided", notFoundHeaders)
+			gonic.Gonic(&err, ctx)
 		}
 	}
 }
@@ -74,10 +75,12 @@ func PrepareContext(ctx *gin.Context) {
 }
 
 // RequireAdminRole is a gin middleware which requires admin role
-func RequireAdminRole(errToReturn cherry.Err) gin.HandlerFunc {
+func RequireAdminRole(errToReturn *cherry.Err) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" {
-			gonic.Gonic(errToReturn.AddDetails("only admin can do this"), ctx)
+			err := *errToReturn
+			err = *err.AddDetails("only admin can do this")
+			gonic.Gonic(&err, ctx)
 		}
 	}
 }

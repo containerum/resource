@@ -34,7 +34,7 @@ func (db *pgDB) getContainersVolumes(ctx context.Context,
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (db *pgDB) getContainersEnvironments(ctx context.Context,
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -85,7 +85,7 @@ func (db *pgDB) getDeploymentsContainers(ctx context.Context,
 	switch err {
 	case nil, sql.ErrNoRows:
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (db *pgDB) getRawDeployments(ctx context.Context,
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -225,7 +225,7 @@ func (db *pgDB) getDeploymentContainers(ctx context.Context,
 	switch err {
 	case nil, sql.ErrNoRows:
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	var containerIDs []string
@@ -255,10 +255,10 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	ret.Name = rawDeploy.Name
@@ -316,7 +316,7 @@ func (db *pgDB) getDeployID(ctx context.Context, nsID, deplLabel string) (id str
 		err = nil
 		id = ""
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -341,7 +341,7 @@ func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
 		})
 	err = db.extLog.QueryRowxContext(ctx, db.extLog.Rebind(query), args...).Scan(&id, &firstInNamespace)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -357,7 +357,7 @@ func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
 		VALUES (:depl_id, :name, :image, :cpu, :ram)
 		RETURNING id`)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	defer stmt.Close()
@@ -373,7 +373,7 @@ func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
 			RAM:      1, // FIXME
 		})
 		if err != nil {
-			err = rserrors.ErrDatabase.Log(err, db.log)
+			err = rserrors.ErrDatabase().Log(err, db.log)
 			return
 		}
 		contMap[containerID] = container
@@ -390,7 +390,7 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 		(container_id, "name", "value")
 		VALUES (:container_id, :name, :value)`)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	defer stmt.Close()
@@ -403,7 +403,7 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 				Value:       env.Value,
 			})
 			if err != nil {
-				err = rserrors.ErrDatabase.Log(err, db.log)
+				err = rserrors.ErrDatabase().Log(err, db.log)
 				return
 			}
 		}
@@ -431,7 +431,7 @@ func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 	case err, sql.ErrNoRows:
 		err = nil
 	default:
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -447,7 +447,7 @@ func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 	}
 
 	if len(nonExistingVolumes) > 0 {
-		err = rserrors.ErrResourceNotExists.AddDetailF("volumes %#v are not exists", nonExistingVolumes)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volumes %#v are not exists", nonExistingVolumes)
 	}
 
 	return
@@ -476,7 +476,7 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, cont
 			:sub_path
 		)`)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	defer stmt.Close()
@@ -489,7 +489,7 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, cont
 			params["sub_path"] = v.SubPath
 			_, err = stmt.ExecContext(ctx, params)
 			if err != nil {
-				err = rserrors.ErrDatabase.Log(err, db.log)
+				err = rserrors.ErrDatabase().Log(err, db.log)
 				return
 			}
 		}
@@ -511,7 +511,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -520,7 +520,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 	if deplID != "" {
-		err = rserrors.ErrResourceAlreadyExists.Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
 		return
 	}
 
@@ -558,7 +558,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -568,11 +568,11 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 		WHERE (ns_id, "name") = (:ns_id, :name) AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -582,7 +582,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 		rstypes.Deployment{NamespaceID: nsID})
 	err = sqlx.GetContext(ctx, db.extLog, &activeDeployCount, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -602,7 +602,7 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabe
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -612,11 +612,11 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabe
 		WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -637,7 +637,7 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -647,11 +647,11 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		WHERE ns_id = :ns_id AND name = :name`,
 		rstypes.Deployment{NamespaceID: nsID, Replicas: replicas, Name: deplLabel})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -671,7 +671,7 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabe
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -680,7 +680,7 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabe
 		return
 	}
 	if deplID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -690,11 +690,11 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabe
 		WHERE depl_id = :depl_id AND name = :name`,
 		rstypes.Container{DeployID: deplID, Name: req.ContainerName, Image: req.Image})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 

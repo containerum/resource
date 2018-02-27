@@ -34,13 +34,13 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "f2149aa8852d3f03a96ee1e402714054ee592c3b"
+  revision = "30993cee6083523392a989fc6ecb9e2d9043c34c"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "a552ee36ca1a42dd2dc110d9d1a55538e18616f5"
+  revision = "adff67cf49a771a0e72b678b5216268befb4cccd"
 
 [[projects]]
   branch = "master"
@@ -92,7 +92,6 @@
   revision = "d0c54e68681ec7999ac17864470f3bee6521ba2b"
 
 [[projects]]
-  branch = "master"
   name = "github.com/jmoiron/sqlx"
   packages = [
     ".",
@@ -107,7 +106,6 @@
   version = "1.0.5"
 
 [[projects]]
-  branch = "master"
   name = "github.com/lib/pq"
   packages = [
     ".",
@@ -252,6 +250,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "da7cb8760eab5ef0c11c41998341ee803ff520a89f2837df45475c129be9c664"
+  inputs-digest = "a8f1f55b1028d34fa7b5e2541abf6456b3d47cfabb555a4c63740ff4d1191b7a"
   solver-name = "gps-cdcl"
   solver-version = 1

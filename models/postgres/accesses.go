@@ -24,7 +24,7 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 		FROM permissions
 		WHERE owner_user_id = user_id AND user_id = $1 AND kind in ('namespace', 'volume')`, userID)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 		permRec)
 	err = sqlx.GetContext(ctx, db.extLog, permRec, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -126,7 +126,7 @@ func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 	  	WHERE owner_user_id IN (SELECT owner_user_id FROM updated_owner_accesses)`,
 		rstypes.PermissionRecord{UserID: userID, NewAccessLevel: access})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
@@ -142,11 +142,11 @@ func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resou
 		`DELETE FROM permissions WHERE (user_id, resource_id) = (:user_id, :resource_id) AND owner_user_id != user_id`,
 		rstypes.PermissionRecord{UserID: userID, ResourceID: misc.WrapString(resource.ID)})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrAccessRecordNotExists.Log(err, db.log)
+		err = rserrors.ErrAccessRecordNotExists().Log(err, db.log)
 	}
 
 	return

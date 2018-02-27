@@ -29,10 +29,10 @@ func Parallel(funcs ...func() error) (ret []error) {
 // CheckTariff checks if user has permissions to use tariff
 func CheckTariff(tariff billing.Tariff, isAdmin bool) error {
 	if !tariff.Active {
-		return rserrors.ErrTariffNotFound
+		return rserrors.ErrTariffNotFound()
 	}
 	if !isAdmin && !tariff.Public {
-		return rserrors.ErrTariffNotFound
+		return rserrors.ErrTariffNotFound()
 	}
 
 	return nil

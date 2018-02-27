@@ -240,7 +240,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 		}
 
 		if ns.TariffID == newTariffID {
-			return rserrors.ErrTariffUnchanged.AddDetails("can`t change tariff to itself")
+			return rserrors.ErrTariffUnchanged().AddDetails("can`t change tariff to itself")
 		}
 
 		newTariff, getErr := rs.Billing.GetNamespaceTariff(ctx, newTariffID)

@@ -18,11 +18,11 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -54,7 +54,7 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 	}
 	err = sqlx.SelectContext(ctx, db.extLog, &storages, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
@@ -84,11 +84,11 @@ func (db *pgDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel str
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists.Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (db *pgDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel str
 		`UPDATE endpoints SET service_exists = TRUE WHERE namespace_id = :ns_id`,
 		map[string]interface{}{"ns_id": nsID})
 	if err != nil {
-		err = rserrors.ErrDatabase.Log(err, db.log)
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
