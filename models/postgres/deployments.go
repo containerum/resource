@@ -5,9 +5,6 @@ import (
 
 	"database/sql"
 
-	"net/http"
-
-	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
@@ -450,7 +447,7 @@ func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 	}
 
 	if len(nonExistingVolumes) > 0 {
-		err = errors.FormatWithCode(http.StatusNotFound, "volumes %#v are not exists", nonExistingVolumes)
+		err = rserrors.ErrResourceNotExists.AddDetailF("volumes %#v are not exists", nonExistingVolumes)
 	}
 
 	return

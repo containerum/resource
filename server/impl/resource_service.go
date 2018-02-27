@@ -6,7 +6,9 @@ import (
 
 	"context"
 
-	"git.containerum.net/ch/json-types/errors"
+	"errors"
+	"fmt"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/resource-service/server"
@@ -38,7 +40,7 @@ func (rs *resourceServiceImpl) Close() error {
 		}
 	}
 	if len(errs) > 0 {
-		return errors.Format("%#v", errs)
+		return errors.New(fmt.Sprintf("%#v", errs))
 	}
 	return nil
 }
