@@ -5,9 +5,12 @@ import (
 
 	"strings"
 
+	"fmt"
+
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
@@ -47,9 +50,14 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 			return createErr
 		}
 
-		if createErr := rs.Kube.CreateNamespace(ctx, req.Label, rstypes.NamespaceWithPermission{
-			Namespace:        newNamespace,
-			PermissionRecord: rstypes.PermissionRecord{AccessLevel: rstypes.PermissionStatusOwner},
+		if createErr := rs.Kube.CreateNamespace(ctx, kubtypes.Namespace{
+			Label: newNamespace.ID, // it will be name actually
+			Resources: kubtypes.Resources{
+				Hard: kubtypes.Resource{
+					CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
+					Memory: fmt.Sprintf("%dm", newNamespace.RAM),
+				},
+			},
 		}); createErr != nil {
 			return createErr
 		}
@@ -156,7 +164,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 
 		// TODO: stop volumes on volume service
 
-		if delErr := rs.Kube.DeleteNamespace(ctx, nsToDelete); delErr != nil {
+		if delErr := rs.Kube.DeleteNamespace(ctx, label); delErr != nil {
 			return delErr
 		}
 
@@ -269,7 +277,15 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			return updErr
 		}
 
-		if updErr := rs.Kube.SetNamespaceQuota(ctx, label, ns); updErr != nil {
+		if updErr := rs.Kube.SetNamespaceQuota(ctx, kubtypes.Namespace{
+			Label: label,
+			Resources: kubtypes.Resources{
+				Hard: kubtypes.Resource{
+					CPU:    fmt.Sprintf("%dm", ns.CPU),
+					Memory: fmt.Sprintf("%dm", ns.RAM),
+				},
+			},
+		}); updErr != nil {
 			return updErr
 		}
 

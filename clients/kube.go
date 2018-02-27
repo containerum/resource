@@ -2,12 +2,15 @@ package clients
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/url"
 
 	"git.containerum.net/ch/json-types/errors"
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/utils"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
@@ -15,17 +18,15 @@ import (
 
 // Kube is an interface to kube-api service
 type Kube interface {
-	CreateNamespace(ctx context.Context, label string, ns rstypes.NamespaceWithPermission) error
-	SetNamespaceQuota(ctx context.Context, label string, ns rstypes.NamespaceWithPermission) error
-	DeleteNamespace(ctx context.Context, ns rstypes.Namespace) error
+	CreateNamespace(ctx context.Context, ns kubtypes.Namespace) error
+	SetNamespaceQuota(ctx context.Context, ns kubtypes.Namespace) error
+	DeleteNamespace(ctx context.Context, label string) error
 }
 
 type kube struct {
 	client *resty.Client
-	log    *logrus.Entry
+	log    *cherrylog.LogrusAdapter
 }
-
-const namespaceHeader = "x-user-namespace"
 
 // NewKubeHTTP creates http client to kube-api service.
 func NewKubeHTTP(u *url.URL) Kube {
@@ -34,105 +35,72 @@ func NewKubeHTTP(u *url.URL) Kube {
 		SetHostURL(u.String()).
 		SetLogger(log.WriterLevel(logrus.DebugLevel)).
 		SetDebug(true).
-		SetError(errors.Error{})
+		SetError(cherry.Err{})
 	client.JSONMarshal = jsoniter.Marshal
 	client.JSONUnmarshal = jsoniter.Unmarshal
 	return kube{
 		client: client,
-		log:    log,
+		log:    cherrylog.NewLogrusAdapter(log),
 	}
 }
 
-type kubNamespaceHeaderElement struct {
-	ID     string                   `json:"id,omitempty"`
-	Label  string                   `json:"label,omitempty"`
-	Access rstypes.PermissionStatus `json:"access,omitempty"`
-}
-
-func (kub kube) createNamespaceHeaderValue(e kubNamespaceHeaderElement) string {
-	xUserNamespaceBytes, _ := kub.client.JSONMarshal([]kubNamespaceHeaderElement{e})
-	return base64.StdEncoding.EncodeToString(xUserNamespaceBytes)
-}
-
-func (kub kube) CreateNamespace(ctx context.Context, label string, ns rstypes.NamespaceWithPermission) error {
+func (kub kube) CreateNamespace(ctx context.Context, ns kubtypes.Namespace) error {
 	kub.log.WithFields(logrus.Fields{
-		"name":   ns.ID,
-		"cpu":    ns.CPU,
-		"memory": ns.RAM,
-		"label":  label,
-		"access": ns.AccessLevel,
+		"cpu":    ns.Resources.Hard.CPU,
+		"memory": ns.Resources.Hard.Memory,
+		"name":   ns.Label,
+		"access": ns.Access,
 	}).Infoln("create namespace")
 
-	resp, err := kub.client.R().SetBody(map[string]interface{}{
-		"kind":       "Namespace",
-		"apiVersion": "v1",
-		"metadata": map[string]interface{}{
-			"name": ns.ID,
-		},
-	}).
-		SetQueryParam("cpu", fmt.Sprint(ns.CPU)).
-		SetQueryParam("memory", fmt.Sprint(ns.RAM)).
-		SetHeader(namespaceHeader, kub.createNamespaceHeaderValue(kubNamespaceHeaderElement{
-			ID:     ns.ID,
-			Label:  label,
-			Access: ns.AccessLevel,
-		})).
+	resp, err := kub.client.R().
+		SetBody(ns).
 		SetContext(ctx).
-		Post("api/v1/namespaces")
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		Post("/namespaces")
 	if err != nil {
-		return err
+		return rserrors.ErrOther().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
-		return resp.Error().(*errors.Error)
+		return resp.Error().(*cherry.Err)
 	}
 	return nil
 }
 
-func (kub kube) DeleteNamespace(ctx context.Context, ns rstypes.Namespace) error {
-	kub.log.WithField("name", ns.ID).Infoln("delete namespace")
+func (kub kube) DeleteNamespace(ctx context.Context, label string) error {
+	kub.log.WithField("label", label).Infoln("delete namespace")
 
 	resp, err := kub.client.R().
-		SetHeader(namespaceHeader, kub.createNamespaceHeaderValue(kubNamespaceHeaderElement{
-			ID:     ns.ID,
-			Label:  "unknown", // not important though
-			Access: "owner",
-		})).
 		SetContext(ctx).
-		Delete("api/v1/namespaces/" + url.PathEscape(ns.ID))
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		Delete("/namespaces/" + url.PathEscape(label))
 	if err != nil {
-		return err
+		return rserrors.ErrOther().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
-		return resp.Error().(*errors.Error)
+		return resp.Error().(*cherry.Err)
 	}
 	return nil
 }
 
-func (kub kube) SetNamespaceQuota(ctx context.Context, label string, ns rstypes.NamespaceWithPermission) (err error) {
-	// TODO: update cpu and memory also
-
+func (kub kube) SetNamespaceQuota(ctx context.Context, ns kubtypes.Namespace) error {
 	kub.log.WithFields(logrus.Fields{
-		"name":   ns.ID,
-		"cpu":    ns.CPU,
-		"memory": ns.RAM,
-		"label":  label,
-		"access": ns.AccessLevel,
+		"cpu":    ns.Resources.Hard.CPU,
+		"memory": ns.Resources.Hard.Memory,
+		"label":  ns.Label,
 	}).Infoln("set namespace quota")
 
 	resp, err := kub.client.R().
-		SetHeader(namespaceHeader, kub.createNamespaceHeaderValue(kubNamespaceHeaderElement{
-			ID:     ns.ID,
-			Access: "owner",
-		})).
+		SetBody(ns).
 		SetContext(ctx).
-		Put("api/v1/namespaces/" + url.PathEscape(ns.ID) + "/resourcequotas/quota")
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		Put("/namespaces/" + url.PathEscape(ns.Label))
 	if err != nil {
-		return
+		return rserrors.ErrOther().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
-		err = resp.Error().(*errors.Error)
+		return resp.Error().(*errors.Error)
 	}
-	return
+	return nil
 }
 
 func (kub kube) String() string {
@@ -148,29 +116,26 @@ func NewDummyKube() Kube {
 	return kubeDummy{log: logrus.WithField("component", "kube_stub")}
 }
 
-func (kub kubeDummy) CreateNamespace(_ context.Context, label string, ns rstypes.NamespaceWithPermission) error {
+func (kub kubeDummy) CreateNamespace(_ context.Context, ns kubtypes.Namespace) error {
 	kub.log.WithFields(logrus.Fields{
-		"name":   ns.ID,
-		"cpu":    ns.CPU,
-		"memory": ns.RAM,
-		"label":  label,
-		"access": ns.AccessLevel,
+		"cpu":    ns.Resources.Hard.CPU,
+		"memory": ns.Resources.Hard.Memory,
+		"name":   ns.Label,
+		"access": ns.Access,
 	}).Infoln("create namespace")
 	return nil
 }
 
-func (kub kubeDummy) DeleteNamespace(_ context.Context, ns rstypes.Namespace) error {
-	kub.log.WithField("name", ns.ID).Infoln("delete namespace")
+func (kub kubeDummy) DeleteNamespace(_ context.Context, label string) error {
+	kub.log.WithField("label", label).Infoln("delete namespace")
 	return nil
 }
 
-func (kub kubeDummy) SetNamespaceQuota(_ context.Context, label string, ns rstypes.NamespaceWithPermission) error {
+func (kub kubeDummy) SetNamespaceQuota(_ context.Context, ns kubtypes.Namespace) error {
 	kub.log.WithFields(logrus.Fields{
-		"name":   ns.ID,
-		"cpu":    ns.CPU,
-		"memory": ns.RAM,
-		"label":  label,
-		"access": ns.AccessLevel,
+		"cpu":    ns.Resources.Hard.CPU,
+		"memory": ns.Resources.Hard.Memory,
+		"label":  ns.Label,
 	}).Infoln("set namespace quota")
 	return nil
 }
