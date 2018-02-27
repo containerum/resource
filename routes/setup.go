@@ -2,9 +2,13 @@ package routes
 
 import (
 	"net/http"
+	"sync"
+
+	"reflect"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	umtypes "git.containerum.net/ch/json-types/user-manager"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
@@ -14,27 +18,55 @@ import (
 
 var srv server.ResourceService
 
-var customValidator = validator.New(&validator.Config{TagName: "binding"})
+type defaultValidator struct {
+	once     sync.Once
+	validate *validator.Validate
+}
 
-func setupValidator() {
-	rstypes.RegisterCustomTags(customValidator)
+var _ binding.StructValidator = &defaultValidator{}
 
-	// gin`s binding can not perform struct-level validations
-	customValidator.RegisterStructValidation(createIngressRequestValidate, rstypes.CreateIngressRequest{})
+func (v *defaultValidator) ValidateStruct(obj interface{}) error {
+	if kindOfData(obj) == reflect.Struct {
+		v.lazyinit()
+		if err := v.validate.Struct(obj); err != nil {
+			return error(err)
+		}
+	}
+
+	return nil
+}
+
+func (v *defaultValidator) lazyinit() {
+	v.once.Do(func() {
+		v.validate = validator.New(&validator.Config{TagName: "binding"})
+
+		rstypes.RegisterCustomTags(v.validate)
+
+		v.validate.RegisterStructValidation(createIngressRequestValidate, rstypes.CreateIngressRequest{})
+	})
+}
+
+func kindOfData(data interface{}) reflect.Kind {
+
+	value := reflect.ValueOf(data)
+	valueType := value.Kind()
+
+	if valueType == reflect.Ptr {
+		valueType = value.Elem().Kind()
+	}
+	return valueType
 }
 
 // SetupRoutes sets up a router
 func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 	srv = server
 
-	setupValidator()
+	binding.Validator = &defaultValidator{}
 
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
-	app.Use(utils.RequireHeaders(umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	app.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
 	app.Use(utils.SubstituteUserMiddleware)
-
-	rstypes.RegisterCustomTagsGin(binding.Validator)
 
 	ns := app.Group("/namespace")
 	{
@@ -90,9 +122,9 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	nss := app.Group("/namespaces")
 	{
-		nss.GET("", utils.RequireAdminRole, getAllNamespacesHandler)
+		nss.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), getAllNamespacesHandler)
 
-		nss.DELETE("", utils.RequireAdminRole, deleteAllUserNamespacesHandler)
+		nss.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), deleteAllUserNamespacesHandler)
 	}
 
 	vol := app.Group("/volume")
@@ -113,16 +145,16 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	vols := app.Group("/volumes")
 	{
-		vols.GET("", utils.RequireAdminRole, getAllVolumesHandler)
+		vols.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), getAllVolumesHandler)
 
-		vols.DELETE("", utils.RequireAdminRole, deleteAllUserVolumesHandler)
+		vols.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), deleteAllUserVolumesHandler)
 	}
 
 	app.GET("/access", getUserResourceAccessesHandler)
 
-	app.GET("/ingresses", utils.RequireAdminRole, getAllIngressesHandler)
+	app.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), getAllIngressesHandler)
 
-	domain := app.Group("/domain", utils.RequireAdminRole)
+	domain := app.Group("/domain", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
 		domain.POST("", addDomainHandler)
 
@@ -132,7 +164,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		domain.DELETE("/:domain", deleteDomainHandler)
 	}
 
-	storage := app.Group("/storage", utils.RequireAdminRole)
+	storage := app.Group("/storage", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
 		storage.POST("", createStorageHandler)
 
@@ -143,7 +175,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		storage.DELETE("/:storage_name", deleteStorageHandler)
 	}
 
-	adm := app.Group("/adm", utils.RequireAdminRole)
+	adm := app.Group("/adm", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
 		adm.PUT("/access", setUserResourceAccessesHandler)
 	}

@@ -5,11 +5,12 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 func addDomainHandler(ctx *gin.Context) {
 	var req rstypes.AddDomainRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -24,7 +25,7 @@ func addDomainHandler(ctx *gin.Context) {
 
 func getAllDomainsHandler(ctx *gin.Context) {
 	var params rstypes.GetAllDomainsQueryParams
-	if err := ctx.ShouldBindQuery(&params); err != nil {
+	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}

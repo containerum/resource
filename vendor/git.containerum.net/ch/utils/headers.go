@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"net/textproto"
 
-	"git.containerum.net/ch/json-types/errors"
 	umtypes "git.containerum.net/ch/json-types/user-manager"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
 	"github.com/gin-gonic/gin"
 )
 
@@ -47,7 +48,7 @@ var hdrToKey = map[string]interface{}{
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
-func RequireHeaders(headers ...string) gin.HandlerFunc {
+func RequireHeaders(errToReturn *cherry.Err, headers ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var notFoundHeaders []string
 		for _, v := range headers {
@@ -56,9 +57,8 @@ func RequireHeaders(headers ...string) gin.HandlerFunc {
 			}
 		}
 		if len(notFoundHeaders) > 0 {
-			err := errors.Format("required headers %v was not provided", notFoundHeaders)
-			ctx.Error(err)
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+			err := errToReturn.AddDetailF("required headers %v was not provided", notFoundHeaders)
+			gonic.Gonic(err, ctx)
 		}
 	}
 }
@@ -74,9 +74,11 @@ func PrepareContext(ctx *gin.Context) {
 }
 
 // RequireAdminRole is a gin middleware which requires admin role
-func RequireAdminRole(ctx *gin.Context) {
-	if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, errors.New("you don`t have permission to do that"))
+func RequireAdminRole(errToReturn *cherry.Err) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" {
+			gonic.Gonic(errToReturn.AddDetails("only admin can do this"), ctx)
+		}
 	}
 }
 

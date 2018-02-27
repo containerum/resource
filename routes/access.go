@@ -7,6 +7,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/utils"
+	"github.com/gin-gonic/gin/binding"
 )
 
 func getUserResourceAccessesHandler(ctx *gin.Context) {
@@ -21,7 +22,7 @@ func getUserResourceAccessesHandler(ctx *gin.Context) {
 
 func setUserResourceAccessesHandler(ctx *gin.Context) {
 	var req rstypes.SetResourcesAccessRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -36,7 +37,7 @@ func setUserResourceAccessesHandler(ctx *gin.Context) {
 
 func setUserNamespaceAccessHandler(ctx *gin.Context) {
 	var req rstypes.SetNamespaceAccessRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -51,7 +52,7 @@ func setUserNamespaceAccessHandler(ctx *gin.Context) {
 
 func setUserVolumeAccessHandler(ctx *gin.Context) {
 	var req rstypes.SetVolumeAccessRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -89,7 +90,7 @@ func getUserVolumeAccessesHandler(ctx *gin.Context) {
 
 func deleteUserNamespaceAccessHandler(ctx *gin.Context) {
 	var req rstypes.DeleteNamespaceAccessRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -104,7 +105,7 @@ func deleteUserNamespaceAccessHandler(ctx *gin.Context) {
 
 func deleteUserVolumeAccessHandler(ctx *gin.Context) {
 	var req rstypes.DeleteVolumeAccessRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}

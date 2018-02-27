@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 
 	"net/http"
 
@@ -10,7 +11,7 @@ import (
 
 func createStorageHandler(ctx *gin.Context) {
 	var req rstypes.CreateStorageRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -35,7 +36,7 @@ func getStoragesHandler(ctx *gin.Context) {
 
 func updateStorageHandler(ctx *gin.Context) {
 	var req rstypes.UpdateStorageRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
