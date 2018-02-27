@@ -7,6 +7,7 @@ import (
 
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func (db *pgDB) getNamespaceID(ctx context.Context, userID, label string) (id st
 		id = ""
 		err = nil
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -50,7 +51,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return
 	}
 	if nsID != "" {
-		err = models.ErrLabeledResourceExists
+		err = rserrors.ErrResourceAlreadyExists.Log(err, db.log)
 		return
 	}
 
@@ -68,7 +69,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		RETURNING *`, namespace)
 	err = sqlx.GetContext(ctx, db.extLog, namespace, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return err
 	}
 
@@ -87,7 +88,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 			ResourceLabel: label,
 			UserID:        userID})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -222,14 +223,14 @@ func (db *pgDB) GetAllNamespaces(ctx context.Context,
 
 	nsIDs, nsMap, err := db.getNamespacesRaw(ctx, page, perPage, filters)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 	if len(nsIDs) == 0 {
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -247,14 +248,14 @@ func (db *pgDB) GetUserNamespaces(ctx context.Context, userID string,
 	db.log.WithField("user_id", userID).Debugf("get user namespaces")
 	nsIDs, nsMap, err := db.getUserNamespacesRaw(ctx, userID, filters)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 	if len(nsIDs) == 0 {
 		return
 	}
 	if err = db.addVolumesToNamespaces(ctx, nsIDs, nsMap); err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -292,10 +293,10 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 		return
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -341,7 +342,7 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -370,7 +371,7 @@ func (db *pgDB) GetUserNamespaceWithVolumesByLabel(ctx context.Context, userID, 
 		err = nil
 		return
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -409,10 +410,10 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 		return
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -439,7 +440,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -471,10 +472,10 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 		return
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -497,10 +498,10 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 		WHERE id IN (SELECT resource_id FROM user_ns)`,
 		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 	}
 
 	return
@@ -519,7 +520,7 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		return
 	}
 	if nsID != "" {
-		err = models.ErrLabeledResourceExists
+		err = rserrors.ErrResourceAlreadyExists.Log(err, db.log)
 		return
 	}
 
@@ -531,10 +532,10 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 				resource_label = :old_resource_label`,
 		params)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 	}
 
 	return
@@ -559,10 +560,10 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespac
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 		return
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 

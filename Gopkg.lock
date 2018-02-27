@@ -22,19 +22,25 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "9cfd33edaa669dbb45704beac54cbb8bde0f67f4"
+  revision = "8a4f5e5bef0df42e5465630b42a5c4ea57aa1008"
 
 [[projects]]
   branch = "develop"
   name = "git.containerum.net/ch/kube-client"
-  packages = ["pkg/model"]
-  revision = "0062813f5c1a19eaf3981f155dc36205f77ddd0e"
+  packages = [
+    "pkg/cherry",
+    "pkg/cherry/adaptors/cherrylog",
+    "pkg/cherry/adaptors/gonic",
+    "pkg/cherry/resource-service",
+    "pkg/model"
+  ]
+  revision = "f2149aa8852d3f03a96ee1e402714054ee592c3b"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "107a2597275f4283c32ab42fe8895c981f8c804b"
+  revision = "4a4e0a96a0e0889b12ee41686bddc02bd5c7bdd3"
 
 [[projects]]
   branch = "master"
@@ -49,15 +55,14 @@
   revision = "dccbb4a462e965297e21372a9ad3ea05e0df3e5f"
 
 [[projects]]
-  branch = "master"
   name = "github.com/gin-gonic/gin"
   packages = [
     ".",
     "binding",
-    "json",
     "render"
   ]
-  revision = "783c7ee9c14eac0e65b501664b4f553291556b43"
+  revision = "d459835d2b077e44f7c9b453505ee29881d5d12d"
+  version = "v1.2"
 
 [[projects]]
   branch = "master"
@@ -247,6 +252,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "008d932d97cd9ed7da11c0a140c693a181ec03b0a39b2ba091c2102dbbf741bf"
+  inputs-digest = "da7cb8760eab5ef0c11c41998341ee803ff520a89f2837df45475c129be9c664"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -6,7 +6,6 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -57,12 +56,8 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error) {
@@ -73,12 +68,8 @@ func (rs *resourceServiceImpl) GetServices(ctx context.Context, nsLabel string) 
 	}).Info("get services")
 
 	ret, err := rs.DB.GetServices(ctx, userID, nsLabel)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return make([]kubtypes.Service, 0), err
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceLabel string) (kubtypes.Service, error) {
@@ -90,9 +81,6 @@ func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceL
 	}).Info("get service")
 
 	ret, err := rs.DB.GetService(ctx, userID, nsLabel, serviceLabel)
-	if err != nil {
-		err = models.WrapDBError(err)
-	}
 
 	return ret, err
 }
@@ -133,12 +121,8 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, serviceLabel string) error {
@@ -157,10 +141,6 @@ func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, servi
 		// TODO: delete service in kube
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }

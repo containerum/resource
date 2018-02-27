@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
-	"github.com/gin-gonic/gin/binding"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -203,15 +202,6 @@ var funcs = map[string]validator.Func{
 }
 
 func RegisterCustomTags(validate *validator.Validate) error {
-	for tag, fn := range funcs {
-		if err := validate.RegisterValidation(tag, fn); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RegisterCustomTagsGin(validate binding.StructValidator) error {
 	for tag, fn := range funcs {
 		if err := validate.RegisterValidation(tag, fn); err != nil {
 			return err

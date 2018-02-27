@@ -1,13 +1,10 @@
 package server
 
 import (
-	"net/http"
-
 	"context"
 	"io"
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
-	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/clients"
@@ -87,13 +84,3 @@ type ResourceService interface {
 
 	io.Closer
 }
-
-// "Business-logic" errors
-var (
-	ErrPermission        = errors.NewWithCode("permission denied", http.StatusForbidden)
-	ErrTariffIsSame      = errors.NewWithCode("provided tariff is current tariff", http.StatusConflict)
-	ErrTariffInactive    = errors.NewWithCode("provided tariff is inactive", http.StatusForbidden)
-	ErrTariffNotPublic   = errors.NewWithCode("provided tariff is not public", http.StatusForbidden)
-	ErrResourceNotOwned  = errors.NewWithCode("can`t set access for resource which not owned by user", http.StatusForbidden)
-	ErrDeleteOwnerAccess = errors.NewWithCode("owner can`t delete has own access to resource", http.StatusConflict)
-)

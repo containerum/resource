@@ -6,7 +6,7 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -21,7 +21,7 @@ func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequ
 		rstypes.Storage{Name: req.Name, Size: req.Size, Replicas: req.Replicas, IPs: req.IPs})
 	err = sqlx.GetContext(ctx, db.extLog, req, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 
 	return
@@ -36,7 +36,7 @@ func (db *pgDB) GetStorages(ctx context.Context) (ret []rstypes.Storage, err err
 	case nil, sql.ErrNoRows:
 		err = nil
 	default:
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 
 	return
@@ -55,12 +55,12 @@ func (db *pgDB) UpdateStorage(ctx context.Context, name string, req rstypes.Upda
 		WHERE name = :oldname`,
 		map[string]interface{}{"oldname": name, "name": req.Name, "replicas": req.Replicas, "size": req.Size, "ips": req.IPs})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return err
 	}
 
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 	}
 
 	return
@@ -73,11 +73,11 @@ func (db *pgDB) DeleteStorage(ctx context.Context, name string) (err error) {
 		`DELETE FROM storages WHERE name = :name`,
 		map[string]interface{}{"name": name})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = models.ErrLabeledResourceNotExists
+		err = rserrors.ErrResourceNotExists.Log(err, db.log)
 	}
 
 	return
@@ -95,7 +95,7 @@ func (db *pgDB) ChooseAvailableStorage(ctx context.Context, minFree int) (storag
 		map[string]interface{}{"min_free": minFree})
 	err = sqlx.GetContext(ctx, db.extLog, &storage, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 
 	return

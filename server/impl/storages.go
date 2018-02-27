@@ -5,7 +5,6 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/server"
 )
 
 func (rs *resourceServiceImpl) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error {
@@ -14,24 +13,16 @@ func (rs *resourceServiceImpl) CreateStorage(ctx context.Context, req rstypes.Cr
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.CreateStorage(ctx, req)
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) GetStorages(ctx context.Context) ([]rstypes.Storage, error) {
 	rs.log.Info("get storages")
 
 	ret, err := rs.DB.GetStorages(ctx)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return make([]rstypes.Storage, 0), err
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error {
@@ -40,12 +31,8 @@ func (rs *resourceServiceImpl) UpdateStorage(ctx context.Context, name string, r
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.UpdateStorage(ctx, name, req)
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) DeleteStorage(ctx context.Context, name string) error {
@@ -60,10 +47,6 @@ func (rs *resourceServiceImpl) DeleteStorage(ctx context.Context, name string) e
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }

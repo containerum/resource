@@ -5,8 +5,8 @@ import (
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -22,12 +22,8 @@ func (rs *resourceServiceImpl) SetUserAccesses(ctx context.Context, accessLevel 
 		// TODO: update auth
 		return tx.SetAllResourcesAccess(ctx, userID, accessLevel)
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error {
@@ -46,7 +42,7 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 		}
 
 		if vol.OwnerUserID != userID {
-			return server.ErrResourceNotOwned
+			return rserrors.ErrResourceNotOwned
 		}
 
 		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -65,12 +61,8 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error {
@@ -89,7 +81,7 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 		}
 
 		if ns.OwnerUserID != userID {
-			return server.ErrResourceNotOwned
+			return rserrors.ErrResourceNotOwned
 		}
 
 		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -108,12 +100,8 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error) {
@@ -124,11 +112,8 @@ func (rs *resourceServiceImpl) GetUserNamespaceAccesses(ctx context.Context, lab
 	}).Info("get user namespace accesses")
 
 	ret, err := rs.DB.GetNamespaceWithUserPermissions(ctx, userID, label)
-	if err != nil {
-		return rstypes.GetUserNamespaceAccessesResponse{}, server.HandleDBError(err)
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error) {
@@ -139,12 +124,8 @@ func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label 
 	}).Info("get user volume accesses")
 
 	ret, err := rs.DB.GetVolumeWithUserPermissions(ctx, userID, label)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return rstypes.VolumeWithUserPermissions{}, err
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error) {
@@ -152,12 +133,8 @@ func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.Resou
 	rs.log.WithField("user_id", userID).Info("get all user accesses")
 
 	ret, err := rs.DB.GetUserResourceAccesses(ctx, userID)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error {
@@ -174,7 +151,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, ns
 		}
 
 		if ns.OwnerUserID == ns.UserID {
-			return server.ErrDeleteOwnerAccess
+			return rserrors.ErrDeleteOwnerAccess
 		}
 
 		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -184,12 +161,8 @@ func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, ns
 
 		return tx.DeleteResourceAccess(ctx, ns.Resource, user.ID)
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error {
@@ -206,7 +179,7 @@ func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLa
 		}
 
 		if vol.OwnerUserID == vol.UserID {
-			return server.ErrDeleteOwnerAccess
+			return rserrors.ErrDeleteOwnerAccess
 		}
 
 		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -216,10 +189,6 @@ func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLa
 
 		return tx.DeleteResourceAccess(ctx, vol.Resource, user.ID)
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }

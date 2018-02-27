@@ -6,11 +6,12 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 func createVolumeHandler(ctx *gin.Context) {
 	var req rstypes.CreateVolumeRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -67,7 +68,7 @@ func getUserVolumeHandler(ctx *gin.Context) {
 
 func getAllVolumesHandler(ctx *gin.Context) {
 	var params rstypes.GetAllResourcesQueryParams
-	if err := ctx.ShouldBindQuery(&params); err != nil {
+	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -83,7 +84,7 @@ func getAllVolumesHandler(ctx *gin.Context) {
 
 func renameUserVolumeHandler(ctx *gin.Context) {
 	var req rstypes.RenameVolumeRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -97,7 +98,7 @@ func renameUserVolumeHandler(ctx *gin.Context) {
 
 func resizeUserVolumeHandler(ctx *gin.Context) {
 	var req rstypes.ResizeVolumeRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 	}
 	if err := srv.ResizeUserVolume(ctx.Request.Context(), ctx.Param("vol_label"), req.NewTariffID); err != nil {

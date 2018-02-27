@@ -5,11 +5,12 @@ import (
 
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 func createServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -45,7 +46,7 @@ func getServiceHandler(ctx *gin.Context) {
 
 func updateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}

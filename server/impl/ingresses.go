@@ -5,7 +5,6 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -26,12 +25,8 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) GetUserIngresses(ctx context.Context, nsLabel string,
@@ -45,12 +40,8 @@ func (rs *resourceServiceImpl) GetUserIngresses(ctx context.Context, nsLabel str
 	}).Info("get user ingresses")
 
 	resp, err := rs.DB.GetUserIngresses(ctx, userID, nsLabel, params)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return resp, nil
+	return resp, err
 }
 
 func (rs *resourceServiceImpl) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
@@ -60,12 +51,8 @@ func (rs *resourceServiceImpl) GetAllIngresses(ctx context.Context, params rstyp
 	}).Info("get all ingresses")
 
 	resp, err := rs.DB.GetAllIngresses(ctx, params)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return resp, nil
+	return resp, err
 }
 
 func (rs *resourceServiceImpl) DeleteIngress(ctx context.Context, nsLabel, domain string) error {
@@ -85,10 +72,6 @@ func (rs *resourceServiceImpl) DeleteIngress(ctx context.Context, nsLabel, domai
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }

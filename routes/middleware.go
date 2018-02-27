@@ -1,25 +1,20 @@
 package routes
 
 import (
-	"net/http"
-
-	"git.containerum.net/ch/json-types/errors"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 )
 
-func handleError(err error) (int, *errors.Error) {
+func handleError(err error) (int, *cherry.Err) {
 	switch err.(type) {
-	case *errors.Error:
-		e := err.(*errors.Error)
-		if code := e.Code; code != 0 {
-			e.Code = 0
-			return code, e
-		}
-		return http.StatusInternalServerError, e
+	case *cherry.Err:
+		e := err.(*cherry.Err)
+		return e.StatusHTTP, e
 	default:
-		return http.StatusInternalServerError, errors.New(err.Error())
+		return rserrors.ErrOther.StatusHTTP, rserrors.ErrOther.AddDetailsErr(err)
 	}
 }
 
-func badRequest(err error) (int, *errors.Error) {
-	return http.StatusBadRequest, errors.New(err.Error())
+func badRequest(err error) (int, *cherry.Err) {
+	return rserrors.ErrValidation.StatusHTTP, rserrors.ErrValidation.AddDetailsErr(err)
 }

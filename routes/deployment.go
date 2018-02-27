@@ -6,12 +6,13 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 func createDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -55,7 +56,7 @@ func deleteDeploymentByLabelHandler(ctx *gin.Context) {
 
 func setContainerImageHandler(ctx *gin.Context) {
 	var req rstypes.SetContainerImageRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -71,7 +72,7 @@ func setContainerImageHandler(ctx *gin.Context) {
 
 func replaceDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -87,7 +88,7 @@ func replaceDeploymentHandler(ctx *gin.Context) {
 
 func setReplicasHandler(ctx *gin.Context) {
 	var req rstypes.SetReplicasRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}

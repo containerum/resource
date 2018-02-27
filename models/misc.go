@@ -1,7 +1,6 @@
 package models
 
 import (
-	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"github.com/sirupsen/logrus"
 )
@@ -30,15 +29,4 @@ func PermCheck(perm, needed rstypes.PermissionStatus) bool {
 	}
 	logrus.Errorf("unreachable code in PermCheck")
 	return false
-}
-
-// WrapDBError is used to wrap sql error to special type for more convenient handling.
-// It should be used by all implementations of DB interface
-func WrapDBError(err error) error {
-	switch err.(type) {
-	case *DBError, *errors.Error:
-		return err
-	default:
-		return &DBError{Err: errors.New(err.Error())}
-	}
 }

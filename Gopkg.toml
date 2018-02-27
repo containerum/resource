@@ -8,7 +8,7 @@
   name = "git.containerum.net/ch/utils"
 
 [[constraint]]
-  branch = "master"
+  version = "1.2.0"
   name = "github.com/gin-gonic/gin"
 
 [[constraint]]

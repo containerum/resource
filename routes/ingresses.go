@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 
 	"reflect"
 
@@ -23,12 +24,7 @@ func createIngressRequestValidate(v *validator.Validate, structLevel *validator.
 
 func createIngressHandler(ctx *gin.Context) {
 	var req rstypes.CreateIngressRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
-		return
-	}
-
-	if err := customValidator.Struct(req); err != nil {
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -43,7 +39,7 @@ func createIngressHandler(ctx *gin.Context) {
 
 func getUserIngressesHandler(ctx *gin.Context) {
 	var params rstypes.GetIngressesQueryParams
-	if err := ctx.ShouldBindQuery(&params); err != nil {
+	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}
@@ -60,7 +56,7 @@ func getUserIngressesHandler(ctx *gin.Context) {
 func getAllIngressesHandler(ctx *gin.Context) {
 	var params rstypes.GetIngressesQueryParams
 
-	if err := ctx.ShouldBindQuery(&params); err != nil {
+	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(err))
 		return
 	}

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"strings"
-
 	"git.containerum.net/ch/resource-service/models"
 	chutils "git.containerum.net/ch/utils"
 	"github.com/jmoiron/sqlx"
@@ -16,12 +14,14 @@ import (
 	"github.com/sirupsen/logrus"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 )
 
 type pgDB struct {
 	conn     *sqlx.DB // do not use for operations
 	extLog   sqlx.ExtContext
-	log      *logrus.Entry
+	log      *cherrylog.LogrusAdapter
 	preparer chutils.SQLXPreparer
 
 	// for information
@@ -45,7 +45,7 @@ func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
 
 	ret := &pgDB{
 		conn:     conn,
-		log:      log,
+		log:      cherrylog.NewLogrusAdapter(log),
 		extLog:   chutils.NewSQLXExtContextLogger(conn, log),
 		preparer: chutils.NewSQLXPreparerLogger(conn, log),
 	}
@@ -86,15 +86,15 @@ func (db *pgDB) migrateUp(path string) (*migrate.Migrate, error) {
 func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, tx models.DB) error) (err error) {
 	e := db.log.WithField("transaction_id", chutils.NewUUID())
 	e.Debugln("Begin transaction")
+	log := cherrylog.NewLogrusAdapter(e)
 	tx, txErr := db.conn.Beginx()
 	if txErr != nil {
-		e.WithError(txErr).Errorln("Begin transaction error")
-		return models.ErrTransactionBegin
+		return rserrors.ErrDatabase.Log(txErr, log)
 	}
 
 	arg := &pgDB{
 		conn:     db.conn,
-		log:      e,
+		log:      log,
 		extLog:   chutils.NewSQLXExtContextLogger(tx, e),
 		preparer: chutils.NewSQLXPreparerLogger(tx, e),
 	}
@@ -103,34 +103,25 @@ func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 	defer func(dberr error) {
 		// if panic recovered, try to rollback transaction
 		if panicErr := recover(); panicErr != nil {
-			dberr = fmt.Errorf("panic in transaction: %v", panicErr)
+			dberr = rserrors.ErrDatabase.AddDetailF("caused by %v", panicErr)
 		}
 
 		if dberr != nil {
 			e.WithError(dberr).Debugln("Rollback transaction")
 			if rerr := tx.Rollback(); rerr != nil {
-				e.WithError(rerr).Errorln("Rollback error")
-				err = models.ErrTransactionRollback
+				err = rserrors.ErrDatabase.AddDetailF("caused by %v", dberr).Log(rerr, log)
+				return
 			}
-			err = dberr // forward error with panic description
+			err = dberr // forward error
 			return
 		}
 
 		e.Debugln("Commit transaction")
 		if cerr := tx.Commit(); cerr != nil {
-			e.WithError(cerr).Errorln("Commit error")
-			err = models.ErrTransactionCommit
+			err = rserrors.ErrDatabase.Log(cerr, log)
 		}
 	}(f(ctx, arg))
 
-	return
-}
-
-func createValues(vals []string) (ret string) {
-	for _, v := range vals {
-		ret += "('" + v + "'), "
-	}
-	ret = strings.TrimSuffix(ret, ", ")
 	return
 }
 
@@ -152,7 +143,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		map[string]interface{}{"user_id": userID})
 	err = sqlx.SelectContext(ctx, db.extLog, &nsIDs, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -173,7 +164,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		map[string]interface{}{"user_id": userID})
 	err = sqlx.GetContext(ctx, db.extLog, &volservs, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -185,7 +176,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 	query, args, _ = sqlx.In( /* language=sql */ `SELECT * FROM deployments WHERE ns_id IN (?)`, nsIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, deplIDs, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -199,18 +190,18 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		deplIDs)
 	err = sqlx.GetContext(ctx, db.extLog, &ret.Ingresses, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
 	query, args, _ = sqlx.In( /* language=sql */
 		`SELECT count(c.*)
-		FROM containers
+		FROM containers c
 		WHERE depl_id IN (?)`,
 		deplIDs)
 	err = sqlx.GetContext(ctx, db.extLog, &ret.Containers, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 
 	return

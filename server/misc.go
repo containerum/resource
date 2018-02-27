@@ -1,38 +1,11 @@
 package server
 
 import (
-	"net/http"
-
 	"sync"
 
 	"git.containerum.net/ch/json-types/billing"
-	"git.containerum.net/ch/json-types/errors"
-	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 )
-
-// HandleDBError translates database errors to one type *"git.containerum.net/ch/json-types/errors".Error
-func HandleDBError(err error) error {
-	switch err {
-	case nil:
-		return nil
-	case models.ErrTransactionRollback, models.ErrTransactionBegin, models.ErrTransactionCommit:
-		return errors.NewWithCode(err.Error(), http.StatusInternalServerError)
-	case models.ErrLabeledResourceNotExists, models.ErrResourceNotExists, models.ErrDomainNotExists, models.ErrIngressNotExists,
-		models.ErrAccessRecordNotExist:
-		return errors.NewWithCode(err.Error(), http.StatusNotFound)
-	case models.ErrLabeledResourceExists, models.ErrResourceExists, models.ErrIngressExists:
-		return errors.NewWithCode(err.Error(), http.StatusConflict)
-	}
-
-	switch err.(type) {
-	case *models.DBError:
-		return err.(*models.DBError).Err
-	case *errors.Error:
-		return err
-	default:
-		return errors.NewWithCode(err.Error(), http.StatusInternalServerError)
-	}
-}
 
 // Parallel runs functions in dedicated goroutines and waits for ending
 func Parallel(funcs ...func() error) (ret []error) {
@@ -56,10 +29,10 @@ func Parallel(funcs ...func() error) (ret []error) {
 // CheckTariff checks if user has permissions to use tariff
 func CheckTariff(tariff billing.Tariff, isAdmin bool) error {
 	if !tariff.Active {
-		return ErrTariffInactive
+		return rserrors.ErrTariffNotFound
 	}
 	if !isAdmin && !tariff.Public {
-		return ErrTariffNotPublic
+		return rserrors.ErrTariffNotFound
 	}
 
 	return nil

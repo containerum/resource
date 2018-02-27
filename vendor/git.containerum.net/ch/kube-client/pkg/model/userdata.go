@@ -1,11 +1,13 @@
 package model
 
+// UserHeaderData --
 type UserHeaderData struct {
 	ID     string `json:"id"`     // hosting-internal name
 	Label  string `json:"label"`  // user-visible label for the object
 	Access string `json:"access"` // one of: "owner", "read", "write", "read-delete", "none"
 }
 
+// User --
 type User struct {
 	Login     string   `json:"login"`
 	Data      UserData `json:"data"`
@@ -14,6 +16,7 @@ type User struct {
 	CreatedAt string   `json:"created_at"`
 }
 
+// UserData --
 type UserData struct {
 	Email          string `json:"email"`
 	Address        string `json:"address"`
@@ -25,11 +28,13 @@ type UserData struct {
 	Company        string `json:"company"`
 }
 
+// Tokens --
 type Tokens struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
+// CheckTokenResponse --
 type CheckTokenResponse struct {
 	Access struct {
 		Namespace []Resource `json:"namespace"`
@@ -37,6 +42,7 @@ type CheckTokenResponse struct {
 	} `json:"access"`
 }
 
+// Login --
 type Login struct {
 	Username  string  `json:"username"`
 	Password  string  `json:"password"`
