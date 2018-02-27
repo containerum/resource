@@ -7,6 +7,7 @@ import (
 
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
@@ -88,12 +89,12 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 
 		return nil
 	})
-	if err = server.HandleDBError(err); err != nil {
+	if err != nil {
 		return err
 	}
 
 	if err := rs.Mail.SendNamespaceCreated(ctx, userID, req.Label, tariff); err != nil {
-		logrus.WithError(err).Error("send namespace created email failed")
+		rs.log.WithError(err).Error("send namespace created email failed")
 	}
 
 	return nil
@@ -108,11 +109,8 @@ func (rs *resourceServiceImpl) GetUserNamespaces(ctx context.Context, filters st
 
 	filterstr := models.ParseNamespaceFilterParams(strings.Split(filters, ",")...)
 	ret, err := rs.DB.GetUserNamespaces(ctx, userID, &filterstr)
-	if err != nil {
-		return nil, server.HandleDBError(err)
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error) {
@@ -123,11 +121,8 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 	}).Info("get user namespace")
 
 	ret, err := rs.DB.GetUserNamespaceWithVolumesByLabel(ctx, userID, label)
-	if err != nil {
-		return rstypes.NamespaceWithVolumes{}, server.HandleDBError(err)
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) GetAllNamespaces(ctx context.Context,
@@ -140,11 +135,8 @@ func (rs *resourceServiceImpl) GetAllNamespaces(ctx context.Context,
 
 	filters := models.ParseNamespaceFilterParams(strings.Split(params.Filters, ",")...)
 	ret, err := rs.DB.GetAllNamespaces(ctx, params.Page, params.PerPage, &filters)
-	if err != nil {
-		return nil, server.HandleDBError(err)
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label string) error {
@@ -177,11 +169,11 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 		return nil
 	})
 	if err != nil {
-		return server.HandleDBError(err)
+		return err
 	}
 
 	if err := rs.Mail.SendNamespaceDeleted(ctx, userID, label); err != nil {
-		logrus.WithError(err).Error("send namespace deleted mail failed")
+		rs.log.WithError(err).Error("send namespace deleted mail failed")
 	}
 
 	return nil
@@ -189,7 +181,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 
 func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) error {
 	userID := utils.MustGetUserID(ctx)
-	logrus.WithField("user_id", userID).Info("delete all user namespaces")
+	rs.log.WithField("user_id", userID).Info("delete all user namespaces")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		if _, delErr := rs.DB.DeleteAllUserVolumes(ctx, userID, true); delErr != nil {
@@ -208,7 +200,7 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 		return nil
 	})
 	if err != nil {
-		return server.HandleDBError(err)
+		return err
 	}
 
 	// TODO: send email
@@ -227,11 +219,8 @@ func (rs *resourceServiceImpl) RenameUserNamespace(ctx context.Context, oldLabel
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.RenameNamespace(ctx, userID, oldLabel, newLabel)
 	})
-	if err != nil {
-		return server.HandleDBError(err)
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error {
@@ -251,7 +240,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 		}
 
 		if ns.TariffID == newTariffID {
-			return server.ErrTariffIsSame
+			return rserrors.ErrTariffUnchanged.AddDetails("can`t change tariff to itself")
 		}
 
 		newTariff, getErr := rs.Billing.GetNamespaceTariff(ctx, newTariffID)
@@ -321,7 +310,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 		return nil
 	})
 	if err != nil {
-		return server.HandleDBError(err)
+		return err
 	}
 
 	// TODO: send namespace resized email

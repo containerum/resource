@@ -8,6 +8,7 @@ import (
 
 	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
@@ -15,14 +16,14 @@ import (
 
 type resourceServiceImpl struct {
 	server.ResourceServiceClients
-	log *logrus.Entry
+	log *cherrylog.LogrusAdapter
 }
 
 // NewResourceServiceImpl creates a resource-service
 func NewResourceServiceImpl(clients server.ResourceServiceClients) server.ResourceService {
 	return &resourceServiceImpl{
 		ResourceServiceClients: clients,
-		log: logrus.WithField("component", "resource_service"),
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_service")),
 	}
 }
 
@@ -47,10 +48,6 @@ func (rs *resourceServiceImpl) GetResourcesCount(ctx context.Context) (rstypes.G
 	rs.log.WithField("user_id", userID).Info("get resources count")
 
 	ret, err := rs.DB.GetResourcesCount(ctx, userID)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return ret, err
-	}
 
-	return ret, nil
+	return ret, err
 }

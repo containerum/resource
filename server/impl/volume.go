@@ -7,6 +7,7 @@ import (
 
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
@@ -63,7 +64,6 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 		return nil
 	})
 	if err != nil {
-		err = server.HandleDBError(err)
 		return err
 	}
 
@@ -100,7 +100,6 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 		return nil
 	})
 	if err != nil {
-		err = server.HandleDBError(err)
 		return err
 	}
 
@@ -111,12 +110,12 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 	return nil
 }
 
-func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err error) {
+func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("delete all user volumes")
 
-	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if _, delErr := tx.DeleteAllUserVolumes(ctx, userID, false); err != nil {
+	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		if _, delErr := tx.DeleteAllUserVolumes(ctx, userID, false); delErr != nil {
 			return delErr
 		}
 
@@ -127,11 +126,8 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) (err er
 		// TODO: update auth
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-	}
 
-	return
+	return err
 }
 
 func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error) {
@@ -143,12 +139,8 @@ func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters strin
 
 	filterstr := models.ParseVolumeFilterParams(strings.Split(filters, ",")...)
 	vols, err := rs.DB.GetUserVolumes(ctx, userID, &filterstr)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return vols, nil
+	return vols, err
 }
 
 func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error) {
@@ -159,12 +151,8 @@ func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) 
 	}).Info("get user volume")
 
 	vol, err := rs.DB.GetUserVolumeByLabel(ctx, userID, label)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return rstypes.VolumeWithPermission{}, err
-	}
 
-	return vol, nil
+	return vol, err
 }
 
 func (rs *resourceServiceImpl) GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error) {
@@ -175,12 +163,8 @@ func (rs *resourceServiceImpl) GetVolumesLinkedWithUserNamespace(ctx context.Con
 	}).Info("get volumes linked with user namespace")
 
 	vols, err := rs.DB.GetVolumesLinkedWithUserNamespace(ctx, userID, label)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return vols, nil
+	return vols, err
 }
 
 func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
@@ -193,12 +177,8 @@ func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
 
 	filters := models.ParseVolumeFilterParams(strings.Split(params.Filters, ",")...)
 	vols, err := rs.DB.GetAllVolumes(ctx, params.Page, params.PerPage, &filters)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return vols, nil
+	return vols, err
 }
 
 func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error {
@@ -212,12 +192,8 @@ func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, n
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.RenameVolume(ctx, userID, oldLabel, newLabel)
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label string, newTariffID string) error {
@@ -237,7 +213,7 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 		}
 
 		if vol.TariffID == newTariffID {
-			return server.ErrTariffIsSame
+			return rserrors.ErrTariffUnchanged.AddDetails("can`t change tariff to itself")
 		}
 
 		newTariff, getErr := rs.Billing.GetVolumeTariff(ctx, newTariffID)
@@ -263,7 +239,6 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 		return nil
 	})
 	if err != nil {
-		err = server.HandleDBError(err)
 		return err
 	}
 

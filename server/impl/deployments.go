@@ -6,7 +6,6 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -19,12 +18,8 @@ func (rs *resourceServiceImpl) GetDeployments(ctx context.Context, nsLabel strin
 	}).Info("get deployments")
 
 	ret, err := rs.DB.GetDeployments(ctx, userID, nsLabel)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return nil, err
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error) {
@@ -36,12 +31,8 @@ func (rs *resourceServiceImpl) GetDeploymentByLabel(ctx context.Context, nsLabel
 	}).Info("get deployment by label")
 
 	ret, err := rs.DB.GetDeploymentByLabel(ctx, userID, nsLabel, deplLabel)
-	if err != nil {
-		err = server.HandleDBError(err)
-		return kubtypes.Deployment{}, err
-	}
 
-	return ret, nil
+	return ret, err
 }
 
 func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
@@ -80,12 +71,8 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error {
@@ -110,12 +97,8 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypes.Deployment) error {
@@ -135,12 +118,8 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetReplicasRequest) error {
@@ -160,12 +139,8 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error {
@@ -185,10 +160,6 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 
 		return nil
 	})
-	if err != nil {
-		err = server.HandleDBError(err)
-		return err
-	}
 
-	return nil
+	return err
 }

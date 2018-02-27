@@ -4,8 +4,6 @@ import (
 	"context"
 	"io"
 
-	"git.containerum.net/ch/json-types/errors"
-
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/kube-api"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
@@ -88,37 +86,3 @@ type DB interface {
 
 	io.Closer
 }
-
-// DBError describes error from database
-type DBError struct {
-	Err *errors.Error
-}
-
-func (e *DBError) Error() string {
-	return e.Err.Error()
-}
-
-// Errors which may occur in transactional operations
-var (
-	ErrTransactionBegin    = &DBError{Err: errors.New("transaction begin error")}
-	ErrTransactionRollback = &DBError{Err: errors.New("transaction rollback error")}
-	ErrTransactionCommit   = &DBError{Err: errors.New("transaction commit error")}
-)
-
-// Generic resource errors
-var (
-	ErrLabeledResourceExists    = errors.New("resource with this label already exists")
-	ErrLabeledResourceNotExists = errors.New("resource with this label not exists")
-
-	ErrResourceExists    = errors.New("resource already exists")
-	ErrResourceNotExists = errors.New("resource not exists")
-)
-
-var (
-	ErrIngressExists    = errors.New("ingress for domain already exists")
-	ErrIngressNotExists = errors.New("ingress for domain not exists")
-)
-
-var ErrDomainNotExists = errors.New("this domain is not exists")
-
-var ErrAccessRecordNotExist = errors.New("access record for user not exists")

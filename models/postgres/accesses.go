@@ -6,7 +6,7 @@ import (
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -15,7 +15,7 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
 	accessObjects := make([]struct {
-		Kind string
+		Kind rstypes.Kind `db:"kind"`
 		*auth.AccessObject
 	}, 0)
 
@@ -24,7 +24,7 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 		FROM permissions
 		WHERE owner_user_id = user_id AND user_id = $1 AND kind in ('namespace', 'volume')`, userID)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 
@@ -34,9 +34,9 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 	}
 	for _, obj := range accessObjects {
 		switch obj.Kind {
-		case "namespace":
+		case rstypes.KindNamespace:
 			ret.Namespace = append(ret.Namespace, obj.AccessObject)
-		case "volume":
+		case rstypes.KindVolume:
 			ret.Volume = append(ret.Volume, obj.AccessObject)
 		default:
 			db.log.Errorf("unexpected kind %s", obj.Kind)
@@ -91,7 +91,7 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 		permRec)
 	err = sqlx.GetContext(ctx, db.extLog, permRec, db.extLog.Rebind(query), args...)
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 
 	return
@@ -126,7 +126,7 @@ func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 	  	WHERE owner_user_id IN (SELECT owner_user_id FROM updated_owner_accesses)`,
 		rstypes.PermissionRecord{UserID: userID, NewAccessLevel: access})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 	}
 
 	return
@@ -142,11 +142,11 @@ func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resou
 		`DELETE FROM permissions WHERE (user_id, resource_id) = (:user_id, :resource_id) AND owner_user_id != user_id`,
 		rstypes.PermissionRecord{UserID: userID, ResourceID: misc.WrapString(resource.ID)})
 	if err != nil {
-		err = models.WrapDBError(err)
+		err = rserrors.ErrDatabase.Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = models.ErrAccessRecordNotExist
+		err = rserrors.ErrAccessRecordNotExists.Log(err, db.log)
 	}
 
 	return
