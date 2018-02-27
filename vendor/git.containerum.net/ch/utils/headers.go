@@ -38,13 +38,13 @@ func RequestHeaders(ctx context.Context) http.Header {
 }
 
 var hdrToKey = map[string]interface{}{
-	umtypes.UserIDHeader:      UserIDContextKey,
-	umtypes.UserAgentHeader:   UserAgentContextKey,
-	umtypes.FingerprintHeader: FingerPrintContextKey,
-	umtypes.SessionIDHeader:   SessionIDContextKey,
-	umtypes.TokenIDHeader:     TokenIDContextKey,
-	umtypes.ClientIPHeader:    ClientIPContextKey,
-	umtypes.UserRoleHeader:    UserRoleContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.UserIDHeader):      UserIDContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.UserAgentHeader):   UserAgentContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.FingerprintHeader): FingerPrintContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.SessionIDHeader):   SessionIDContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.TokenIDHeader):     TokenIDContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.ClientIPHeader):    ClientIPContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader):    UserRoleContextKey,
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
@@ -52,13 +52,15 @@ func RequireHeaders(errToReturn *cherry.Err, headers ...string) gin.HandlerFunc 
 	return func(ctx *gin.Context) {
 		var notFoundHeaders []string
 		for _, v := range headers {
-			if ctx.GetHeader(v) == "" {
+			if ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(v)) == "" {
 				notFoundHeaders = append(notFoundHeaders, v)
 			}
 		}
 		if len(notFoundHeaders) > 0 {
 			err := *errToReturn
-			err = *err.AddDetailF("required headers %v was not provided", notFoundHeaders)
+			for _, notFoundHeader := range notFoundHeaders {
+				err.AddDetailF("required header %s was not provided", notFoundHeader)
+			}
 			gonic.Gonic(&err, ctx)
 		}
 	}
@@ -77,7 +79,7 @@ func PrepareContext(ctx *gin.Context) {
 // RequireAdminRole is a gin middleware which requires admin role
 func RequireAdminRole(errToReturn *cherry.Err) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" {
+		if ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader)) != "admin" {
 			err := *errToReturn
 			err = *err.AddDetails("only admin can do this")
 			gonic.Gonic(&err, ctx)
@@ -87,7 +89,7 @@ func RequireAdminRole(errToReturn *cherry.Err) gin.HandlerFunc {
 
 // SubstituteUserMiddleware replaces user id in context with user id from query if it set and user is admin
 func SubstituteUserMiddleware(ctx *gin.Context) {
-	role := ctx.GetHeader(umtypes.UserRoleHeader)
+	role := ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader))
 	if userID, set := ctx.GetQuery("user-id"); set && role == "admin" {
 		rctx := context.WithValue(ctx.Request.Context(), UserIDContextKey, userID)
 		ctx.Request = ctx.Request.WithContext(rctx)
