@@ -65,7 +65,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
-	app.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	app.Use(utils.RequireHeaders(*rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
 	app.Use(utils.SubstituteUserMiddleware)
 
 	ns := app.Group("/namespace")
@@ -122,9 +122,9 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	nss := app.Group("/namespaces")
 	{
-		nss.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), getAllNamespacesHandler)
+		nss.GET("", utils.RequireAdminRole(*rserrors.ErrPermissionDenied), getAllNamespacesHandler)
 
-		nss.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), deleteAllUserNamespacesHandler)
+		nss.DELETE("", utils.RequireAdminRole(*rserrors.ErrPermissionDenied), deleteAllUserNamespacesHandler)
 	}
 
 	vol := app.Group("/volume")
@@ -145,16 +145,16 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 
 	vols := app.Group("/volumes")
 	{
-		vols.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), getAllVolumesHandler)
+		vols.GET("", utils.RequireAdminRole(*rserrors.ErrPermissionDenied), getAllVolumesHandler)
 
-		vols.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), deleteAllUserVolumesHandler)
+		vols.DELETE("", utils.RequireAdminRole(*rserrors.ErrPermissionDenied), deleteAllUserVolumesHandler)
 	}
 
 	app.GET("/access", getUserResourceAccessesHandler)
 
-	app.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), getAllIngressesHandler)
+	app.GET("/ingresses", utils.RequireAdminRole(*rserrors.ErrPermissionDenied), getAllIngressesHandler)
 
-	domain := app.Group("/domain", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	domain := app.Group("/domain", utils.RequireAdminRole(*rserrors.ErrPermissionDenied))
 	{
 		domain.POST("", addDomainHandler)
 
@@ -164,7 +164,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		domain.DELETE("/:domain", deleteDomainHandler)
 	}
 
-	storage := app.Group("/storage", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	storage := app.Group("/storage", utils.RequireAdminRole(*rserrors.ErrPermissionDenied))
 	{
 		storage.POST("", createStorageHandler)
 
@@ -175,7 +175,7 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService) {
 		storage.DELETE("/:storage_name", deleteStorageHandler)
 	}
 
-	adm := app.Group("/adm", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	adm := app.Group("/adm", utils.RequireAdminRole(*rserrors.ErrPermissionDenied))
 	{
 		adm.PUT("/access", setUserResourceAccessesHandler)
 	}

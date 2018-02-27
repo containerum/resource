@@ -48,7 +48,7 @@ var hdrToKey = map[string]interface{}{
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
-func RequireHeaders(errToReturn *cherry.Err, headers ...string) gin.HandlerFunc {
+func RequireHeaders(errToReturn cherry.Err, headers ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var notFoundHeaders []string
 		for _, v := range headers {
@@ -74,7 +74,7 @@ func PrepareContext(ctx *gin.Context) {
 }
 
 // RequireAdminRole is a gin middleware which requires admin role
-func RequireAdminRole(errToReturn *cherry.Err) gin.HandlerFunc {
+func RequireAdminRole(errToReturn cherry.Err) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" {
 			gonic.Gonic(errToReturn.AddDetails("only admin can do this"), ctx)
