@@ -11,6 +11,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
+	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
@@ -52,4 +53,14 @@ func (rs *resourceServiceImpl) GetResourcesCount(ctx context.Context) (rstypes.G
 	ret, err := rs.DB.GetResourcesCount(ctx, userID)
 
 	return ret, err
+}
+
+func (rs *resourceServiceImpl) updateAccess(ctx context.Context, db models.DB, userID string) error {
+	rs.log.WithField("user_id", userID).Info("update user accesses")
+
+	accesses, err := db.GetUserResourceAccesses(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return rs.Auth.UpdateUserAccess(ctx, userID, accesses)
 }

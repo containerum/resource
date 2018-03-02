@@ -63,7 +63,7 @@ func (as authSvcGRPC) UpdateUserAccess(ctx context.Context, userID string, acces
 			{UserId: &common.UUID{Value: userID}, Access: access},
 		},
 	})
-	return err
+	return err // FIXME: use "cherry" for error
 }
 
 func (as authSvcGRPC) String() string {

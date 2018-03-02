@@ -95,6 +95,10 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 
 		// TODO: create non-persistent volume
 
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -172,7 +176,9 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 			return unsubErr
 		}
 
-		// TODO: update user access on auth service
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
@@ -204,7 +210,9 @@ func (rs *resourceServiceImpl) DeleteAllUserNamespaces(ctx context.Context) erro
 
 		// TODO: unsubscribe all on billing
 
-		// TODO: update user access on auth
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
 		return nil
 	})
 	if err != nil {
@@ -225,7 +233,13 @@ func (rs *resourceServiceImpl) RenameUserNamespace(ctx context.Context, oldLabel
 	}).Info("rename user namespace")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		return tx.RenameNamespace(ctx, userID, oldLabel, newLabel)
+		if renErr := tx.RenameNamespace(ctx, userID, oldLabel, newLabel); renErr != nil {
+			return renErr
+		}
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+		return nil
 	})
 
 	return err

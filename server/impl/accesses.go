@@ -19,8 +19,15 @@ func (rs *resourceServiceImpl) SetUserAccesses(ctx context.Context, accessLevel 
 	}).Info("set user resources access level")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		// TODO: update auth
-		return tx.SetAllResourcesAccess(ctx, userID, accessLevel)
+		if updErr := tx.SetAllResourcesAccess(ctx, userID, accessLevel); updErr != nil {
+			return updErr
+		}
+
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+
+		return nil
 	})
 
 	return err
@@ -57,7 +64,9 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 			return setErr
 		}
 
-		// TODO: update auth
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
@@ -96,7 +105,9 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 			return setErr
 		}
 
-		// TODO: update auth
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
@@ -159,7 +170,15 @@ func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, ns
 			return getErr
 		}
 
-		return tx.DeleteResourceAccess(ctx, ns.Resource, user.ID)
+		if delErr := tx.DeleteResourceAccess(ctx, ns.Resource, user.ID); delErr != nil {
+			return delErr
+		}
+
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+
+		return nil
 	})
 
 	return err
@@ -187,7 +206,15 @@ func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLa
 			return getErr
 		}
 
-		return tx.DeleteResourceAccess(ctx, vol.Resource, user.ID)
+		if delErr := tx.DeleteResourceAccess(ctx, vol.Resource, user.ID); delErr != nil {
+			return delErr
+		}
+
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+
+		return nil
 	})
 
 	return err
