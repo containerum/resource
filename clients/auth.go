@@ -7,16 +7,19 @@ import (
 
 	"io"
 
+	"time"
+
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/grpc-proto-files/common"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 // AuthSvc is an interface to auth service
 type AuthSvc interface {
-	UpdateUserAccess(ctx context.Context, userID string) error
+	UpdateUserAccess(ctx context.Context, userID string, access *auth.ResourcesAccess) error
 
 	// for connections closing
 	io.Closer
@@ -37,7 +40,14 @@ func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 	}
 
 	ret.log.Debugf("grpc connect to %s", addr)
-	ret.conn, err = grpc.Dial(addr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(ret.log)))
+	ret.conn, err = grpc.Dial(addr,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(ret.log)),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                5 * time.Second,
+			Timeout:             10 * time.Second,
+			PermitWithoutStream: true,
+		}))
 	if err != nil {
 		return
 	}
@@ -46,12 +56,14 @@ func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 	return ret, nil
 }
 
-func (as authSvcGRPC) UpdateUserAccess(ctx context.Context, userID string) error {
+func (as authSvcGRPC) UpdateUserAccess(ctx context.Context, userID string, access *auth.ResourcesAccess) error {
 	as.log.WithField("user_id", userID).Infoln("update user access")
 	_, err := as.client.UpdateAccess(ctx, &auth.UpdateAccessRequest{
-		UserId: &common.UUID{Value: userID},
+		Users: []*auth.UpdateAccessRequestElement{
+			{UserId: &common.UUID{Value: userID}, Access: access},
+		},
 	})
-	return err
+	return err // FIXME: use "cherry" for error
 }
 
 func (as authSvcGRPC) String() string {
@@ -73,8 +85,8 @@ func NewDummyAuthSvc() AuthSvc {
 	}
 }
 
-func (as authSvcDummy) UpdateUserAccess(ctx context.Context, userID string) error {
-	as.log.WithField("user_id", userID).Infoln("update user access")
+func (as authSvcDummy) UpdateUserAccess(ctx context.Context, userID string, access *auth.ResourcesAccess) error {
+	as.log.WithField("user_id", userID).Infoln("update user access to %+v", access)
 	return nil
 }
 

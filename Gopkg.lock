@@ -8,7 +8,7 @@
     "auth",
     "common"
   ]
-  revision = "88c149b05138ce6362b2ffd66842176c6cfe4c8d"
+  revision = "3650097fee157162fc079fb87570279cbed50989"
 
 [[projects]]
   branch = "master"

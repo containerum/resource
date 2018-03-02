@@ -59,7 +59,9 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.Cr
 
 		// TODO: tariff activation
 
-		// TODO: update user access
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
@@ -95,7 +97,9 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 
 		// TODO: delete from gluster
 
-		// TODO: update auth
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
@@ -123,7 +127,10 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) error {
 
 		// TODO: delete all volumes in gluster
 
-		// TODO: update auth
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+
 		return nil
 	})
 
@@ -190,7 +197,15 @@ func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, n
 	}).Info("rename user volume")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		return tx.RenameVolume(ctx, userID, oldLabel, newLabel)
+		if renameErr := tx.RenameVolume(ctx, userID, oldLabel, newLabel); renameErr != nil {
+			return renameErr
+		}
+
+		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+			return updErr
+		}
+
+		return nil
 	})
 
 	return err
