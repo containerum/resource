@@ -11,7 +11,11 @@ import (
 
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	"git.containerum.net/ch/grpc-proto-files/common"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrygrpc"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -39,10 +43,16 @@ func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 		addr: addr,
 	}
 
+	cherrygrpc.JSONMarshal = jsoniter.ConfigFastest.Marshal
+	cherrygrpc.JSONUnmarshal = jsoniter.ConfigFastest.Unmarshal
+
 	ret.log.Debugf("grpc connect to %s", addr)
 	ret.conn, err = grpc.Dial(addr,
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(ret.log)),
+		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
+			cherrygrpc.UnaryClientInterceptor(rserrors.ErrOther()),
+			grpc_logrus.UnaryClientInterceptor(ret.log),
+		)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                5 * time.Second,
 			Timeout:             10 * time.Second,
@@ -63,7 +73,7 @@ func (as authSvcGRPC) UpdateUserAccess(ctx context.Context, userID string, acces
 			{UserId: &common.UUID{Value: userID}, Access: access},
 		},
 	})
-	return err // FIXME: use "cherry" for error
+	return err
 }
 
 func (as authSvcGRPC) String() string {
