@@ -6,20 +6,10 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/resource-service/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
-
-func determineServiceType(req kubtypes.Service) rstypes.ServiceType {
-	serviceType := rstypes.ServiceExternal
-	for _, port := range req.Ports {
-		if port.TargetPort != nil {
-			serviceType = rstypes.ServiceInternal
-			break
-		}
-	}
-	return serviceType
-}
 
 func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error {
 	userID := utils.MustGetUserID(ctx)
@@ -29,7 +19,7 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 	}).Infof("create service %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		serviceType := determineServiceType(req)
+		serviceType := server.DetermineServiceType(req)
 
 		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
@@ -94,7 +84,7 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 	}).Info("update service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		serviceType := determineServiceType(req)
+		serviceType := server.DetermineServiceType(req)
 
 		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
