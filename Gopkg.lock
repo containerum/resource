@@ -35,7 +35,7 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "98d03e4a690b3c5ddbc207020000a3c77cfc73bc"
+  revision = "1818f1cf51a719c661a6df9cb68233da2a98999a"
 
 [[projects]]
   branch = "master"
@@ -251,6 +251,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "625dcf6c5bff5885f819f2e13cef5b36d37a26c32a58758ab10355b102c7e787"
+  inputs-digest = "f6d3f9439facce717d741c8d6b328952588407c484d80ce4b2d94051de199de1"
   solver-name = "gps-cdcl"
   solver-version = 1
