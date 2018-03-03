@@ -67,7 +67,9 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 			return confErr
 		}
 
-		// TODO: create deployment in kube
+		if createErr := rs.Kube.CreateDeployment(ctx, nsLabel, deploy); createErr != nil {
+			return createErr
+		}
 
 		return nil
 	})
@@ -89,7 +91,9 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 			return delErr
 		}
 
-		// TODO: delete deployment in kube
+		if delErr = rs.Kube.DeleteDeployment(ctx, nsLabel, deplLabel); delErr != nil {
+			return delErr
+		}
 
 		if lastInNamespace {
 			// TODO: deactivate volume in gluster
@@ -114,7 +118,9 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 			return replaceErr
 		}
 
-		// TODO: replace deploy in kube
+		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsLabel, deplLabel, deploy); replaceErr != nil {
+			return replaceErr
+		}
 
 		return nil
 	})
@@ -135,7 +141,9 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 			return setErr
 		}
 
-		// TODO: set replicas in kube
+		if setErr := rs.Kube.SetDeploymentReplicas(ctx, nsLabel, deplLabel, req.Replicas); setErr != nil {
+			return setErr
+		}
 
 		return nil
 	})
@@ -156,7 +164,10 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 			return setErr
 		}
 
-		// TODO: set container image in kube
+		setErr := rs.Kube.SetContainerImage(ctx, nsLabel, deplLabel, kubtypes.Container{Name: req.ContainerName, Image: req.Image})
+		if setErr != nil {
+			return setErr
+		}
 
 		return nil
 	})
