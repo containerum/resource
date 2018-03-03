@@ -30,3 +30,7 @@
 [[constraint]]
   name = "git.containerum.net/ch/kube-client"
   branch = "develop"
+
+[[constraint]]
+  branch = "develop"
+  name = "git.containerum.net/ch/kube-api"
