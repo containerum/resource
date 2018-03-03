@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 
+	"database/sql"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
@@ -165,7 +167,7 @@ func (db *pgDB) GetAllIngresses(ctx context.Context, params rstypes.GetIngresses
 	return
 }
 
-func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (err error) {
+func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (ingressType rstypes.IngressType, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -181,7 +183,7 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 		return
 	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	query, args, _ := sqlx.Named( /* language=sql */
 		`WITH ns_services AS (
 			SELECT s.id 
 			FROM services s
@@ -189,14 +191,16 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 			WHERE d.ns_id = :ns_id
 		)
 		DELETE FROM ingresses
-		WHERE service_id IN (SELECT id FROM ns_services) AND custom_domain = :domain`,
+		WHERE service_id IN (SELECT id FROM ns_services) AND custom_domain = :domain
+		RETURNING type`,
 		map[string]interface{}{"ns_id": nsID, "domain": domain})
-	if err != nil {
+	err = sqlx.GetContext(ctx, db.extLog, &ingressType, db.extLog.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = rserrors.ErrResourceNotExists().AddDetailF("ingress for %s not exist", domain)
+	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
 	}
 
 	return

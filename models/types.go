@@ -58,7 +58,7 @@ type DB interface {
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
 	GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
-	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) error
+	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (rstypes.IngressType, error)
 
 	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
 	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
