@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error {
+func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.CreateVolumeRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -175,7 +175,7 @@ func (rs *resourceServiceImpl) GetVolumesLinkedWithUserNamespace(ctx context.Con
 }
 
 func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
-	params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error) {
+	params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error) {
 	rs.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,

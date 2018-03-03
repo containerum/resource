@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes.CreateNamespaceRequest) error {
+func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.CreateNamespaceRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -143,7 +143,7 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 }
 
 func (rs *resourceServiceImpl) GetAllNamespaces(ctx context.Context,
-	params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error) {
+	params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error) {
 	rs.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,

@@ -16,7 +16,7 @@ func createNamespaceHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.CreateNamespace(ctx.Request.Context(), &req); err != nil {
+	if err := srv.CreateNamespace(ctx.Request.Context(), req); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -55,7 +55,7 @@ func getAllNamespacesHandler(ctx *gin.Context) {
 		return
 	}
 
-	resp, err := srv.GetAllNamespaces(ctx, &params)
+	resp, err := srv.GetAllNamespaces(ctx, params)
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return

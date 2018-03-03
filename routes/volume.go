@@ -16,7 +16,7 @@ func createVolumeHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.CreateVolume(ctx.Request.Context(), &req); err != nil {
+	if err := srv.CreateVolume(ctx.Request.Context(), req); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}
@@ -73,7 +73,7 @@ func getAllVolumesHandler(ctx *gin.Context) {
 		return
 	}
 
-	vols, err := srv.GetAllVolumes(ctx.Request.Context(), &params)
+	vols, err := srv.GetAllVolumes(ctx.Request.Context(), params)
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
