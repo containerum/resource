@@ -20,13 +20,21 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
 
+	if req.Path == "" {
+		req.Path = "/"
+	}
+
+	if req.Path[0] != '/' {
+		req.Path = "/" + req.Path
+	}
+
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		service, getErr := tx.GetService(ctx, userID, nsLabel, req.Service)
 		if getErr != nil {
 			return getErr
 		}
 
-		paths, pathsErr := server.IngressPaths(service)
+		paths, pathsErr := server.IngressPaths(service, req.Path, req.ServicePort)
 		if pathsErr != nil {
 			return pathsErr
 		}

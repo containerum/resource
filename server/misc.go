@@ -68,7 +68,25 @@ func DetermineServiceType(service kubtypes.Service) rstypes.ServiceType {
 }
 
 // IngressPaths generates ingress paths by service ports
-func IngressPaths(service kubtypes.Service) ([]kubtypes.Path, error) {
-	// TODO
-	return nil, nil
+func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kubtypes.Path, error) {
+	if DetermineServiceType(service) != rstypes.ServiceExternal {
+		return nil, rserrors.ErrServiceNotExternal()
+	}
+
+	var portExist bool
+	for _, port := range service.Ports {
+		if port.Port == servicePort && port.Protocol == kubtypes.TCP {
+			portExist = true
+			break
+		}
+	}
+	if !portExist {
+		return nil, rserrors.ErrTCPPortNotFound().AddDetailF("TCP port %d not exists in service %s", servicePort, service.Name)
+	}
+
+	ret := []kubtypes.Path{
+		{Path: path, ServiceName: service.Name, ServicePort: servicePort},
+	}
+
+	return ret, nil
 }
