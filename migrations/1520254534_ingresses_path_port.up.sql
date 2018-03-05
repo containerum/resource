@@ -5,7 +5,7 @@ ALTER TABLE ingresses
 UPDATE ingresses i
 SET i.service_port = (SELECT sp.port
                     FROM service_ports sp
-                    WHERE (sp.service_id,sp.protocol) = (i.service_id, 'TCP')
+                    WHERE (sp.service_id,sp.protocol) = (i.service_id, 'TCP'::PROTOCOL)
                     UNION ALL
                     SELECT NULL
                     FETCH FIRST 1 ROW ONLY);
@@ -25,7 +25,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS(
-    SELECT 1 FROM service_ports sp WHERE (sp.service_id, sp.protocol) = (NEW.service_id, 'TCP')
+    SELECT 1 FROM service_ports sp WHERE (sp.service_id, sp.protocol) = (NEW.service_id, 'TCP'::PROTOCOL)
   ) THEN
     RAISE EXCEPTION 'TCP port % not found in service', NEW.service_port;
   END IF;
