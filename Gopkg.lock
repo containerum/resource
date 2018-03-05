@@ -22,7 +22,7 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "8a4f5e5bef0df42e5465630b42a5c4ea57aa1008"
+  revision = "40e6fcfbf351c2ee9e726312ee669afb7c5ff535"
 
 [[projects]]
   branch = "develop"
@@ -42,7 +42,7 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "b815d42b7b58b23ba375d5cc1d62bb3fe3670fdf"
+  revision = "85a8e7d8c2839f4450298153c6a15316ffc53179"
 
 [[projects]]
   branch = "master"
@@ -405,6 +405,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2e725a5e59d1699239f70469df70f70bdd798c06c2bddea57b823c83252dfebe"
+  inputs-digest = "a786550503fc06d6320eabb6fb10adf6b70e879156b3fd5144abe3562734c018"
   solver-name = "gps-cdcl"
   solver-version = 1
