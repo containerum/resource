@@ -5,6 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/resource-service/server"
@@ -39,7 +40,11 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 		ingress.Owner = userID
 		switch req.Type {
 		case rstypes.IngressHTTPS:
-			// TODO
+			ingress.Rules = append(ingress.Rules, kubtypes.Rule{
+				Host:      req.Domain,
+				TLSSecret: &req.Service, // if we pass non-existing secret "let`s encrypt" will be used.
+				Path:      paths,
+			})
 		case rstypes.IngressCustomHTTPS:
 			// TLS certificate and key stored in "secret" in kube.
 			// So before creating ingress we need to create "secret".
@@ -62,11 +67,13 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 				TLSSecret: &secret.Name,
 				Path:      paths,
 			})
-		default:
+		case rstypes.IngressHTTP:
 			ingress.Rules = append(ingress.Rules, kubtypes.Rule{
 				Host: req.Domain,
 				Path: paths,
 			})
+		default:
+			return rserrors.ErrOther().AddDetailF("invalid ingress type %s", req.TLS)
 		}
 
 		if createErr := rs.Kube.CreateIngress(ctx, nsLabel, ingress); createErr != nil {
