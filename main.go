@@ -38,7 +38,7 @@ func main() {
 	defer srv.Close()
 
 	g := gin.New()
-	g.Use(gonic.Recovery(rserrors.ErrOther, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
+	g.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 
 	routes.SetupRoutes(g, srv)

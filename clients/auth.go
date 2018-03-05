@@ -50,7 +50,7 @@ func NewAuthSvcGRPC(addr string) (as AuthSvc, err error) {
 	ret.conn, err = grpc.Dial(addr,
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
-			cherrygrpc.UnaryClientInterceptor(rserrors.ErrOther),
+			cherrygrpc.UnaryClientInterceptor(rserrors.ErrInternal),
 			grpc_logrus.UnaryClientInterceptor(ret.log),
 		)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
