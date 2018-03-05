@@ -62,12 +62,20 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 			SELECT DISTINCT id, name FROM services WHERE deploy_id IN (SELECT id FROM deployments WHERE ns_id = :ns_id)
 		)
 		INSERT INTO ingresses
-		(custom_domain, type, service_id)
+		(custom_domain, "type", service_id, "path", service_port)
 		VALUES (:custom_domain, 
 			:type,
-			(SELECT id FROM service_id_name WHERE name = :service)
+			(SELECT id FROM service_id_name WHERE name = :service),
+			:path,
+			:service_port
 		)`,
-		map[string]interface{}{"ns_id": nsID, "custom_domain": req.Domain, "type": req.Type, "service": req.Service})
+		map[string]interface{}{
+			"ns_id":         nsID,
+			"custom_domain": req.Domain,
+			"type":          req.Type,
+			"service":       req.Service,
+			"path":          req.Path,
+			"service_port":  req.ServicePort})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
