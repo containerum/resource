@@ -88,7 +88,7 @@ func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, err error) {
 	db.log.Debugf("choose random domain")
 
-	err = sqlx.SelectContext(ctx, db.extLog, &entry, /* language=sql*/
+	err = sqlx.GetContext(ctx, db.extLog, &entry, /* language=sql*/
 		`SELECT * FROM domains ORDER BY RANDOM() LIMIT 1`)
 	switch err {
 	case nil:
