@@ -1,0 +1,3 @@
+ALTER TABLE ingresses
+  DROP COLUMN IF EXISTS service_port,
+  DROP COLUMN IF EXISTS "path";
