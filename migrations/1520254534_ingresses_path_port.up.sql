@@ -14,3 +14,17 @@ DELETE FROM ingresses WHERE service_port IS NULL;
 
 ALTER TABLE ingresses
   ALTER COLUMN service_port SET NOT NULL;
+
+CREATE OR REPLACE FUNCTION check_service_port() RETURNS TRIGGER AS $check_service_port$
+BEGIN
+  IF NOT EXISTS(
+    SELECT 1 FROM service_ports sp WHERE (sp.service_id, sp.protocol) = (NEW.service_id, 'TCP')
+  ) THEN
+    RAISE EXCEPTION 'TCP port % not found in service', NEW.service_port;
+  END IF;
+  RETURN NEW;
+END;
+$check_service_port$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_service_port BEFORE INSERT OR UPDATE ON ingresses
+  FOR EACH ROW EXECUTE PROCEDURE check_service_port();
