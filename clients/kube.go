@@ -70,7 +70,7 @@ func (kub kube) CreateNamespace(ctx context.Context, ns kubtypesInternal.Namespa
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Post("/namespaces")
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -86,7 +86,7 @@ func (kub kube) DeleteNamespace(ctx context.Context, label string) error {
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Delete("/namespaces/" + url.PathEscape(label))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -107,7 +107,7 @@ func (kub kube) SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.Names
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Put("/namespaces/" + url.PathEscape(ns.Label))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -124,7 +124,7 @@ func (kub kube) CreateDeployment(ctx context.Context, nsLabel string, deploy kub
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Post(fmt.Sprintf("/namespaces/%s/deployments", nsLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -143,7 +143,7 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string)
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsLabel, deplLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -163,7 +163,7 @@ func (kub kube) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string
 		SetBody(deploy).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsLabel, deplLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -184,7 +184,7 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel st
 		SetBody(kubtypes.UpdateReplicas{Replicas: replicas}).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsLabel, deplLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -206,7 +206,7 @@ func (kub kube) SetContainerImage(ctx context.Context, nsLabel, deplLabel string
 		SetBody(container).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsLabel, deplLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -225,7 +225,7 @@ func (kub kube) CreateIngress(ctx context.Context, nsLabel string, ingress kubty
 		SetBody(ingress).
 		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -244,7 +244,7 @@ func (kub kube) DeleteIngress(ctx context.Context, nsLabel, ingressName string) 
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/ingresses", nsLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -263,7 +263,7 @@ func (kub kube) CreateSecret(ctx context.Context, nsLabel string, secret kubtype
 		SetBody(secret).
 		Post(fmt.Sprintf("/namespaces/%s/secrets", nsLabel))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)
@@ -282,7 +282,7 @@ func (kub kube) DeleteSecret(ctx context.Context, nsLabel, secretName string) er
 		SetHeaders(utils.RequestHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/secrets/%s", nsLabel, secretName))
 	if err != nil {
-		return rserrors.ErrOther().Log(err, kub.log)
+		return rserrors.ErrInternal().Log(err, kub.log)
 	}
 	if resp.Error() != nil {
 		return resp.Error().(*cherry.Err)

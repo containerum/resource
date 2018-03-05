@@ -11,7 +11,7 @@ func handleError(err error) (int, *cherry.Err) {
 		e := err.(*cherry.Err)
 		return e.StatusHTTP, e
 	default:
-		return rserrors.ErrOther().StatusHTTP, rserrors.ErrOther().AddDetailsErr(err)
+		return rserrors.ErrInternal().StatusHTTP, rserrors.ErrInternal().AddDetailsErr(err)
 	}
 }
 

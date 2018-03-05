@@ -73,7 +73,7 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 				Path: paths,
 			})
 		default:
-			return rserrors.ErrOther().AddDetailF("invalid ingress type %s", req.TLS)
+			return rserrors.ErrValidation().AddDetailF("invalid ingress type %s", req.TLS)
 		}
 
 		if createErr := rs.Kube.CreateIngress(ctx, nsLabel, ingress); createErr != nil {
