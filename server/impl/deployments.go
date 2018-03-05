@@ -4,6 +4,7 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
 	"git.containerum.net/ch/utils"
@@ -67,7 +68,10 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 			return confErr
 		}
 
-		if createErr := rs.Kube.CreateDeployment(ctx, nsLabel, deploy); createErr != nil {
+		deployCreateReq := kubtypesInternal.DeploymentWithOwner{}
+		deployCreateReq.Deployment = deploy
+		deployCreateReq.Owner = userID
+		if createErr := rs.Kube.CreateDeployment(ctx, nsLabel, deployCreateReq); createErr != nil {
 			return createErr
 		}
 
@@ -118,7 +122,10 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 			return replaceErr
 		}
 
-		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsLabel, deplLabel, deploy); replaceErr != nil {
+		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
+		deployReplaceReq.Deployment = deploy
+		deployReplaceReq.Owner = userID
+		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsLabel, deplLabel, deployReplaceReq); replaceErr != nil {
 			return replaceErr
 		}
 

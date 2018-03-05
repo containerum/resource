@@ -9,6 +9,9 @@ import (
 
 	"context"
 
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/routes"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
@@ -35,7 +38,7 @@ func main() {
 	defer srv.Close()
 
 	g := gin.New()
-	g.Use(gin.RecoveryWithWriter(logrus.WithField("component", "gin_recovery").WriterLevel(logrus.ErrorLevel)))
+	g.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 
 	routes.SetupRoutes(g, srv)

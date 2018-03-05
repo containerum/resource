@@ -9,6 +9,7 @@ import (
 
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/models"
@@ -17,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes.CreateNamespaceRequest) error {
+func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.CreateNamespaceRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	rs.log.WithFields(logrus.Fields{
@@ -50,15 +51,19 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 			return createErr
 		}
 
-		if createErr := rs.Kube.CreateNamespace(ctx, kubtypes.Namespace{
-			Label: newNamespace.ID, // it will be name actually
-			Resources: kubtypes.Resources{
-				Hard: kubtypes.Resource{
-					CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
-					Memory: fmt.Sprintf("%dm", newNamespace.RAM),
+		nsCreateRequest := kubtypesInternal.NamespaceWithOwner{
+			Namespace: kubtypes.Namespace{
+				Label: newNamespace.ID, // it will be name actually
+				Resources: kubtypes.Resources{
+					Hard: kubtypes.Resource{
+						CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
+						Memory: fmt.Sprintf("%dm", newNamespace.RAM),
+					},
 				},
 			},
-		}); createErr != nil {
+			Owner: userID,
+		}
+		if createErr := rs.Kube.CreateNamespace(ctx, nsCreateRequest); createErr != nil {
 			return createErr
 		}
 
@@ -78,7 +83,7 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req *rstypes
 			newVolume.NamespaceID.Valid = true
 			newVolume.NamespaceID.String = newNamespace.ID
 
-			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabelFromNamespaceLabel(req.Label), &newVolume); createErr != nil {
+			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(req.Label), &newVolume); createErr != nil {
 				return createErr
 			}
 
@@ -138,7 +143,7 @@ func (rs *resourceServiceImpl) GetUserNamespace(ctx context.Context, label strin
 }
 
 func (rs *resourceServiceImpl) GetAllNamespaces(ctx context.Context,
-	params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error) {
+	params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error) {
 	rs.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
@@ -291,21 +296,24 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			return updErr
 		}
 
-		if updErr := rs.Kube.SetNamespaceQuota(ctx, kubtypes.Namespace{
-			Label: label,
-			Resources: kubtypes.Resources{
-				Hard: kubtypes.Resource{
-					CPU:    fmt.Sprintf("%dm", ns.CPU),
-					Memory: fmt.Sprintf("%dm", ns.RAM),
+		nsResizeReq := kubtypesInternal.NamespaceWithOwner{
+			Namespace: kubtypes.Namespace{
+				Label: label,
+				Resources: kubtypes.Resources{
+					Hard: kubtypes.Resource{
+						CPU:    fmt.Sprintf("%dm", ns.CPU),
+						Memory: fmt.Sprintf("%dm", ns.RAM),
+					},
 				},
 			},
-		}); updErr != nil {
+		}
+		if updErr := rs.Kube.SetNamespaceQuota(ctx, nsResizeReq); updErr != nil {
 			return updErr
 		}
 
 		// if namespace has connected volume and new tariff don`t have volumes, remove it
 		if oldTariff.VolumeSize > 0 && newTariff.VolumeSize <= 0 {
-			unlinkedVol, unlinkErr := tx.DeleteUserVolumeByLabel(ctx, userID, server.VolumeLabelFromNamespaceLabel(ns.ResourceLabel))
+			unlinkedVol, unlinkErr := tx.DeleteUserVolumeByLabel(ctx, userID, server.VolumeLabel(ns.ResourceLabel))
 			if unlinkErr != nil {
 				return unlinkErr
 			}
@@ -330,7 +338,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			newVolume.NamespaceID.Valid = true
 			newVolume.NamespaceID.String = ns.ID
 
-			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabelFromNamespaceLabel(ns.ResourceLabel), &newVolume); createErr != nil {
+			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(ns.ResourceLabel), &newVolume); createErr != nil {
 				return createErr
 			}
 

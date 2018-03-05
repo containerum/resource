@@ -23,20 +23,20 @@ type ResourceServiceClients struct {
 
 // ResourceService is an interface for resource-service operations.
 type ResourceService interface {
-	CreateNamespace(ctx context.Context, req *rstypes.CreateNamespaceRequest) (err error)
+	CreateNamespace(ctx context.Context, req rstypes.CreateNamespaceRequest) (err error)
 	GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error)
 	GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error)
-	GetAllNamespaces(ctx context.Context, params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
+	GetAllNamespaces(ctx context.Context, params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
 	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
 	DeleteUserNamespace(ctx context.Context, label string) error
 	DeleteAllUserNamespaces(ctx context.Context) error
 	RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error
 	ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error
 
-	CreateVolume(ctx context.Context, req *rstypes.CreateVolumeRequest) error
+	CreateVolume(ctx context.Context, req rstypes.CreateVolumeRequest) error
 	GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error)
 	GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error)
-	GetAllVolumes(ctx context.Context, params *rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error)
+	GetAllVolumes(ctx context.Context, params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error)
 	GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error)
 	GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error)
 	DeleteUserVolume(ctx context.Context, label string) error
