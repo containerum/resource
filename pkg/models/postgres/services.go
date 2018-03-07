@@ -106,8 +106,8 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		(kind, resource_id, resource_label, owner_user_id, user_id)
 		VALUES (
 			(CASE :service_type
-				WHEN 'external' THEN 'extservice'::RESOURCE_KIND
-				WHEN 'internal' THEN 'intservice'::RESOURCE_KIND
+				WHEN 'external' THEN CAST('extservice' AS RESOURCE_KIND)
+				WHEN 'internal' THEN CAST('intservice' AS RESOURCE_KIND)
 			END),
 			:service_id,
 			:service_name,
