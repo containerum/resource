@@ -89,7 +89,6 @@ func (db *pgDB) ChooseAvailableStorage(ctx context.Context, minFree int) (storag
 		`SELECT * 
 		FROM storages
 		WHERE size - used >= :min_free AND name != 'DUMMY'
-		ORDER BY RANDOM()
 		LIMIT 1`,
 		map[string]interface{}{"min_free": minFree})
 	err = sqlx.GetContext(ctx, db.extLog, &storage, db.extLog.Rebind(query), args...)
