@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/textproto"
 
+	"strings"
+
 	umtypes "git.containerum.net/ch/json-types/user-manager"
 	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
@@ -45,10 +47,11 @@ var hdrToKey = map[string]interface{}{
 	textproto.CanonicalMIMEHeaderKey(umtypes.TokenIDHeader):     TokenIDContextKey,
 	textproto.CanonicalMIMEHeaderKey(umtypes.ClientIPHeader):    ClientIPContextKey,
 	textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader):    UserRoleContextKey,
+	textproto.CanonicalMIMEHeaderKey(umtypes.PartTokenIDHeader): PartTokenIDContextKey,
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
-func RequireHeaders(errToReturn *cherry.Err, headers ...string) gin.HandlerFunc {
+func RequireHeaders(errToReturn func() *cherry.Err, headers ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var notFoundHeaders []string
 		for _, v := range headers {
@@ -57,11 +60,11 @@ func RequireHeaders(errToReturn *cherry.Err, headers ...string) gin.HandlerFunc 
 			}
 		}
 		if len(notFoundHeaders) > 0 {
-			err := *errToReturn
+			err := errToReturn()
 			for _, notFoundHeader := range notFoundHeaders {
 				err.AddDetailF("required header %s was not provided", notFoundHeader)
 			}
-			gonic.Gonic(&err, ctx)
+			gonic.Gonic(err, ctx)
 		}
 	}
 }
@@ -74,15 +77,22 @@ func PrepareContext(ctx *gin.Context) {
 			ctx.Request = ctx.Request.WithContext(rctx)
 		}
 	}
+
+	acceptLanguages := ctx.GetHeader("Accept-Language")
+	acceptLanguagesToContext := make([]string, 0)
+	for _, language := range strings.Split(acceptLanguages, ",") {
+		language = strings.Split(strings.TrimSpace(language), ";")[0] // drop quality values
+		acceptLanguagesToContext = append(acceptLanguagesToContext, language)
+	}
+	ctx.Request = ctx.Request.WithContext(context.WithValue(ctx.Request.Context(), AcceptLanguageContextKey, acceptLanguagesToContext))
 }
 
 // RequireAdminRole is a gin middleware which requires admin role
-func RequireAdminRole(errToReturn *cherry.Err) gin.HandlerFunc {
+func RequireAdminRole(errToReturn func() *cherry.Err) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader)) != "admin" {
-			err := *errToReturn
-			err = *err.AddDetails("only admin can do this")
-			gonic.Gonic(&err, ctx)
+			err := errToReturn().AddDetails("only admin can do this")
+			gonic.Gonic(err, ctx)
 		}
 	}
 }

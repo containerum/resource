@@ -34,3 +34,15 @@
 [[constraint]]
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
+
+[[constraint]]
+  name = "gopkg.in/go-playground/validator.v9"
+  version = "9.12.0"
+
+[[constraint]]
+  name = "github.com/go-playground/locales"
+  version = "0.11.2"
+
+[[constraint]]
+  branch = "master"
+  name = "git.containerum.net/ch/json-types"

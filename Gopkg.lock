@@ -15,14 +15,13 @@
   name = "git.containerum.net/ch/json-types"
   packages = [
     "billing",
-    "errors",
     "kube-api",
     "mail-templater",
     "misc",
     "resource-service",
     "user-manager"
   ]
-  revision = "40e6fcfbf351c2ee9e726312ee669afb7c5ff535"
+  revision = "2b621ab0cce986eb838a27367d3af426cd012f51"
 
 [[projects]]
   branch = "develop"
@@ -42,13 +41,13 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "85a8e7d8c2839f4450298153c6a15316ffc53179"
+  revision = "f691d505c0a0c012453678a7e63c8d7d1d6c5bb1"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "50928578c7c5919b1213f5b5f9aedf397821a517"
+  revision = "8f285de51d8b4801a4b94b7312cb60965aeb4efb"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -116,6 +115,23 @@
   name = "github.com/go-openapi/swag"
   packages = ["."]
   revision = "ceb469cb0fdf2d792f28d771bc05da6c606f55e5"
+
+[[projects]]
+  name = "github.com/go-playground/locales"
+  packages = [
+    ".",
+    "currency",
+    "en",
+    "en_US"
+  ]
+  revision = "e4cbcb5d0652150d40ad0646651076b6bd2be4f6"
+  version = "v0.11.2"
+
+[[projects]]
+  name = "github.com/go-playground/universal-translator"
+  packages = ["."]
+  revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
+  version = "v0.16.0"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -339,6 +355,15 @@
   version = "v8.18.2"
 
 [[projects]]
+  name = "gopkg.in/go-playground/validator.v9"
+  packages = [
+    ".",
+    "translations/en"
+  ]
+  revision = "1b8c8e19cd250435025214492d9a08411d760fdd"
+  version = "v9.12.0"
+
+[[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
   revision = "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4"
@@ -405,6 +430,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a786550503fc06d6320eabb6fb10adf6b70e879156b3fd5144abe3562734c018"
+  inputs-digest = "2332413252d787f5c7e01df528aa3392845e33b6bc710f4d0492f81bb6c76e2c"
   solver-name = "gps-cdcl"
   solver-version = 1
