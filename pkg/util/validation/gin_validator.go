@@ -2,14 +2,12 @@ package validation
 
 import (
 	"reflect"
-	"sync"
 
 	"github.com/gin-gonic/gin/binding"
 	"gopkg.in/go-playground/validator.v9"
 )
 
 type GinValidatorV9 struct {
-	once     sync.Once
 	Validate *validator.Validate
 }
 
