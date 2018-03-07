@@ -6,8 +6,10 @@ import (
 	umtypes "git.containerum.net/ch/json-types/user-manager"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/universal-translator"
 )
 
@@ -16,14 +18,17 @@ var srv server.ResourceService
 var translator *ut.UniversalTranslator
 
 // SetupRoutes sets up a router
-func SetupRoutes(app *gin.Engine, server server.ResourceService, t *ut.UniversalTranslator) {
+func SetupRoutes(app *gin.Engine, server server.ResourceService, t *ut.UniversalTranslator, validator *validation.GinValidatorV9) {
 	srv = server
 
 	translator = t
 
+	binding.Validator = validator
+
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
 	app.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	app.Use(validateHeaders(validator.Validate, map[string]string{umtypes.UserIDHeader: "uuid", umtypes.UserRoleHeader: "eq=admin|eq=user"}))
 	app.Use(utils.SubstituteUserMiddleware)
 
 	ns := app.Group("/namespace")
