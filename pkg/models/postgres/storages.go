@@ -13,13 +13,12 @@ import (
 func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
 	db.log.Debugf("creating storage %#v", req)
 
-	query, args, _ := sqlx.Named( /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`INSERT INTO storages
 		(name, size, replicas, ips)
 		VALUES (:name, :size, :replicas, :ips)
 		RETURNING *`,
 		rstypes.Storage{Name: req.Name, Size: req.Size, Replicas: req.Replicas, IPs: req.IPs})
-	err = sqlx.GetContext(ctx, db.extLog, req, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
