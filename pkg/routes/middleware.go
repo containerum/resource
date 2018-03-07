@@ -7,6 +7,7 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -35,7 +36,7 @@ func badRequest(ctx *gin.Context, err error) (int, *cherry.Err) {
 	return rserrors.ErrValidation().StatusHTTP, rserrors.ErrValidation().AddDetailsErr(err)
 }
 
-func validateHeaders(validate *validator.Validate, headerTagMap map[string]string) gin.HandlerFunc {
+func validateHeaders(validate *validator.Validate, tr *ut.UniversalTranslator, headerTagMap map[string]string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		headerErr := make(map[string]validator.ValidationErrors)
 		for header, tag := range headerTagMap {
@@ -51,7 +52,7 @@ func validateHeaders(validate *validator.Validate, headerTagMap map[string]strin
 					if fieldErr == nil {
 						continue
 					}
-					t, _ := translator.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
+					t, _ := tr.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
 					ret.AddDetailF("Header %s: %s", header, fieldErr.Translate(t))
 				}
 			}

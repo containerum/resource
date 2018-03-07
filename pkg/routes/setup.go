@@ -28,7 +28,10 @@ func SetupRoutes(app *gin.Engine, server server.ResourceService, t *ut.Universal
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
 	app.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
-	app.Use(validateHeaders(validator.Validate, map[string]string{umtypes.UserIDHeader: "uuid", umtypes.UserRoleHeader: "eq=admin|eq=user"}))
+	app.Use(validateHeaders(validator.Validate, translator, map[string]string{
+		umtypes.UserIDHeader:   "uuid",
+		umtypes.UserRoleHeader: "eq=admin|eq=user",
+	}))
 	app.Use(utils.SubstituteUserMiddleware)
 
 	ns := app.Group("/namespace")
