@@ -202,8 +202,8 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 			(p.limited OR NOT :limited) AND
 			(NOT p.limited OR NOT :not_limited) AND
 			(p.owner_user_id = p.user_id OR NOT :owned) AND
-			(v.ns_id = NULL OR NOT :persistent) AND
-			(v.ns_id != NULL OR NOT :not_persistent)
+			(v.ns_id IS NULL OR NOT :persistent) AND
+			(v.ns_id IS NOT NULL OR NOT :not_persistent)
 		ORDER BY v.create_time DESC`,
 		params)
 
@@ -256,8 +256,8 @@ func (db *pgDB) GetAllVolumes(ctx context.Context,
 				(p.limited OR NOT :limited) AND
 				(NOT p.limited OR NOT :not_limited) AND
 				(p.owner_user_id = p.user_id OR NOT :owned) AND
-				(v.ns_id = NULL OR NOT :persistent) AND
-				(v.ns_id != NULL OR NOT :not_persistent)
+				(v.ns_id IS NULL OR NOT :persistent) AND
+				(v.ns_id IS NOT NULL OR NOT :not_persistent)
 			ORDER BY v.create_time DESC
 			LIMIT :limit
 			OFFSET :offset`,
