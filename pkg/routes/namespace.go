@@ -12,7 +12,7 @@ import (
 func createNamespaceHandler(ctx *gin.Context) {
 	var req rstypes.CreateNamespaceRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -51,7 +51,7 @@ func getUserNamespaceHandler(ctx *gin.Context) {
 func getAllNamespacesHandler(ctx *gin.Context) {
 	var params rstypes.GetAllResourcesQueryParams
 	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -85,7 +85,7 @@ func deleteAllUserNamespacesHandler(ctx *gin.Context) {
 func renameUserNamespaceHandler(ctx *gin.Context) {
 	var req rstypes.RenameNamespaceRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -100,7 +100,7 @@ func renameUserNamespaceHandler(ctx *gin.Context) {
 func resizeUserNamespaceHandler(ctx *gin.Context) {
 	var req rstypes.ResizeNamespaceRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 

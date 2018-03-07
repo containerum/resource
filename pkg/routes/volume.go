@@ -12,7 +12,7 @@ import (
 func createVolumeHandler(ctx *gin.Context) {
 	var req rstypes.CreateVolumeRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -69,7 +69,7 @@ func getUserVolumeHandler(ctx *gin.Context) {
 func getAllVolumesHandler(ctx *gin.Context) {
 	var params rstypes.GetAllResourcesQueryParams
 	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -85,7 +85,7 @@ func getAllVolumesHandler(ctx *gin.Context) {
 func renameUserVolumeHandler(ctx *gin.Context) {
 	var req rstypes.RenameVolumeRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 	if err := srv.RenameUserVolume(ctx.Request.Context(), ctx.Param("vol_label"), req.NewLabel); err != nil {
@@ -99,7 +99,7 @@ func renameUserVolumeHandler(ctx *gin.Context) {
 func resizeUserVolumeHandler(ctx *gin.Context) {
 	var req rstypes.ResizeVolumeRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 	}
 	if err := srv.ResizeUserVolume(ctx.Request.Context(), ctx.Param("vol_label"), req.NewTariffID); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))

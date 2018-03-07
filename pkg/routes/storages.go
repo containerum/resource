@@ -12,7 +12,7 @@ import (
 func createStorageHandler(ctx *gin.Context) {
 	var req rstypes.CreateStorageRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -37,7 +37,7 @@ func getStoragesHandler(ctx *gin.Context) {
 func updateStorageHandler(ctx *gin.Context) {
 	var req rstypes.UpdateStorageRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 

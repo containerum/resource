@@ -23,7 +23,7 @@ func getUserResourceAccessesHandler(ctx *gin.Context) {
 func setUserResourceAccessesHandler(ctx *gin.Context) {
 	var req rstypes.SetResourcesAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -38,7 +38,7 @@ func setUserResourceAccessesHandler(ctx *gin.Context) {
 func setUserNamespaceAccessHandler(ctx *gin.Context) {
 	var req rstypes.SetNamespaceAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -53,7 +53,7 @@ func setUserNamespaceAccessHandler(ctx *gin.Context) {
 func setUserVolumeAccessHandler(ctx *gin.Context) {
 	var req rstypes.SetVolumeAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 	if err := srv.SetUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), &req); err != nil {

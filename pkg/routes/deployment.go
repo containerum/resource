@@ -13,7 +13,7 @@ func createDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
 
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -57,7 +57,7 @@ func deleteDeploymentByLabelHandler(ctx *gin.Context) {
 func setContainerImageHandler(ctx *gin.Context) {
 	var req rstypes.SetContainerImageRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -73,7 +73,7 @@ func setContainerImageHandler(ctx *gin.Context) {
 func replaceDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -89,7 +89,7 @@ func replaceDeploymentHandler(ctx *gin.Context) {
 func setReplicasHandler(ctx *gin.Context) {
 	var req rstypes.SetReplicasRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 	err := srv.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)

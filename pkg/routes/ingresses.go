@@ -4,28 +4,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 
-	"reflect"
-
 	"net/http"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"gopkg.in/go-playground/validator.v8"
 )
-
-func createIngressRequestValidate(v *validator.Validate, structLevel *validator.StructLevel) {
-	req := structLevel.CurrentStruct.Interface().(rstypes.CreateIngressRequest)
-
-	if req.Type == rstypes.IngressCustomHTTPS {
-		if req.TLS == nil {
-			structLevel.ReportError(reflect.ValueOf(req.TLS), "TLS", "tls", "exists")
-		}
-	}
-}
 
 func createIngressHandler(ctx *gin.Context) {
 	var req rstypes.CreateIngressRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -40,7 +27,7 @@ func createIngressHandler(ctx *gin.Context) {
 func getUserIngressesHandler(ctx *gin.Context) {
 	var params rstypes.GetIngressesQueryParams
 	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -57,7 +44,7 @@ func getAllIngressesHandler(ctx *gin.Context) {
 	var params rstypes.GetIngressesQueryParams
 
 	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 

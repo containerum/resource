@@ -9,8 +9,8 @@ import (
 	"net/http"
 
 	btypes "git.containerum.net/ch/json-types/billing"
-	"git.containerum.net/ch/json-types/errors"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 )
 
 // Billing is an interface to billing service
@@ -108,6 +108,16 @@ func init() {
 	}
 }
 
+var buildErr = cherry.BuildErr(cherry.Billing) // FIXME: add package "billing" to "cherry"
+
+func nsTariffNotFound() *cherry.Err {
+	return buildErr("namespace tariff not found", http.StatusNotFound, 1)
+}
+
+func volTarifNotFound() *cherry.Err {
+	return buildErr("volume tariff not found", http.StatusNotFound, 2)
+}
+
 // NewDummyBilling creates a dummy billing service client. It does nothing but logs actions.
 func NewDummyBillingClient() Billing {
 	return dummyBillingClient{
@@ -140,7 +150,7 @@ func (b dummyBillingClient) GetNamespaceTariff(ctx context.Context, tariffID str
 			return nsTariff, nil
 		}
 	}
-	return btypes.NamespaceTariff{}, errors.NewWithCode("no such namespace tariff", http.StatusNotFound)
+	return btypes.NamespaceTariff{}, nsTariffNotFound()
 }
 
 func (b dummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error) {
@@ -150,7 +160,7 @@ func (b dummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string
 			return volumeTariff, nil
 		}
 	}
-	return btypes.VolumeTariff{}, errors.NewWithCode("no such volume tariff", http.StatusNotFound)
+	return btypes.VolumeTariff{}, volTarifNotFound()
 }
 
 func (b dummyBillingClient) String() string {

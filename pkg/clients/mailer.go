@@ -9,7 +9,7 @@ import (
 
 	"context"
 
-	"git.containerum.net/ch/json-types/errors"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/utils"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
@@ -37,7 +37,7 @@ func NewMailerHTTP(u *url.URL) Mailer {
 		SetHostURL(u.String()).
 		SetLogger(log.WriterLevel(logrus.DebugLevel)).
 		SetDebug(true).
-		SetError(errors.Error{})
+		SetError(cherry.Err{})
 	client.JSONMarshal = jsoniter.Marshal
 	client.JSONUnmarshal = jsoniter.Unmarshal
 	return mailerHTTP{
@@ -64,7 +64,7 @@ func (ml mailerHTTP) sendRequest(ctx context.Context, eventName string, userID s
 		return err
 	}
 	if resp.Error() != nil {
-		return resp.Error().(*errors.Error)
+		return resp.Error().(*cherry.Err)
 	}
 	result := resp.Result().(*mttypes.SimpleSendResponse)
 	ml.log.WithField("user_id", result.UserID).Infoln("sent mail")

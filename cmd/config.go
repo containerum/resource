@@ -16,6 +16,9 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/en_US"
+	"github.com/go-playground/universal-translator"
 	"github.com/sirupsen/logrus"
 )
 
@@ -184,4 +187,8 @@ func getListenAddr() (la string, err error) {
 		return "", errors.New("environment LISTEN_ADDR is not specified")
 	}
 	return la, nil
+}
+
+func setupTranslator() *ut.UniversalTranslator {
+	return ut.New(en.New(), en.New(), en_US.New())
 }

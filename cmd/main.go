@@ -13,8 +13,10 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/routes"
+	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,11 +39,15 @@ func main() {
 	exitOnError(err)
 	defer srv.Close()
 
+	translate := setupTranslator()
+	validate := validation.StandardResourceValidator(translate)
+	binding.Validator = &validation.GinValidatorV9{Validate: validate}
+
 	g := gin.New()
 	g.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 
-	routes.SetupRoutes(g, srv)
+	routes.SetupRoutes(g, srv, translate)
 
 	// for graceful shutdown
 	httpsrv := &http.Server{

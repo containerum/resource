@@ -11,7 +11,7 @@ import (
 func addDomainHandler(ctx *gin.Context) {
 	var req rstypes.AddDomainRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -26,7 +26,7 @@ func addDomainHandler(ctx *gin.Context) {
 func getAllDomainsHandler(ctx *gin.Context) {
 	var params rstypes.GetAllDomainsQueryParams
 	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 

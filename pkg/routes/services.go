@@ -11,7 +11,7 @@ import (
 func createServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
@@ -47,7 +47,7 @@ func getServiceHandler(ctx *gin.Context) {
 func updateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(err))
+		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
 	}
 
