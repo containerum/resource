@@ -9,7 +9,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	umtypes "git.containerum.net/ch/json-types/user-manager"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
-	"git.containerum.net/ch/resource-service/server"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

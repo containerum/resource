@@ -1,7 +1,7 @@
 FROM golang:1.9-alpine as builder
 WORKDIR /go/src/git.containerum.net/ch/resource-service
 COPY . .
-RUN go build -v -ldflags="-w -s" -tags "jsoniter" -o /bin/resource-service
+RUN go build -v -ldflags="-w -s" -tags "jsoniter" -o /bin/resource-service ./cmd
 
 FROM alpine:3.7
 RUN mkdir -p /app

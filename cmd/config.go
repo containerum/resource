@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"git.containerum.net/ch/resource-service/clients"
-	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/models/postgres"
-	"git.containerum.net/ch/resource-service/server"
-	"git.containerum.net/ch/resource-service/server/impl"
+	"git.containerum.net/ch/resource-service/pkg/clients"
+	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/models/postgres"
+	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )

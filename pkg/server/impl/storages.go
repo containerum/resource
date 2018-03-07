@@ -4,7 +4,7 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/resource-service/pkg/models"
 )
 
 func (rs *resourceServiceImpl) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error {

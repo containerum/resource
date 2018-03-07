@@ -5,8 +5,8 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
-	"git.containerum.net/ch/resource-service/models"
-	"git.containerum.net/ch/resource-service/server"
+	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )

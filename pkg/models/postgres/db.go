@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	chutils "git.containerum.net/ch/utils"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // postgresql database driver

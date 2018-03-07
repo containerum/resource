@@ -7,8 +7,8 @@ import (
 	"git.containerum.net/ch/grpc-proto-files/auth"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
-	"git.containerum.net/ch/resource-service/clients"
-	"git.containerum.net/ch/resource-service/models"
+	"git.containerum.net/ch/resource-service/pkg/clients"
+	"git.containerum.net/ch/resource-service/pkg/models"
 )
 
 // ResourceServiceClients is a structure with all client interfaces needed for resource-service functioning
