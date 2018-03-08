@@ -44,7 +44,7 @@
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "8f285de51d8b4801a4b94b7312cb60965aeb4efb"
+  revision = "03f4dbb2ddecbdeccc5b67c4b510551a6e57afd4"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
