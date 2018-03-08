@@ -169,6 +169,10 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, serviceMap map[string]kubtypes.Service) (err error) {
 	db.log.Debugf("get services ports %#v", serviceIDs)
 
+	if len(serviceIDs) == 0 {
+		return nil
+	}
+
 	dbEntries := make([]rstypes.Port, 0)
 	query, args, _ := sqlx.In( /* language=sql */
 		`SELECT
