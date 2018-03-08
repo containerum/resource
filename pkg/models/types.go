@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"git.containerum.net/ch/grpc-proto-files/auth"
+	"git.containerum.net/ch/auth/proto"
 	"git.containerum.net/ch/json-types/kube-api"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
@@ -36,7 +36,7 @@ type DB interface {
 	SetVolumeActiveByID(ctx context.Context, id string, active bool) error
 	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
 
-	GetUserResourceAccesses(ctx context.Context, userID string) (*auth.ResourcesAccess, error)
+	GetUserResourceAccesses(ctx context.Context, userID string) (*authProto.ResourcesAccess, error)
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
 	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) error
 	DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) error
