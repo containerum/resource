@@ -3,7 +3,7 @@ package impl
 import (
 	"context"
 
-	"git.containerum.net/ch/grpc-proto-files/auth"
+	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -139,7 +139,7 @@ func (rs *resourceServiceImpl) GetUserVolumeAccesses(ctx context.Context, label 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error) {
+func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*authProto.ResourcesAccess, error) {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("get all user accesses")
 

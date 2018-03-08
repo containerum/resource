@@ -2,13 +2,10 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "git.containerum.net/ch/grpc-proto-files"
-  packages = [
-    "auth",
-    "common"
-  ]
-  revision = "3650097fee157162fc079fb87570279cbed50989"
+  branch = "develop"
+  name = "git.containerum.net/ch/auth"
+  packages = ["proto"]
+  revision = "4a36a5753ee88a793618f8005e50b15e8cef2bd2"
 
 [[projects]]
   branch = "master"
@@ -21,7 +18,7 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "2b621ab0cce986eb838a27367d3af426cd012f51"
+  revision = "a04c4cdc08cfb6c0c66bcce5f305afc3e98f1cd9"
 
 [[projects]]
   branch = "develop"
@@ -41,7 +38,7 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "f691d505c0a0c012453678a7e63c8d7d1d6c5bb1"
+  revision = "0edd8da5f8d8d92529bf2ffae796710829134a1a"
 
 [[projects]]
   branch = "master"
@@ -430,6 +427,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2332413252d787f5c7e01df528aa3392845e33b6bc710f4d0492f81bb6c76e2c"
+  inputs-digest = "08790fec14a7e0af6bba264f9ecf82f913387543d14569badb767a1a93c5c72c"
   solver-name = "gps-cdcl"
   solver-version = 1

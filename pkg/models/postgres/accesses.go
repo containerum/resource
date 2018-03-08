@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	"git.containerum.net/ch/grpc-proto-files/auth"
+	"git.containerum.net/ch/auth/proto"
 	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
@@ -11,26 +11,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *auth.ResourcesAccess, err error) {
+func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *authProto.ResourcesAccess, err error) {
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
 	accessObjects := make([]struct {
 		Kind rstypes.Kind `db:"kind"`
-		*auth.AccessObject
+		*authProto.AccessObject
 	}, 0)
 
 	err = sqlx.SelectContext(ctx, db.extLog, &accessObjects, /* language=sql */
 		`SELECT kind, resource_label AS label, resource_id AS id, new_access_level AS access
 		FROM permissions
-		WHERE owner_user_id = user_id AND user_id = $1 AND kind in ('namespace', 'volume')`, userID)
+		WHERE owner_user_id = user_id AND user_id = $1 AND kind IN ('namespace', 'volume')`, userID)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
-	ret = &auth.ResourcesAccess{
-		Volume:    make([]*auth.AccessObject, 0),
-		Namespace: make([]*auth.AccessObject, 0),
+	ret = &authProto.ResourcesAccess{
+		Volume:    make([]*authProto.AccessObject, 0),
+		Namespace: make([]*authProto.AccessObject, 0),
 	}
 	for _, obj := range accessObjects {
 		switch obj.Kind {

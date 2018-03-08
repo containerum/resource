@@ -47,3 +47,6 @@ func ErrServiceNotExternal() *cherry.Err {
 func ErrTCPPortNotFound() *cherry.Err {
 	return resourceErr("TCP Port was not found in service", http.StatusNotFound, 13)
 }
+func ErrInsufficientStorage() *cherry.Err {
+	return resourceErr("Can`t allocate resources for volume", http.StatusInsufficientStorage, 14)
+}

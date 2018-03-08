@@ -22,6 +22,11 @@ func (db *pgDB) getContainersVolumes(ctx context.Context,
 	db.log.Debugf("get containers volumes %v", containerIDs)
 
 	volMap = make(map[string][]volumeMountWithName)
+
+	if len(containerIDs) == 0 {
+		return volMap, nil
+	}
+
 	vols := make([]volumeMountWithName, 0)
 	query, args, _ := sqlx.In( /* language=sql */
 		`SELECT p.resource_label, vm.* 
@@ -52,6 +57,11 @@ func (db *pgDB) getContainersEnvironments(ctx context.Context,
 	db.log.Debugf("get containers envs %v", containerIDs)
 
 	envMap = make(map[string][]rstypes.EnvironmentVariable)
+
+	if len(containerIDs) == 0 {
+		return envMap, nil
+	}
+
 	envs := make([]rstypes.EnvironmentVariable, 0)
 	query, args, _ := sqlx.In( /* language=sql */ `SELECT * FROM env_vars WHERE container_id IN (?)`, containerIDs)
 	err = sqlx.SelectContext(ctx, db.extLog, &envs, db.extLog.Rebind(query), args...)
@@ -78,6 +88,10 @@ func (db *pgDB) getDeploymentsContainers(ctx context.Context,
 
 	contIDs = make([]string, 0)
 	contMap = make(map[string][]rstypes.Container)
+
+	if len(deplIDs) == 0 {
+		return contIDs, contMap, nil
+	}
 
 	conts := make([]rstypes.Container, 0)
 	query, args, _ := sqlx.In( /* language=sql */ `SELECT * FROM containers WHERE depl_id IN (?)`, deplIDs)
