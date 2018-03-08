@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"git.containerum.net/ch/grpc-proto-files/auth"
+	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/clients"
@@ -44,7 +44,7 @@ type ResourceService interface {
 	RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error
 	ResizeUserVolume(ctx context.Context, label string, newTariffID string) error
 
-	GetUserAccesses(ctx context.Context) (*auth.ResourcesAccess, error)
+	GetUserAccesses(ctx context.Context) (*authProto.ResourcesAccess, error)
 	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
 	SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error

@@ -89,11 +89,14 @@ func (db *pgDB) ChooseAvailableStorage(ctx context.Context, minFree int) (storag
 		`SELECT * 
 		FROM storages
 		WHERE size - used >= :min_free AND name != 'DUMMY'
-		ORDER BY RANDOM()
 		LIMIT 1`,
 		map[string]interface{}{"min_free": minFree})
 	err = sqlx.GetContext(ctx, db.extLog, &storage, db.extLog.Rebind(query), args...)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = rserrors.ErrInsufficientStorage().AddDetailF("can`t find storage to host % Gb volume", minFree)
+	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
