@@ -45,6 +45,9 @@ func (db *pgDB) addVolumesToNamespaces(ctx context.Context,
 		rstypes.VolumeWithPermission
 		NsID string `db:"ns_id"`
 	}
+	if len(nsIDs) == 0 {
+		return nil
+	}
 	volsWithNsID := make([]volWithNsID, 0)
 	query, args, _ := sqlx.In( /* language=sql */
 		`SELECT v.*, 

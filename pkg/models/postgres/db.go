@@ -173,32 +173,35 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 	ret.IntServices = volservs.IntServices
 
 	var deplIDs []string
-	query, args, _ = sqlx.In( /* language=sql */ `SELECT id FROM deployments WHERE ns_id IN (?)`, nsIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, &deplIDs, db.extLog.Rebind(query), args...)
-	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
+	if len(nsIDs) > 0 {
+		query, args, _ = sqlx.In( /* language=sql */ `SELECT id FROM deployments WHERE ns_id IN (?)`, nsIDs)
+		err = sqlx.SelectContext(ctx, db.extLog, &deplIDs, db.extLog.Rebind(query), args...)
+		if err != nil {
+			err = rserrors.ErrDatabase().Log(err, db.log)
+			return
+		}
 	}
 
 	ret.Deployments = len(deplIDs)
 
-	query, args, _ = sqlx.In( /* language=sql */
-		`SELECT count(*) 
+	if len(deplIDs) > 0 {
+		query, args, _ = sqlx.In( /* language=sql */
+			`SELECT count(*) 
 		FROM ingresses i
 		JOIN services s ON i.service_id = s.id
 		WHERE s.deploy_id IN (?)`,
-		deplIDs)
-	err = sqlx.GetContext(ctx, db.extLog, &ret.Ingresses, db.extLog.Rebind(query), args...)
-	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
+			deplIDs)
+		err = sqlx.GetContext(ctx, db.extLog, &ret.Ingresses, db.extLog.Rebind(query), args...)
+		if err != nil {
+			err = rserrors.ErrDatabase().Log(err, db.log)
+			return
+		}
 
-	query, args, _ = sqlx.In( /* language=sql */ `SELECT count(*) FROM containers WHERE depl_id IN (?)`, deplIDs)
-	err = sqlx.GetContext(ctx, db.extLog, &ret.Containers, db.extLog.Rebind(query), args...)
-	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
+		query, args, _ = sqlx.In( /* language=sql */ `SELECT count(*) FROM containers WHERE depl_id IN (?)`, deplIDs)
+		err = sqlx.GetContext(ctx, db.extLog, &ret.Containers, db.extLog.Rebind(query), args...)
+		if err != nil {
+			err = rserrors.ErrDatabase().Log(err, db.log)
+		}
 	}
-
 	return
 }
