@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/universal-translator"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 var srv server.ResourceService
@@ -18,21 +19,21 @@ var srv server.ResourceService
 var translator *ut.UniversalTranslator
 
 // SetupRoutes sets up a router
-func SetupRoutes(app *gin.Engine, server server.ResourceService, t *ut.UniversalTranslator, validator *validation.GinValidatorV9) {
+func SetupRoutes(app *gin.Engine, server server.ResourceService, t *ut.UniversalTranslator, validate *validator.Validate) {
 	srv = server
 
 	translator = t
 
-	binding.Validator = validator
+	binding.Validator = &validation.GinValidatorV9{Validate: validate}
 
 	app.Use(utils.SaveHeaders)
 	app.Use(utils.PrepareContext)
 	app.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
-	app.Use(validateHeaders(validator.Validate, translator, map[string]string{
+	app.Use(validateHeaders(validate, translator, map[string]string{
 		umtypes.UserIDHeader:   "uuid",
 		umtypes.UserRoleHeader: "eq=admin|eq=user",
 	}))
-	app.Use(utils.SubstituteUserMiddleware)
+	app.Use(utils.SubstituteUserMiddleware(validate, t, rserrors.ErrValidation))
 
 	ns := app.Group("/namespace")
 	{

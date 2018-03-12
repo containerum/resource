@@ -27,7 +27,7 @@ func setUserResourceAccessesHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := srv.SetUserAccesses(ctx, req.Access); err != nil {
+	if err := srv.SetUserAccesses(ctx.Request.Context(), req.Access); err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return
 	}

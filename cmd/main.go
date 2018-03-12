@@ -45,7 +45,7 @@ func main() {
 	g.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 
-	routes.SetupRoutes(g, srv, translate, &validation.GinValidatorV9{Validate: validate})
+	routes.SetupRoutes(g, srv, translate, validate)
 
 	// for graceful shutdown
 	httpsrv := &http.Server{

@@ -11,6 +11,8 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/universal-translator"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 var headersKey = new(struct{})
@@ -98,10 +100,18 @@ func RequireAdminRole(errToReturn func() *cherry.Err) gin.HandlerFunc {
 }
 
 // SubstituteUserMiddleware replaces user id in context with user id from query if it set and user is admin
-func SubstituteUserMiddleware(ctx *gin.Context) {
-	role := ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader))
-	if userID, set := ctx.GetQuery("user-id"); set && role == "admin" {
-		rctx := context.WithValue(ctx.Request.Context(), UserIDContextKey, userID)
-		ctx.Request = ctx.Request.WithContext(rctx)
+func SubstituteUserMiddleware(validate *validator.Validate, translator *ut.UniversalTranslator, validationErr func() *cherry.Err) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		role := ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader))
+		if userID, set := ctx.GetQuery("user-id"); set && role == "admin" {
+			if vErr := validate.VarCtx(ctx.Request.Context(), userID, "uuid"); vErr != nil {
+				t, _ := translator.FindTranslator(GetAcceptedLanguages(ctx.Request.Context())...)
+				err := validationErr().AddDetailF("Parameter \"user-id\": %s", vErr.(validator.ValidationErrors).Translate(t))
+				gonic.Gonic(err, ctx)
+				return
+			}
+			rctx := context.WithValue(ctx.Request.Context(), UserIDContextKey, userID)
+			ctx.Request = ctx.Request.WithContext(rctx)
+		}
 	}
 }
