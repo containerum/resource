@@ -149,14 +149,18 @@ func (rs *resourceServiceImpl) GetUserAccesses(ctx context.Context) (*authProto.
 }
 
 func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error {
-	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"ns_label":    nsLabel,
 		"target_user": req.Username,
 	}).Info("delete user namespace access")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		ns, getErr := tx.GetUserNamespaceByLabel(ctx, userID, nsLabel)
+		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
+		if getErr != nil {
+			return getErr
+		}
+
+		ns, getErr := tx.GetUserNamespaceByLabel(ctx, user.ID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
@@ -165,16 +169,11 @@ func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, ns
 			return rserrors.ErrDeleteOwnerAccess()
 		}
 
-		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
-		if getErr != nil {
-			return getErr
-		}
-
 		if delErr := tx.DeleteResourceAccess(ctx, ns.Resource, user.ID); delErr != nil {
 			return delErr
 		}
 
-		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := rs.updateAccess(ctx, tx, user.ID); updErr != nil {
 			return updErr
 		}
 
@@ -185,14 +184,18 @@ func (rs *resourceServiceImpl) DeleteUserNamespaceAccess(ctx context.Context, ns
 }
 
 func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error {
-	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"vol_label":   volLabel,
 		"target_user": req.Username,
 	}).Info("delete user volume access")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		vol, getErr := tx.GetUserVolumeByLabel(ctx, userID, volLabel)
+		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
+		if getErr != nil {
+			return getErr
+		}
+
+		vol, getErr := tx.GetUserVolumeByLabel(ctx, user.ID, volLabel)
 		if getErr != nil {
 			return getErr
 		}
@@ -201,16 +204,11 @@ func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLa
 			return rserrors.ErrDeleteOwnerAccess()
 		}
 
-		user, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
-		if getErr != nil {
-			return getErr
-		}
-
 		if delErr := tx.DeleteResourceAccess(ctx, vol.Resource, user.ID); delErr != nil {
 			return delErr
 		}
 
-		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := rs.updateAccess(ctx, tx, user.ID); updErr != nil {
 			return updErr
 		}
 
