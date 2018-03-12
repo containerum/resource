@@ -56,7 +56,7 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
 						CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
-						Memory: fmt.Sprintf("%dm", newNamespace.RAM),
+						Memory: fmt.Sprintf("%dMi", newNamespace.RAM),
 					},
 				},
 			},
@@ -94,13 +94,11 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.
 
 		// TODO: tariff activation
 
-		// TODO: update user access
-
-		// TODO: create non-persistent volume
-
 		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
 			return updErr
 		}
+
+		// TODO: create non-persistent volume
 
 		return nil
 	})
@@ -300,7 +298,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
 						CPU:    fmt.Sprintf("%dm", ns.CPU),
-						Memory: fmt.Sprintf("%dm", ns.RAM),
+						Memory: fmt.Sprintf("%dMi", ns.RAM),
 					},
 				},
 			},

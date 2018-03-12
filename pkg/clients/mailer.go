@@ -37,7 +37,9 @@ func NewMailerHTTP(u *url.URL) Mailer {
 		SetHostURL(u.String()).
 		SetLogger(log.WriterLevel(logrus.DebugLevel)).
 		SetDebug(true).
-		SetError(cherry.Err{})
+		SetError(cherry.Err{}).
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept", "application/json")
 	client.JSONMarshal = jsoniter.Marshal
 	client.JSONUnmarshal = jsoniter.Unmarshal
 	return mailerHTTP{
@@ -53,7 +55,7 @@ func (ml mailerHTTP) sendRequest(ctx context.Context, eventName string, userID s
 	}).Infof("sending mail with vars %v", vars)
 	resp, err := ml.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(mttypes.SimpleSendRequest{
 			Template:  eventName,
 			UserID:    userID,
