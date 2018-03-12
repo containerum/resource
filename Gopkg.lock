@@ -44,7 +44,7 @@
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "03f4dbb2ddecbdeccc5b67c4b510551a6e57afd4"
+  revision = "0efbfbabdbc40dd4e8019185ba45a705abecda0e"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -427,6 +427,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "08790fec14a7e0af6bba264f9ecf82f913387543d14569badb767a1a93c5c72c"
+  inputs-digest = "45d08e819f6df4f877fa14ae50a8a3ba7e79d9f12a8438598dd5228b6924bd43"
   solver-name = "gps-cdcl"
   solver-version = 1

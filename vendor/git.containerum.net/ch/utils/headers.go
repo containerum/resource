@@ -35,6 +35,18 @@ func RequestHeadersMap(ctx context.Context) map[string]string {
 	return ret
 }
 
+// RequestXHeadersMap works like RequestHeadersMap but returns only "X-" headers
+func RequestXHeadersMap(ctx context.Context) map[string]string {
+	ret := make(map[string]string)
+	for k, v := range ctx.Value(headersKey).(http.Header) {
+		k = textproto.CanonicalMIMEHeaderKey(k)
+		if len(v) > 0 && strings.HasPrefix(k, "X-") {
+			ret[k] = v[0]
+		}
+	}
+	return ret
+}
+
 // RequestHeaders extracts saved headers from context.
 // saveHeaders middleware required for operation.
 func RequestHeaders(ctx context.Context) http.Header {
