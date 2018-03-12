@@ -76,9 +76,9 @@ type ResourceService interface {
 
 	CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error
 	GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error)
-	GetService(ctx context.Context, nsLabel, serviceLabel string) (kubtypes.Service, error)
-	UpdateService(ctx context.Context, nsLabel, serviceLabel string, req kubtypes.Service) error
-	DeleteService(ctx context.Context, nsLabel, serviceLabel string) error
+	GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error)
+	UpdateService(ctx context.Context, nsLabel, serviceName string, req kubtypes.Service) error
+	DeleteService(ctx context.Context, nsLabel, serviceName string) error
 
 	GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error)
 
