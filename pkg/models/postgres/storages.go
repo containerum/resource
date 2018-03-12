@@ -22,7 +22,7 @@ func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequ
 		return
 	}
 	if exists {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("storage %s already exists")
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("storage %s already exists", req.Name)
 		return
 	}
 
