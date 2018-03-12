@@ -9,9 +9,9 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
