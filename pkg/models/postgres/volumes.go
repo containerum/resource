@@ -5,7 +5,6 @@ import (
 
 	"database/sql"
 
-	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -160,7 +159,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		)
 		VALUES ('volume', :resource_id, :resource_label, :user_id, :user_id)`,
 		rstypes.PermissionRecord{
-			ResourceID:    misc.WrapString(volume.ID),
+			ResourceID:    &volume.ID,
 			ResourceLabel: label,
 			UserID:        userID,
 		})
