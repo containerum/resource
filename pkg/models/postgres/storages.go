@@ -13,6 +13,19 @@ import (
 func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
 	db.log.Debugf("creating storage %#v", req)
 
+	// we can`t recognise constraint violation error so do this check before insert
+	var exists bool
+	query, args, _ := sqlx.Named( /* language=sql */ `SELECT count(*)>0 FROM storages WHERE "name" = :name`, req)
+	err = sqlx.GetContext(ctx, db.extLog, &exists, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
+	if exists {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("storage %s already exists")
+		return
+	}
+
 	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`INSERT INTO storages
 		(name, size, replicas, ips)
@@ -59,7 +72,7 @@ func (db *pgDB) UpdateStorage(ctx context.Context, name string, req rstypes.Upda
 	}
 
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("storage %s not exists", name).Log(err, db.log)
 	}
 
 	return
@@ -76,7 +89,7 @@ func (db *pgDB) DeleteStorage(ctx context.Context, name string) (err error) {
 		return
 	}
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("storage %s not exists", name).Log(err, db.log)
 	}
 
 	return
