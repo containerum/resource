@@ -51,7 +51,9 @@ func NewKubeHTTP(u *url.URL) Kube {
 		SetHostURL(u.String()).
 		SetLogger(log.WriterLevel(logrus.DebugLevel)).
 		SetDebug(true).
-		SetError(cherry.Err{})
+		SetError(cherry.Err{}).
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept", "application/json")
 	client.JSONMarshal = jsoniter.Marshal
 	client.JSONUnmarshal = jsoniter.Unmarshal
 	return kube{
@@ -71,7 +73,7 @@ func (kub kube) CreateNamespace(ctx context.Context, ns kubtypesInternal.Namespa
 	resp, err := kub.client.R().
 		SetBody(ns).
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Post("/namespaces")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -87,7 +89,7 @@ func (kub kube) DeleteNamespace(ctx context.Context, label string) error {
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Delete("/namespaces/" + url.PathEscape(label))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -108,7 +110,7 @@ func (kub kube) SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.Names
 	resp, err := kub.client.R().
 		SetBody(ns).
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Put("/namespaces/" + url.PathEscape(ns.Label))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -125,7 +127,7 @@ func (kub kube) CreateDeployment(ctx context.Context, nsLabel string, deploy kub
 	resp, err := kub.client.R().
 		SetBody(deploy).
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Post(fmt.Sprintf("/namespaces/%s/deployments", nsLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -144,7 +146,7 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsLabel, deplLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -163,7 +165,7 @@ func (kub kube) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(deploy).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsLabel, deplLabel))
 	if err != nil {
@@ -184,7 +186,7 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel st
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(kubtypes.UpdateReplicas{Replicas: replicas}).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsLabel, deplLabel))
 	if err != nil {
@@ -206,7 +208,7 @@ func (kub kube) SetContainerImage(ctx context.Context, nsLabel, deplLabel string
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(container).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsLabel, deplLabel))
 	if err != nil {
@@ -225,7 +227,7 @@ func (kub kube) CreateIngress(ctx context.Context, nsLabel string, ingress kubty
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(ingress).
 		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsLabel))
 	if err != nil {
@@ -245,7 +247,7 @@ func (kub kube) DeleteIngress(ctx context.Context, nsLabel, ingressName string) 
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/ingresses", nsLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -263,7 +265,7 @@ func (kub kube) CreateSecret(ctx context.Context, nsLabel string, secret kubtype
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(secret).
 		Post(fmt.Sprintf("/namespaces/%s/secrets", nsLabel))
 	if err != nil {
@@ -283,7 +285,7 @@ func (kub kube) DeleteSecret(ctx context.Context, nsLabel, secretName string) er
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/secrets/%s", nsLabel, secretName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -300,7 +302,7 @@ func (kub kube) CreateService(ctx context.Context, nsLabel string, service kubty
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(service).
 		Post(fmt.Sprintf("/namespaces/%s/services", nsLabel))
 
@@ -322,7 +324,7 @@ func (kub kube) UpdateService(ctx context.Context, nsLabel, serviceName string, 
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(service).
 		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsLabel, serviceName))
 
@@ -344,7 +346,7 @@ func (kub kube) DeleteService(ctx context.Context, nsLabel, serviceName string) 
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/services/%s", nsLabel, serviceName))
 
 	if err != nil {

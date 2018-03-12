@@ -31,7 +31,9 @@ func NewHTTPUserManagerClient(url *url.URL) UserManagerClient {
 		SetLogger(log.WriterLevel(logrus.DebugLevel)).
 		SetHostURL(url.String()).
 		SetDebug(true).
-		SetError(cherry.Err{})
+		SetError(cherry.Err{}).
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept", "application/json")
 	client.JSONMarshal = jsoniter.Marshal
 	client.JSONUnmarshal = jsoniter.Unmarshal
 	return &httpUserManagerClient{
@@ -45,6 +47,7 @@ func (u *httpUserManagerClient) UserInfoByLogin(ctx context.Context, login strin
 	resp, err := u.client.R().
 		SetContext(ctx).
 		SetResult(umtypes.User{}).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Get("/info/login/" + login)
 	if err != nil {
 		return nil, err
@@ -60,6 +63,7 @@ func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string)
 	resp, err := u.client.R().
 		SetContext(ctx).
 		SetResult(umtypes.User{}).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		Get("/info/id/" + userID)
 	if err != nil {
 		return nil, err
