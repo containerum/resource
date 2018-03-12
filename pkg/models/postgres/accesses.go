@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"git.containerum.net/ch/auth/proto"
-	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
@@ -140,7 +139,7 @@ func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resou
 
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`DELETE FROM permissions WHERE (user_id, resource_id) = (:user_id, :resource_id) AND owner_user_id != user_id`,
-		rstypes.PermissionRecord{UserID: userID, ResourceID: misc.WrapString(resource.ID)})
+		rstypes.PermissionRecord{UserID: userID, ResourceID: &resource.ID})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return

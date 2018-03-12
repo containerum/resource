@@ -7,7 +7,6 @@ import (
 
 	"fmt"
 
-	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
@@ -75,13 +74,12 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.
 
 			newVolume := rstypes.Volume{
 				Resource:  rstypes.Resource{TariffID: tariff.ID},
-				Active:    misc.WrapBool(false),
 				Capacity:  tariff.VolumeSize,
 				Replicas:  2, // FIXME
 				StorageID: storage.ID,
 			}
-			newVolume.NamespaceID.Valid = true
-			newVolume.NamespaceID.String = newNamespace.ID
+			newVolume.Active = new(bool) // false
+			newVolume.NamespaceID = &newNamespace.ID
 
 			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(req.Label), &newVolume); createErr != nil {
 				return createErr
@@ -330,13 +328,12 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 			}
 			newVolume := rstypes.Volume{
 				Resource:  rstypes.Resource{TariffID: newTariff.ID},
-				Active:    misc.WrapBool(false),
 				Capacity:  newTariff.VolumeSize,
 				Replicas:  2, // FIXME
 				StorageID: storage.ID,
 			}
-			newVolume.NamespaceID.Valid = true
-			newVolume.NamespaceID.String = ns.ID
+			newVolume.Active = new(bool) // false
+			newVolume.NamespaceID = &ns.ID
 
 			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(ns.ResourceLabel), &newVolume); createErr != nil {
 				return createErr

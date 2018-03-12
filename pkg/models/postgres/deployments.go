@@ -170,8 +170,8 @@ func convertVols(vols []volumeMountWithName) (ret []kubtypes.ContainerVolume) {
 		var volumeResp kubtypes.ContainerVolume
 		volumeResp.Name = volume.Name
 		volumeResp.MountPath = volume.MountPath
-		if volume.SubPath.Valid {
-			volumeResp.SubPath = &volume.SubPath.String
+		if volume.SubPath != nil {
+			volumeResp.SubPath = volume.SubPath
 		}
 		ret = append(ret, volumeResp)
 	}

@@ -5,7 +5,6 @@ import (
 
 	"strings"
 
-	"git.containerum.net/ch/json-types/misc"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -34,11 +33,11 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.Cre
 
 	newVolume := &rstypes.Volume{
 		Resource: rstypes.Resource{TariffID: tariff.ID},
-		Active:   misc.WrapBool(true),
 		Capacity: tariff.StorageLimit,
 		Replicas: tariff.ReplicasLimit,
 	}
-	newVolume.NamespaceID.Valid = false // make always persistent
+	newVolume.Active = new(bool) // false
+	newVolume.NamespaceID = nil  // make always persistent
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		storage, selectErr := tx.ChooseAvailableStorage(ctx, tariff.StorageLimit)
