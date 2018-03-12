@@ -42,7 +42,9 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			return createErr
 		}
 
-		// TODO: create service in kube
+		if createErr := rs.Kube.CreateService(ctx, nsLabel, req); createErr != nil {
+			return createErr
+		}
 
 		return nil
 	})
