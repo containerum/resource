@@ -77,12 +77,12 @@ func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceL
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceLabel string, req kubtypes.Service) error {
+func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceName string, req kubtypes.Service) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":       userID,
-		"ns_label":      nsLabel,
-		"service_label": serviceLabel,
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
 	}).Info("update service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
@@ -105,11 +105,13 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 			}
 		}
 
-		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceLabel, serviceType, req); updErr != nil {
+		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, req); updErr != nil {
 			return updErr
 		}
 
-		// TODO: update service in kube
+		if updErr := rs.Kube.UpdateService(ctx, nsLabel, serviceName, req); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
