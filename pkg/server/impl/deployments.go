@@ -44,6 +44,11 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 	}).Info("create deployment")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		firstInNamespace, createErr := tx.CreateDeployment(ctx, userID, nsLabel, deploy)
 		if createErr != nil {
 			return createErr
@@ -71,7 +76,7 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 		deployCreateReq := kubtypesInternal.DeploymentWithOwner{}
 		deployCreateReq.Deployment = deploy
 		deployCreateReq.Owner = userID
-		if createErr := rs.Kube.CreateDeployment(ctx, nsLabel, deployCreateReq); createErr != nil {
+		if createErr := rs.Kube.CreateDeployment(ctx, nsID, deployCreateReq); createErr != nil {
 			return createErr
 		}
 
@@ -90,12 +95,17 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 	}).Info("delete deployment")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		lastInNamespace, delErr := tx.DeleteDeployment(ctx, userID, nsLabel, deplLabel)
 		if delErr != nil {
 			return delErr
 		}
 
-		if delErr = rs.Kube.DeleteDeployment(ctx, nsLabel, deplLabel); delErr != nil {
+		if delErr = rs.Kube.DeleteDeployment(ctx, nsID, deplLabel); delErr != nil {
 			return delErr
 		}
 
@@ -118,6 +128,11 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 	}).Infof("replacing deployment with %#v", deploy)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if replaceErr := tx.ReplaceDeployment(ctx, userID, nsLabel, deplLabel, deploy); replaceErr != nil {
 			return replaceErr
 		}
@@ -125,7 +140,7 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
 		deployReplaceReq.Deployment = deploy
 		deployReplaceReq.Owner = userID
-		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsLabel, deplLabel, deployReplaceReq); replaceErr != nil {
+		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsID, deplLabel, deployReplaceReq); replaceErr != nil {
 			return replaceErr
 		}
 
@@ -144,11 +159,16 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 	}).Infof("set deployment replicas %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if setErr := tx.SetDeploymentReplicas(ctx, userID, nsLabel, deplLabel, req.Replicas); setErr != nil {
 			return setErr
 		}
 
-		if setErr := rs.Kube.SetDeploymentReplicas(ctx, nsLabel, deplLabel, req.Replicas); setErr != nil {
+		if setErr := rs.Kube.SetDeploymentReplicas(ctx, nsID, deplLabel, req.Replicas); setErr != nil {
 			return setErr
 		}
 
@@ -167,11 +187,16 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 	}).Infof("set container image %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if setErr := tx.SetContainerImage(ctx, userID, nsLabel, deplLabel, req); setErr != nil {
 			return setErr
 		}
 
-		setErr := rs.Kube.SetContainerImage(ctx, nsLabel, deplLabel, kubtypes.Container{Name: req.ContainerName, Image: req.Image})
+		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplLabel, kubtypes.Container{Name: req.ContainerName, Image: req.Image})
 		if setErr != nil {
 			return setErr
 		}

@@ -38,11 +38,16 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			}
 		}
 
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if createErr := tx.CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
 			return createErr
 		}
 
-		if createErr := rs.Kube.CreateService(ctx, nsLabel, req); createErr != nil {
+		if createErr := rs.Kube.CreateService(ctx, nsID, req); createErr != nil {
 			return createErr
 		}
 
@@ -105,11 +110,16 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 			}
 		}
 
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, req); updErr != nil {
 			return updErr
 		}
 
-		if updErr := rs.Kube.UpdateService(ctx, nsLabel, serviceName, req); updErr != nil {
+		if updErr := rs.Kube.UpdateService(ctx, nsID, serviceName, req); updErr != nil {
 			return updErr
 		}
 
@@ -128,11 +138,16 @@ func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, servi
 	}).Info("delete service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if delErr := tx.DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
 			return delErr
 		}
 
-		if delErr := rs.Kube.DeleteService(ctx, nsLabel, serviceName); delErr != nil {
+		if delErr := rs.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
 			return delErr
 		}
 

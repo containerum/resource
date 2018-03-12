@@ -52,7 +52,7 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.
 
 		nsCreateRequest := kubtypesInternal.NamespaceWithOwner{
 			Namespace: kubtypes.Namespace{
-				Label: newNamespace.ID, // it will be name actually
+				Label: newNamespace.ID, // in kube we will use namespace ID as name to prevent collisions
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
 						CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
@@ -169,7 +169,7 @@ func (rs *resourceServiceImpl) DeleteUserNamespace(ctx context.Context, label st
 
 		// TODO: stop volumes on volume service
 
-		if delErr := rs.Kube.DeleteNamespace(ctx, label); delErr != nil {
+		if delErr := rs.Kube.DeleteNamespace(ctx, nsToDelete.ID); delErr != nil {
 			return delErr
 		}
 
