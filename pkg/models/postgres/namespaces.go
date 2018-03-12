@@ -568,3 +568,15 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespac
 
 	return
 }
+
+func (db *pgDB) GetNamespaceID(ctx context.Context, userID, nsLabel string) (nsID string, err error) {
+	nsID, err = db.getNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+	if nsID == "" {
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not found for user %s", nsLabel, userID)
+	}
+
+	return
+}
