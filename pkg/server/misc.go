@@ -5,8 +5,8 @@ import (
 
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 )
 
 // Parallel runs functions in dedicated goroutines and waits for ending

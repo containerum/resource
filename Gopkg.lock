@@ -38,13 +38,13 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "0edd8da5f8d8d92529bf2ffae796710829134a1a"
+  revision = "fac866ad3f6728e2ed8ba5b7039607593bedeb4e"
 
 [[projects]]
   branch = "master"
   name = "git.containerum.net/ch/utils"
   packages = ["."]
-  revision = "0efbfbabdbc40dd4e8019185ba45a705abecda0e"
+  revision = "9860a084df1aedccb2ff0cd6c15cf11f5ca85b95"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"

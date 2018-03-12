@@ -4,7 +4,7 @@ import (
 	"net/textproto"
 
 	"git.containerum.net/ch/kube-client/pkg/cherry"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/universal-translator"

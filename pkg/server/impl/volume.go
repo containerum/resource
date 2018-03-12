@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"

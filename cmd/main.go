@@ -19,6 +19,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate noice -t ../Errors.toml -o ../pkg/
+
 func exitOnError(err error) {
 	if err != nil {
 		logrus.WithError(err).Fatalf("can`t setup resource-service")

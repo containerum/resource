@@ -65,7 +65,7 @@ var hdrToKey = map[string]interface{}{
 }
 
 // RequireHeaders is a gin middleware to ensure that headers is set
-func RequireHeaders(errToReturn func() *cherry.Err, headers ...string) gin.HandlerFunc {
+func RequireHeaders(errToReturn cherry.ErrConstruct, headers ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var notFoundHeaders []string
 		for _, v := range headers {
@@ -102,7 +102,7 @@ func PrepareContext(ctx *gin.Context) {
 }
 
 // RequireAdminRole is a gin middleware which requires admin role
-func RequireAdminRole(errToReturn func() *cherry.Err) gin.HandlerFunc {
+func RequireAdminRole(errToReturn cherry.ErrConstruct) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader)) != "admin" {
 			err := errToReturn().AddDetails("only admin can do this")
@@ -112,7 +112,7 @@ func RequireAdminRole(errToReturn func() *cherry.Err) gin.HandlerFunc {
 }
 
 // SubstituteUserMiddleware replaces user id in context with user id from query if it set and user is admin
-func SubstituteUserMiddleware(validate *validator.Validate, translator *ut.UniversalTranslator, validationErr func() *cherry.Err) gin.HandlerFunc {
+func SubstituteUserMiddleware(validate *validator.Validate, translator *ut.UniversalTranslator, validationErr cherry.ErrConstruct) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		role := ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(umtypes.UserRoleHeader))
 		if userID, set := ctx.GetQuery("user-id"); set && role == "admin" {
