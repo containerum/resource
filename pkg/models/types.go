@@ -21,7 +21,8 @@ type DB interface {
 	DeleteUserNamespaceByLabel(ctx context.Context, userID, label string) (rstypes.Namespace, error)
 	DeleteAllUserNamespaces(ctx context.Context, userID string) error
 	RenameNamespace(ctx context.Context, userID, oldLabel, newLabel string) error
-	ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) (err error)
+	ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) error
+	GetNamespaceID(ctx context.Context, userID, nsLabel string) (string, error)
 
 	CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
 	GetUserVolumes(ctx context.Context, userID string, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)

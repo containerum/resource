@@ -22,21 +22,21 @@ type Kube interface {
 	SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.NamespaceWithOwner) error
 	DeleteNamespace(ctx context.Context, label string) error
 
-	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypesInternal.DeploymentWithOwner) error
-	DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error
-	ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error
-	SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, replicas int) error
-	SetContainerImage(ctx context.Context, nsLabel, deplLabel string, container kubtypes.Container) error
+	CreateDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error
+	DeleteDeployment(ctx context.Context, nsID, deplLabel string) error
+	ReplaceDeployment(ctx context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error
+	SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error
+	SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.Container) error
 
-	CreateIngress(ctx context.Context, nsLabel string, ingress kubtypesInternal.IngressWithOwner) error
-	DeleteIngress(ctx context.Context, nsLabel, ingressName string) error
+	CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error
+	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 
-	CreateSecret(ctx context.Context, nsLabel string, secret kubtypesInternal.SecretWithOwner) error
-	DeleteSecret(ctx context.Context, nsLabel, secretName string) error
+	CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error
+	DeleteSecret(ctx context.Context, nsID, secretName string) error
 
-	CreateService(ctx context.Context, nsLabel string, service kubtypes.Service) error
-	UpdateService(ctx context.Context, nsLabel, serviceName string, service kubtypes.Service) error
-	DeleteService(ctx context.Context, nsLabel, serviceName string) error
+	CreateService(ctx context.Context, nsID string, service kubtypes.Service) error
+	UpdateService(ctx context.Context, nsID, serviceName string, service kubtypes.Service) error
+	DeleteService(ctx context.Context, nsID, serviceName string) error
 }
 
 type kube struct {
@@ -121,14 +121,14 @@ func (kub kube) SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.Names
 	return nil
 }
 
-func (kub kube) CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
-	kub.log.WithField("ns_label", nsLabel).Debug("create deployment %+v", deploy)
+func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
+	kub.log.WithField("ns_id", nsID).Debug("create deployment %+v", deploy)
 
 	resp, err := kub.client.R().
 		SetBody(deploy).
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Post(fmt.Sprintf("/namespaces/%s/deployments", nsLabel))
+		Post(fmt.Sprintf("/namespaces/%s/deployments", nsID))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -138,16 +138,16 @@ func (kub kube) CreateDeployment(ctx context.Context, nsLabel string, deploy kub
 	return nil
 }
 
-func (kub kube) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error {
+func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplLabel string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 	}).Debug("delete deployment")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsLabel, deplLabel))
+		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -157,9 +157,9 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string)
 	return nil
 }
 
-func (kub kube) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kube) ReplaceDeployment(ctx context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 	}).Debug("replace deployment %+v", deploy)
 
@@ -167,7 +167,7 @@ func (kub kube) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(deploy).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsLabel, deplLabel))
+		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -177,9 +177,9 @@ func (kub kube) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string
 	return nil
 }
 
-func (kub kube) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, replicas int) error {
+func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 		"replicas":     replicas,
 	}).Debug("change replicas")
@@ -188,7 +188,7 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel st
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(kubtypes.UpdateReplicas{Replicas: replicas}).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsLabel, deplLabel))
+		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsID, deplLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -198,9 +198,9 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel st
 	return nil
 }
 
-func (kub kube) SetContainerImage(ctx context.Context, nsLabel, deplLabel string, container kubtypes.Container) error {
+func (kub kube) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.Container) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 		"container":    container.Name,
 		"image":        container.Image,
@@ -210,7 +210,7 @@ func (kub kube) SetContainerImage(ctx context.Context, nsLabel, deplLabel string
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(container).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsLabel, deplLabel))
+		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsID, deplLabel))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -220,16 +220,16 @@ func (kub kube) SetContainerImage(ctx context.Context, nsLabel, deplLabel string
 	return nil
 }
 
-func (kub kube) CreateIngress(ctx context.Context, nsLabel string, ingress kubtypesInternal.IngressWithOwner) error {
+func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label": nsLabel,
+		"ns_id": nsID,
 	}).Debugf("create ingress %+v", ingress)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(ingress).
-		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsLabel))
+		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsID))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -239,16 +239,16 @@ func (kub kube) CreateIngress(ctx context.Context, nsLabel string, ingress kubty
 	return nil
 }
 
-func (kub kube) DeleteIngress(ctx context.Context, nsLabel, ingressName string) error {
+func (kub kube) DeleteIngress(ctx context.Context, nsID, ingressName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"ingress_name": ingressName,
 	}).Debug("delete ingress")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/ingresses", nsLabel))
+		Delete(fmt.Sprintf("/namespaces/%s/ingresses", nsID))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -258,16 +258,16 @@ func (kub kube) DeleteIngress(ctx context.Context, nsLabel, ingressName string) 
 	return nil
 }
 
-func (kub kube) CreateSecret(ctx context.Context, nsLabel string, secret kubtypesInternal.SecretWithOwner) error {
+func (kub kube) CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label": nsLabel,
+		"ns_id": nsID,
 	}).Debugf("create secret %+v", secret)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(secret).
-		Post(fmt.Sprintf("/namespaces/%s/secrets", nsLabel))
+		Post(fmt.Sprintf("/namespaces/%s/secrets", nsID))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -277,16 +277,16 @@ func (kub kube) CreateSecret(ctx context.Context, nsLabel string, secret kubtype
 	return nil
 }
 
-func (kub kube) DeleteSecret(ctx context.Context, nsLabel, secretName string) error {
+func (kub kube) DeleteSecret(ctx context.Context, nsID, secretName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"secret_name": secretName,
 	}).Debug("delete secret")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/secrets/%s", nsLabel, secretName))
+		Delete(fmt.Sprintf("/namespaces/%s/secrets/%s", nsID, secretName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -297,14 +297,14 @@ func (kub kube) DeleteSecret(ctx context.Context, nsLabel, secretName string) er
 	return nil
 }
 
-func (kub kube) CreateService(ctx context.Context, nsLabel string, service kubtypes.Service) error {
-	kub.log.WithField("ns_label", nsLabel).Debugf("create service %+v", service)
+func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
+	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(service).
-		Post(fmt.Sprintf("/namespaces/%s/services", nsLabel))
+		Post(fmt.Sprintf("/namespaces/%s/services", nsID))
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -316,9 +316,9 @@ func (kub kube) CreateService(ctx context.Context, nsLabel string, service kubty
 	return nil
 }
 
-func (kub kube) UpdateService(ctx context.Context, nsLabel, serviceName string, service kubtypes.Service) error {
+func (kub kube) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypes.Service) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"service_name": serviceName,
 	}).Debugf("update service to %+v", service)
 
@@ -326,7 +326,7 @@ func (kub kube) UpdateService(ctx context.Context, nsLabel, serviceName string, 
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(service).
-		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsLabel, serviceName))
+		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsID, serviceName))
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -338,16 +338,16 @@ func (kub kube) UpdateService(ctx context.Context, nsLabel, serviceName string, 
 	return nil
 }
 
-func (kub kube) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
+func (kub kube) DeleteService(ctx context.Context, nsID, serviceName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"service_name": serviceName,
 	}).Debug("delete service")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/services/%s", nsLabel, serviceName))
+		Delete(fmt.Sprintf("/namespaces/%s/services/%s", nsID, serviceName))
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -399,33 +399,33 @@ func (kub kubeDummy) SetNamespaceQuota(_ context.Context, ns kubtypesInternal.Na
 	return nil
 }
 
-func (kub kubeDummy) CreateDeployment(_ context.Context, nsLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
-	kub.log.WithField("ns_label", nsLabel).Debug("create deployment %+v", deploy)
+func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
+	kub.log.WithField("ns_id", nsID).Debug("create deployment %+v", deploy)
 
 	return nil
 }
 
-func (kub kubeDummy) DeleteDeployment(_ context.Context, nsLabel, deplLabel string) error {
+func (kub kubeDummy) DeleteDeployment(_ context.Context, nsID, deplLabel string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 	}).Debug("delete deployment")
 
 	return nil
 }
 
-func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsLabel, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 	}).Debug("replace deployment %+v", deploy)
 
 	return nil
 }
 
-func (kub kubeDummy) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, replicas int) error {
+func (kub kubeDummy) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 		"replicas":     replicas,
 	}).Debug("change replicas")
@@ -433,9 +433,9 @@ func (kub kubeDummy) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLab
 	return nil
 }
 
-func (kub kubeDummy) SetContainerImage(ctx context.Context, nsLabel, deplLabel string, container kubtypes.Container) error {
+func (kub kubeDummy) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.Container) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"deploy_label": deplLabel,
 		"container":    container.Name,
 		"image":        container.Image,
@@ -444,58 +444,58 @@ func (kub kubeDummy) SetContainerImage(ctx context.Context, nsLabel, deplLabel s
 	return nil
 }
 
-func (kub kubeDummy) CreateIngress(ctx context.Context, nsLabel string, ingress kubtypesInternal.IngressWithOwner) error {
+func (kub kubeDummy) CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label": nsLabel,
+		"ns_id": nsID,
 	}).Debugf("create ingress %+v", ingress)
 
 	return nil
 }
 
-func (kub kubeDummy) DeleteIngress(ctx context.Context, nsLabel, ingressName string) error {
+func (kub kubeDummy) DeleteIngress(ctx context.Context, nsID, ingressName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"ingress_name": ingressName,
 	}).Debug("delete ingress")
 
 	return nil
 }
 
-func (kub kubeDummy) CreateSecret(ctx context.Context, nsLabel string, secret kubtypesInternal.SecretWithOwner) error {
+func (kub kubeDummy) CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label": nsLabel,
+		"ns_id": nsID,
 	}).Debugf("create secret %+v", secret)
 
 	return nil
 }
 
-func (kub kubeDummy) DeleteSecret(ctx context.Context, nsLabel, secretName string) error {
+func (kub kubeDummy) DeleteSecret(ctx context.Context, nsID, secretName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"secret_name": secretName,
 	}).Debug("delete secret")
 
 	return nil
 }
 
-func (kub kubeDummy) CreateService(ctx context.Context, nsLabel string, service kubtypes.Service) error {
-	kub.log.WithField("ns_label", nsLabel).Debugf("create service %+v", service)
+func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
+	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
 	return nil
 }
 
-func (kub kubeDummy) UpdateService(ctx context.Context, nsLabel, serviceName string, service kubtypes.Service) error {
+func (kub kubeDummy) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypes.Service) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"service_name": serviceName,
 	}).Debugf("update service to %+v", service)
 
 	return nil
 }
 
-func (kub kubeDummy) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
+func (kub kubeDummy) DeleteService(ctx context.Context, nsID, serviceName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_label":     nsLabel,
+		"ns_id":        nsID,
 		"service_name": serviceName,
 	}).Debug("delete service")
 

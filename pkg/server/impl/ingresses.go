@@ -29,6 +29,11 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 	}
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		service, getErr := tx.GetService(ctx, userID, nsLabel, req.Service)
 		if getErr != nil {
 			return getErr
@@ -66,7 +71,7 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 				},
 				Owner: userID,
 			}
-			if createErr := rs.Kube.CreateSecret(ctx, nsLabel, secret); createErr != nil {
+			if createErr := rs.Kube.CreateSecret(ctx, nsID, secret); createErr != nil {
 				return createErr
 			}
 
@@ -84,7 +89,7 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 			return rserrors.ErrValidation().AddDetailF("invalid ingress type %s", req.TLS)
 		}
 
-		if createErr := rs.Kube.CreateIngress(ctx, nsLabel, ingress); createErr != nil {
+		if createErr := rs.Kube.CreateIngress(ctx, nsID, ingress); createErr != nil {
 			return createErr
 		}
 
@@ -129,19 +134,24 @@ func (rs *resourceServiceImpl) DeleteIngress(ctx context.Context, nsLabel, domai
 	}).Info("delete ingress")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		ingressType, delErr := tx.DeleteIngress(ctx, userID, nsLabel, domain)
 		if delErr != nil {
 			return delErr
 		}
 
 		ingressName := server.IngressName(domain)
-		if delErr := rs.Kube.DeleteIngress(ctx, nsLabel, ingressName); delErr != nil {
+		if delErr := rs.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
 			return delErr
 		}
 
 		// in CreateIngress() we created secret for "custom_https" ingress so delete it.
 		if ingressType == rstypes.IngressCustomHTTPS {
-			if delErr := rs.Kube.DeleteSecret(ctx, nsLabel, server.SecretName(ingressName)); delErr != nil {
+			if delErr := rs.Kube.DeleteSecret(ctx, nsID, server.SecretName(ingressName)); delErr != nil {
 				return delErr
 			}
 		}
