@@ -463,7 +463,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 					kind = 'namespace'
 		)
 		UPDATE namespaces
-		SET deleted = TRUE
+		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
 		WHERE id IN (SELECT resource_id FROM user_ns)
 		RETURNING *`,
 		params)
@@ -493,7 +493,7 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 					kind = 'namespace'
 		)
 		UPDATE namespaces
-		SET deleted = TRUE
+		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
 		WHERE id IN (SELECT resource_id FROM user_ns)`,
 		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
