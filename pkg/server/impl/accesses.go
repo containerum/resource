@@ -192,7 +192,7 @@ func (rs *resourceServiceImpl) DeleteUserVolumeAccess(ctx context.Context, volLa
 	}).Info("delete user volume access")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		vol, getErr := tx.GetUserNamespaceByLabel(ctx, userID, volLabel)
+		vol, getErr := tx.GetUserVolumeByLabel(ctx, userID, volLabel)
 		if getErr != nil {
 			return getErr
 		}
