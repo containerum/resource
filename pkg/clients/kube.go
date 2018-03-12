@@ -33,6 +33,10 @@ type Kube interface {
 
 	CreateSecret(ctx context.Context, nsLabel string, secret kubtypesInternal.SecretWithOwner) error
 	DeleteSecret(ctx context.Context, nsLabel, secretName string) error
+
+	CreateService(ctx context.Context, nsLabel string, service kubtypes.Service) error
+	UpdateService(ctx context.Context, nsLabel, serviceName string, service kubtypes.Service) error
+	DeleteService(ctx context.Context, nsLabel, serviceName string) error
 }
 
 type kube struct {
@@ -291,6 +295,68 @@ func (kub kube) DeleteSecret(ctx context.Context, nsLabel, secretName string) er
 	return nil
 }
 
+func (kub kube) CreateService(ctx context.Context, nsLabel string, service kubtypes.Service) error {
+	kub.log.WithField("ns_label", nsLabel).Debugf("create service %+v", service)
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetBody(service).
+		Post(fmt.Sprintf("/namespaces/%s/services", nsLabel))
+
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+
+	return nil
+}
+
+func (kub kube) UpdateService(ctx context.Context, nsLabel, serviceName string, service kubtypes.Service) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
+	}).Debugf("update service to %+v", service)
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		SetBody(service).
+		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsLabel, serviceName))
+
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+
+	return nil
+}
+
+func (kub kube) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
+	}).Debug("delete service")
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(utils.RequestHeadersMap(ctx)).
+		Delete(fmt.Sprintf("/namespaces/%s/services/%s", nsLabel, serviceName))
+
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+
+	return nil
+}
+
 func (kub kube) String() string {
 	return fmt.Sprintf("kube api http client: url=%v", kub.client.HostURL)
 }
@@ -406,6 +472,30 @@ func (kub kubeDummy) DeleteSecret(ctx context.Context, nsLabel, secretName strin
 		"ns_label":    nsLabel,
 		"secret_name": secretName,
 	}).Debug("delete secret")
+
+	return nil
+}
+
+func (kub kubeDummy) CreateService(ctx context.Context, nsLabel string, service kubtypes.Service) error {
+	kub.log.WithField("ns_label", nsLabel).Debugf("create service %+v", service)
+
+	return nil
+}
+
+func (kub kubeDummy) UpdateService(ctx context.Context, nsLabel, serviceName string, service kubtypes.Service) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
+	}).Debugf("update service to %+v", service)
+
+	return nil
+}
+
+func (kub kubeDummy) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
+	}).Debug("delete service")
 
 	return nil
 }

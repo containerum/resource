@@ -42,7 +42,9 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			return createErr
 		}
 
-		// TODO: create service in kube
+		if createErr := rs.Kube.CreateService(ctx, nsLabel, req); createErr != nil {
+			return createErr
+		}
 
 		return nil
 	})
@@ -62,25 +64,25 @@ func (rs *resourceServiceImpl) GetServices(ctx context.Context, nsLabel string) 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceLabel string) (kubtypes.Service, error) {
+func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error) {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":       userID,
-		"ns_label":      nsLabel,
-		"service_label": serviceLabel,
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
 	}).Info("get service")
 
-	ret, err := rs.DB.GetService(ctx, userID, nsLabel, serviceLabel)
+	ret, err := rs.DB.GetService(ctx, userID, nsLabel, serviceName)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceLabel string, req kubtypes.Service) error {
+func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceName string, req kubtypes.Service) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":       userID,
-		"ns_label":      nsLabel,
-		"service_label": serviceLabel,
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
 	}).Info("update service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
@@ -103,11 +105,13 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 			}
 		}
 
-		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceLabel, serviceType, req); updErr != nil {
+		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, req); updErr != nil {
 			return updErr
 		}
 
-		// TODO: update service in kube
+		if updErr := rs.Kube.UpdateService(ctx, nsLabel, serviceName, req); updErr != nil {
+			return updErr
+		}
 
 		return nil
 	})
@@ -115,20 +119,23 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, serviceLabel string) error {
+func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":       userID,
-		"ns_label":      nsLabel,
-		"service_label": serviceLabel,
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
 	}).Info("delete service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if delErr := tx.DeleteService(ctx, userID, nsLabel, serviceLabel); delErr != nil {
+		if delErr := tx.DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
 			return delErr
 		}
 
-		// TODO: delete service in kube
+		if delErr := rs.Kube.DeleteService(ctx, nsLabel, serviceName); delErr != nil {
+			return delErr
+		}
+
 		return nil
 	})
 

@@ -20,10 +20,10 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
 
+	// path should be "/" or start with "/"
 	if req.Path == "" {
 		req.Path = "/"
 	}
-
 	if req.Path[0] != '/' {
 		req.Path = "/" + req.Path
 	}
