@@ -46,3 +46,7 @@
 [[constraint]]
   branch = "master"
   name = "git.containerum.net/ch/json-types"
+
+[[constraint]]
+  branch = "release-1.9"
+  name = "k8s.io/apimachinery"
