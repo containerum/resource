@@ -34,8 +34,8 @@ type Kube interface {
 	CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error
 	DeleteSecret(ctx context.Context, nsID, secretName string) error
 
-	CreateService(ctx context.Context, nsID string, service kubtypes.Service) error
-	UpdateService(ctx context.Context, nsID, serviceName string, service kubtypes.Service) error
+	CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error
+	UpdateService(ctx context.Context, nsID, serviceName string, service kubtypesInternal.ServiceWithOwner) error
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 }
 
@@ -297,7 +297,7 @@ func (kub kube) DeleteSecret(ctx context.Context, nsID, secretName string) error
 	return nil
 }
 
-func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
+func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
 	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
 	resp, err := kub.client.R().
@@ -316,7 +316,7 @@ func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes
 	return nil
 }
 
-func (kub kube) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypes.Service) error {
+func (kub kube) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypesInternal.ServiceWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"service_name": serviceName,
@@ -478,13 +478,13 @@ func (kub kubeDummy) DeleteSecret(ctx context.Context, nsID, secretName string) 
 	return nil
 }
 
-func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
+func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
 	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
 	return nil
 }
 
-func (kub kubeDummy) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypes.Service) error {
+func (kub kubeDummy) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypesInternal.ServiceWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"service_name": serviceName,
