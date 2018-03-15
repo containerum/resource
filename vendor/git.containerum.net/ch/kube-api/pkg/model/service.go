@@ -20,6 +20,10 @@ const (
 	maxport = 65535
 )
 
+type ServicesList struct {
+	Services []ServiceWithOwner `json:"services"`
+}
+
 type ServiceWithOwner struct {
 	kube_types.Service
 	Owner      string `json:"owner,omitempty"`
@@ -32,7 +36,7 @@ const (
 )
 
 // ParseServiceList parses kubernetes v1.ServiceList to more convenient Service struct.
-func ParseServiceList(ns interface{}) ([]ServiceWithOwner, error) {
+func ParseServiceList(ns interface{}) (*ServicesList, error) {
 	nativeServices := ns.(*api_core.ServiceList)
 	if nativeServices == nil {
 		return nil, ErrUnableConvertServiceList
@@ -49,7 +53,7 @@ func ParseServiceList(ns interface{}) ([]ServiceWithOwner, error) {
 			serviceList = append(serviceList, *service)
 		}
 	}
-	return serviceList, nil
+	return &ServicesList{serviceList}, nil
 }
 
 // ParseService parses kubernetes v1.Service to more convenient Service struct.
@@ -103,7 +107,7 @@ func parseServicePort(np interface{}) kube_types.ServicePort {
 
 // MakeService creates kubernetes v1.Service from Service struct and namespace labels
 func MakeService(nsName string, service ServiceWithOwner, labels map[string]string) (*api_core.Service, []error) {
-	err := validateService(service)
+	err := ValidateService(service)
 	if err != nil {
 		return nil, err
 	}
@@ -158,26 +162,32 @@ func makeServicePorts(ports []kube_types.ServicePort) []api_core.ServicePort {
 	return serviceports
 }
 
-func validateService(service ServiceWithOwner) []error {
+func ValidateService(service ServiceWithOwner) []error {
 	errs := []error{}
 	if service.Owner == "" {
-		errs = append(errs, errors.New(noOwner))
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
 	} else {
 		if !IsValidUUID(service.Owner) {
 			errs = append(errs, errors.New(invalidOwner))
 		}
 	}
-	if len(api_validation.IsDNS1123Subdomain(service.Name)) > 0 {
+	if service.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if len(api_validation.IsDNS1123Subdomain(service.Name)) > 0 {
 		errs = append(errs, fmt.Errorf(invalidName, service.Name))
 	}
 	if service.Ports == nil || len(service.Ports) == 0 {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Ports"))
 	}
 	for _, v := range service.Ports {
-		if len(api_validation.IsValidPortName(v.Name)) > 0 {
+		if v.Name == "" {
+			errs = append(errs, fmt.Errorf(fieldShouldExist, "Port name"))
+		} else if len(api_validation.IsValidPortName(v.Name)) > 0 {
 			errs = append(errs, fmt.Errorf(invalidName, v.Name))
 		}
-		if v.Protocol != kube_types.UDP && v.Protocol != kube_types.TCP {
+		if v.Protocol == "" {
+			errs = append(errs, fmt.Errorf(fieldShouldExist, "Port protocol"))
+		} else if v.Protocol != kube_types.UDP && v.Protocol != kube_types.TCP {
 			errs = append(errs, fmt.Errorf(invalidProtocol, v.Protocol))
 		}
 		if len(api_validation.IsInRange(v.Port, minport, maxport)) > 0 {

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"git.containerum.net/ch/json-types/kube-api"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
-	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"

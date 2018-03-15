@@ -24,6 +24,10 @@ const (
 	maxNamespaceMemory = "10Gi"
 )
 
+type NamespacesList struct {
+	Namespaces []NamespaceWithOwner `json:"namespaces"`
+}
+
 type NamespaceWithOwner struct {
 	kube_types.Namespace
 	Owner string `json:"owner,omitempty"`
@@ -31,7 +35,7 @@ type NamespaceWithOwner struct {
 
 // ParseResourceQuotaList parses kubernetes v1.ResourceQuotaList to more convenient []Namespace struct.
 // (resource quouta contains all fields that parent namespace contains)
-func ParseResourceQuotaList(quotas interface{}) ([]NamespaceWithOwner, error) {
+func ParseResourceQuotaList(quotas interface{}) (*NamespacesList, error) {
 	objects := quotas.(*api_core.ResourceQuotaList)
 	if objects == nil {
 		return nil, ErrUnableConvertNamespaceList
@@ -45,7 +49,7 @@ func ParseResourceQuotaList(quotas interface{}) ([]NamespaceWithOwner, error) {
 		}
 		namespaces = append(namespaces, *ns)
 	}
-	return namespaces, nil
+	return &NamespacesList{namespaces}, nil
 }
 
 // ParseResourceQuota parses kubernetes v1.ResourceQuota to more convenient Namespace struct.
@@ -61,14 +65,13 @@ func ParseResourceQuota(quota interface{}) (*NamespaceWithOwner, error) {
 	cpuUsed := obj.Status.Used[api_core.ResourceLimitsCPU]
 	memoryUsed := obj.Status.Used[api_core.ResourceLimitsMemory]
 	owner := obj.GetObjectMeta().GetLabels()[ownerLabel]
-
-	//	createdAt := obj.ObjectMeta.CreationTimestamp.Unix()
+	createdAt := obj.ObjectMeta.CreationTimestamp.Unix()
 
 	return &NamespaceWithOwner{
 		Owner: owner,
 		Namespace: kube_types.Namespace{
-			Label: obj.GetNamespace(),
-			//TODO			CreatedAt: &createdAt,
+			Label:     obj.GetNamespace(),
+			CreatedAt: &createdAt,
 			Resources: kube_types.Resources{
 				Hard: kube_types.Resource{
 					CPU:    cpuLimit.String(),
@@ -111,13 +114,14 @@ func MakeNamespace(ns NamespaceWithOwner) (*api_core.Namespace, []error) {
 func validateNamespace(ns NamespaceWithOwner) []error {
 	errs := []error{}
 
-	if len(api_validation.IsDNS1123Subdomain(ns.Label)) > 0 {
+	if ns.Label == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Label"))
+	} else if len(api_validation.IsDNS1123Subdomain(ns.Label)) > 0 {
 		errs = append(errs, fmt.Errorf(invalidName, ns.Label))
 	}
 	if ns.Owner != "" && !IsValidUUID(ns.Owner) {
 		errs = append(errs, errors.New(invalidOwner))
 	}
-
 	if len(errs) > 0 {
 		return errs
 	}
@@ -135,9 +139,9 @@ func MakeResourceQuota(ns string, labels map[string]string, resources kube_types
 		return nil, []error{ErrInvalidMemoryFormat}
 	}
 
-	errors := validateResourceQuota(cpuq, memoryq)
-	if errors != nil {
-		return nil, errors
+	errs := ValidateResourceQuota(cpuq, memoryq)
+	if errs != nil {
+		return nil, errs
 	}
 
 	newRq := api_core.ResourceQuota{
@@ -162,7 +166,7 @@ func MakeResourceQuota(ns string, labels map[string]string, resources kube_types
 	return &newRq, nil
 }
 
-func validateResourceQuota(cpu, mem api_resource.Quantity) []error {
+func ValidateResourceQuota(cpu, mem api_resource.Quantity) []error {
 	errs := []error{}
 
 	mincpu, _ := api_resource.ParseQuantity(minNamespaceCPU)

@@ -29,7 +29,7 @@
 
 [[constraint]]
   name = "git.containerum.net/ch/kube-client"
-  branch = "develop"
+  version = "~0.2.0"
 
 [[constraint]]
   branch = "develop"
@@ -48,5 +48,5 @@
   name = "git.containerum.net/ch/json-types"
 
 [[constraint]]
-  branch = "release-1.9"
+  version = "kubernetes-1.9.3"
   name = "k8s.io/apimachinery"

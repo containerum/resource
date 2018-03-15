@@ -15,7 +15,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 )
 
 type pgDB struct {

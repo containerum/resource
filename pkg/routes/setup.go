@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	umtypes "git.containerum.net/ch/json-types/user-manager"
-	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"git.containerum.net/ch/utils"

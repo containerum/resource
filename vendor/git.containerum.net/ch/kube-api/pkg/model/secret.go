@@ -10,13 +10,17 @@ import (
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
 )
 
+type SecretsList struct {
+	Secrets []SecretWithOwner `json:"secrets"`
+}
+
 type SecretWithOwner struct {
 	kube_types.Secret
 	Owner string `json:"owner,omitempty"`
 }
 
 // ParseSecretList parses kubernetes v1.SecretList to more convenient []Secret struct.
-func ParseSecretList(secreti interface{}) ([]SecretWithOwner, error) {
+func ParseSecretList(secreti interface{}) (*SecretsList, error) {
 	secrets := secreti.(*api_core.SecretList)
 	if secrets == nil {
 		return nil, ErrUnableConvertSecretList
@@ -33,7 +37,7 @@ func ParseSecretList(secreti interface{}) ([]SecretWithOwner, error) {
 			newSecrets = append(newSecrets, *newSecret)
 		}
 	}
-	return newSecrets, nil
+	return &SecretsList{newSecrets}, nil
 }
 
 // ParseSecret parses kubernetes v1.Secret to more convenient Secret struct.
@@ -63,7 +67,7 @@ func ParseSecret(secreti interface{}) (*SecretWithOwner, error) {
 
 // MakeSecret creates kubernetes v1.Secret from Secret struct and namespace labels
 func MakeSecret(nsName string, secret SecretWithOwner, labels map[string]string) (*api_core.Secret, []error) {
-	err := validateSecret(secret)
+	err := ValidateSecret(secret)
 	if err != nil {
 		return nil, err
 	}
@@ -102,16 +106,18 @@ func makeSecretData(data map[string]string) map[string][]byte {
 	return newData
 }
 
-func validateSecret(secret SecretWithOwner) []error {
+func ValidateSecret(secret SecretWithOwner) []error {
 	errs := []error{}
 	if secret.Owner == "" {
-		errs = append(errs, errors.New(noOwner))
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
 	} else {
 		if !IsValidUUID(secret.Owner) {
 			errs = append(errs, errors.New(invalidOwner))
 		}
 	}
-	if len(api_validation.IsDNS1123Subdomain(secret.Name)) > 0 {
+	if secret.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if len(api_validation.IsDNS1123Subdomain(secret.Name)) > 0 {
 		errs = append(errs, fmt.Errorf(invalidName, secret.Name))
 	}
 	for k := range secret.Data {

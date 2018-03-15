@@ -10,13 +10,17 @@ import (
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
 )
 
+type ConfigMapsList struct {
+	ConfigMaps []ConfigMapWithOwner `json:"configmaps"`
+}
+
 type ConfigMapWithOwner struct {
 	kube_types.ConfigMap
 	Owner string `json:"owner,omitempty"`
 }
 
 // ParseConfigMapList parses kubernetes v1.ConfigMapList to more convenient []ConfigMap struct.
-func ParseConfigMapList(cmi interface{}) ([]ConfigMapWithOwner, error) {
+func ParseConfigMapList(cmi interface{}) (*ConfigMapsList, error) {
 	cm := cmi.(*api_core.ConfigMapList)
 	if cm == nil {
 		return nil, ErrUnableConvertConfigMapList
@@ -30,7 +34,7 @@ func ParseConfigMapList(cmi interface{}) ([]ConfigMapWithOwner, error) {
 		}
 		newCms = append(newCms, *newCm)
 	}
-	return newCms, nil
+	return &ConfigMapsList{newCms}, nil
 }
 
 // ParseConfigMap parses kubernetes v1.ConfigMap to more convenient ConfigMap struct.
@@ -60,7 +64,7 @@ func ParseConfigMap(cmi interface{}) (*ConfigMapWithOwner, error) {
 
 // MakeConfigMap creates kubernetes v1.ConfigMap from ConfigMap struct and namespace labels
 func MakeConfigMap(nsName string, cm ConfigMapWithOwner, labels map[string]string) (*api_core.ConfigMap, []error) {
-	err := validateConfigMap(cm)
+	err := ValidateConfigMap(cm)
 	if err != nil {
 		return nil, err
 	}
@@ -84,20 +88,21 @@ func MakeConfigMap(nsName string, cm ConfigMapWithOwner, labels map[string]strin
 		},
 		Data: cm.Data,
 	}
-
 	return &newCm, nil
 }
 
-func validateConfigMap(cm ConfigMapWithOwner) []error {
+func ValidateConfigMap(cm ConfigMapWithOwner) []error {
 	errs := []error{}
 	if cm.Owner == "" {
-		errs = append(errs, errors.New(noOwner))
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
 	} else {
 		if !IsValidUUID(cm.Owner) {
 			errs = append(errs, errors.New(invalidOwner))
 		}
 	}
-	if len(api_validation.IsDNS1123Subdomain(cm.Name)) > 0 {
+	if cm.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if len(api_validation.IsDNS1123Subdomain(cm.Name)) > 0 {
 		errs = append(errs, fmt.Errorf(invalidName, cm.Name))
 	}
 	for k := range cm.Data {

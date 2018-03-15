@@ -30,13 +30,17 @@ const (
 	maxDeployReplicas = 10
 )
 
+type DeploymentsList struct {
+	Deployments []DeploymentWithOwner `json:"deployments"`
+}
+
 type DeploymentWithOwner struct {
 	kube_types.Deployment
 	Owner string `json:"owner,omitempty"`
 }
 
 // ParseDeploymentList parses kubernetes v1.DeploymentList to more convenient []Deployment struct
-func ParseDeploymentList(deploys interface{}) ([]DeploymentWithOwner, error) {
+func ParseDeploymentList(deploys interface{}) (*DeploymentsList, error) {
 	objects := deploys.(*api_apps.DeploymentList)
 	if objects == nil {
 		return nil, ErrUnableConvertDeploymentList
@@ -51,7 +55,7 @@ func ParseDeploymentList(deploys interface{}) ([]DeploymentWithOwner, error) {
 
 		deployments = append(deployments, *deployment)
 	}
-	return deployments, nil
+	return &DeploymentsList{deployments}, nil
 }
 
 // ParseDeployment parses kubernetes v1.Deployment to more convenient Deployment struct
@@ -104,7 +108,7 @@ func getVolumeMode(volumes []api_core.Volume) map[string]int32 {
 
 //MakeDeployment creates kubernetes v1.Deployment from Deployment struct and namespace labels
 func MakeDeployment(nsName string, depl DeploymentWithOwner, labels map[string]string) (*api_apps.Deployment, []error) {
-	err := validateDeployment(depl)
+	err := ValidateDeployment(depl)
 	if err != nil {
 		return nil, err
 	}
@@ -184,15 +188,15 @@ func makeContainers(containers []kube_types.Container) ([]api_core.Container, []
 			container.Ports = makeContainerPorts(c.Ports)
 		}
 
-		if rq, err := makeContainerResourceQuota(c.Limits.CPU, c.Limits.Memory); err != nil {
-			return nil, nil, nil, []error{err}
-		} else {
-			container.Resources = *rq
-		}
-
-		err := validateContainer(c, *container.Resources.Limits.Cpu(), *container.Resources.Limits.Memory())
+		rq, err := makeContainerResourceQuota(c.Limits.CPU, c.Limits.Memory)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, []error{err}
+		}
+		container.Resources = *rq
+
+		errs := ValidateContainer(c, *container.Resources.Limits.Cpu(), *container.Resources.Limits.Memory())
+		if err != nil {
+			return nil, nil, nil, errs
 		}
 
 		containersAfter = append(containersAfter, container)
@@ -303,7 +307,7 @@ func UpdateImage(deployment interface{}, containerName, newimage string) (*api_a
 		}
 	}
 	if updated == false {
-		return nil, fmt.Errorf(NoContainer, containerName)
+		return nil, fmt.Errorf(noContainer, containerName)
 	}
 
 	return deploy, nil
@@ -345,16 +349,18 @@ func makeTemplateVolumes(volumes []string, cmaps map[string]int64, owner string)
 	return tvolumes
 }
 
-func validateDeployment(deploy DeploymentWithOwner) []error {
+func ValidateDeployment(deploy DeploymentWithOwner) []error {
 	errs := []error{}
 	if deploy.Owner == "" {
-		errs = append(errs, errors.New(noOwner))
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
 	} else {
 		if !IsValidUUID(deploy.Owner) {
 			errs = append(errs, errors.New(invalidOwner))
 		}
 	}
-	if len(api_validation.IsDNS1123Subdomain(deploy.Name)) > 0 {
+	if deploy.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if len(api_validation.IsDNS1123Subdomain(deploy.Name)) > 0 {
 		errs = append(errs, fmt.Errorf(invalidName, deploy.Name))
 	}
 	if len(api_validation.IsInRange(deploy.Replicas, 1, maxDeployReplicas)) > 0 {
@@ -369,7 +375,7 @@ func validateDeployment(deploy DeploymentWithOwner) []error {
 	return nil
 }
 
-func validateContainer(container kube_types.Container, cpu, mem api_resource.Quantity) []error {
+func ValidateContainer(container kube_types.Container, cpu, mem api_resource.Quantity) []error {
 	errs := []error{}
 
 	mincpu, _ := api_resource.ParseQuantity(minDeployCPU)

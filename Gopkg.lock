@@ -24,10 +24,9 @@
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
   packages = ["pkg/model"]
-  revision = "0392d2e0e8ceaa6010d9477730ea652dc6a0cb84"
+  revision = "7d3d2406629bda73198f3dc58469984dc56adc78"
 
 [[projects]]
-  branch = "develop"
   name = "git.containerum.net/ch/kube-client"
   packages = [
     "pkg/cherry",
@@ -38,7 +37,8 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "fac866ad3f6728e2ed8ba5b7039607593bedeb4e"
+  revision = "ec0ed453031faa1f30e18eb6eed19ed4af6cfe6d"
+  version = "v0.2.1"
 
 [[projects]]
   branch = "master"
@@ -167,10 +167,10 @@
   revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
 
 [[projects]]
+  branch = "master"
   name = "github.com/google/uuid"
   packages = ["."]
-  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
-  version = "0.2"
+  revision = "dec09d789f3dba190787f8b4454c7d3c936fed9e"
 
 [[projects]]
   branch = "master"
@@ -416,6 +416,7 @@
     "third_party/forked/golang/reflect"
   ]
   revision = "19e3f5aa3adca672c153d324e6b7d82ff8935f03"
+  version = "kubernetes-1.9.3"
 
 [[projects]]
   branch = "master"
@@ -426,6 +427,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "17e64c60d059900a33c571b076e03d80147e615db00a5d3c81f864ed110016aa"
+  inputs-digest = "b4cd3167036f538a505b0b31de1ca3983d65fe738462f7fa48cc613f68a9a147"
   solver-name = "gps-cdcl"
   solver-version = 1
