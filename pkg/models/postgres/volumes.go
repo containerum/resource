@@ -137,9 +137,11 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 			tariff_id,
 			capacity,
 			replicas,
-			ns_id
+			ns_id,
+			storage_id,
+			gluster_name
 		)
-		VALUES (:tariff_id, :capacity, :replicas, :ns_id)
+		VALUES (:tariff_id, :capacity, :replicas, :ns_id, :storage_id, :gluster_name)
 		RETURNING *`,
 		volume)
 	err = sqlx.GetContext(ctx, db.extLog, volume, db.extLog.Rebind(query), args...)
