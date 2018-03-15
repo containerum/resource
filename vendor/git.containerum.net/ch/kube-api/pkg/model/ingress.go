@@ -1,14 +1,10 @@
 package model
 
 import (
-	//	"fmt"
+	"fmt"
 
 	kube_types "git.containerum.net/ch/kube-client/pkg/model"
 	api_extensions "k8s.io/api/extensions/v1beta1"
-	//	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//	"k8s.io/apimachinery/pkg/util/intstr"
-	//	api_validation "k8s.io/apimachinery/pkg/util/validation"
-	"fmt"
 
 	"github.com/pkg/errors"
 	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,13 +12,17 @@ import (
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
 )
 
+type IngressesList struct {
+	Ingress []IngressWithOwner `json:"ingresses"`
+}
+
 type IngressWithOwner struct {
 	kube_types.Ingress
 	Owner string `json:"owner,omitempty"`
 }
 
 // ParseIngressList parses kubernetes v1beta1.IngressList to more convenient []Ingress struct
-func ParseIngressList(ingressi interface{}) ([]IngressWithOwner, error) {
+func ParseIngressList(ingressi interface{}) (*IngressesList, error) {
 	ingresses := ingressi.(*api_extensions.IngressList)
 	if ingresses == nil {
 		return nil, ErrUnableConvertIngressList
@@ -35,7 +35,7 @@ func ParseIngressList(ingressi interface{}) ([]IngressWithOwner, error) {
 		}
 		newIngresses = append(newIngresses, *newIngress)
 	}
-	return newIngresses, nil
+	return &IngressesList{newIngresses}, nil
 }
 
 // ParseIngress parses kubernetes v1beta1.Ingress to more convenient Ingress struct
@@ -100,7 +100,7 @@ func parseTLS(tlss []api_extensions.IngressTLS) map[string]string {
 
 // MakeIngress creates kubernetes v1beta1.Ingress from Ingress struct and namespace labels
 func MakeIngress(nsName string, ingress IngressWithOwner, labels map[string]string) (*api_extensions.Ingress, []error) {
-	err := validateIngress(ingress)
+	err := ValidateIngress(ingress)
 	if err != nil {
 		return nil, err
 	}
@@ -172,16 +172,18 @@ func makeIngressRules(rules []kube_types.Rule) ([]api_extensions.IngressRule, []
 	return newRules, secrets, tls
 }
 
-func validateIngress(ingress IngressWithOwner) []error {
+func ValidateIngress(ingress IngressWithOwner) []error {
 	errs := []error{}
 	if ingress.Owner == "" {
-		errs = append(errs, errors.New(noOwner))
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
 	} else {
 		if !IsValidUUID(ingress.Owner) {
 			errs = append(errs, errors.New(invalidOwner))
 		}
 	}
-	if len(api_validation.IsDNS1123Subdomain(ingress.Name)) > 0 {
+	if ingress.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if len(api_validation.IsDNS1123Subdomain(ingress.Name)) > 0 {
 		errs = append(errs, fmt.Errorf(invalidName, ingress.Name))
 	}
 	if ingress.Rules == nil || len(ingress.Rules) == 0 {
@@ -192,7 +194,9 @@ func validateIngress(ingress IngressWithOwner) []error {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "Path"))
 		}
 		for _, p := range v.Path {
-			if len(api_validation.IsDNS1123Subdomain(p.ServiceName)) > 0 {
+			if ingress.Name == "" {
+				errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+			} else if len(api_validation.IsDNS1123Subdomain(p.ServiceName)) > 0 {
 				errs = append(errs, fmt.Errorf(invalidName, p.ServiceName))
 			}
 			if len(api_validation.IsValidPortNum(p.ServicePort)) > 0 {
