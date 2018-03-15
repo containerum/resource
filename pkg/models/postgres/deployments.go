@@ -10,6 +10,7 @@ import (
 	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 type volumeMountWithName struct {
@@ -213,7 +214,8 @@ func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 			var containerResp kubtypes.Container
 			containerResp.Name = container.Name
 			containerResp.Image = container.Image
-			// TODO: add resources description when model will be updated
+			containerResp.Limits.CPU = resource.NewScaledQuantity(int64(container.CPU), resource.Milli).String()
+			containerResp.Limits.Memory = resource.NewScaledQuantity(int64(container.RAM), resource.Mega).String()
 
 			env := convertEnv(containerEnv[container.ID])
 			containerResp.Env = env
@@ -277,7 +279,6 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 	}
 	ret.Name = rawDeploy.Name
 	ret.Replicas = rawDeploy.Replicas
-	// TODO: add resources description when model will be updated
 
 	rawContainers, containerIDs, err := db.getDeploymentContainers(ctx, rawDeploy)
 	if err != nil {
@@ -379,12 +380,24 @@ func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
 	contMap = make(map[string]kubtypes.Container)
 	for _, container := range containers {
 		var containerID string
+		var cpuQty, ramQty resource.Quantity
+
+		if cpuQty, err = resource.ParseQuantity(container.Limits.CPU); err != nil {
+			err = rserrors.ErrValidation().AddDetailF("cpu quantity parse failed: %v", err)
+			return
+		}
+
+		if ramQty, err = resource.ParseQuantity(container.Limits.Memory); err != nil {
+			err = rserrors.ErrValidation().AddDetailF("memory quantity parse failed: %v")
+			return
+		}
+
 		err = stmt.GetContext(ctx, &containerID, rstypes.Container{
 			DeployID: deplID,
 			Name:     container.Name,
 			Image:    container.Image,
-			CPU:      1, // FIXME
-			RAM:      1, // FIXME
+			CPU:      int(cpuQty.ScaledValue(resource.Milli)), // our limits fits into "int", stored as mCPU
+			RAM:      int(ramQty.ScaledValue(resource.Mega)),  // stored as megabytes
 		})
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
