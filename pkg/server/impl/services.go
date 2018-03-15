@@ -36,8 +36,8 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			kubeRequest.Domain = domain.Domain
 			kubeRequest.IPs = domain.IP
 			// TODO: SQL queries in loop is not good solution
-			for i := range req.Ports {
-				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+			for i := range kubeRequest.Ports {
+				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
@@ -100,20 +100,25 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		serviceType := server.DetermineServiceType(req)
 
+		kubeRequest := kubtypesInternal.ServiceWithOwner{
+			Service: req,
+			Owner:   userID,
+		}
+
 		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr
 			}
 
-			req.Domain = domain.Domain
-			req.IPs = domain.IP
-			for i := range req.Ports {
-				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+			kubeRequest.Domain = domain.Domain
+			kubeRequest.IPs = domain.IP
+			for i := range kubeRequest.Ports {
+				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				req.Ports[i].Port = port
+				kubeRequest.Ports[i].Port = port
 			}
 		}
 
@@ -122,11 +127,11 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 			return getErr
 		}
 
-		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, req); updErr != nil {
+		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, kubeRequest.Service); updErr != nil {
 			return updErr
 		}
 
-		if updErr := rs.Kube.UpdateService(ctx, nsID, serviceName, req); updErr != nil {
+		if updErr := rs.Kube.UpdateService(ctx, nsID, serviceName, kubeRequest); updErr != nil {
 			return updErr
 		}
 
