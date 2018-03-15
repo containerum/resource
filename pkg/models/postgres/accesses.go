@@ -5,7 +5,7 @@ import (
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
