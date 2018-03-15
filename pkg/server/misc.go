@@ -3,6 +3,10 @@ package server
 import (
 	"sync"
 
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
@@ -89,4 +93,10 @@ func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kub
 	}
 
 	return ret, nil
+}
+
+// VolumeGlusterName generates volume name for glusterfs (non-persistent volumes)
+func VolumeGlusterName(nsLabel, userID string) string {
+	glusterName := sha256.Sum256([]byte(fmt.Sprintf("%s-volume%s", nsLabel, userID)))
+	return hex.EncodeToString(glusterName[:])
 }

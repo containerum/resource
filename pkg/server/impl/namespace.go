@@ -73,13 +73,14 @@ func (rs *resourceServiceImpl) CreateNamespace(ctx context.Context, req rstypes.
 			}
 
 			newVolume := rstypes.Volume{
-				Resource:  rstypes.Resource{TariffID: tariff.ID},
-				Capacity:  tariff.VolumeSize,
-				Replicas:  2, // FIXME
-				StorageID: storage.ID,
+				Resource:    rstypes.Resource{TariffID: tariff.ID},
+				Capacity:    tariff.VolumeSize,
+				Replicas:    2, // FIXME
+				StorageID:   storage.ID,
+				NamespaceID: &newNamespace.ID,
+				GlusterName: server.VolumeGlusterName(nsCreateRequest.Label, userID),
 			}
 			newVolume.Active = new(bool) // false
-			newVolume.NamespaceID = &newNamespace.ID
 
 			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(req.Label), &newVolume); createErr != nil {
 				return createErr
@@ -325,13 +326,14 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 				return selectErr
 			}
 			newVolume := rstypes.Volume{
-				Resource:  rstypes.Resource{TariffID: newTariff.ID},
-				Capacity:  newTariff.VolumeSize,
-				Replicas:  2, // FIXME
-				StorageID: storage.ID,
+				Resource:    rstypes.Resource{TariffID: newTariff.ID},
+				Capacity:    newTariff.VolumeSize,
+				Replicas:    2, // FIXME
+				StorageID:   storage.ID,
+				NamespaceID: &ns.ID,
+				GlusterName: server.VolumeGlusterName(ns.ResourceLabel, userID),
 			}
 			newVolume.Active = new(bool) // false
-			newVolume.NamespaceID = &ns.ID
 
 			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(ns.ResourceLabel), &newVolume); createErr != nil {
 				return createErr

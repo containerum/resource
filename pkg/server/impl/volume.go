@@ -32,12 +32,13 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.Cre
 	}
 
 	newVolume := &rstypes.Volume{
-		Resource: rstypes.Resource{TariffID: tariff.ID},
-		Capacity: tariff.StorageLimit,
-		Replicas: tariff.ReplicasLimit,
+		Resource:    rstypes.Resource{TariffID: tariff.ID},
+		Capacity:    tariff.StorageLimit,
+		Replicas:    tariff.ReplicasLimit,
+		NamespaceID: nil, // make always persistent
+		GlusterName: req.Label,
 	}
 	newVolume.Active = new(bool) // false
-	newVolume.NamespaceID = nil  // make always persistent
 
 	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		storage, selectErr := tx.ChooseAvailableStorage(ctx, tariff.StorageLimit)
