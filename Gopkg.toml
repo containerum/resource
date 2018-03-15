@@ -50,3 +50,7 @@
 [[constraint]]
   version = "kubernetes-1.9.3"
   name = "k8s.io/apimachinery"
+
+[[constraint]]
+  branch = "develop"
+  name = "git.containerum.net/ch/auth"

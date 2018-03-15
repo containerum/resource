@@ -4,6 +4,7 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -21,20 +22,26 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		serviceType := server.DetermineServiceType(req)
 
+		kubeRequest := kubtypesInternal.ServiceWithOwner{
+			Service: req,
+			Owner:   userID,
+		}
+
 		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr
 			}
 
-			req.Domain = domain.Domain
-			req.IPs = domain.IP
-			for i := range req.Ports {
-				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+			kubeRequest.Domain = domain.Domain
+			kubeRequest.IPs = domain.IP
+			// TODO: SQL queries in loop is not good solution
+			for i := range kubeRequest.Ports {
+				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				req.Ports[i].Port = port
+				kubeRequest.Ports[i].Port = port
 			}
 		}
 
@@ -43,11 +50,11 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			return getErr
 		}
 
-		if createErr := tx.CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
+		if createErr := tx.CreateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); createErr != nil {
 			return createErr
 		}
 
-		if createErr := rs.Kube.CreateService(ctx, nsID, req); createErr != nil {
+		if createErr := rs.Kube.CreateService(ctx, nsID, kubeRequest); createErr != nil {
 			return createErr
 		}
 
@@ -93,20 +100,25 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		serviceType := server.DetermineServiceType(req)
 
+		kubeRequest := kubtypesInternal.ServiceWithOwner{
+			Service: req,
+			Owner:   userID,
+		}
+
 		if serviceType == rstypes.ServiceExternal {
 			domain, selectErr := tx.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr
 			}
 
-			req.Domain = domain.Domain
-			req.IPs = domain.IP
-			for i := range req.Ports {
-				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+			kubeRequest.Domain = domain.Domain
+			kubeRequest.IPs = domain.IP
+			for i := range kubeRequest.Ports {
+				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				req.Ports[i].Port = port
+				kubeRequest.Ports[i].Port = port
 			}
 		}
 
@@ -115,11 +127,11 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 			return getErr
 		}
 
-		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, req); updErr != nil {
+		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, kubeRequest.Service); updErr != nil {
 			return updErr
 		}
 
-		if updErr := rs.Kube.UpdateService(ctx, nsID, serviceName, req); updErr != nil {
+		if updErr := rs.Kube.UpdateService(ctx, nsID, serviceName, kubeRequest); updErr != nil {
 			return updErr
 		}
 
