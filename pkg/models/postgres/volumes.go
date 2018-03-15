@@ -200,7 +200,8 @@ func (db *pgDB) GetUserVolumes(ctx context.Context,
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE 
-			p.user_id = :user_id AND
+			p.user_id = :user_id AND -- return borrowed by default
+			p.owner_user_id = :user_id AND -- return owned by defaults
 			(NOT v.deleted OR NOT :not_deleted) AND
 			(v.deleted OR NOT :deleted) AND
 			(p.limited OR NOT :limited) AND

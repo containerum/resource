@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/json-types/kube-api"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	rserrors "git.containerum.net/ch/resource-service/pkg/resourceServiceErrors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -59,8 +60,7 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 	}
 
 	for _, storage := range storages {
-		// special hidden endpoint for glusterfs operation
-		endpointName := "ch-glusterfs-" + storage.ID[len(storage.ID)-4:]
+		endpointName := models.GlusterEndpointName(storage.ID)
 		ret = append(ret, kube_api.Endpoint{
 			Name:      endpointName,
 			Owner:     &userID,

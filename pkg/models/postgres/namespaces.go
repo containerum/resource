@@ -184,7 +184,8 @@ func (db *pgDB) getUserNamespacesRaw(ctx context.Context, userID string,
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
 		WHERE
-			p.user_id = :user_id AND
+			p.user_id = :user_id AND -- return borrowed by default
+			p.owner_user_id = :user_id AND -- return owned by default
 			(NOT ns.deleted OR NOT :not_deleted) AND
 			(ns.deleted OR NOT :deleted) AND
 			(p.limited OR NOT :limited) AND
