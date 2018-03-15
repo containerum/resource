@@ -62,32 +62,34 @@ func serviceValidate(structLevel validator.StructLevel) {
 	v := structLevel.Validator()
 
 	if err := v.Var(req.Name, "dns"); err != nil {
-		structLevel.ReportValidationErrors("", "name", err.(validator.ValidationErrors))
+		structLevel.ReportValidationErrors("Name", "", err.(validator.ValidationErrors))
 	}
 
 	if err := v.Var(req.Deploy, "dns"); err != nil {
-		structLevel.ReportValidationErrors("", "deploy", err.(validator.ValidationErrors))
+		structLevel.ReportValidationErrors("Deploy", "", err.(validator.ValidationErrors))
 	}
 
 	for i, port := range req.Ports {
-		if err := v.Var(port.Protocol, "eq=tcp|eq=udp"); err != nil {
-			structLevel.ReportValidationErrors("", fmt.Sprintf("ports[%d].protocol", i), err.(validator.ValidationErrors))
+		if port.Protocol != "" {
+			if err := v.Var(port.Protocol, "eq=TCP|eq=UDP"); err != nil {
+				structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Protocol", i), "", err.(validator.ValidationErrors))
+			}
 		}
 
 		if err := v.Var(port.Port, "min=1,max=65535"); err != nil {
-			structLevel.ReportValidationErrors("", fmt.Sprintf("ports[%d].port", i), err.(validator.ValidationErrors))
+			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Port", i), "", err.(validator.ValidationErrors))
 		}
 
 		if port.TargetPort != nil {
 			if err := v.Var(port.TargetPort, "min=1,max=65535"); err != nil {
-				structLevel.ReportValidationErrors("", fmt.Sprintf("ports[%d].target_port", i), err.(validator.ValidationErrors))
+				structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].TargetPort", i), "", err.(validator.ValidationErrors))
 			}
 		}
 	}
 
 	for i, ip := range req.IPs {
 		if err := v.Var(ip, "ip"); err != nil {
-			structLevel.ReportValidationErrors("", fmt.Sprintf("ips[%d]", i), err.(validator.ValidationErrors))
+			structLevel.ReportValidationErrors(fmt.Sprintf("IPs[%d]", i), "", err.(validator.ValidationErrors))
 		}
 	}
 }
