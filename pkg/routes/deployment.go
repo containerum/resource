@@ -3,7 +3,6 @@ package routes
 import (
 	"net/http"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -55,7 +54,7 @@ func deleteDeploymentByLabelHandler(ctx *gin.Context) {
 }
 
 func setContainerImageHandler(ctx *gin.Context) {
-	var req rstypes.SetContainerImageRequest
+	var req kubtypes.UpdateImage
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
@@ -88,7 +87,7 @@ func replaceDeploymentHandler(ctx *gin.Context) {
 }
 
 func setReplicasHandler(ctx *gin.Context) {
-	var req rstypes.SetReplicasRequest
+	var req kubtypes.UpdateReplicas
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return

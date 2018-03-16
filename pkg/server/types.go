@@ -60,8 +60,8 @@ type ResourceService interface {
 	GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error)
 	DeleteDeployment(ctx context.Context, nsLabel, deplName string) error
 	ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
-	SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req rstypes.SetReplicasRequest) error
-	SetContainerImage(ctx context.Context, nsLabel, deplName string, req rstypes.SetContainerImageRequest) error
+	SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error
+	SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
 	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error)

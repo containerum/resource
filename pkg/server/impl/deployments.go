@@ -3,7 +3,6 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -150,7 +149,7 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel st
 	return err
 }
 
-func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req rstypes.SetReplicasRequest) error {
+func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -178,7 +177,7 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 	return err
 }
 
-func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req rstypes.SetContainerImageRequest) error {
+func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -196,7 +195,7 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 			return setErr
 		}
 
-		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplName, kubtypes.UpdateImage{Container: req.ContainerName, Image: req.Image})
+		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplName, req)
 		if setErr != nil {
 			return setErr
 		}

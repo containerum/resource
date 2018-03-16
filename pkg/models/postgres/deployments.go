@@ -684,8 +684,7 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 	return
 }
 
-func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string,
-	req rstypes.SetContainerImageRequest) (err error) {
+func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req kubtypes.UpdateImage) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -714,7 +713,7 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabe
 		`UPDATE containers
 		SET image = :image
 		WHERE depl_id = :depl_id AND name = :name`,
-		rstypes.Container{DeployID: deplID, Name: req.ContainerName, Image: req.Image})
+		rstypes.Container{DeployID: deplID, Name: req.Container, Image: req.Image})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return

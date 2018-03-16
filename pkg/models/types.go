@@ -48,7 +48,7 @@ type DB interface {
 	DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel string) (bool, error)
 	ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplLabel string, replicas int) error
-	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
+	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req kubtypes.UpdateImage) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
 	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.Domain, error)

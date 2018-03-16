@@ -33,6 +33,8 @@ func StandardResourceValidator(uni *ut.UniversalTranslator) (ret *validator.Vali
 	ret.RegisterStructValidation(deploymentValidate, kubtypes.Deployment{})
 	ret.RegisterStructValidation(containerVolumeValidate, kubtypes.ContainerVolume{})
 	ret.RegisterStructValidation(containerPortValidate, kubtypes.ContainerPort{})
+	ret.RegisterStructValidation(updateReplicasValidate, kubtypes.UpdateReplicas{})
+	ret.RegisterStructValidation(updateImageValidate, kubtypes.UpdateImage{})
 
 	return
 }
@@ -187,5 +189,29 @@ func containerPortValidate(structLevel validator.StructLevel) {
 
 	if err := v.Var(req.Protocol, "eq=TCP|eq=UDP"); err != nil {
 		structLevel.ReportValidationErrors("Protocol", "", err.(validator.ValidationErrors))
+	}
+}
+
+func updateReplicasValidate(structLevel validator.StructLevel) {
+	req := structLevel.Current().Interface().(kubtypes.UpdateReplicas)
+
+	v := structLevel.Validator()
+
+	if err := v.Var(req.Replicas, "min=1,max=15"); err != nil { // DB constraint
+		structLevel.ReportValidationErrors("Replicas", "", err.(validator.ValidationErrors))
+	}
+}
+
+func updateImageValidate(structLevel validator.StructLevel) {
+	req := structLevel.Current().Interface().(kubtypes.UpdateImage)
+
+	v := structLevel.Validator()
+
+	if err := v.Var(req.Image, "docker_image"); err != nil {
+		structLevel.ReportValidationErrors("Image", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Container, "dns"); err != nil {
+		structLevel.ReportValidationErrors("Container", "", err.(validator.ValidationErrors))
 	}
 }
