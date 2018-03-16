@@ -25,7 +25,9 @@ func (db *pgDB) isVolumeExists(ctx context.Context, userID, label string) (exist
 		`SELECT count(v.*)
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = :user_id AND p.resource_label = :label`, params)
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND 
+			p.resource_label = :label`,
+		params)
 	err = sqlx.GetContext(ctx, db.extLog, &count, db.extLog.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -301,7 +303,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = :user_id AND p.resource_label = :label`,
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :label`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -340,7 +342,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 			p.new_access_level
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
-		WHERE p.user_id = :user_id AND p.resource_label = :label`,
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :label`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &ret.VolumeWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
@@ -420,7 +422,7 @@ func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, l
 		JOIN containers c ON vm.container_id = c.id
 		JOIN deployments d ON c.depl_id = d.id
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
-		WHERE p.user_id = :user_id AND p.resource_label = :label`,
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :label`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -590,12 +592,12 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 			SELECT resource_id
 			FROM permissions
 			WHERE owner_user_id = user_id AND 
-				user_id = $1 AND 
+				user_id = :user_id AND 
 				kind = 'volume' AND
-				resource_label = $2
+				resource_label = :label
 		)
 		UPDATE volumes 
-		SET active = $2 
+		SET active = :active
 		WHERE id IN (SELECT resource_id FROM user_vol)`,
 		params)
 	if err != nil {
