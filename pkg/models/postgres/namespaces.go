@@ -23,7 +23,10 @@ func (db *pgDB) getNamespaceID(ctx context.Context, userID, label string) (id st
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT resource_id
 		FROM permissions
-		WHERE kind = 'namespace' AND user_id = :user_id AND resource_label = :label`, queryFields)
+		WHERE kind = 'namespace' AND 
+			(owner_user_id = :user_id OR user_id = :user_id) AND
+			resource_label = :label`,
+		queryFields)
 	err = sqlx.GetContext(ctx, db.extLog, &id, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
@@ -287,7 +290,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :resource_label`,
 		rstypes.PermissionRecord{UserID: userID, ResourceLabel: label})
 	err = sqlx.GetContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -404,7 +407,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-		WHERE p.user_id = :user_id AND p.resource_label = :resource_label`,
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :resource_label`,
 		rstypes.PermissionRecord{UserID: userID, ResourceLabel: label})
 	err = sqlx.GetContext(ctx, db.extLog, &ret.NamespaceWithPermission, db.extLog.Rebind(query), args...)
 	switch err {
