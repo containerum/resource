@@ -93,7 +93,7 @@ func serviceValidate(structLevel validator.StructLevel) {
 }
 
 func updateServiceValidate(structLevel validator.StructLevel) {
-	req := structLevel.Current().Interface().(kubtypes.Service)
+	req := structLevel.Current().Interface().(server.UpdateServiceRequest)
 
 	v := structLevel.Validator()
 
