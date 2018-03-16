@@ -304,11 +304,11 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 	return
 }
 
-func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
+func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceName string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"ns_label":         nsLabel,
-		"service_label":    serviceLabel,
+		"service_name":     serviceName,
 		"new_service_type": newServiceType,
 	}).Debugf("update service to %#v", req)
 
@@ -333,7 +333,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel, serviceLabel
 		SET "type" = :new_type
 		WHERE id = (SELECT id FROM service_to_update)
 		RETURNING id`,
-		map[string]interface{}{"ns_id": nsID, "name": serviceLabel, "new_type": newServiceType})
+		map[string]interface{}{"ns_id": nsID, "name": serviceName, "new_type": newServiceType})
 	err = sqlx.GetContext(ctx, db.extLog, &serviceID, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:

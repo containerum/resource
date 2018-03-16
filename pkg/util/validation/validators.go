@@ -7,6 +7,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/en_US"
 	"github.com/go-playground/universal-translator"
@@ -29,6 +30,7 @@ func StandardResourceValidator(uni *ut.UniversalTranslator) (ret *validator.Vali
 
 	ret.RegisterStructValidation(createIngressRequestValidate, rstypes.CreateIngressRequest{})
 	ret.RegisterStructValidation(serviceValidate, kubtypes.Service{})
+	ret.RegisterStructValidation(updateServiceValidate, server.UpdateServiceRequest{})
 
 	return
 }
@@ -68,6 +70,36 @@ func serviceValidate(structLevel validator.StructLevel) {
 	if err := v.Var(req.Deploy, "dns"); err != nil {
 		structLevel.ReportValidationErrors("Deploy", "", err.(validator.ValidationErrors))
 	}
+
+	for i, port := range req.Ports {
+		if port.Protocol != "" {
+			if err := v.Var(port.Protocol, "eq=TCP|eq=UDP"); err != nil {
+				structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Protocol", i), "", err.(validator.ValidationErrors))
+			}
+		}
+
+		if err := v.Var(port.Port, "min=1,max=65535"); err != nil {
+			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Port", i), "", err.(validator.ValidationErrors))
+		}
+
+		if port.TargetPort != nil {
+			if err := v.Var(port.TargetPort, "min=1,max=65535"); err != nil {
+				structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].TargetPort", i), "", err.(validator.ValidationErrors))
+			}
+		}
+	}
+
+	for i, ip := range req.IPs {
+		if err := v.Var(ip, "ip"); err != nil {
+			structLevel.ReportValidationErrors(fmt.Sprintf("IPs[%d]", i), "", err.(validator.ValidationErrors))
+		}
+	}
+}
+
+func updateServiceValidate(structLevel validator.StructLevel) {
+	req := structLevel.Current().Interface().(kubtypes.Service)
+
+	v := structLevel.Validator()
 
 	for i, port := range req.Ports {
 		if port.Protocol != "" {

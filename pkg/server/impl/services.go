@@ -89,7 +89,7 @@ func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceN
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceName string, req kubtypes.Service) error {
+func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceName string, req server.UpdateServiceRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id":      userID,
@@ -98,10 +98,10 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 	}).Info("update service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		serviceType := server.DetermineServiceType(req)
+		serviceType := server.DetermineServiceType(req.Service)
 
 		kubeRequest := kubtypesInternal.ServiceWithOwner{
-			Service: req,
+			Service: req.Service,
 			Owner:   userID,
 		}
 
