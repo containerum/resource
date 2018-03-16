@@ -61,10 +61,10 @@ func SecretName(ingressName string) string {
 
 // DetermineServiceType deduces service type from service ports. If we have one or more "TargetPort" set it is internal.
 func DetermineServiceType(service kubtypes.Service) rstypes.ServiceType {
-	serviceType := rstypes.ServiceExternal
+	serviceType := rstypes.ServiceInternal
 	for _, port := range service.Ports {
-		if port.TargetPort != nil {
-			serviceType = rstypes.ServiceInternal
+		if port.Port != nil {
+			serviceType = rstypes.ServiceExternal
 			break
 		}
 	}
@@ -79,7 +79,7 @@ func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kub
 
 	var portExist bool
 	for _, port := range service.Ports {
-		if port.Port == servicePort && port.Protocol == kubtypes.TCP {
+		if port.Port != nil && *port.Port == servicePort && port.Protocol == kubtypes.TCP {
 			portExist = true
 			break
 		}
