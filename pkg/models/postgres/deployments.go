@@ -617,11 +617,10 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 	return
 }
 
-func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabel string, deploy kubtypes.Deployment) (err error) {
+func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) (err error) {
 	db.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":  userID,
+		"ns_label": nsLabel,
 	}).Debugf("replacing deployment with %#v", deploy)
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
@@ -637,7 +636,7 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabe
 	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
 		`DELETE FROM deployments
 		WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
-		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
+		rstypes.Deployment{NamespaceID: nsID, Name: deploy.Name})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return

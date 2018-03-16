@@ -57,11 +57,11 @@ type ResourceService interface {
 
 	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
 	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
-	GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error)
-	DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error
-	ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypes.Deployment) error
-	SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetReplicasRequest) error
-	SetContainerImage(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
+	GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error)
+	DeleteDeployment(ctx context.Context, nsLabel, deplName string) error
+	ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
+	SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req rstypes.SetReplicasRequest) error
+	SetContainerImage(ctx context.Context, nsLabel, deplName string, req rstypes.SetContainerImageRequest) error
 
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
 	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error)

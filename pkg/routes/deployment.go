@@ -77,7 +77,8 @@ func replaceDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	err := srv.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	req.Name = ctx.Param("deploy_label")
+	err := srv.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return

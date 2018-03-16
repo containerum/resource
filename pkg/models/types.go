@@ -46,7 +46,7 @@ type DB interface {
 	GetDeployments(ctx context.Context, userID, nsLabel string) ([]kubtypes.Deployment, error)
 	GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (kubtypes.Deployment, error)
 	DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel string) (bool, error)
-	ReplaceDeployment(ctx context.Context, userID, nsLabel, deplLabel string, deploy kubtypes.Deployment) error
+	ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplLabel string, replicas int) error
 	SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error
 

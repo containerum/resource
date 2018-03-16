@@ -23,10 +23,10 @@ type Kube interface {
 	DeleteNamespace(ctx context.Context, label string) error
 
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error
-	DeleteDeployment(ctx context.Context, nsID, deplLabel string) error
-	ReplaceDeployment(ctx context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error
-	SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error
-	SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.UpdateImage) error
+	DeleteDeployment(ctx context.Context, nsID, deplName string) error
+	ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error
+	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error
+	SetContainerImage(ctx context.Context, nsID, deplName string, container kubtypes.UpdateImage) error
 
 	CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
@@ -138,16 +138,16 @@ func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtyp
 	return nil
 }
 
-func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplLabel string) error {
+func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
 	}).Debug("delete deployment")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplLabel))
+		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -157,17 +157,16 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplLabel string) er
 	return nil
 }
 
-func (kub kube) ReplaceDeployment(ctx context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kube) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
+		"ns_id": nsID,
 	}).Debug("replace deployment %+v", deploy)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(deploy).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplLabel))
+		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deploy.Name))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -177,18 +176,18 @@ func (kub kube) ReplaceDeployment(ctx context.Context, nsID, deplLabel string, d
 	return nil
 }
 
-func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error {
+func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
-		"replicas":     replicas,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+		"replicas":    replicas,
 	}).Debug("change replicas")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(kubtypes.UpdateReplicas{Replicas: replicas}).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsID, deplLabel))
+		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsID, deplName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -198,19 +197,19 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel strin
 	return nil
 }
 
-func (kub kube) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.UpdateImage) error {
+func (kub kube) SetContainerImage(ctx context.Context, nsID, deplName string, container kubtypes.UpdateImage) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
-		"container":    container.Container,
-		"image":        container.Image,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+		"container":   container.Container,
+		"image":       container.Image,
 	}).Debug("set container image")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(container).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsID, deplLabel))
+		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsID, deplName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -405,40 +404,40 @@ func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kub
 	return nil
 }
 
-func (kub kubeDummy) DeleteDeployment(_ context.Context, nsID, deplLabel string) error {
+func (kub kubeDummy) DeleteDeployment(_ context.Context, nsID, deplName string) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
 	}).Debug("delete deployment")
 
 	return nil
 }
 
-func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
+		"ns_id":       nsID,
+		"deploy_name": deploy.Name,
 	}).Debug("replace deployment %+v", deploy)
 
 	return nil
 }
 
-func (kub kubeDummy) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error {
+func (kub kubeDummy) SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
-		"replicas":     replicas,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+		"replicas":    replicas,
 	}).Debug("change replicas")
 
 	return nil
 }
 
-func (kub kubeDummy) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.UpdateImage) error {
+func (kub kubeDummy) SetContainerImage(ctx context.Context, nsID, deplName string, container kubtypes.UpdateImage) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
-		"container":    container.Container,
-		"image":        container.Image,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+		"container":   container.Container,
+		"image":       container.Image,
 	}).Debug("set container image")
 
 	return nil
