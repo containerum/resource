@@ -41,7 +41,7 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				kubeRequest.Ports[i].Port = port
+				kubeRequest.Ports[i].Port = &port
 			}
 		}
 
@@ -118,7 +118,7 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				kubeRequest.Ports[i].Port = port
+				kubeRequest.Ports[i].Port = &port
 			}
 		}
 
