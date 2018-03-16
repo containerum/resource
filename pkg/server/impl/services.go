@@ -89,19 +89,19 @@ func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceN
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, serviceName string, req server.UpdateServiceRequest) error {
+func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel string, req server.UpdateServiceRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
-		"service_name": serviceName,
+		"service_name": req.Name,
 	}).Info("update service")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		serviceType := server.DetermineServiceType(req.Service)
+		serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
 		kubeRequest := kubtypesInternal.ServiceWithOwner{
-			Service: req.Service,
+			Service: kubtypes.Service(req),
 			Owner:   userID,
 		}
 
@@ -127,11 +127,11 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel, servi
 			return getErr
 		}
 
-		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceName, serviceType, kubeRequest.Service); updErr != nil {
+		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); updErr != nil {
 			return updErr
 		}
 
-		if updErr := rs.Kube.UpdateService(ctx, nsID, serviceName, kubeRequest); updErr != nil {
+		if updErr := rs.Kube.UpdateService(ctx, nsID, kubeRequest); updErr != nil {
 			return updErr
 		}
 

@@ -52,7 +52,8 @@ func updateServiceHandler(ctx *gin.Context) {
 		return
 	}
 
-	err := srv.UpdateService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"), req)
+	req.Name = ctx.Param("service_label")
+	err := srv.UpdateService(ctx.Request.Context(), ctx.Param("ns_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(handleError(err))
 		return

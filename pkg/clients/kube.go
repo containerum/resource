@@ -35,7 +35,7 @@ type Kube interface {
 	DeleteSecret(ctx context.Context, nsID, secretName string) error
 
 	CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error
-	UpdateService(ctx context.Context, nsID, serviceName string, service kubtypesInternal.ServiceWithOwner) error
+	UpdateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 }
 
@@ -315,17 +315,17 @@ func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes
 	return nil
 }
 
-func (kub kube) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypesInternal.ServiceWithOwner) error {
+func (kub kube) UpdateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
-		"service_name": serviceName,
+		"service_name": service.Name,
 	}).Debugf("update service to %+v", service)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetBody(service).
-		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsID, serviceName))
+		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsID, service.Name))
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -483,10 +483,10 @@ func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kub
 	return nil
 }
 
-func (kub kubeDummy) UpdateService(ctx context.Context, nsID, serviceName string, service kubtypesInternal.ServiceWithOwner) error {
+func (kub kubeDummy) UpdateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
-		"service_name": serviceName,
+		"service_name": service.Name,
 	}).Debugf("update service to %+v", service)
 
 	return nil
