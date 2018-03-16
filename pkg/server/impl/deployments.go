@@ -196,7 +196,7 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 			return setErr
 		}
 
-		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplLabel, kubtypes.Container{Name: req.ContainerName, Image: req.Image})
+		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplLabel, kubtypes.UpdateImage{Container: req.ContainerName, Image: req.Image})
 		if setErr != nil {
 			return setErr
 		}

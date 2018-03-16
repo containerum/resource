@@ -26,7 +26,7 @@ type Kube interface {
 	DeleteDeployment(ctx context.Context, nsID, deplLabel string) error
 	ReplaceDeployment(ctx context.Context, nsID, deplLabel string, deploy kubtypesInternal.DeploymentWithOwner) error
 	SetDeploymentReplicas(ctx context.Context, nsID, deplLabel string, replicas int) error
-	SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.Container) error
+	SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.UpdateImage) error
 
 	CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
@@ -198,11 +198,11 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel strin
 	return nil
 }
 
-func (kub kube) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.Container) error {
+func (kub kube) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.UpdateImage) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"deploy_label": deplLabel,
-		"container":    container.Name,
+		"container":    container.Container,
 		"image":        container.Image,
 	}).Debug("set container image")
 
@@ -433,11 +433,11 @@ func (kub kubeDummy) SetDeploymentReplicas(ctx context.Context, nsID, deplLabel 
 	return nil
 }
 
-func (kub kubeDummy) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.Container) error {
+func (kub kubeDummy) SetContainerImage(ctx context.Context, nsID, deplLabel string, container kubtypes.UpdateImage) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"deploy_label": deplLabel,
-		"container":    container.Name,
+		"container":    container.Container,
 		"image":        container.Image,
 	}).Debug("set container image")
 
