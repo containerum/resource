@@ -38,6 +38,7 @@ func (r *Resource) Mask() {
 	r.CreateTime = nil
 	r.Deleted = false
 	r.DeleteTime = nil
+	r.TariffID = ""
 }
 
 type Namespace struct {
@@ -105,7 +106,7 @@ type PermissionRecord struct {
 	ResourceLabel         string           `json:"label,omitempty" db:"resource_label"`
 	OwnerUserID           string           `json:"owner_user_id,omitempty" db:"owner_user_id"`
 	CreateTime            *time.Time       `json:"create_time,omitempty" db:"create_time"`
-	UserID                string           `json:"user_id" db:"user_id"`
+	UserID                string           `json:"user_id,omitempty" db:"user_id"`
 	AccessLevel           PermissionStatus `json:"access" db:"access_level"`
 	Limited               bool             `json:"limited,omitempty" db:"limited"`
 	AccessLevelChangeTime *time.Time       `json:"access_level_change_time" db:"access_level_change_time"`
@@ -226,8 +227,8 @@ type Port struct {
 	ID         string       `json:"id,omitempty" db:"id"`
 	ServiceID  string       `json:"service_id" db:"service_id"`
 	Name       string       `json:"name" db:"name"`
-	Port       int          `json:"port" db:"port"`
-	TargetPort *int         `json:"target_port" db:"target_port"`
+	Port       *int         `json:"port,omitempty" db:"port"`
+	TargetPort int          `json:"target_port" db:"target_port"`
 	Protocol   PortProtocol `json:"protocol" db:"protocol"`
 	Domain     *string      `json:"domain" db:"domain"`
 }
@@ -277,15 +278,8 @@ type NamespaceWithUserPermissions struct {
 }
 
 func (nu *NamespaceWithUserPermissions) Mask() {
-	borrowed := nu.UserID != nu.OwnerUserID
-	nu.NamespaceWithPermission.Mask()
-	if borrowed {
-		nu.Users = nil
-	} else {
-		for i := range nu.Users {
-			nu.Users[i].Mask()
-		}
-	}
+	nu.Users = nil
+
 }
 
 type VolumeWithUserPermissions struct {
@@ -294,13 +288,5 @@ type VolumeWithUserPermissions struct {
 }
 
 func (vp *VolumeWithUserPermissions) Mask() {
-	borrowed := vp.UserID != vp.OwnerUserID
-	vp.VolumeWithPermission.Mask()
-	if borrowed {
-		vp.Users = nil
-	} else {
-		for i := range vp.Users {
-			vp.Users[i].Mask()
-		}
-	}
+	vp.Users = nil
 }

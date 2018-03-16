@@ -18,13 +18,13 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "d1d5e3f9d065e81bd8e058c883ad8c51e5b9aeaf"
+  revision = "0e0d674f6ef0a795e03c169137ef734eb2e34883"
 
 [[projects]]
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
   packages = ["pkg/model"]
-  revision = "7d3d2406629bda73198f3dc58469984dc56adc78"
+  revision = "da306d4a7cf17ca554c9891d7305147d9385b144"
 
 [[projects]]
   name = "git.containerum.net/ch/kube-client"
@@ -37,8 +37,8 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "ec0ed453031faa1f30e18eb6eed19ed4af6cfe6d"
-  version = "v0.2.1"
+  revision = "2035dec77ef785eae29663b2b361d1d6701eedfc"
+  version = "v0.2.2"
 
 [[projects]]
   branch = "master"
@@ -427,6 +427,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b4cd3167036f538a505b0b31de1ca3983d65fe738462f7fa48cc613f68a9a147"
+  inputs-digest = "4d54b214183d54aa1c4b2b890a9b507e72aea27a1e41cd48857c353a47ad87bc"
   solver-name = "gps-cdcl"
   solver-version = 1
