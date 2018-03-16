@@ -109,8 +109,7 @@ func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 		  	WHERE user_id = owner_user_id AND user_id = :user_id
 		), updated_owner_accesses AS (
 			UPDATE permissions
-			SET limited = CASE WHEN new_access_level > :new_access_level THEN TRUE
-						  		ELSE FALSE END,
+			SET limited = new_access_level > :new_access_level,
 				new_access_level = CASE WHEN new_access_level > :new_access_level THEN :new_access_level
 										ELSE access_level END,
 				access_level_change_time = now() AT TIME ZONE 'UTC'						
@@ -121,7 +120,7 @@ func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 		SET limited = (new_access_level > :new_access_level OR access_level > :new_access_level),
 			new_access_level = CASE WHEN new_access_level > :new_access_level OR access_level > :new_access_level THEN :new_access_level
 									ELSE access_level END,
-			access_level_change_time = now() AT TIME ZONE 'UTC'
+			access_level_change_time = (SELECT access_level_change_time FROM updated_owner_accesses LIMIT 1)
 	  	WHERE owner_user_id IN (SELECT owner_user_id FROM updated_owner_accesses)`,
 		rstypes.PermissionRecord{UserID: userID, NewAccessLevel: access})
 	if err != nil {
