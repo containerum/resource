@@ -8,6 +8,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
@@ -65,7 +66,13 @@ func (db *pgDB) UpdateStorage(ctx context.Context, name string, req rstypes.Upda
 			size = COALESCE(:size, size),
 			ips = COALESCE(:ips, ips)
 		WHERE name = :oldname`,
-		map[string]interface{}{"oldname": name, "name": req.Name, "replicas": req.Replicas, "size": req.Size, "ips": req.IPs})
+		map[string]interface{}{
+			"oldname":  name,
+			"name":     req.Name,
+			"replicas": req.Replicas,
+			"size":     req.Size,
+			"ips":      pq.StringArray(req.IPs),
+		})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return err
