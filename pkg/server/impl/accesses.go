@@ -7,6 +7,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -42,14 +43,20 @@ func (rs *resourceServiceImpl) SetUserVolumeAccess(ctx context.Context, label st
 		"access_level": req.Access,
 	}).Info("change user volume access level")
 
+	isAdmin := server.IsAdminRole(ctx)
+
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		vol, getErr := tx.GetUserVolumeByLabel(ctx, userID, label)
 		if getErr != nil {
 			return getErr
 		}
 
-		if vol.OwnerUserID != userID {
+		if vol.OwnerUserID != userID && !isAdmin {
 			return rserrors.ErrResourceNotOwned()
+		}
+
+		if vol.Limited && !isAdmin {
+			return rserrors.ErrPermissionDenied().AddDetailF("limited owner can`t assign permissions")
 		}
 
 		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
@@ -83,14 +90,20 @@ func (rs *resourceServiceImpl) SetUserNamespaceAccess(ctx context.Context, label
 		"access_level": req.Access,
 	}).Info("change user volume access level")
 
+	isAdmin := server.IsAdminRole(ctx)
+
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		ns, getErr := tx.GetUserNamespaceByLabel(ctx, userID, label)
 		if getErr != nil {
 			return getErr
 		}
 
-		if ns.OwnerUserID != userID {
+		if ns.OwnerUserID != userID && !isAdmin {
 			return rserrors.ErrResourceNotOwned()
+		}
+
+		if ns.Limited && !isAdmin {
+			return rserrors.ErrPermissionDenied().AddDetailF("limited owner can`t assign permissions")
 		}
 
 		info, getErr := rs.User.UserInfoByLogin(ctx, req.Username)
