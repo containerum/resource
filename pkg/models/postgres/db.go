@@ -139,7 +139,9 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 
 	var nsIDs []string
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT resource_id FROM permissions WHERE (user_id, kind) = (:user_id, 'namespace')`,
+		`SELECT DISTINCT resource_id
+		FROM permissions
+		WHERE (user_id = :user_id OR owner_user_id = :user_id) AND kind = 'namespace'`,
 		map[string]interface{}{"user_id": userID})
 	err = sqlx.SelectContext(ctx, db.extLog, &nsIDs, db.extLog.Rebind(query), args...)
 	if err != nil {
