@@ -295,7 +295,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 
 		nsResizeReq := kubtypesInternal.NamespaceWithOwner{
 			Namespace: kubtypes.Namespace{
-				Label: label,
+				Label: ns.ID,
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
 						CPU:    fmt.Sprintf("%dm", ns.CPU),
@@ -303,6 +303,7 @@ func (rs *resourceServiceImpl) ResizeUserNamespace(ctx context.Context, label st
 					},
 				},
 			},
+			Owner: userID,
 		}
 		if updErr := rs.Kube.SetNamespaceQuota(ctx, nsResizeReq); updErr != nil {
 			return updErr
