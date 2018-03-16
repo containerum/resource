@@ -73,8 +73,28 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		return
 	}
 
-	var deplID string
+	var serviceExists bool
 	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT count(s.*)>0
+		FROM services s
+		JOIN deployments d ON s.deploy_id = d.id
+		WHERE (d.ns_id, s.name) = (:ns_id, :name)`,
+		map[string]interface{}{
+			"ns_id": nsID,
+			"name":  req.Name,
+		})
+	err = sqlx.GetContext(ctx, db.extLog, &serviceExists, db.extLog.Rebind(query), args...)
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
+	if serviceExists {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("service %s already exists in namespace", req.Name)
+		return
+	}
+
+	var deplID string
+	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT id FROM deployments WHERE ns_id = :ns_id AND name = :name`,
 		map[string]interface{}{"ns_id": nsID, "name": req.Deploy})
 	err = sqlx.GetContext(ctx, db.extLog, &deplID, db.extLog.Rebind(query), args...)
