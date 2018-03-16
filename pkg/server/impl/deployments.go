@@ -23,15 +23,15 @@ func (rs *resourceServiceImpl) GetDeployments(ctx context.Context, nsLabel strin
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplLabel string) (kubtypes.Deployment, error) {
+func (rs *resourceServiceImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error) {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}).Info("get deployment by label")
 
-	ret, err := rs.DB.GetDeploymentByLabel(ctx, userID, nsLabel, deplLabel)
+	ret, err := rs.DB.GetDeploymentByLabel(ctx, userID, nsLabel, deplName)
 
 	return ret, err
 }
@@ -86,12 +86,12 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, deplLabel string) error {
+func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, deplName string) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}).Info("delete deployment")
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
@@ -100,12 +100,12 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 			return getErr
 		}
 
-		lastInNamespace, delErr := tx.DeleteDeployment(ctx, userID, nsLabel, deplLabel)
+		lastInNamespace, delErr := tx.DeleteDeployment(ctx, userID, nsLabel, deplName)
 		if delErr != nil {
 			return delErr
 		}
 
-		if delErr = rs.Kube.DeleteDeployment(ctx, nsID, deplLabel); delErr != nil {
+		if delErr = rs.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
 			return delErr
 		}
 
@@ -119,12 +119,12 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 	return err
 }
 
-func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, deplLabel string, deploy kubtypes.Deployment) error {
+func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deploy.Name,
 	}).Infof("replacing deployment with %#v", deploy)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
@@ -133,14 +133,14 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 			return getErr
 		}
 
-		if replaceErr := tx.ReplaceDeployment(ctx, userID, nsLabel, deplLabel, deploy); replaceErr != nil {
+		if replaceErr := tx.ReplaceDeployment(ctx, userID, nsLabel, deploy); replaceErr != nil {
 			return replaceErr
 		}
 
 		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
 		deployReplaceReq.Deployment = deploy
 		deployReplaceReq.Owner = userID
-		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsID, deplLabel, deployReplaceReq); replaceErr != nil {
+		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsID, deployReplaceReq); replaceErr != nil {
 			return replaceErr
 		}
 
@@ -150,12 +150,12 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel, d
 	return err
 }
 
-func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetReplicasRequest) error {
+func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req rstypes.SetReplicasRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}).Infof("set deployment replicas %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
@@ -164,11 +164,11 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 			return getErr
 		}
 
-		if setErr := tx.SetDeploymentReplicas(ctx, userID, nsLabel, deplLabel, req.Replicas); setErr != nil {
+		if setErr := tx.SetDeploymentReplicas(ctx, userID, nsLabel, deplName, req.Replicas); setErr != nil {
 			return setErr
 		}
 
-		if setErr := rs.Kube.SetDeploymentReplicas(ctx, nsID, deplLabel, req.Replicas); setErr != nil {
+		if setErr := rs.Kube.SetDeploymentReplicas(ctx, nsID, deplName, req.Replicas); setErr != nil {
 			return setErr
 		}
 
@@ -178,12 +178,12 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 	return err
 }
 
-func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplLabel string, req rstypes.SetContainerImageRequest) error {
+func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req rstypes.SetContainerImageRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	rs.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}).Infof("set container image %#v", req)
 
 	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
@@ -192,11 +192,11 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 			return getErr
 		}
 
-		if setErr := tx.SetContainerImage(ctx, userID, nsLabel, deplLabel, req); setErr != nil {
+		if setErr := tx.SetContainerImage(ctx, userID, nsLabel, deplName, req); setErr != nil {
 			return setErr
 		}
 
-		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplLabel, kubtypes.UpdateImage{Container: req.ContainerName, Image: req.Image})
+		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplName, kubtypes.UpdateImage{Container: req.ContainerName, Image: req.Image})
 		if setErr != nil {
 			return setErr
 		}
