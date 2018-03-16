@@ -21,6 +21,10 @@ type ResourceServiceClients struct {
 	User    clients.UserManagerClient
 }
 
+type UpdateServiceRequest struct {
+	kubtypes.Service
+}
+
 // ResourceService is an interface for resource-service operations.
 type ResourceService interface {
 	CreateNamespace(ctx context.Context, req rstypes.CreateNamespaceRequest) (err error)
@@ -77,7 +81,7 @@ type ResourceService interface {
 	CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error
 	GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error)
 	GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error)
-	UpdateService(ctx context.Context, nsLabel, serviceName string, req kubtypes.Service) error
+	UpdateService(ctx context.Context, nsLabel, serviceName string, req UpdateServiceRequest) error
 	DeleteService(ctx context.Context, nsLabel, serviceName string) error
 
 	GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error)

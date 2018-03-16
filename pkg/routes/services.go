@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -45,7 +46,7 @@ func getServiceHandler(ctx *gin.Context) {
 }
 
 func updateServiceHandler(ctx *gin.Context) {
-	var req kubtypes.Service
+	var req server.UpdateServiceRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(badRequest(ctx, err))
 		return
