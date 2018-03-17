@@ -17,7 +17,7 @@ type TranslateValidate struct {
 	*validator.Validate
 }
 
-func mainMiddlewareSetup(router gin.IRouter, tv *TranslateValidate) {
+func MainMiddlewareSetup(router gin.IRouter, tv *TranslateValidate) {
 	router.Use(utils.SaveHeaders)
 	router.Use(utils.PrepareContext)
 	router.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
@@ -28,7 +28,7 @@ func mainMiddlewareSetup(router gin.IRouter, tv *TranslateValidate) {
 	router.Use(utils.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 }
 
-func namespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.NamespaceActions) {
+func NamespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.NamespaceActions) {
 	nsHandlers := NamespaceHandlers{NamespaceActions: backend, TranslateValidate: tv}
 
 	ns := router.Group("/namespace")
@@ -52,7 +52,7 @@ func namespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend s
 	}
 }
 
-func accessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.AccessActions) {
+func AccessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.AccessActions) {
 	accessHandlers := AccessHandlers{AccessActions: backend, TranslateValidate: tv}
 
 	ns := router.Group("/namespace")
@@ -81,7 +81,7 @@ func accessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	router.GET("/access", accessHandlers.GetUserResourceAccessesHandler)
 }
 
-func deployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func DeployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
 	deployHandlers := DeployHandlers{DeployActions: backend, TranslateValidate: tv}
 
 	deployment := router.Group("/namespace/:ns_label/deployment")
@@ -99,7 +99,7 @@ func deployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	}
 }
 
-func domainHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.DomainActions) {
+func DomainHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.DomainActions) {
 	domainHandlers := DomainHandlers{DomainActions: backend, TranslateValidate: tv}
 
 	domain := router.Group("/domain", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
@@ -113,7 +113,7 @@ func domainHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	}
 }
 
-func ingressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func IngressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
 	ingressHandlers := IngressHandlers{IngressActions: backend, TranslateValidate: tv}
 
 	ingress := router.Group("/namespace/:ns_label/ingress")
@@ -128,7 +128,7 @@ func ingressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 	router.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), ingressHandlers.GetAllIngressesHandler)
 }
 
-func serviceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
 	serviceHandlers := ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
 
 	service := router.Group("/namespace/:ns_label/service")
@@ -144,7 +144,7 @@ func serviceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 	}
 }
 
-func storageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func StorageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
 	storageHandlers := StorageHandlers{StorageActions: backend, TranslateValidate: tv}
 
 	storage := router.Group("/storage", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
@@ -159,7 +159,7 @@ func storageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 	}
 }
 
-func volumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
 	volumeHandlers := VolumeHandlers{VolumeActions: backend, TranslateValidate: tv}
 
 	router.GET("/namespace/:ns_label/volumes", volumeHandlers.GetVolumesLinkedWithUserNamespaceHandler)
@@ -187,16 +187,16 @@ func volumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 
 // SetupRoutes sets up a router
 func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
-	mainMiddlewareSetup(router, tv)
+	MainMiddlewareSetup(router, tv)
 
-	namespaceHandlersSetup(router, tv, backend)
-	accessHandlersSetup(router, tv, backend)
-	deployHandlersSetup(router, tv, backend)
-	domainHandlersSetup(router, tv, backend)
-	ingressHandlersSetup(router, tv, backend)
-	serviceHandlersSetup(router, tv, backend)
-	storageHandlersSetup(router, tv, backend)
-	volumeHandlersSetup(router, tv, backend)
+	NamespaceHandlersSetup(router, tv, backend)
+	AccessHandlersSetup(router, tv, backend)
+	DeployHandlersSetup(router, tv, backend)
+	DomainHandlersSetup(router, tv, backend)
+	IngressHandlersSetup(router, tv, backend)
+	ServiceHandlersSetup(router, tv, backend)
+	StorageHandlersSetup(router, tv, backend)
+	VolumeHandlersSetup(router, tv, backend)
 
 	router.GET("/resources", func(ctx *gin.Context) {
 		resp, err := backend.GetResourcesCount(ctx.Request.Context())
