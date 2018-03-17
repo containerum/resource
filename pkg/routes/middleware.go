@@ -7,11 +7,10 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
 )
 
-func handleError(err error) (int, *cherry.Err) {
+func (tv *TranslateValidate) HandleError(err error) (int, *cherry.Err) {
 	switch err.(type) {
 	case *cherry.Err:
 		e := err.(*cherry.Err)
@@ -21,14 +20,14 @@ func handleError(err error) (int, *cherry.Err) {
 	}
 }
 
-func badRequest(ctx *gin.Context, err error) (int, *cherry.Err) {
+func (tv *TranslateValidate) BadRequest(ctx *gin.Context, err error) (int, *cherry.Err) {
 	if validationErr, ok := err.(validator.ValidationErrors); ok {
 		ret := rserrors.ErrValidation()
 		for _, fieldErr := range validationErr {
 			if fieldErr == nil {
 				continue
 			}
-			t, _ := translator.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
+			t, _ := tv.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
 			ret.AddDetailF("Field %s: %s", fieldErr.Namespace(), fieldErr.Translate(t))
 		}
 		return ret.StatusHTTP, ret
@@ -36,11 +35,11 @@ func badRequest(ctx *gin.Context, err error) (int, *cherry.Err) {
 	return rserrors.ErrValidation().StatusHTTP, rserrors.ErrValidation().AddDetailsErr(err)
 }
 
-func validateHeaders(validate *validator.Validate, tr *ut.UniversalTranslator, headerTagMap map[string]string) gin.HandlerFunc {
+func (tv *TranslateValidate) ValidateHeaders(headerTagMap map[string]string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		headerErr := make(map[string]validator.ValidationErrors)
 		for header, tag := range headerTagMap {
-			ferr := validate.VarCtx(ctx.Request.Context(), ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(header)), tag)
+			ferr := tv.VarCtx(ctx.Request.Context(), ctx.GetHeader(textproto.CanonicalMIMEHeaderKey(header)), tag)
 			if ferr != nil {
 				headerErr[header] = ferr.(validator.ValidationErrors)
 			}
@@ -52,7 +51,7 @@ func validateHeaders(validate *validator.Validate, tr *ut.UniversalTranslator, h
 					if fieldErr == nil {
 						continue
 					}
-					t, _ := tr.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
+					t, _ := tv.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
 					ret.AddDetailF("Header %s: %s", header, fieldErr.Translate(t))
 				}
 			}

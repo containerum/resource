@@ -28,7 +28,6 @@ type NamespaceActions interface {
 	GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error)
 	GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error)
 	GetAllNamespaces(ctx context.Context, params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
-	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
 	DeleteUserNamespace(ctx context.Context, label string) error
 	DeleteAllUserNamespaces(ctx context.Context) error
 	RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error
@@ -40,7 +39,6 @@ type VolumeActions interface {
 	GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error)
 	GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error)
 	GetAllVolumes(ctx context.Context, params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error)
-	GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error)
 	GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error)
 	DeleteUserVolume(ctx context.Context, label string) error
 	DeleteAllUserVolumes(ctx context.Context) error
@@ -55,6 +53,8 @@ type AccessActions interface {
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
 	DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error
 	DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error
+	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
+	GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error)
 }
 
 type DeployActions interface {

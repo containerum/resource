@@ -16,6 +16,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,8 +47,9 @@ func main() {
 	g := gin.New()
 	g.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
+	binding.Validator = &validation.GinValidatorV9{Validate: validate} // gin has no local validator
 
-	routes.SetupRoutes(g, srv, translate, validate)
+	routes.SetupRoutes(g, &routes.TranslateValidate{UniversalTranslator: translate, Validate: validate}, srv)
 
 	// for graceful shutdown
 	httpsrv := &http.Server{
