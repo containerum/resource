@@ -5,40 +5,54 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error {
-	rs.log.Infof("create storage %#v", req)
+type StorageActionsImpl struct {
+	*server.ResourceServiceClients
+	log *logrus.Entry
+}
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+func NewStorageActionsImpl(clients *server.ResourceServiceClients) *StorageActionsImpl {
+	return &StorageActionsImpl{
+		ResourceServiceClients: clients,
+		log: logrus.WithField("component", "storage_actions"),
+	}
+}
+
+func (sa *StorageActionsImpl) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error {
+	sa.log.Infof("create storage %#v", req)
+
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.CreateStorage(ctx, req)
 	})
 
 	return err
 }
 
-func (rs *resourceServiceImpl) GetStorages(ctx context.Context) ([]rstypes.Storage, error) {
-	rs.log.Info("get storages")
+func (sa *StorageActionsImpl) GetStorages(ctx context.Context) ([]rstypes.Storage, error) {
+	sa.log.Info("get storages")
 
-	ret, err := rs.DB.GetStorages(ctx)
+	ret, err := sa.DB.GetStorages(ctx)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error {
-	rs.log.WithField("name", name).Info("update storage to %#v", req)
+func (sa *StorageActionsImpl) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error {
+	sa.log.WithField("name", name).Info("update storage to %#v", req)
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.UpdateStorage(ctx, name, req)
 	})
 
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteStorage(ctx context.Context, name string) error {
-	rs.log.WithField("name", name).Info("delete storage")
+func (sa *StorageActionsImpl) DeleteStorage(ctx context.Context, name string) error {
+	sa.log.WithField("name", name).Info("delete storage")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		if delErr := tx.DeleteStorage(ctx, name); delErr != nil {
 			return delErr
 		}

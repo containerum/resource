@@ -14,7 +14,6 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/models/postgres"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/en_US"
@@ -143,43 +142,42 @@ func setupUserClient(addr string) (clients.UserManagerClient, error) {
 	}
 }
 
-func setupServer() (server.ResourceService, error) {
-	var clients server.ResourceServiceClients
+func setupServerClients() (*server.ResourceServiceClients, error) {
+	var ret server.ResourceServiceClients
 
 	var err error
-	if clients.DB, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
+	if ret.DB, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
 		return nil, err
 	}
-	if clients.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
+	if ret.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
 		return nil, err
 	}
-	if clients.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
+	if ret.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
 		return nil, err
 	}
-	if clients.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
+	if ret.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
 		return nil, err
 	}
-	if clients.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
+	if ret.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
 		return nil, err
 	}
-	/*	if clients.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
+	/*	if ret.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
 		return nil, err
 	}*/
-	if clients.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
+	if ret.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
 		return nil, err
 	}
 
-	// print info about clients which implements Stringer
-	v := reflect.ValueOf(clients)
-	for i := 0; i < reflect.TypeOf(clients).NumField(); i++ {
+	// print info about ret which implements Stringer
+	v := reflect.ValueOf(ret)
+	for i := 0; i < reflect.TypeOf(ret).NumField(); i++ {
 		f := v.Field(i)
 		if str, ok := f.Interface().(fmt.Stringer); ok {
 			logrus.Infof("%s", str)
 		}
 	}
 
-	srv := impl.NewResourceServiceImpl(clients)
-	return srv, nil
+	return &ret, nil
 }
 
 func getListenAddr() (la string, err error) {

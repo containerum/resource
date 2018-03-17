@@ -6,43 +6,56 @@ import (
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error) {
+type DeployActionsImpl struct {
+	*server.ResourceServiceClients
+	log *logrus.Entry
+}
+
+func NewDeployActionsImpl(clients *server.ResourceServiceClients) *DeployActionsImpl {
+	return &DeployActionsImpl{
+		ResourceServiceClients: clients,
+		log: logrus.WithField("component", "deploy_actions"),
+	}
+}
+
+func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Info("get deployments")
 
-	ret, err := rs.DB.GetDeployments(ctx, userID, nsLabel)
+	ret, err := da.DB.GetDeployments(ctx, userID, nsLabel)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error) {
+func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deplName,
 	}).Info("get deployment by label")
 
-	ret, err := rs.DB.GetDeploymentByLabel(ctx, userID, nsLabel, deplName)
+	ret, err := da.DB.GetDeploymentByLabel(ctx, userID, nsLabel, deplName)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
+func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Info("create deployment")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -75,7 +88,7 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 		deployCreateReq := kubtypesInternal.DeploymentWithOwner{}
 		deployCreateReq.Deployment = deploy
 		deployCreateReq.Owner = userID
-		if createErr := rs.Kube.CreateDeployment(ctx, nsID, deployCreateReq); createErr != nil {
+		if createErr := da.Kube.CreateDeployment(ctx, nsID, deployCreateReq); createErr != nil {
 			return createErr
 		}
 
@@ -85,15 +98,15 @@ func (rs *resourceServiceImpl) CreateDeployment(ctx context.Context, nsLabel str
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, deplName string) error {
+func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, deplName string) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deplName,
 	}).Info("delete deployment")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -104,7 +117,7 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 			return delErr
 		}
 
-		if delErr = rs.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
+		if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
 			return delErr
 		}
 
@@ -118,15 +131,15 @@ func (rs *resourceServiceImpl) DeleteDeployment(ctx context.Context, nsLabel, de
 	return err
 }
 
-func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
+func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deploy.Name,
 	}).Infof("replacing deployment with %#v", deploy)
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -139,7 +152,7 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel st
 		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
 		deployReplaceReq.Deployment = deploy
 		deployReplaceReq.Owner = userID
-		if replaceErr := rs.Kube.ReplaceDeployment(ctx, nsID, deployReplaceReq); replaceErr != nil {
+		if replaceErr := da.Kube.ReplaceDeployment(ctx, nsID, deployReplaceReq); replaceErr != nil {
 			return replaceErr
 		}
 
@@ -149,15 +162,15 @@ func (rs *resourceServiceImpl) ReplaceDeployment(ctx context.Context, nsLabel st
 	return err
 }
 
-func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error {
+func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deplName,
 	}).Infof("set deployment replicas %#v", req)
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -167,7 +180,7 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 			return setErr
 		}
 
-		if setErr := rs.Kube.SetDeploymentReplicas(ctx, nsID, deplName, req.Replicas); setErr != nil {
+		if setErr := da.Kube.SetDeploymentReplicas(ctx, nsID, deplName, req.Replicas); setErr != nil {
 			return setErr
 		}
 
@@ -177,15 +190,15 @@ func (rs *resourceServiceImpl) SetDeploymentReplicas(ctx context.Context, nsLabe
 	return err
 }
 
-func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error {
+func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deplName,
 	}).Infof("set container image %#v", req)
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -195,7 +208,7 @@ func (rs *resourceServiceImpl) SetContainerImage(ctx context.Context, nsLabel, d
 			return setErr
 		}
 
-		setErr := rs.Kube.SetContainerImage(ctx, nsID, deplName, req)
+		setErr := da.Kube.SetContainerImage(ctx, nsID, deplName, req)
 		if setErr != nil {
 			return setErr
 		}

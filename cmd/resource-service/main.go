@@ -13,6 +13,7 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/routes"
+	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
@@ -37,9 +38,11 @@ func main() {
 	listenAddr, err := getListenAddr()
 	exitOnError(err)
 
-	srv, err := setupServer()
+	clients, err := setupServerClients()
 	exitOnError(err)
-	defer srv.Close()
+	defer clients.Close()
+
+	srv := impl.NewResourceServiceImpl(clients)
 
 	translate := setupTranslator()
 	validate := validation.StandardResourceValidator(translate)

@@ -5,42 +5,55 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error {
-	rs.log.Info("add domain %#v", req)
+type DomainActionsImpl struct {
+	*server.ResourceServiceClients
+	log *logrus.Entry
+}
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+func NewDomainActionsImpl(clients *server.ResourceServiceClients) *DomainActionsImpl {
+	return &DomainActionsImpl{
+		ResourceServiceClients: clients,
+		log: logrus.WithField("component", "domain_actions"),
+	}
+}
+
+func (da *DomainActionsImpl) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error {
+	da.log.Info("add domain %#v", req)
+
+	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
 		return tx.AddDomain(ctx, req)
 	})
 
 	return err
 }
 
-func (rs *resourceServiceImpl) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error) {
-	rs.log.WithFields(logrus.Fields{
+func (da *DomainActionsImpl) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error) {
+	da.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
 	}).Info("get all domains")
 
-	resp, err := rs.DB.GetAllDomains(ctx, params)
+	resp, err := da.DB.GetAllDomains(ctx, params)
 
 	return resp, err
 }
 
-func (rs *resourceServiceImpl) GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error) {
-	rs.log.WithField("domain", domain).Info("get domain")
+func (da *DomainActionsImpl) GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error) {
+	da.log.WithField("domain", domain).Info("get domain")
 
-	resp, err := rs.DB.GetDomain(ctx, domain)
+	resp, err := da.DB.GetDomain(ctx, domain)
 
 	return resp, err
 }
 
-func (rs *resourceServiceImpl) DeleteDomain(ctx context.Context, domain string) error {
-	rs.log.WithField("domain", domain).Info("delete domain")
+func (da *DomainActionsImpl) DeleteDomain(ctx context.Context, domain string) error {
+	da.log.WithField("domain", domain).Info("delete domain")
 
-	err := rs.DB.DeleteDomain(ctx, domain)
+	err := da.DB.DeleteDomain(ctx, domain)
 
 	return err
 }
