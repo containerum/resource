@@ -6,36 +6,34 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) isVolumeExists(ctx context.Context, userID, label string) (exists bool, err error) {
+func (db *PGDB) GetVolumeID(ctx context.Context, userID, label string) (volID string, err error) {
 	params := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,
 	}
 	entry := db.log.WithFields(params)
-	entry.Debug("check if volume exists")
+	entry.Debug("get volume id")
 
-	var count int
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT count(v.*)
+		`SELECT v.id
 		FROM volumes v
 		JOIN permissions p ON p.resource_id = v.id AND p.kind = 'volume'
 		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND 
 			p.resource_label = :label`,
 		params)
-	err = sqlx.GetContext(ctx, db, &count, db.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &volID, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
-	entry.Debugf("found %d volumes", count)
-	exists = count > 0
 	return
 }
 
@@ -124,12 +122,12 @@ func (db *PGDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		"label":   label,
 	}).Infof("creating volume %#v", volume)
 
-	var exists bool
-	if exists, err = db.isVolumeExists(ctx, userID, label); err != nil {
+	_, err = db.GetVolumeID(ctx, userID, label)
+	if err == nil {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("volume %s already exists", label)
 		return
 	}
-	if exists {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("volume %s already exists", label).Log(err, db.log)
+	if err != nil && !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
 		return
 	}
 
@@ -499,12 +497,12 @@ func (db *PGDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 	}
 	db.log.WithFields(params).Debug("rename user volume")
 
-	exists, err := db.isVolumeExists(ctx, userID, newLabel)
-	if err != nil {
+	_, err = db.GetVolumeID(ctx, userID, oldLabel)
+	if err == nil {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("volume %s already exists", oldLabel)
 		return
 	}
-	if exists {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("volume %s already exists", newLabel).Log(err, db.log)
+	if err != nil && !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
 		return
 	}
 
