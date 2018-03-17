@@ -20,11 +20,11 @@ func (db *PGDB) CreateNamespace(ctx context.Context, userID, label string, names
 	}).Debugf("creating namespace %#v", namespace)
 
 	_, err = db.GetNamespaceID(ctx, userID, label)
-	if cherry.Equals(err, rserrors.ErrResourceNotExists()) {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", label).Log(err, db.log)
+	if err == nil {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", label)
 		return
 	}
-	if err != nil {
+	if err != nil && !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
 		return
 	}
 
@@ -490,11 +490,11 @@ func (db *PGDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 	db.log.WithFields(params).Debug("rename namespace")
 
 	_, err = db.GetNamespaceID(ctx, userID, oldLabel)
-	if cherry.Equals(err, rserrors.ErrResourceNotExists()) {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", oldLabel).Log(err, db.log)
+	if err == nil {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", oldLabel)
 		return
 	}
-	if err != nil {
+	if err != nil && !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
 		return
 	}
 

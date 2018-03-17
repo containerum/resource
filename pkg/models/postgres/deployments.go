@@ -6,6 +6,7 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/jmoiron/sqlx"
@@ -312,7 +313,7 @@ func (db *PGDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplN
 	return
 }
 
-func (db *PGDB) getDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
+func (db *PGDB) GetDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
 	params := map[string]interface{}{
 		"ns_id":       nsID,
 		"deploy_name": deplName,
@@ -328,8 +329,7 @@ func (db *PGDB) getDeployID(ctx context.Context, nsID, deplName string) (id stri
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = nil
-		id = ""
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deplName)
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -538,12 +538,12 @@ func (db *PGDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 
-	deplID, err := db.getDeployID(ctx, nsID, deployment.Name)
-	if err != nil {
+	deplID, err := db.GetDeployID(ctx, nsID, deployment.Name)
+	if err == nil {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("deployment %s already exists", deployment.Name).Log(err, db.log)
 		return
 	}
-	if deplID != "" {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("deployment %s already exists", deployment.Name).Log(err, db.log)
+	if err != nil && !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
 		return
 	}
 
@@ -680,12 +680,8 @@ func (db *PGDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName
 		return
 	}
 
-	deplID, err := db.getDeployID(ctx, nsID, deplName)
+	deplID, err := db.GetDeployID(ctx, nsID, deplName)
 	if err != nil {
-		return
-	}
-	if deplID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deplName).Log(err, db.log)
 		return
 	}
 
