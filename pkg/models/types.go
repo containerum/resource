@@ -45,6 +45,7 @@ type VolumeDB interface {
 	ResizeVolume(ctx context.Context, volume *rstypes.Volume) error
 	SetVolumeActiveByID(ctx context.Context, id string, active bool) error
 	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
+	GetVolumeID(ctx context.Context, userID, label string) (string, error)
 }
 
 type AccessDB interface {
@@ -62,6 +63,7 @@ type DeployDB interface {
 	ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplName string, replicas int) error
 	SetContainerImage(ctx context.Context, userID, nsLabel, deplName string, req kubtypes.UpdateImage) error
+	GetDeployID(ctx context.Context, nsID, deplName string) (string, error)
 }
 
 type DomainDB interface {
