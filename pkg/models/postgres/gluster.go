@@ -23,7 +23,7 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (db *pgDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel str
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 

@@ -129,7 +129,7 @@ func (db *pgDB) CreateVolume(ctx context.Context, userID, label string, volume *
 		return
 	}
 	if exists {
-		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("volume %s already exists", label).Log(err, db.log)
 		return
 	}
 
@@ -309,7 +309,7 @@ func (db *pgDB) GetUserVolumeByLabel(ctx context.Context,
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", label).Log(err, db.log)
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -348,7 +348,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", label).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -377,7 +377,7 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrAccessRecordNotExists().Log(err, db.log)
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -385,20 +385,20 @@ func (db *pgDB) GetVolumeWithUserPermissions(ctx context.Context,
 	return
 }
 
-func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, label string) (ret []rstypes.VolumeWithPermission, err error) {
+func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, nsLabel string) (ret []rstypes.VolumeWithPermission, err error) {
 	params := map[string]interface{}{
-		"user_id":        userID,
-		"resource_label": label,
+		"user_id":  userID,
+		"ns_label": nsLabel,
 	}
 	db.log.WithFields(params).Debug("get volumes linked with user namespace")
 
-	nsID, err := db.getNamespaceID(ctx, userID, label)
+	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -422,7 +422,7 @@ func (db *pgDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, l
 		JOIN containers c ON vm.container_id = c.id
 		JOIN deployments d ON c.depl_id = d.id
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
-		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :label`,
+		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :ns_label`,
 		params)
 	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
 	switch err {
@@ -459,7 +459,7 @@ func (db *pgDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", label).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -514,7 +514,7 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 		return
 	}
 	if exists {
-		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("volume %s already exists", newLabel).Log(err, db.log)
 		return
 	}
 
@@ -529,7 +529,7 @@ func (db *pgDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", oldLabel).Log(err, db.log)
 	}
 
 	return
@@ -550,7 +550,7 @@ func (db *pgDB) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err e
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", volume.ID).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -573,7 +573,7 @@ func (db *pgDB) SetVolumeActiveByID(ctx context.Context, id string, active bool)
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", id).Log(err, db.log)
 	}
 
 	return
@@ -604,7 +604,7 @@ func (db *pgDB) SetUserVolumeActive(ctx context.Context, userID, label string, a
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", label).Log(err, db.log)
 	}
 
 	return

@@ -44,7 +44,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		return
 	}
 	if exists {
-		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("ingress for domain %s already exists", req.Domain).Log(err, db.log)
 		return
 	}
 
@@ -63,7 +63,8 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		)
 		INSERT INTO ingresses
 		(custom_domain, "type", service_id, "path", service_port)
-		VALUES (:custom_domain, 
+		VALUES (
+			:custom_domain, 
 			:type,
 			(SELECT id FROM service_id_name WHERE name = :service),
 			:path,
@@ -96,7 +97,7 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -187,7 +188,7 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -206,7 +207,7 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().AddDetailF("ingress for %s not exist", domain)
+		err = rserrors.ErrResourceNotExists().AddDetailF("ingress for domain %s not exists", domain)
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}

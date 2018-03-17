@@ -252,11 +252,11 @@ func (db *pgDB) getDeploymentContainers(ctx context.Context,
 	return
 }
 
-func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplLabel string) (ret kubtypes.Deployment, err error) {
+func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplName string) (ret kubtypes.Deployment, err error) {
 	params := map[string]interface{}{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}
 	db.log.WithFields(params).Debug("get deployment by label")
 
@@ -265,13 +265,13 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 		`SELECT d.*
 		FROM deployments d
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
-		WHERE NOT d.deleted AND (d.name, p.user_id, p.resource_label) = (:deploy_label, :user_id, :ns_label)`,
+		WHERE NOT d.deleted AND (d.name, p.user_id, p.resource_label) = (:deploy_name, :user_id, :ns_label)`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &rawDeploy, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not found", deplName).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -312,17 +312,17 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplL
 	return
 }
 
-func (db *pgDB) getDeployID(ctx context.Context, nsID, deplLabel string) (id string, err error) {
+func (db *pgDB) getDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
 	params := map[string]interface{}{
-		"ns_id":        nsID,
-		"deploy_label": deplLabel,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
 	}
 	db.log.WithFields(params).Debug("get deploy id")
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT id
 		FROM deployments
-		WHERE NOT deleted AND (ns_id, name) = (:ns_id, :deploy_label)`,
+		WHERE NOT deleted AND (ns_id, name) = (:ns_id, :deploy_name)`,
 		params)
 	err = sqlx.GetContext(ctx, db.extLog, &id, db.extLog.Rebind(query), args...)
 	switch err {
@@ -538,7 +538,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -547,7 +547,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 		return
 	}
 	if deplID != "" {
-		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("deployment %s already exists", deployment.Name).Log(err, db.log)
 		return
 	}
 
@@ -572,11 +572,11 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	return
 }
 
-func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel string) (lastInNamespace bool, err error) {
+func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName string) (lastInNamespace bool, err error) {
 	params := map[string]interface{}{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}
 	db.log.WithFields(params).Debug("delete deployment")
 
@@ -585,7 +585,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -593,13 +593,13 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplLabel
 		`UPDATE deployments
 		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
 		WHERE (ns_id, "name") = (:ns_id, :name) AND NOT deleted`,
-		rstypes.Deployment{NamespaceID: nsID, Name: deplLabel})
+		rstypes.Deployment{NamespaceID: nsID, Name: deplName})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deplName).Log(err, db.log)
 		return
 	}
 
@@ -628,7 +628,7 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -642,7 +642,7 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deploy.Name).Log(err, db.log)
 		return
 	}
 
@@ -650,12 +650,12 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 	return
 }
 
-func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplLabel string, replicas int) (err error) {
+func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplName string, replicas int) (err error) {
 	db.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
-		"replicas":     replicas,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
+		"replicas":    replicas,
 	}).Debug("set deployment replicas")
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
@@ -663,7 +663,7 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -671,24 +671,24 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		`UPDATE deployments
 		SET replicas = :replicas
 		WHERE ns_id = :ns_id AND name = :name`,
-		rstypes.Deployment{NamespaceID: nsID, Replicas: replicas, Name: deplLabel})
+		rstypes.Deployment{NamespaceID: nsID, Replicas: replicas, Name: deplName})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deplName).Log(err, db.log)
 		return
 	}
 
 	return
 }
 
-func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabel string, req kubtypes.UpdateImage) (err error) {
+func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName string, req kubtypes.UpdateImage) (err error) {
 	db.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"ns_label":     nsLabel,
-		"deploy_label": deplLabel,
+		"user_id":     userID,
+		"ns_label":    nsLabel,
+		"deploy_name": deplName,
 	}).Debugf("set container image %#v", req)
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
@@ -696,16 +696,16 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabe
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
-	deplID, err := db.getDeployID(ctx, nsID, deplLabel)
+	deplID, err := db.getDeployID(ctx, nsID, deplName)
 	if err != nil {
 		return
 	}
 	if deplID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deplName).Log(err, db.log)
 		return
 	}
 
@@ -719,7 +719,7 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplLabe
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("container %s not exists", req.Container).Log(err, db.log)
 		return
 	}
 
