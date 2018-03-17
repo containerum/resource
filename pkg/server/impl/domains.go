@@ -4,6 +4,7 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/sirupsen/logrus"
@@ -11,13 +12,13 @@ import (
 
 type DomainActionsImpl struct {
 	*server.ResourceServiceClients
-	log *logrus.Entry
+	log *cherrylog.LogrusAdapter
 }
 
 func NewDomainActionsImpl(clients *server.ResourceServiceClients) *DomainActionsImpl {
 	return &DomainActionsImpl{
 		ResourceServiceClients: clients,
-		log: logrus.WithField("component", "domain_actions"),
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "domain_actions")),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -13,13 +14,13 @@ import (
 
 type DeployActionsImpl struct {
 	*server.ResourceServiceClients
-	log *logrus.Entry
+	log *cherrylog.LogrusAdapter
 }
 
 func NewDeployActionsImpl(clients *server.ResourceServiceClients) *DeployActionsImpl {
 	return &DeployActionsImpl{
 		ResourceServiceClients: clients,
-		log: logrus.WithField("component", "deploy_actions"),
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
 	}
 }
 

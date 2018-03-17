@@ -5,6 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -14,13 +15,13 @@ import (
 
 type ServiceActionsImpl struct {
 	*server.ResourceServiceClients
-	log *logrus.Entry
+	log *cherrylog.LogrusAdapter
 }
 
 func NewServiceActionsImpl(clients *server.ResourceServiceClients) *ServiceActionsImpl {
 	return &ServiceActionsImpl{
 		ResourceServiceClients: clients,
-		log: logrus.WithField("component", "service_actions"),
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -14,13 +15,13 @@ import (
 
 type AccessActionsImpl struct {
 	*server.ResourceServiceClients
-	log *logrus.Entry
+	log *cherrylog.LogrusAdapter
 }
 
 func NewAccessActionsImpl(clients *server.ResourceServiceClients) *AccessActionsImpl {
 	return &AccessActionsImpl{
 		ResourceServiceClients: clients,
-		log: logrus.WithField("component", "access_actions"),
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "access_actions")),
 	}
 }
 
