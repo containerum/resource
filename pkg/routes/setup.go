@@ -81,7 +81,7 @@ func AccessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	router.GET("/access", accessHandlers.GetUserResourceAccessesHandler)
 }
 
-func DeployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func DeployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.DeployActions) {
 	deployHandlers := DeployHandlers{DeployActions: backend, TranslateValidate: tv}
 
 	deployment := router.Group("/namespace/:ns_label/deployment")
@@ -113,7 +113,7 @@ func DomainHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	}
 }
 
-func IngressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func IngressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.IngressActions) {
 	ingressHandlers := IngressHandlers{IngressActions: backend, TranslateValidate: tv}
 
 	ingress := router.Group("/namespace/:ns_label/ingress")
@@ -128,7 +128,7 @@ func IngressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 	router.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), ingressHandlers.GetAllIngressesHandler)
 }
 
-func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ServiceActions) {
 	serviceHandlers := ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
 
 	service := router.Group("/namespace/:ns_label/service")
@@ -144,7 +144,7 @@ func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 	}
 }
 
-func StorageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func StorageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.StorageActions) {
 	storageHandlers := StorageHandlers{StorageActions: backend, TranslateValidate: tv}
 
 	storage := router.Group("/storage", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
@@ -159,7 +159,7 @@ func StorageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 	}
 }
 
-func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.VolumeActions) {
 	volumeHandlers := VolumeHandlers{VolumeActions: backend, TranslateValidate: tv}
 
 	router.GET("/namespace/:ns_label/volumes", volumeHandlers.GetVolumesLinkedWithUserNamespaceHandler)
@@ -185,19 +185,7 @@ func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	}
 }
 
-// SetupRoutes sets up a router
-func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
-	MainMiddlewareSetup(router, tv)
-
-	NamespaceHandlersSetup(router, tv, backend)
-	AccessHandlersSetup(router, tv, backend)
-	DeployHandlersSetup(router, tv, backend)
-	DomainHandlersSetup(router, tv, backend)
-	IngressHandlersSetup(router, tv, backend)
-	ServiceHandlersSetup(router, tv, backend)
-	StorageHandlersSetup(router, tv, backend)
-	VolumeHandlersSetup(router, tv, backend)
-
+func ResourceCountHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceCountActions) {
 	router.GET("/resources", func(ctx *gin.Context) {
 		resp, err := backend.GetResourcesCount(ctx.Request.Context())
 		if err != nil {

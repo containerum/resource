@@ -42,8 +42,6 @@ func main() {
 	exitOnError(err)
 	defer clients.Close()
 
-	srv := impl.NewResourceServiceImpl(clients, constructors)
-
 	translate := setupTranslator()
 	validate := validation.StandardResourceValidator(translate)
 
@@ -52,7 +50,48 @@ func main() {
 	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 	binding.Validator = &validation.GinValidatorV9{Validate: validate} // gin has no local validator
 
-	routes.SetupRoutes(g, &routes.TranslateValidate{UniversalTranslator: translate, Validate: validate}, srv)
+	tv := &routes.TranslateValidate{UniversalTranslator: translate, Validate: validate}
+	routes.MainMiddlewareSetup(g, tv)
+	routes.NamespaceHandlersSetup(g, tv, impl.NewNamespaceActionsImpl(clients, &impl.NamespaceActionsDB{
+		NamespaceDB: constructors.NamespaceDB,
+		StorageDB:   constructors.StorageDB,
+		VolumeDB:    constructors.VolumeDB,
+		AccessDB:    constructors.AccessDB,
+	}))
+	routes.AccessHandlersSetup(g, tv, impl.NewAccessActionsImpl(clients, &impl.AccessActionsDB{
+		AccessDB:    constructors.AccessDB,
+		NamespaceDB: constructors.NamespaceDB,
+		VolumeDB:    constructors.VolumeDB,
+	}))
+	routes.DeployHandlersSetup(g, tv, impl.NewDeployActionsImpl(clients, &impl.DeployActionsDB{
+		DeployDB:    constructors.DeployDB,
+		NamespaceDB: constructors.NamespaceDB,
+		EndpointsDB: constructors.EndpointsDB,
+	}))
+	routes.DomainHandlersSetup(g, tv, impl.NewDomainActionsImpl(clients, &impl.DomainActionsDB{
+		DomainDB: constructors.DomainDB,
+	}))
+	routes.IngressHandlersSetup(g, tv, impl.NewIngressActionsImpl(clients, &impl.IngressActionsDB{
+		NamespaceDB: constructors.NamespaceDB,
+		ServiceDB:   constructors.ServiceDB,
+		IngressDB:   constructors.IngressDB,
+	}))
+	routes.ServiceHandlersSetup(g, tv, impl.NewServiceActionsImpl(clients, &impl.ServiceActionsDB{
+		ServiceDB:   constructors.ServiceDB,
+		NamespaceDB: constructors.NamespaceDB,
+		DomainDB:    constructors.DomainDB,
+	}))
+	routes.StorageHandlersSetup(g, tv, impl.NewStorageActionsImpl(clients, &impl.StorageActionsDB{
+		StorageDB: constructors.StorageDB,
+	}))
+	routes.VolumeHandlersSetup(g, tv, impl.NewVolumeActionsImpl(clients, &impl.VolumeActionsDB{
+		VolumeDB:  constructors.VolumeDB,
+		StorageDB: constructors.StorageDB,
+		AccessDB:  constructors.AccessDB,
+	}))
+	routes.ResourceCountHandlersSetup(g, tv, impl.NewResourceCountActionsImpl(clients, &impl.ResourceCountActionsDB{
+		ResourceCountDB: constructors.ResourceCountDB,
+	}))
 
 	// for graceful shutdown
 	httpsrv := &http.Server{

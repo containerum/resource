@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"io"
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
@@ -109,18 +108,6 @@ type ServiceActions interface {
 	DeleteService(ctx context.Context, nsLabel, serviceName string) error
 }
 
-// ResourceService is an interface for resource-service operations.
-type ResourceService interface {
-	NamespaceActions
-	VolumeActions
-	AccessActions
-	DeployActions
-	DomainActions
-	IngressActions
-	StorageActions
-	ServiceActions
-
+type ResourceCountActions interface {
 	GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error)
-
-	io.Closer
 }
