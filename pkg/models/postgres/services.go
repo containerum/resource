@@ -69,7 +69,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", req.Deploy).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -244,7 +244,7 @@ func (db *pgDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -265,11 +265,11 @@ func (db *pgDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []
 	return
 }
 
-func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel string) (ret kubtypes.Service, err error) {
+func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, err error) {
 	db.log.WithFields(logrus.Fields{
-		"user_id":       userID,
-		"ns_label":      nsLabel,
-		"service_label": serviceLabel,
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
 	}).Debug("get service")
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
@@ -277,7 +277,7 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -294,12 +294,12 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceLabel st
 		FROM services s
 		JOIN deployments d ON s.deploy_id = d.id
 		WHERE s.name = :name AND NOT s.deleted`,
-		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})
+		map[string]interface{}{"ns_id": nsID, "name": serviceName})
 	err = sqlx.GetContext(ctx, db.extLog, &serviceEntry, db.extLog.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("service %s not exists", serviceName).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -337,7 +337,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -358,7 +358,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("service %s not exists", req.Name).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -377,11 +377,11 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 	return
 }
 
-func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceLabel string) (err error) {
+func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceName string) (err error) {
 	db.log.WithFields(logrus.Fields{
-		"user_id":       userID,
-		"ns_label":      nsLabel,
-		"service_label": serviceLabel,
+		"user_id":      userID,
+		"ns_label":     nsLabel,
+		"service_name": serviceName,
 	}).Debug("delete service")
 
 	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
@@ -389,7 +389,7 @@ func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceLabel
 		return
 	}
 	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -403,9 +403,9 @@ func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceLabel
 		UPDATE services
 		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
 		WHERE id = (SELECT id FROM service_to_update)`,
-		map[string]interface{}{"ns_id": nsID, "name": serviceLabel})
+		map[string]interface{}{"ns_id": nsID, "name": serviceName})
 	if count, _ := result.RowsAffected(); count <= 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("service %s not exists", serviceName).Log(err, db.log)
 	}
 
 	return

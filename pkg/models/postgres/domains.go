@@ -60,7 +60,7 @@ func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Dom
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("domain %s not exists", domain).Log(err, db.log)
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -79,7 +79,7 @@ func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 		return
 	}
 	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("domain %s not exists", domain).Log(err, db.log)
 	}
 
 	return
@@ -93,7 +93,7 @@ func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, e
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetails("no domains").Log(err, db.log)
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}

@@ -53,7 +53,7 @@ func (db *pgDB) CreateNamespace(ctx context.Context, userID, label string, names
 		return
 	}
 	if nsID != "" {
-		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", label).Log(err, db.log)
 		return
 	}
 
@@ -296,7 +296,7 @@ func (db *pgDB) GetUserNamespaceByLabel(ctx context.Context, userID, label strin
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", label).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -413,7 +413,7 @@ func (db *pgDB) GetNamespaceWithUserPermissions(ctx context.Context,
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", label).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -475,7 +475,7 @@ func (db *pgDB) DeleteUserNamespaceByLabel(ctx context.Context, userID, label st
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", label).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -504,7 +504,7 @@ func (db *pgDB) DeleteAllUserNamespaces(ctx context.Context, userID string) (err
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetails("user don`t have namespaces").Log(err, db.log)
 	}
 
 	return
@@ -523,7 +523,7 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		return
 	}
 	if nsID != "" {
-		err = rserrors.ErrResourceAlreadyExists().Log(err, db.log)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", newLabel).Log(err, db.log)
 		return
 	}
 
@@ -538,7 +538,7 @@ func (db *pgDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", oldLabel).Log(err, db.log)
 	}
 
 	return
@@ -563,7 +563,7 @@ func (db *pgDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespac
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrResourceNotExists().Log(err, db.log)
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", namespace.ID).Log(err, db.log)
 		return
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
