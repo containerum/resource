@@ -28,18 +28,8 @@ func mainMiddlewareSetup(router gin.IRouter, tv *TranslateValidate) {
 	router.Use(utils.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 }
 
-// SetupRoutes sets up a router
-func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
-	mainMiddlewareSetup(router, tv)
-
+func namespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.NamespaceActions) {
 	nsHandlers := NamespaceHandlers{NamespaceActions: backend, TranslateValidate: tv}
-	accessHandlers := AccessHandlers{AccessActions: backend, TranslateValidate: tv}
-	deployHandlers := DeployHandlers{DeployActions: backend, TranslateValidate: tv}
-	domainHandlers := DomainHandlers{DomainActions: backend, TranslateValidate: tv}
-	ingressHandlers := IngressHandlers{IngressActions: backend, TranslateValidate: tv}
-	serviceHandlers := ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
-	storageHandlers := StorageHandlers{StorageActions: backend, TranslateValidate: tv}
-	volumeHandlers := VolumeHandlers{VolumeActions: backend, TranslateValidate: tv}
 
 	ns := router.Group("/namespace")
 	{
@@ -47,85 +37,70 @@ func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.Resou
 
 		ns.GET("", nsHandlers.GetUserNamespacesHandler)
 		ns.GET("/:ns_label", nsHandlers.GetUserNamespaceHandler)
-		ns.GET("/:ns_label/access", accessHandlers.GetUserNamespaceAccessesHandler)
-		ns.GET("/:ns_label/volumes", volumeHandlers.GetVolumesLinkedWithUserNamespaceHandler)
 
 		ns.DELETE("/:ns_label", nsHandlers.DeleteUserNamespaceHandler)
-		ns.DELETE("/:ns_label/access", accessHandlers.DeleteUserNamespaceAccessHandler)
 
 		ns.PUT("/:ns_label/name", nsHandlers.RenameUserNamespaceHandler)
-		ns.PUT("/:ns_label/access", accessHandlers.SetUserNamespaceAccessHandler)
 		ns.PUT("/:ns_label", nsHandlers.ResizeUserNamespaceHandler)
-
-		deployment := ns.Group("/:ns_label/deployment")
-		{
-			deployment.POST("", deployHandlers.CreateDeploymentHandler)
-
-			deployment.GET("", deployHandlers.GetDeploymentsHandler)
-			deployment.GET("/:deploy_label", deployHandlers.GetDeploymentByLabelHandler)
-
-			deployment.DELETE("/:deploy_label", deployHandlers.DeleteDeploymentByLabelHandler)
-
-			deployment.PUT("/:deploy_label/image", deployHandlers.SetContainerImageHandler)
-			deployment.PUT("/:deploy_label", deployHandlers.ReplaceDeploymentHandler)
-			deployment.PUT("/:deploy_label/replicas", deployHandlers.SetReplicasHandler)
-		}
-
-		ingress := ns.Group("/:ns_label/ingress")
-		{
-			ingress.POST("", ingressHandlers.CreateIngressHandler)
-
-			ingress.GET("", ingressHandlers.GetUserIngressesHandler)
-
-			ingress.DELETE("/:domain", ingressHandlers.DeleteIngressHandler)
-		}
-
-		service := ns.Group("/:ns_label/service")
-		{
-			service.POST("", serviceHandlers.CreateServiceHandler)
-
-			service.GET("", serviceHandlers.GetServicesHandler)
-			service.GET("/:service_label", serviceHandlers.GetServiceHandler)
-
-			service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)
-
-			service.DELETE("/:service_label", serviceHandlers.DeleteServiceHandler)
-		}
 	}
 
-	nss := router.Group("/namespaces")
+	nss := router.Group("/namespaces", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
-		nss.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), nsHandlers.GetAllNamespacesHandler)
+		nss.GET("", nsHandlers.GetAllNamespacesHandler)
 
-		nss.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), nsHandlers.DeleteAllUserNamespacesHandler)
+		nss.DELETE("", nsHandlers.DeleteAllUserNamespacesHandler)
+	}
+}
+
+func accessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.AccessActions) {
+	accessHandlers := AccessHandlers{AccessActions: backend, TranslateValidate: tv}
+
+	ns := router.Group("/namespace")
+	{
+		ns.GET("/:ns_label/access", accessHandlers.GetUserNamespaceAccessesHandler)
+
+		ns.DELETE("/:ns_label/access", accessHandlers.DeleteUserNamespaceAccessHandler)
+
+		ns.PUT("/:ns_label/access", accessHandlers.SetUserNamespaceAccessHandler)
 	}
 
 	vol := router.Group("/volume")
 	{
-		vol.POST("", volumeHandlers.CreateVolumeHandler)
-
-		vol.GET("", volumeHandlers.GetUserVolumesHandler)
-		vol.GET("/:vol_label", volumeHandlers.GetUserVolumeHandler)
 		vol.GET("/:vol_label/access", accessHandlers.GetUserVolumeAccessesHandler)
 
-		vol.DELETE("/:vol_label", volumeHandlers.DeleteUserVolumeHandler)
 		vol.DELETE("/:vol_label/access", accessHandlers.DeleteUserVolumeAccessHandler)
 
-		vol.PUT("/:vol_label/name", volumeHandlers.RenameUserVolumeHandler)
 		vol.PUT("/:vol_label/access", accessHandlers.SetUserVolumeAccessHandler)
-		vol.PUT("/:vol_label", volumeHandlers.ResizeUserVolumeHandler)
 	}
 
-	vols := router.Group("/volumes")
+	adm := router.Group("/adm", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
-		vols.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.GetAllVolumesHandler)
-
-		vols.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.DeleteAllUserVolumesHandler)
+		adm.PUT("/access", accessHandlers.SetUserResourceAccessesHandler)
 	}
 
 	router.GET("/access", accessHandlers.GetUserResourceAccessesHandler)
+}
 
-	router.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), ingressHandlers.GetAllIngressesHandler)
+func deployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+	deployHandlers := DeployHandlers{DeployActions: backend, TranslateValidate: tv}
+
+	deployment := router.Group("/namespace/:ns_label/deployment")
+	{
+		deployment.POST("", deployHandlers.CreateDeploymentHandler)
+
+		deployment.GET("", deployHandlers.GetDeploymentsHandler)
+		deployment.GET("/:deploy_label", deployHandlers.GetDeploymentByLabelHandler)
+
+		deployment.DELETE("/:deploy_label", deployHandlers.DeleteDeploymentByLabelHandler)
+
+		deployment.PUT("/:deploy_label/image", deployHandlers.SetContainerImageHandler)
+		deployment.PUT("/:deploy_label", deployHandlers.ReplaceDeploymentHandler)
+		deployment.PUT("/:deploy_label/replicas", deployHandlers.SetReplicasHandler)
+	}
+}
+
+func domainHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.DomainActions) {
+	domainHandlers := DomainHandlers{DomainActions: backend, TranslateValidate: tv}
 
 	domain := router.Group("/domain", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
@@ -136,6 +111,41 @@ func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.Resou
 
 		domain.DELETE("/:domain", domainHandlers.DeleteDomainHandler)
 	}
+}
+
+func ingressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+	ingressHandlers := IngressHandlers{IngressActions: backend, TranslateValidate: tv}
+
+	ingress := router.Group("/namespace/:ns_label/ingress")
+	{
+		ingress.POST("", ingressHandlers.CreateIngressHandler)
+
+		ingress.GET("", ingressHandlers.GetUserIngressesHandler)
+
+		ingress.DELETE("/:domain", ingressHandlers.DeleteIngressHandler)
+	}
+
+	router.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), ingressHandlers.GetAllIngressesHandler)
+}
+
+func serviceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+	serviceHandlers := ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
+
+	service := router.Group("/namespace/:ns_label/service")
+	{
+		service.POST("", serviceHandlers.CreateServiceHandler)
+
+		service.GET("", serviceHandlers.GetServicesHandler)
+		service.GET("/:service_label", serviceHandlers.GetServiceHandler)
+
+		service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)
+
+		service.DELETE("/:service_label", serviceHandlers.DeleteServiceHandler)
+	}
+}
+
+func storageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+	storageHandlers := StorageHandlers{StorageActions: backend, TranslateValidate: tv}
 
 	storage := router.Group("/storage", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
@@ -147,11 +157,46 @@ func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.Resou
 
 		storage.DELETE("/:storage_name", storageHandlers.DeleteStorageHandler)
 	}
+}
 
-	adm := router.Group("/adm", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+func volumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+	volumeHandlers := VolumeHandlers{VolumeActions: backend, TranslateValidate: tv}
+
+	router.GET("/namespace/:ns_label/volumes", volumeHandlers.GetVolumesLinkedWithUserNamespaceHandler)
+
+	vol := router.Group("/volume")
 	{
-		adm.PUT("/access", accessHandlers.SetUserResourceAccessesHandler)
+		vol.POST("", volumeHandlers.CreateVolumeHandler)
+
+		vol.GET("", volumeHandlers.GetUserVolumesHandler)
+		vol.GET("/:vol_label", volumeHandlers.GetUserVolumeHandler)
+
+		vol.DELETE("/:vol_label", volumeHandlers.DeleteUserVolumeHandler)
+
+		vol.PUT("/:vol_label/name", volumeHandlers.RenameUserVolumeHandler)
+		vol.PUT("/:vol_label", volumeHandlers.ResizeUserVolumeHandler)
 	}
+
+	vols := router.Group("/volumes")
+	{
+		vols.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.GetAllVolumesHandler)
+
+		vols.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.DeleteAllUserVolumesHandler)
+	}
+}
+
+// SetupRoutes sets up a router
+func SetupRoutes(router gin.IRouter, tv *TranslateValidate, backend server.ResourceService) {
+	mainMiddlewareSetup(router, tv)
+
+	namespaceHandlersSetup(router, tv, backend)
+	accessHandlersSetup(router, tv, backend)
+	deployHandlersSetup(router, tv, backend)
+	domainHandlersSetup(router, tv, backend)
+	ingressHandlersSetup(router, tv, backend)
+	serviceHandlersSetup(router, tv, backend)
+	storageHandlersSetup(router, tv, backend)
+	volumeHandlersSetup(router, tv, backend)
 
 	router.GET("/resources", func(ctx *gin.Context) {
 		resp, err := backend.GetResourcesCount(ctx.Request.Context())
