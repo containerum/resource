@@ -18,7 +18,7 @@ type volumeMountWithName struct {
 	rstypes.VolumeMount
 }
 
-func (db *pgDB) getContainersVolumes(ctx context.Context,
+func (db *PGDB) getContainersVolumes(ctx context.Context,
 	containerIDs []string) (volMap map[string][]volumeMountWithName, err error) {
 	db.log.Debugf("get containers volumes %v", containerIDs)
 
@@ -35,7 +35,7 @@ func (db *pgDB) getContainersVolumes(ctx context.Context,
 				JOIN permissions p ON vm.volume_id = p.resource_id AND p.kind = 'volume'
 				WHERE vm.container_id IN (?)`,
 		containerIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, &vols, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &vols, db.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -53,7 +53,7 @@ func (db *pgDB) getContainersVolumes(ctx context.Context,
 	return
 }
 
-func (db *pgDB) getContainersEnvironments(ctx context.Context,
+func (db *PGDB) getContainersEnvironments(ctx context.Context,
 	containerIDs []string) (envMap map[string][]rstypes.EnvironmentVariable, err error) {
 	db.log.Debugf("get containers envs %v", containerIDs)
 
@@ -65,7 +65,7 @@ func (db *pgDB) getContainersEnvironments(ctx context.Context,
 
 	envs := make([]rstypes.EnvironmentVariable, 0)
 	query, args, _ := sqlx.In( /* language=sql */ `SELECT * FROM env_vars WHERE container_id IN (?)`, containerIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, &envs, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &envs, db.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -83,7 +83,7 @@ func (db *pgDB) getContainersEnvironments(ctx context.Context,
 	return
 }
 
-func (db *pgDB) getDeploymentsContainers(ctx context.Context,
+func (db *PGDB) getDeploymentsContainers(ctx context.Context,
 	deplIDs []string) (contIDs []string, contMap map[string][]rstypes.Container, err error) {
 	db.log.Debugf("get deployments containers %v", deplIDs)
 
@@ -96,7 +96,7 @@ func (db *pgDB) getDeploymentsContainers(ctx context.Context,
 
 	conts := make([]rstypes.Container, 0)
 	query, args, _ := sqlx.In( /* language=sql */ `SELECT * FROM containers WHERE depl_id IN (?)`, deplIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, &conts, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &conts, db.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 	default:
@@ -114,7 +114,7 @@ func (db *pgDB) getDeploymentsContainers(ctx context.Context,
 	return
 }
 
-func (db *pgDB) getRawDeployments(ctx context.Context,
+func (db *PGDB) getRawDeployments(ctx context.Context,
 	userID, nsLabel string) (deplIDs []string, deployments []rstypes.Deployment, err error) {
 	params := map[string]interface{}{
 		"user_id":  userID,
@@ -132,7 +132,7 @@ func (db *pgDB) getRawDeployments(ctx context.Context,
 		JOIN permissions p ON ns.id = p.resource_id AND p.kind = 'namespace'
 		WHERE p.resource_label = :ns_label AND p.user_id = :user_id AND NOT d.deleted`,
 		params)
-	err = sqlx.SelectContext(ctx, db.extLog, &deployments, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &deployments, db.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -179,7 +179,7 @@ func convertVols(vols []volumeMountWithName) (ret []kubtypes.ContainerVolume) {
 	return
 }
 
-func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Deployment, err error) {
+func (db *PGDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Deployment, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -232,12 +232,12 @@ func (db *pgDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 	return
 }
 
-func (db *pgDB) getDeploymentContainers(ctx context.Context,
+func (db *PGDB) getDeploymentContainers(ctx context.Context,
 	deploy rstypes.Deployment) (ret []rstypes.Container, ids []string, err error) {
 	db.log.WithField("deploy_id", deploy.ID).Debug("get deployment containers")
 
 	query, args, _ := sqlx.Named( /* language=sql */ `SELECT * FROM containers WHERE depl_id = :id`, deploy)
-	err = sqlx.SelectContext(ctx, db.extLog, &ret, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &ret, db.Rebind(query), args...)
 	switch err {
 	case nil, sql.ErrNoRows:
 	default:
@@ -252,7 +252,7 @@ func (db *pgDB) getDeploymentContainers(ctx context.Context,
 	return
 }
 
-func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplName string) (ret kubtypes.Deployment, err error) {
+func (db *PGDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplName string) (ret kubtypes.Deployment, err error) {
 	params := map[string]interface{}{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -267,7 +267,7 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplN
 		JOIN permissions p ON p.resource_id = d.ns_id AND p.kind = 'namespace'
 		WHERE NOT d.deleted AND (d.name, p.user_id, p.resource_label) = (:deploy_name, :user_id, :ns_label)`,
 		params)
-	err = sqlx.GetContext(ctx, db.extLog, &rawDeploy, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &rawDeploy, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -312,7 +312,7 @@ func (db *pgDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplN
 	return
 }
 
-func (db *pgDB) getDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
+func (db *PGDB) getDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
 	params := map[string]interface{}{
 		"ns_id":       nsID,
 		"deploy_name": deplName,
@@ -324,7 +324,7 @@ func (db *pgDB) getDeployID(ctx context.Context, nsID, deplName string) (id stri
 		FROM deployments
 		WHERE NOT deleted AND (ns_id, name) = (:ns_id, :deploy_name)`,
 		params)
-	err = sqlx.GetContext(ctx, db.extLog, &id, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &id, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -337,7 +337,7 @@ func (db *pgDB) getDeployID(ctx context.Context, nsID, deplName string) (id stri
 	return
 }
 
-func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
+func (db *PGDB) createRawDeployment(ctx context.Context, nsID string,
 	deployment kubtypes.Deployment) (id string, firstInNamespace bool, err error) {
 	db.log.WithField("ns_id", nsID).Debugf("create raw deployment %#v", deployment)
 
@@ -354,7 +354,7 @@ func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
 			Name:        deployment.Name,
 			Replicas:    deployment.Replicas,
 		})
-	err = db.extLog.QueryRowxContext(ctx, db.extLog.Rebind(query), args...).Scan(&id, &firstInNamespace)
+	err = db.QueryRowxContext(ctx, db.Rebind(query), args...).Scan(&id, &firstInNamespace)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -362,11 +362,11 @@ func (db *pgDB) createRawDeployment(ctx context.Context, nsID string,
 	return
 }
 
-func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
+func (db *PGDB) createDeploymentContainers(ctx context.Context, deplID string,
 	containers []kubtypes.Container) (contMap map[string]kubtypes.Container, err error) {
 	db.log.WithField("deploy_id", deplID).Debugf("create deployment containers %#v", containers)
 
-	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+	stmt, err := db.PrepareNamed( /* language=sql */
 		`INSERT INTO containers
 		(depl_id, name, image, cpu, ram)
 		VALUES (:depl_id, :name, :image, :cpu, :ram)
@@ -409,10 +409,10 @@ func (db *pgDB) createDeploymentContainers(ctx context.Context, deplID string,
 	return
 }
 
-func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kubtypes.Container) (err error) {
+func (db *PGDB) createContainersEnvs(ctx context.Context, contMap map[string]kubtypes.Container) (err error) {
 	db.log.Debugf("create containers environments %#v", contMap)
 
-	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+	stmt, err := db.PrepareNamed( /* language=sql */
 		`INSERT INTO env_vars
 		(container_id, "name", "value")
 		VALUES (:container_id, :name, :value)`)
@@ -439,7 +439,7 @@ func (db *pgDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 	return
 }
 
-func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
+func (db *PGDB) checkVolumesExists(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
 	db.log.WithField("user_id", userID).Debugf("check volume exists for user, containers %#v", contMap)
 
 	volExistMap := make(map[string]bool)
@@ -453,7 +453,7 @@ func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT resource_label FROM permissions WHERE (kind, user_id) = ('volume', :user_id)`,
 		map[string]interface{}{"user_id": userID})
-	err = sqlx.SelectContext(ctx, db.extLog, &existingVols, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &existingVols, db.Rebind(query), args...)
 	switch err {
 	case err, sql.ErrNoRows:
 		err = nil
@@ -480,7 +480,7 @@ func (db *pgDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 	return
 }
 
-func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
+func (db *PGDB) createContainersVolumes(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
 	params := map[string]interface{}{"user_id": userID}
 	db.log.WithFields(params).Debugf("create containers volumes %#v", contMap)
 
@@ -488,7 +488,7 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, cont
 		return
 	}
 
-	stmt, err := db.preparer.PrepareNamed( /* language=sql */
+	stmt, err := db.PrepareNamed( /* language=sql */
 		`WITH vol_id_name AS (
 			SELECT resource_label, resource_id
 			FROM permissions
@@ -525,7 +525,7 @@ func (db *pgDB) createContainersVolumes(ctx context.Context, userID string, cont
 	return
 }
 
-func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
+func (db *PGDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	deployment kubtypes.Deployment) (firstInNamespace bool, err error) {
 	params := map[string]interface{}{
 		"user_id":  userID,
@@ -572,7 +572,7 @@ func (db *pgDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	return
 }
 
-func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName string) (lastInNamespace bool, err error) {
+func (db *PGDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName string) (lastInNamespace bool, err error) {
 	params := map[string]interface{}{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -589,7 +589,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName 
 		return
 	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE deployments
 		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
 		WHERE (ns_id, "name") = (:ns_id, :name) AND NOT deleted`,
@@ -607,7 +607,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT count(*) FROM deployments WHERE ns_id = :ns_id AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID})
-	err = sqlx.GetContext(ctx, db.extLog, &activeDeployCount, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &activeDeployCount, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -617,7 +617,7 @@ func (db *pgDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName 
 	return
 }
 
-func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) (err error) {
+func (db *PGDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -633,7 +633,7 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 	}
 
 	// assuming cascade removal of containers, etc.
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`DELETE FROM deployments
 		WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deploy.Name})
@@ -650,7 +650,7 @@ func (db *pgDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 	return
 }
 
-func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplName string, replicas int) (err error) {
+func (db *PGDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplName string, replicas int) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -667,7 +667,7 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		return
 	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE deployments
 		SET replicas = :replicas
 		WHERE ns_id = :ns_id AND name = :name`,
@@ -684,7 +684,7 @@ func (db *pgDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 	return
 }
 
-func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName string, req kubtypes.UpdateImage) (err error) {
+func (db *PGDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName string, req kubtypes.UpdateImage) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -709,7 +709,7 @@ func (db *pgDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName
 		return
 	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE containers
 		SET image = :image
 		WHERE depl_id = :depl_id AND name = :name`,

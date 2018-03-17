@@ -18,11 +18,12 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 )
 
-type pgDB struct {
-	conn     *sqlx.DB // do not use for operations
-	extLog   sqlx.ExtContext
-	log      *cherrylog.LogrusAdapter
-	preparer chutils.SQLXPreparer
+type PGDB struct {
+	sqlx.ExtContext
+	chutils.SQLXPreparer
+
+	conn *sqlx.DB // do not use for operations
+	log  *cherrylog.LogrusAdapter
 
 	// for information
 	pgConnStr          string
@@ -34,7 +35,7 @@ type pgDB struct {
 // github.com/jmoiron/sqlx used to to get work with database.
 // Function tries to ping database and apply migrations using github.com/mattes/migrate.
 // If migrations applying failed database goes to dirty state and requires manual conflict resolution.
-func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
+func DBConnect(pgConnStr string, migrations string) (*PGDB, error) {
 	log := logrus.WithField("component", "postgres_db")
 	log.Infoln("Connecting to ", pgConnStr)
 	conn, err := sqlx.Connect("postgres", pgConnStr)
@@ -43,11 +44,11 @@ func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
 		return nil, err
 	}
 
-	ret := &pgDB{
-		conn:     conn,
-		log:      cherrylog.NewLogrusAdapter(log),
-		extLog:   chutils.NewSQLXExtContextLogger(conn, log),
-		preparer: chutils.NewSQLXPreparerLogger(conn, log),
+	ret := &PGDB{
+		conn:         conn,
+		log:          cherrylog.NewLogrusAdapter(log),
+		ExtContext:   chutils.NewSQLXExtContextLogger(conn, log),
+		SQLXPreparer: chutils.NewSQLXPreparerLogger(conn, log),
 	}
 
 	m, err := ret.migrateUp(migrations)
@@ -67,7 +68,7 @@ func DBConnect(pgConnStr string, migrations string) (models.DB, error) {
 	return ret, nil
 }
 
-func (db *pgDB) migrateUp(path string) (*migrate.Migrate, error) {
+func (db *PGDB) migrateUp(path string) (*migrate.Migrate, error) {
 	db.log.Infof("Running migrations")
 	instance, err := migdrv.WithInstance(db.conn.DB, &migdrv.Config{})
 	if err != nil {
@@ -83,7 +84,7 @@ func (db *pgDB) migrateUp(path string) (*migrate.Migrate, error) {
 	return m, nil
 }
 
-func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, tx models.DB) error) (err error) {
+func (db *PGDB) Transactional(ctx context.Context, f func(ctx context.Context, tx models.DB) error) (err error) {
 	e := db.log.WithField("transaction_id", chutils.NewUUID())
 	e.Debugln("Begin transaction")
 	log := cherrylog.NewLogrusAdapter(e)
@@ -92,11 +93,11 @@ func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 		return rserrors.ErrDatabase().Log(txErr, log)
 	}
 
-	arg := &pgDB{
-		conn:     db.conn,
-		log:      log,
-		extLog:   chutils.NewSQLXExtContextLogger(tx, e),
-		preparer: chutils.NewSQLXPreparerLogger(tx, e),
+	arg := &PGDB{
+		conn:         db.conn,
+		log:          log,
+		ExtContext:   chutils.NewSQLXExtContextLogger(tx, e),
+		SQLXPreparer: chutils.NewSQLXPreparerLogger(tx, e),
 	}
 
 	// needed for recovering panics in transactions.
@@ -125,16 +126,16 @@ func (db *pgDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 	return
 }
 
-func (db *pgDB) String() string {
+func (db *PGDB) String() string {
 	return fmt.Sprintf("address: %s, migrations path: %s (version: %s)",
 		db.pgConnStr, db.migrations, db.migrationsVerstion)
 }
 
-func (db *pgDB) Close() error {
+func (db *PGDB) Close() error {
 	return db.conn.Close()
 }
 
-func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstypes.GetResourcesCountResponse, err error) {
+func (db *PGDB) GetResourcesCount(ctx context.Context, userID string) (ret rstypes.GetResourcesCountResponse, err error) {
 	db.log.WithField("user_id", userID).Debug("get resources count")
 
 	var nsIDs []string
@@ -143,7 +144,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		FROM permissions
 		WHERE (user_id = :user_id OR owner_user_id = :user_id) AND kind = 'namespace'`,
 		map[string]interface{}{"user_id": userID})
-	err = sqlx.SelectContext(ctx, db.extLog, &nsIDs, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &nsIDs, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -164,7 +165,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		FROM permissions
 		WHERE user_id = :user_id`,
 		map[string]interface{}{"user_id": userID})
-	err = sqlx.GetContext(ctx, db.extLog, &volservs, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &volservs, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -177,7 +178,7 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 	var deplIDs []string
 	if len(nsIDs) > 0 {
 		query, args, _ = sqlx.In( /* language=sql */ `SELECT id FROM deployments WHERE ns_id IN (?)`, nsIDs)
-		err = sqlx.SelectContext(ctx, db.extLog, &deplIDs, db.extLog.Rebind(query), args...)
+		err = sqlx.SelectContext(ctx, db, &deplIDs, db.Rebind(query), args...)
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
 			return
@@ -193,14 +194,14 @@ func (db *pgDB) GetResourcesCount(ctx context.Context, userID string) (ret rstyp
 		JOIN services s ON i.service_id = s.id
 		WHERE s.deploy_id IN (?)`,
 			deplIDs)
-		err = sqlx.GetContext(ctx, db.extLog, &ret.Ingresses, db.extLog.Rebind(query), args...)
+		err = sqlx.GetContext(ctx, db, &ret.Ingresses, db.Rebind(query), args...)
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
 			return
 		}
 
 		query, args, _ = sqlx.In( /* language=sql */ `SELECT count(*) FROM containers WHERE depl_id IN (?)`, deplIDs)
-		err = sqlx.GetContext(ctx, db.extLog, &ret.Containers, db.extLog.Rebind(query), args...)
+		err = sqlx.GetContext(ctx, db, &ret.Containers, db.Rebind(query), args...)
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
 		}

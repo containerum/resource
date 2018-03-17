@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) (ret []kube_api.Endpoint, err error) {
+func (db *PGDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) (ret []kube_api.Endpoint, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -53,7 +53,7 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 		ID  string         `db:"id"`
 		IPs pq.StringArray `db:"ips"`
 	}
-	err = sqlx.SelectContext(ctx, db.extLog, &storages, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &storages, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -76,7 +76,7 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 	return
 }
 
-func (db *pgDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) (err error) {
+func (db *PGDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -92,7 +92,7 @@ func (db *pgDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel str
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE endpoints SET service_exists = TRUE WHERE namespace_id = :ns_id`,
 		map[string]interface{}{"ns_id": nsID})
 	if err != nil {
