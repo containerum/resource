@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/json-types/kube-api"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
@@ -11,13 +12,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) (ret []kube_api.Endpoint, err error) {
+type GlusterPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewGlusterPG(db models.RelationalDB) models.GlusterEndpointsDB {
+	return &GlusterPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "gluster_pg")),
+	}
+}
+
+func (db *GlusterPG) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) (ret []kube_api.Endpoint, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debug("create endpoints for gluster")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -71,13 +84,13 @@ func (db *PGDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 	return
 }
 
-func (db *PGDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) (err error) {
+func (db *GlusterPG) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Info("confirm gluster services created")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}

@@ -14,15 +14,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type IngressActionsDB struct {
+	NamespaceDB models.NamespaceDBConstructor
+	ServiceDB   models.ServiceDBConstructor
+	IngressDB   models.IngressDBConstructor
+}
+
 type IngressActionsImpl struct {
 	*server.ResourceServiceClients
+	*IngressActionsDB
+
 	log *cherrylog.LogrusAdapter
 }
 
-func NewIngressActionsImpl(clients *server.ResourceServiceClients) *IngressActionsImpl {
+func NewIngressActionsImpl(clients *server.ResourceServiceClients, constructors *IngressActionsDB) *IngressActionsImpl {
 	return &IngressActionsImpl{
 		ResourceServiceClients: clients,
-		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+		IngressActionsDB:       constructors,
+		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
 	}
 }
 
@@ -41,13 +50,13 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		req.Path = "/" + req.Path
 	}
 
-	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		service, getErr := tx.GetService(ctx, userID, nsLabel, req.Service)
+		service, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Service)
 		if getErr != nil {
 			return getErr
 		}
@@ -57,7 +66,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return pathsErr
 		}
 
-		if createErr := tx.CreateIngress(ctx, userID, nsLabel, req); createErr != nil {
+		if createErr := ia.IngressDB(tx).CreateIngress(ctx, userID, nsLabel, req); createErr != nil {
 			return createErr
 		}
 
@@ -122,7 +131,7 @@ func (ia *IngressActionsImpl) GetUserIngresses(ctx context.Context, nsLabel stri
 		"ns_label": nsLabel,
 	}).Info("get user ingresses")
 
-	resp, err := ia.DB.GetUserIngresses(ctx, userID, nsLabel, params)
+	resp, err := ia.IngressDB(ia.DB).GetUserIngresses(ctx, userID, nsLabel, params)
 
 	return resp, err
 }
@@ -133,7 +142,7 @@ func (ia *IngressActionsImpl) GetAllIngresses(ctx context.Context, params rstype
 		"per_page": params.PerPage,
 	}).Info("get all ingresses")
 
-	resp, err := ia.DB.GetAllIngresses(ctx, params)
+	resp, err := ia.IngressDB(ia.DB).GetAllIngresses(ctx, params)
 
 	return resp, err
 }
@@ -146,13 +155,13 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 		"domain":   domain,
 	}).Info("delete ingress")
 
-	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		ingressType, delErr := tx.DeleteIngress(ctx, userID, nsLabel, domain)
+		ingressType, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)
 		if delErr != nil {
 			return delErr
 		}

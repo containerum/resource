@@ -13,15 +13,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type AccessActionsDB struct {
+	AccessDB    models.AccessDBConstructor
+	NamespaceDB models.NamespaceDBConstructor
+	VolumeDB    models.VolumeDBConstructor
+}
+
 type AccessActionsImpl struct {
 	*server.ResourceServiceClients
+	*AccessActionsDB
+
 	log *cherrylog.LogrusAdapter
 }
 
-func NewAccessActionsImpl(clients *server.ResourceServiceClients) *AccessActionsImpl {
+func NewAccessActionsImpl(clients *server.ResourceServiceClients, constructors *AccessActionsDB) *AccessActionsImpl {
 	return &AccessActionsImpl{
 		ResourceServiceClients: clients,
-		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "access_actions")),
+		AccessActionsDB:        constructors,
+		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "access_actions")),
 	}
 }
 
@@ -32,12 +41,13 @@ func (aa *AccessActionsImpl) SetUserAccesses(ctx context.Context, accessLevel rs
 		"access_level": accessLevel,
 	}).Info("set user resources access level")
 
-	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if updErr := tx.SetAllResourcesAccess(ctx, userID, accessLevel); updErr != nil {
+	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		accessDB := aa.AccessDB(tx)
+		if updErr := accessDB.SetAllResourcesAccess(ctx, userID, accessLevel); updErr != nil {
 			return updErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, userID); updErr != nil {
 			return updErr
 		}
 
@@ -58,8 +68,8 @@ func (aa *AccessActionsImpl) SetUserVolumeAccess(ctx context.Context, label stri
 
 	isAdmin := server.IsAdminRole(ctx)
 
-	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		vol, getErr := tx.GetUserVolumeByLabel(ctx, userID, label)
+	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		vol, getErr := aa.VolumeDB(tx).GetUserVolumeByLabel(ctx, userID, label)
 		if getErr != nil {
 			return getErr
 		}
@@ -80,11 +90,12 @@ func (aa *AccessActionsImpl) SetUserVolumeAccess(ctx context.Context, label stri
 		vol.PermissionRecord.UserID = info.ID
 		vol.PermissionRecord.AccessLevel = req.Access
 
-		if setErr := tx.SetResourceAccess(ctx, &vol.PermissionRecord); setErr != nil {
+		accessDB := aa.AccessDB(tx)
+		if setErr := accessDB.SetResourceAccess(ctx, &vol.PermissionRecord); setErr != nil {
 			return setErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, userID); updErr != nil {
 			return updErr
 		}
 
@@ -105,8 +116,8 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 
 	isAdmin := server.IsAdminRole(ctx)
 
-	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		ns, getErr := tx.GetUserNamespaceByLabel(ctx, userID, label)
+	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		ns, getErr := aa.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, label)
 		if getErr != nil {
 			return getErr
 		}
@@ -127,11 +138,12 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 		ns.PermissionRecord.UserID = info.ID
 		ns.PermissionRecord.AccessLevel = req.Access
 
-		if setErr := tx.SetResourceAccess(ctx, &ns.PermissionRecord); setErr != nil {
+		accessDB := aa.AccessDB(tx)
+		if setErr := accessDB.SetResourceAccess(ctx, &ns.PermissionRecord); setErr != nil {
 			return setErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, userID); updErr != nil {
 			return updErr
 		}
 
@@ -148,7 +160,7 @@ func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label
 		"label":   label,
 	}).Info("get user namespace accesses")
 
-	ret, err := aa.DB.GetNamespaceWithUserPermissions(ctx, userID, label)
+	ret, err := aa.NamespaceDB(aa.DB).GetNamespaceWithUserPermissions(ctx, userID, label)
 
 	return ret, err
 }
@@ -160,7 +172,7 @@ func (aa *AccessActionsImpl) GetUserVolumeAccesses(ctx context.Context, label st
 		"label":   label,
 	}).Info("get user volume accesses")
 
-	ret, err := aa.DB.GetVolumeWithUserPermissions(ctx, userID, label)
+	ret, err := aa.VolumeDB(aa.DB).GetVolumeWithUserPermissions(ctx, userID, label)
 
 	return ret, err
 }
@@ -169,7 +181,7 @@ func (aa *AccessActionsImpl) GetUserAccesses(ctx context.Context) (*authProto.Re
 	userID := utils.MustGetUserID(ctx)
 	aa.log.WithField("user_id", userID).Info("get all user accesses")
 
-	ret, err := aa.DB.GetUserResourceAccesses(ctx, userID)
+	ret, err := aa.AccessDB(aa.DB).GetUserResourceAccesses(ctx, userID)
 
 	return ret, err
 }
@@ -180,13 +192,13 @@ func (aa *AccessActionsImpl) DeleteUserNamespaceAccess(ctx context.Context, nsLa
 		"target_user": req.Username,
 	}).Info("delete user namespace access")
 
-	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		user, getErr := aa.User.UserInfoByLogin(ctx, req.Username)
 		if getErr != nil {
 			return getErr
 		}
 
-		ns, getErr := tx.GetUserNamespaceByLabel(ctx, user.ID, nsLabel)
+		ns, getErr := aa.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, user.ID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
@@ -195,11 +207,12 @@ func (aa *AccessActionsImpl) DeleteUserNamespaceAccess(ctx context.Context, nsLa
 			return rserrors.ErrDeleteOwnerAccess()
 		}
 
-		if delErr := tx.DeleteResourceAccess(ctx, ns.Resource, user.ID); delErr != nil {
+		accessDB := aa.AccessDB(tx)
+		if delErr := accessDB.DeleteResourceAccess(ctx, ns.Resource, user.ID); delErr != nil {
 			return delErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, tx, user.ID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, user.ID); updErr != nil {
 			return updErr
 		}
 
@@ -215,13 +228,13 @@ func (aa *AccessActionsImpl) DeleteUserVolumeAccess(ctx context.Context, volLabe
 		"target_user": req.Username,
 	}).Info("delete user volume access")
 
-	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := aa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		user, getErr := aa.User.UserInfoByLogin(ctx, req.Username)
 		if getErr != nil {
 			return getErr
 		}
 
-		vol, getErr := tx.GetUserVolumeByLabel(ctx, user.ID, volLabel)
+		vol, getErr := aa.VolumeDB(tx).GetUserVolumeByLabel(ctx, user.ID, volLabel)
 		if getErr != nil {
 			return getErr
 		}
@@ -230,11 +243,12 @@ func (aa *AccessActionsImpl) DeleteUserVolumeAccess(ctx context.Context, volLabe
 			return rserrors.ErrDeleteOwnerAccess()
 		}
 
-		if delErr := tx.DeleteResourceAccess(ctx, vol.Resource, user.ID); delErr != nil {
+		accessDB := aa.AccessDB(tx)
+		if delErr := accessDB.DeleteResourceAccess(ctx, vol.Resource, user.ID); delErr != nil {
 			return delErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, tx, user.ID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, user.ID); updErr != nil {
 			return updErr
 		}
 

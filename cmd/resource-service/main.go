@@ -38,11 +38,11 @@ func main() {
 	listenAddr, err := getListenAddr()
 	exitOnError(err)
 
-	clients, err := setupServerClients()
+	clients, constructors, err := setupServerClients()
 	exitOnError(err)
 	defer clients.Close()
 
-	srv := impl.NewResourceServiceImpl(clients)
+	srv := impl.NewResourceServiceImpl(clients, constructors)
 
 	translate := setupTranslator()
 	validate := validation.StandardResourceValidator(translate)

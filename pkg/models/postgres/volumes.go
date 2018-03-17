@@ -7,13 +7,26 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) GetVolumeID(ctx context.Context, userID, label string) (volID string, err error) {
+type VolumePG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewVolumePG(db models.RelationalDB) models.VolumeDB {
+	return &VolumePG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "volume_pg")),
+	}
+}
+
+func (db *VolumePG) GetVolumeID(ctx context.Context, userID, label string) (volID string, err error) {
 	params := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,
@@ -37,86 +50,7 @@ func (db *PGDB) GetVolumeID(ctx context.Context, userID, label string) (volID st
 	return
 }
 
-func (db *PGDB) addVolumesToNamespaces(ctx context.Context,
-	nsIDs []string, nsMap map[string]rstypes.NamespaceWithVolumes) (err error) {
-	db.log.Debugf("add volumes to namespaces %v", nsIDs)
-	type volWithNsID struct {
-		rstypes.VolumeWithPermission
-		NsID string `db:"ns_id"`
-	}
-	if len(nsIDs) == 0 {
-		return nil
-	}
-	volsWithNsID := make([]volWithNsID, 0)
-	query, args, _ := sqlx.In( /* language=sql */
-		`SELECT v.*, 
-			p.id AS perm_id,
-			p.kind,
-			p.resource_id,
-			p.resource_label,
-			p.owner_user_id,
-			p.create_time,
-			p.user_id,
-			p.access_level,
-			p.limited,
-			p.access_level_change_time,
-			p.new_access_level,
-			d.ns_id
-		FROM volumes v
-		JOIN volume_mounts vm ON v.id = vm.volume_id
-		JOIN containers c ON vm.container_id = c.id
-		JOIN deployments d ON c.depl_id = d.id
-		JOIN permissions p ON p.resource_id = v.id
-		WHERE d.ns_id IN (?)`, nsIDs)
-	err = sqlx.SelectContext(ctx, db, &volsWithNsID, db.Rebind(query), args...)
-	switch err {
-	case nil, sql.ErrNoRows:
-		err = nil
-	default:
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-
-	// fetch non-persistent volumes
-	query, args, _ = sqlx.In( /* language=sql */
-		`SELECT v.*, 
-			p.id AS perm_id,
-			p.kind,
-			p.resource_id,
-			p.resource_label,
-			p.owner_user_id,
-			p.create_time,
-			p.user_id,
-			p.access_level,
-			p.limited,
-			p.access_level_change_time,
-			p.new_access_level,
-			v.ns_id
-		FROM volumes v
-		JOIN permissions p ON p.resource_id = v.id
-		WHERE v.ns_id IN (?)`, nsIDs)
-	npvs := make([]volWithNsID, 0)
-	err = sqlx.SelectContext(ctx, db, &volsWithNsID, db.Rebind(query), args...)
-	switch err {
-	case nil, sql.ErrNoRows:
-		err = nil
-	default:
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-
-	volsWithNsID = append(volsWithNsID, npvs...)
-
-	for _, v := range volsWithNsID {
-		ns := nsMap[v.NsID]
-		ns.Volume = append(ns.Volume, v.VolumeWithPermission)
-		nsMap[v.NsID] = ns
-	}
-
-	return
-}
-
-func (db *PGDB) CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) (err error) {
+func (db *VolumePG) CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -172,7 +106,7 @@ func (db *PGDB) CreateVolume(ctx context.Context, userID, label string, volume *
 	return
 }
 
-func (db *PGDB) GetUserVolumes(ctx context.Context,
+func (db *VolumePG) GetUserVolumes(ctx context.Context,
 	userID string, filters *models.VolumeFilterParams) (ret []rstypes.VolumeWithPermission, err error) {
 	ret = make([]rstypes.VolumeWithPermission, 0)
 	db.log.WithField("user_id", userID).Debugf("get user volumes (filters %#v)", filters)
@@ -222,7 +156,7 @@ func (db *PGDB) GetUserVolumes(ctx context.Context,
 	return
 }
 
-func (db *PGDB) GetAllVolumes(ctx context.Context,
+func (db *VolumePG) GetAllVolumes(ctx context.Context,
 	page, perPage int, filters *models.VolumeFilterParams) (ret []rstypes.VolumeWithPermission, err error) {
 	ret = make([]rstypes.VolumeWithPermission, 0)
 
@@ -278,7 +212,7 @@ func (db *PGDB) GetAllVolumes(ctx context.Context,
 	return
 }
 
-func (db *PGDB) GetUserVolumeByLabel(ctx context.Context,
+func (db *VolumePG) GetUserVolumeByLabel(ctx context.Context,
 	userID, label string) (ret rstypes.VolumeWithPermission, err error) {
 	params := map[string]interface{}{
 		"user_id": userID,
@@ -315,7 +249,7 @@ func (db *PGDB) GetUserVolumeByLabel(ctx context.Context,
 	return
 }
 
-func (db *PGDB) GetVolumeWithUserPermissions(ctx context.Context,
+func (db *VolumePG) GetVolumeWithUserPermissions(ctx context.Context,
 	userID, label string) (ret rstypes.VolumeWithUserPermissions, err error) {
 	params := map[string]interface{}{
 		"user_id": userID,
@@ -383,7 +317,7 @@ func (db *PGDB) GetVolumeWithUserPermissions(ctx context.Context,
 	return
 }
 
-func (db *PGDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, nsLabel string) (ret []rstypes.VolumeWithPermission, err error) {
+func (db *VolumePG) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, nsLabel string) (ret []rstypes.VolumeWithPermission, err error) {
 	params := map[string]interface{}{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -422,7 +356,7 @@ func (db *PGDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, n
 	return
 }
 
-func (db *PGDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (volume rstypes.Volume, err error) {
+func (db *VolumePG) DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (volume rstypes.Volume, err error) {
 	params := map[string]interface{}{
 		"user_id":        userID,
 		"resource_label": label,
@@ -457,7 +391,7 @@ func (db *PGDB) DeleteUserVolumeByLabel(ctx context.Context, userID, label strin
 	return
 }
 
-func (db *PGDB) DeleteAllUserVolumes(ctx context.Context, userID string, nonPersistentOnly bool) (ret []rstypes.Volume, err error) {
+func (db *VolumePG) DeleteAllUserVolumes(ctx context.Context, userID string, nonPersistentOnly bool) (ret []rstypes.Volume, err error) {
 	params := map[string]interface{}{
 		"user_id":             userID,
 		"non_persistent_only": nonPersistentOnly,
@@ -489,7 +423,7 @@ func (db *PGDB) DeleteAllUserVolumes(ctx context.Context, userID string, nonPers
 	return
 }
 
-func (db *PGDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) (err error) {
+func (db *VolumePG) RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) (err error) {
 	params := map[string]interface{}{
 		"user_id":   userID,
 		"old_label": oldLabel,
@@ -523,7 +457,7 @@ func (db *PGDB) RenameVolume(ctx context.Context, userID, oldLabel, newLabel str
 	return
 }
 
-func (db *PGDB) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err error) {
+func (db *VolumePG) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err error) {
 	db.log.WithField("volume_id", volume.ID).Debugf("update volume to %#v", volume)
 
 	query, args, _ := sqlx.Named( /* language=sql */
@@ -548,7 +482,7 @@ func (db *PGDB) ResizeVolume(ctx context.Context, volume *rstypes.Volume) (err e
 	return
 }
 
-func (db *PGDB) SetVolumeActiveByID(ctx context.Context, id string, active bool) (err error) {
+func (db *VolumePG) SetVolumeActiveByID(ctx context.Context, id string, active bool) (err error) {
 	params := map[string]interface{}{
 		"id":     id,
 		"active": active,
@@ -567,7 +501,7 @@ func (db *PGDB) SetVolumeActiveByID(ctx context.Context, id string, active bool)
 	return
 }
 
-func (db *PGDB) SetUserVolumeActive(ctx context.Context, userID, label string, active bool) (err error) {
+func (db *VolumePG) SetUserVolumeActive(ctx context.Context, userID, label string, active bool) (err error) {
 	params := map[string]interface{}{
 		"user_id": userID,
 		"label":   label,

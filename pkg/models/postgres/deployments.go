@@ -7,19 +7,33 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
+
+type DeployPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewDeployPG(db models.RelationalDB) models.DeployDB {
+	return &DeployPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_pg")),
+	}
+}
 
 type volumeMountWithName struct {
 	Name string `db:"resource_label"`
 	rstypes.VolumeMount
 }
 
-func (db *PGDB) getContainersVolumes(ctx context.Context,
+func (db *DeployPG) getContainersVolumes(ctx context.Context,
 	containerIDs []string) (volMap map[string][]volumeMountWithName, err error) {
 	db.log.Debugf("get containers volumes %v", containerIDs)
 
@@ -54,7 +68,7 @@ func (db *PGDB) getContainersVolumes(ctx context.Context,
 	return
 }
 
-func (db *PGDB) getContainersEnvironments(ctx context.Context,
+func (db *DeployPG) getContainersEnvironments(ctx context.Context,
 	containerIDs []string) (envMap map[string][]rstypes.EnvironmentVariable, err error) {
 	db.log.Debugf("get containers envs %v", containerIDs)
 
@@ -84,7 +98,7 @@ func (db *PGDB) getContainersEnvironments(ctx context.Context,
 	return
 }
 
-func (db *PGDB) getDeploymentsContainers(ctx context.Context,
+func (db *DeployPG) getDeploymentsContainers(ctx context.Context,
 	deplIDs []string) (contIDs []string, contMap map[string][]rstypes.Container, err error) {
 	db.log.Debugf("get deployments containers %v", deplIDs)
 
@@ -115,7 +129,7 @@ func (db *PGDB) getDeploymentsContainers(ctx context.Context,
 	return
 }
 
-func (db *PGDB) getRawDeployments(ctx context.Context,
+func (db *DeployPG) getRawDeployments(ctx context.Context,
 	userID, nsLabel string) (deplIDs []string, deployments []rstypes.Deployment, err error) {
 	params := map[string]interface{}{
 		"user_id":  userID,
@@ -180,7 +194,7 @@ func convertVols(vols []volumeMountWithName) (ret []kubtypes.ContainerVolume) {
 	return
 }
 
-func (db *PGDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Deployment, err error) {
+func (db *DeployPG) GetDeployments(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Deployment, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -233,7 +247,7 @@ func (db *PGDB) GetDeployments(ctx context.Context, userID, nsLabel string) (ret
 	return
 }
 
-func (db *PGDB) getDeploymentContainers(ctx context.Context,
+func (db *DeployPG) getDeploymentContainers(ctx context.Context,
 	deploy rstypes.Deployment) (ret []rstypes.Container, ids []string, err error) {
 	db.log.WithField("deploy_id", deploy.ID).Debug("get deployment containers")
 
@@ -253,7 +267,7 @@ func (db *PGDB) getDeploymentContainers(ctx context.Context,
 	return
 }
 
-func (db *PGDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplName string) (ret kubtypes.Deployment, err error) {
+func (db *DeployPG) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplName string) (ret kubtypes.Deployment, err error) {
 	params := map[string]interface{}{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -313,7 +327,7 @@ func (db *PGDB) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, deplN
 	return
 }
 
-func (db *PGDB) GetDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
+func (db *DeployPG) GetDeployID(ctx context.Context, nsID, deplName string) (id string, err error) {
 	params := map[string]interface{}{
 		"ns_id":       nsID,
 		"deploy_name": deplName,
@@ -337,7 +351,7 @@ func (db *PGDB) GetDeployID(ctx context.Context, nsID, deplName string) (id stri
 	return
 }
 
-func (db *PGDB) createRawDeployment(ctx context.Context, nsID string,
+func (db *DeployPG) createRawDeployment(ctx context.Context, nsID string,
 	deployment kubtypes.Deployment) (id string, firstInNamespace bool, err error) {
 	db.log.WithField("ns_id", nsID).Debugf("create raw deployment %#v", deployment)
 
@@ -362,7 +376,7 @@ func (db *PGDB) createRawDeployment(ctx context.Context, nsID string,
 	return
 }
 
-func (db *PGDB) createDeploymentContainers(ctx context.Context, deplID string,
+func (db *DeployPG) createDeploymentContainers(ctx context.Context, deplID string,
 	containers []kubtypes.Container) (contMap map[string]kubtypes.Container, err error) {
 	db.log.WithField("deploy_id", deplID).Debugf("create deployment containers %#v", containers)
 
@@ -409,7 +423,7 @@ func (db *PGDB) createDeploymentContainers(ctx context.Context, deplID string,
 	return
 }
 
-func (db *PGDB) createContainersEnvs(ctx context.Context, contMap map[string]kubtypes.Container) (err error) {
+func (db *DeployPG) createContainersEnvs(ctx context.Context, contMap map[string]kubtypes.Container) (err error) {
 	db.log.Debugf("create containers environments %#v", contMap)
 
 	stmt, err := db.PrepareNamed( /* language=sql */
@@ -439,7 +453,7 @@ func (db *PGDB) createContainersEnvs(ctx context.Context, contMap map[string]kub
 	return
 }
 
-func (db *PGDB) checkVolumesExists(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
+func (db *DeployPG) checkVolumesExists(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
 	db.log.WithField("user_id", userID).Debugf("check volume exists for user, containers %#v", contMap)
 
 	volExistMap := make(map[string]bool)
@@ -480,7 +494,7 @@ func (db *PGDB) checkVolumesExists(ctx context.Context, userID string, contMap m
 	return
 }
 
-func (db *PGDB) createContainersVolumes(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
+func (db *DeployPG) createContainersVolumes(ctx context.Context, userID string, contMap map[string]kubtypes.Container) (err error) {
 	params := map[string]interface{}{"user_id": userID}
 	db.log.WithFields(params).Debugf("create containers volumes %#v", contMap)
 
@@ -525,7 +539,7 @@ func (db *PGDB) createContainersVolumes(ctx context.Context, userID string, cont
 	return
 }
 
-func (db *PGDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
+func (db *DeployPG) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	deployment kubtypes.Deployment) (firstInNamespace bool, err error) {
 	params := map[string]interface{}{
 		"user_id":  userID,
@@ -533,7 +547,7 @@ func (db *PGDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	}
 	db.log.WithFields(params).Debugf("create deployment %#v", deployment)
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -568,7 +582,7 @@ func (db *PGDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	return
 }
 
-func (db *PGDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName string) (lastInNamespace bool, err error) {
+func (db *DeployPG) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName string) (lastInNamespace bool, err error) {
 	params := map[string]interface{}{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -576,7 +590,7 @@ func (db *PGDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName 
 	}
 	db.log.WithFields(params).Debug("delete deployment")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -609,13 +623,13 @@ func (db *PGDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName 
 	return
 }
 
-func (db *PGDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) (err error) {
+func (db *DeployPG) ReplaceDeployment(ctx context.Context, userID, nsLabel string, deploy kubtypes.Deployment) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debugf("replacing deployment with %#v", deploy)
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -638,7 +652,7 @@ func (db *PGDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 	return
 }
 
-func (db *PGDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplName string, replicas int) (err error) {
+func (db *DeployPG) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, deplName string, replicas int) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -646,7 +660,7 @@ func (db *PGDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		"replicas":    replicas,
 	}).Debug("set deployment replicas")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -668,14 +682,14 @@ func (db *PGDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 	return
 }
 
-func (db *PGDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName string, req kubtypes.UpdateImage) (err error) {
+func (db *DeployPG) SetContainerImage(ctx context.Context, userID, nsLabel, deplName string, req kubtypes.UpdateImage) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deplName,
 	}).Debugf("set container image %#v", req)
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}

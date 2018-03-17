@@ -6,12 +6,27 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
+type StoragePG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewStoragePG(db models.RelationalDB) models.StorageDB {
+	return &StoragePG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "storage_pg")),
+	}
+}
+
+func (db *StoragePG) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
 	db.log.Debugf("creating storage %#v", req)
 
 	// we can`t recognise constraint violation error so do this check before insert
@@ -40,7 +55,7 @@ func (db *PGDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequ
 	return
 }
 
-func (db *PGDB) GetStorages(ctx context.Context) (ret []rstypes.Storage, err error) {
+func (db *StoragePG) GetStorages(ctx context.Context) (ret []rstypes.Storage, err error) {
 	db.log.Debug("get storages")
 
 	ret = make([]rstypes.Storage, 0)
@@ -55,7 +70,7 @@ func (db *PGDB) GetStorages(ctx context.Context) (ret []rstypes.Storage, err err
 	return
 }
 
-func (db *PGDB) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) (err error) {
+func (db *StoragePG) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) (err error) {
 	db.log.WithField("name", name).Debug("update storage with %#v", req)
 
 	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
@@ -85,7 +100,7 @@ func (db *PGDB) UpdateStorage(ctx context.Context, name string, req rstypes.Upda
 	return
 }
 
-func (db *PGDB) DeleteStorage(ctx context.Context, name string) (err error) {
+func (db *StoragePG) DeleteStorage(ctx context.Context, name string) (err error) {
 	db.log.WithField("name", name).Debug("delete storage")
 
 	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
@@ -102,7 +117,7 @@ func (db *PGDB) DeleteStorage(ctx context.Context, name string) (err error) {
 	return
 }
 
-func (db *PGDB) ChooseAvailableStorage(ctx context.Context, minFree int) (storage rstypes.Storage, err error) {
+func (db *StoragePG) ChooseAvailableStorage(ctx context.Context, minFree int) (storage rstypes.Storage, err error) {
 	db.log.WithField("min_free", minFree).Debug("choose appropriate storage")
 
 	query, args, _ := sqlx.Named( /* language=sql */

@@ -18,15 +18,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type NamespaceActionsDB struct {
+	NamespaceDB models.NamespaceDBConstructor
+	StorageDB   models.StorageDBConstructor
+	VolumeDB    models.VolumeDBConstructor
+	AccessDB    models.AccessDBConstructor
+}
+
 type NamespaceActionsImpl struct {
 	*server.ResourceServiceClients
+	*NamespaceActionsDB
+
 	log *cherrylog.LogrusAdapter
 }
 
-func NewNamespaceActionsImpl(clients *server.ResourceServiceClients) *NamespaceActionsImpl {
+func NewNamespaceActionsImpl(clients *server.ResourceServiceClients, constructors *NamespaceActionsDB) *NamespaceActionsImpl {
 	return &NamespaceActionsImpl{
 		ResourceServiceClients: clients,
-		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "namespace_actions")),
+		NamespaceActionsDB:     constructors,
+		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "namespace_actions")),
 	}
 }
 
@@ -58,8 +68,8 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 		MaxTraffic:          tariff.Traffic,
 	}
 
-	err = na.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if createErr := tx.CreateNamespace(ctx, userID, req.Label, &newNamespace); createErr != nil {
+	err = na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if createErr := na.NamespaceDB(tx).CreateNamespace(ctx, userID, req.Label, &newNamespace); createErr != nil {
 			return createErr
 		}
 
@@ -80,7 +90,7 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 		}
 
 		if tariff.VolumeSize > 0 {
-			storage, selectErr := tx.ChooseAvailableStorage(ctx, tariff.VolumeSize)
+			storage, selectErr := na.StorageDB(tx).ChooseAvailableStorage(ctx, tariff.VolumeSize)
 			if selectErr != nil {
 				return selectErr
 			}
@@ -95,7 +105,7 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 			}
 			newVolume.Active = new(bool) // false
 
-			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(req.Label), &newVolume); createErr != nil {
+			if createErr := na.VolumeDB(tx).CreateVolume(ctx, userID, server.VolumeLabel(req.Label), &newVolume); createErr != nil {
 				return createErr
 			}
 
@@ -108,7 +118,7 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 
 		// TODO: tariff activation
 
-		if updErr := na.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := na.UpdateAccess(ctx, na.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 
@@ -135,7 +145,7 @@ func (na *NamespaceActionsImpl) GetUserNamespaces(ctx context.Context, filters s
 	}).Info("get user namespaces")
 
 	filterstr := models.ParseNamespaceFilterParams(strings.Split(filters, ",")...)
-	ret, err := na.DB.GetUserNamespaces(ctx, userID, &filterstr)
+	ret, err := na.NamespaceDB(na.DB).GetUserNamespaces(ctx, userID, &filterstr)
 
 	return ret, err
 }
@@ -147,7 +157,7 @@ func (na *NamespaceActionsImpl) GetUserNamespace(ctx context.Context, label stri
 		"label":   label,
 	}).Info("get user namespace")
 
-	ret, err := na.DB.GetUserNamespaceWithVolumesByLabel(ctx, userID, label)
+	ret, err := na.NamespaceDB(na.DB).GetUserNamespaceWithVolumesByLabel(ctx, userID, label)
 
 	return ret, err
 }
@@ -161,7 +171,7 @@ func (na *NamespaceActionsImpl) GetAllNamespaces(ctx context.Context,
 	}).Info("get all namespaces")
 
 	filters := models.ParseNamespaceFilterParams(strings.Split(params.Filters, ",")...)
-	ret, err := na.DB.GetAllNamespaces(ctx, params.Page, params.PerPage, &filters)
+	ret, err := na.NamespaceDB(na.DB).GetAllNamespaces(ctx, params.Page, params.PerPage, &filters)
 
 	return ret, err
 }
@@ -174,8 +184,8 @@ func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label s
 	}).Info("delete user namespace")
 
 	var nsToDelete rstypes.Namespace
-	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if ns, delNsErr := tx.DeleteUserNamespaceByLabel(ctx, userID, label); delNsErr != nil {
+	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if ns, delNsErr := na.NamespaceDB(tx).DeleteUserNamespaceByLabel(ctx, userID, label); delNsErr != nil {
 			return delNsErr
 		} else {
 			nsToDelete = ns
@@ -191,7 +201,7 @@ func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label s
 			return unsubErr
 		}
 
-		if updErr := na.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := na.UpdateAccess(ctx, na.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 
@@ -212,12 +222,12 @@ func (na *NamespaceActionsImpl) DeleteAllUserNamespaces(ctx context.Context) err
 	userID := utils.MustGetUserID(ctx)
 	na.log.WithField("user_id", userID).Info("delete all user namespaces")
 
-	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if _, delErr := na.DB.DeleteAllUserVolumes(ctx, userID, true); delErr != nil {
+	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if _, delErr := na.VolumeDB(na.DB).DeleteAllUserVolumes(ctx, userID, true); delErr != nil {
 			return delErr
 		}
 
-		if delErr := na.DB.DeleteAllUserNamespaces(ctx, userID); delErr != nil {
+		if delErr := na.NamespaceDB(na.DB).DeleteAllUserNamespaces(ctx, userID); delErr != nil {
 			return delErr
 		}
 
@@ -225,7 +235,7 @@ func (na *NamespaceActionsImpl) DeleteAllUserNamespaces(ctx context.Context) err
 
 		// TODO: unsubscribe all on billing
 
-		if updErr := na.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := na.UpdateAccess(ctx, na.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 		return nil
@@ -247,11 +257,11 @@ func (na *NamespaceActionsImpl) RenameUserNamespace(ctx context.Context, oldLabe
 		"new_label": newLabel,
 	}).Info("rename user namespace")
 
-	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if renErr := tx.RenameNamespace(ctx, userID, oldLabel, newLabel); renErr != nil {
+	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if renErr := na.NamespaceDB(tx).RenameNamespace(ctx, userID, oldLabel, newLabel); renErr != nil {
 			return renErr
 		}
-		if updErr := na.UpdateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := na.UpdateAccess(ctx, na.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 		return nil
@@ -270,8 +280,9 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 		"admin":         isAdmin,
 	}).Info("resize user namespace")
 
-	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		ns, getErr := tx.GetUserNamespaceByLabel(ctx, userID, label)
+	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsDB := na.NamespaceDB(tx)
+		ns, getErr := nsDB.GetUserNamespaceByLabel(ctx, userID, label)
 		if getErr != nil {
 			return getErr
 		}
@@ -302,7 +313,7 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 		ns.MaxIntServices = newTariff.InternalServices
 		ns.MaxTraffic = newTariff.Traffic
 
-		if updErr := tx.ResizeNamespace(ctx, &ns.Namespace); updErr != nil {
+		if updErr := nsDB.ResizeNamespace(ctx, &ns.Namespace); updErr != nil {
 			return updErr
 		}
 
@@ -324,7 +335,7 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 
 		// if namespace has connected volume and new tariff don`t have volumes, remove it
 		if oldTariff.VolumeSize > 0 && newTariff.VolumeSize <= 0 {
-			unlinkedVol, unlinkErr := tx.DeleteUserVolumeByLabel(ctx, userID, server.VolumeLabel(ns.ResourceLabel))
+			unlinkedVol, unlinkErr := na.VolumeDB(tx).DeleteUserVolumeByLabel(ctx, userID, server.VolumeLabel(ns.ResourceLabel))
 			if unlinkErr != nil {
 				return unlinkErr
 			}
@@ -335,7 +346,7 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 
 		// if new namespace tariff has volumes and old don`t have, create it
 		if newTariff.VolumeSize > 0 && oldTariff.VolumeSize <= 0 {
-			storage, selectErr := tx.ChooseAvailableStorage(ctx, newTariff.VolumeSize)
+			storage, selectErr := na.StorageDB(tx).ChooseAvailableStorage(ctx, newTariff.VolumeSize)
 			if selectErr != nil {
 				return selectErr
 			}
@@ -349,7 +360,7 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 			}
 			newVolume.Active = new(bool) // false
 
-			if createErr := tx.CreateVolume(ctx, userID, server.VolumeLabel(ns.ResourceLabel), &newVolume); createErr != nil {
+			if createErr := na.VolumeDB(tx).CreateVolume(ctx, userID, server.VolumeLabel(ns.ResourceLabel), &newVolume); createErr != nil {
 				return createErr
 			}
 

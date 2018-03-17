@@ -107,7 +107,7 @@ func VolumeGlusterName(nsLabel, userID string) string {
 	return hex.EncodeToString(glusterName[:])
 }
 
-func (rs *ResourceServiceClients) UpdateAccess(ctx context.Context, db models.DB, userID string) error {
+func (rs *ResourceServiceClients) UpdateAccess(ctx context.Context, db models.AccessDB, userID string) error {
 	accesses, err := db.GetUserResourceAccesses(ctx, userID)
 	if err != nil {
 		return err

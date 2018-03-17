@@ -8,13 +8,27 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (err error) {
+type DomainPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewDomainPG(db models.RelationalDB) models.DomainDB {
+	return &DomainPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "domain_pg")),
+	}
+}
+
+func (db *DomainPG) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (err error) {
 	db.log.Debugf("add domain %#v")
 
 	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
@@ -32,7 +46,7 @@ func (db *PGDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (er
 	return
 }
 
-func (db *PGDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (domains []rstypes.Domain, err error) {
+func (db *DomainPG) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (domains []rstypes.Domain, err error) {
 	db.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
@@ -50,7 +64,7 @@ func (db *PGDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQ
 	return
 }
 
-func (db *PGDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Domain, err error) {
+func (db *DomainPG) GetDomain(ctx context.Context, domain string) (entry rstypes.Domain, err error) {
 	db.log.WithField("domain", domain).Debug("get domain")
 
 	query, args, _ := sqlx.Named( /* language=sql */
@@ -68,7 +82,7 @@ func (db *PGDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Dom
 	return
 }
 
-func (db *PGDB) DeleteDomain(ctx context.Context, domain string) (err error) {
+func (db *DomainPG) DeleteDomain(ctx context.Context, domain string) (err error) {
 	db.log.WithField("domain", domain).Debug("delete domain")
 
 	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
@@ -85,7 +99,7 @@ func (db *PGDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 	return
 }
 
-func (db *PGDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, err error) {
+func (db *DomainPG) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, err error) {
 	db.log.Debugf("choose random domain")
 
 	err = sqlx.GetContext(ctx, db, &entry, /* language=sql*/
@@ -101,7 +115,7 @@ func (db *PGDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, e
 	return
 }
 
-func (db *PGDB) ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (port int, err error) {
+func (db *DomainPG) ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (port int, err error) {
 	params := map[string]interface{}{
 		"domain":   domain,
 		"protocol": strings.ToLower(string(protocol)),

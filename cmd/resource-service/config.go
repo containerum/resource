@@ -63,15 +63,29 @@ func setupLogger() error {
 	return nil
 }
 
-func setupDB(connStr, migrationAddr string) (models.DB, error) {
+func setupDB(connStr, migrationAddr string) (models.RelationalDB, *server.ResourceServiceConstructors, error) {
 	if connStr == "" {
-		return nil, errors.New("db connection string was not specified")
+		return nil, nil, errors.New("db connection string was not specified")
 	}
 	if migrationAddr == "" {
-		return nil, errors.New("migrations address was not specified")
+		return nil, nil, errors.New("migrations address was not specified")
 	}
 
-	return postgres.DBConnect(connStr, migrationAddr)
+	db, err := postgres.DBConnect(connStr, migrationAddr)
+	constructors := &server.ResourceServiceConstructors{
+		NamespaceDB:     postgres.NewNamespacePG,
+		VolumeDB:        postgres.NewVolumePG,
+		StorageDB:       postgres.NewStoragePG,
+		DeployDB:        postgres.NewDeployPG,
+		IngressDB:       postgres.NewIngressPG,
+		DomainDB:        postgres.NewDomainPG,
+		AccessDB:        postgres.NewAccessPG,
+		ServiceDB:       postgres.NewServicePG,
+		ResourceCountDB: postgres.NewResourceCountPG,
+		EndpointsDB:     postgres.NewGlusterPG,
+	}
+
+	return db, constructors, err
 }
 
 func setupAuthClient(addr string) (clients.AuthSvc, error) {
@@ -142,30 +156,31 @@ func setupUserClient(addr string) (clients.UserManagerClient, error) {
 	}
 }
 
-func setupServerClients() (*server.ResourceServiceClients, error) {
+func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServiceConstructors, error) {
 	var ret server.ResourceServiceClients
+	var constructors *server.ResourceServiceConstructors
 
 	var err error
-	if ret.DB, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
-		return nil, err
+	if ret.DB, constructors, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
+		return nil, nil, err
 	}
 	if ret.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if ret.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if ret.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if ret.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	/*	if ret.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
 		return nil, err
 	}*/
 	if ret.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// print info about ret which implements Stringer
@@ -177,7 +192,7 @@ func setupServerClients() (*server.ResourceServiceClients, error) {
 		}
 	}
 
-	return &ret, nil
+	return &ret, constructors, nil
 }
 
 func getListenAddr() (la string, err error) {

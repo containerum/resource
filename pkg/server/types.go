@@ -13,12 +13,25 @@ import (
 
 // ResourceServiceClients is a structure with all client interfaces needed for resource-service functioning
 type ResourceServiceClients struct {
-	DB      models.DB
+	DB      models.RelationalDB
 	Auth    clients.AuthSvc
 	Kube    clients.Kube
 	Mail    clients.Mailer
 	Billing clients.Billing
 	User    clients.UserManagerClient
+}
+
+type ResourceServiceConstructors struct {
+	NamespaceDB     models.NamespaceDBConstructor
+	VolumeDB        models.VolumeDBConstructor
+	StorageDB       models.StorageDBConstructor
+	DeployDB        models.DeployDBConstructor
+	IngressDB       models.IngressDBConstructor
+	DomainDB        models.DomainDBConstructor
+	AccessDB        models.AccessDBConstructor
+	ServiceDB       models.ServiceDBConstructor
+	ResourceCountDB models.ResourceCountDBConstructor
+	EndpointsDB     models.GlusterEndpointsDBConstructor
 }
 
 type UpdateServiceRequest kubtypes.Service

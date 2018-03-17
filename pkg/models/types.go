@@ -18,6 +18,8 @@ type RelationalDB interface {
 	Transactional(ctx context.Context, f func(ctx context.Context, tx RelationalDB) error) error
 }
 
+/* Namespace DB */
+
 type NamespaceDB interface {
 	CreateNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) error
 	GetUserNamespaces(ctx context.Context, userID string, filters *NamespaceFilterParams) ([]rstypes.NamespaceWithVolumes, error)
@@ -31,6 +33,10 @@ type NamespaceDB interface {
 	ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) error
 	GetNamespaceID(ctx context.Context, userID, nsLabel string) (string, error)
 }
+
+type NamespaceDBConstructor func(RelationalDB) NamespaceDB
+
+/* Volume DB */
 
 type VolumeDB interface {
 	CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
@@ -48,12 +54,20 @@ type VolumeDB interface {
 	GetVolumeID(ctx context.Context, userID, label string) (string, error)
 }
 
+type VolumeDBConstructor func(RelationalDB) VolumeDB
+
+/* Access DB */
+
 type AccessDB interface {
 	GetUserResourceAccesses(ctx context.Context, userID string) (*authProto.ResourcesAccess, error)
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
 	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) error
 	DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) error
 }
+
+type AccessDBConstructor func(RelationalDB) AccessDB
+
+/* Deploy DB */
 
 type DeployDB interface {
 	CreateDeployment(ctx context.Context, userID, nsLabel string, deployment kubtypes.Deployment) (bool, error)
@@ -66,13 +80,22 @@ type DeployDB interface {
 	GetDeployID(ctx context.Context, nsID, deplName string) (string, error)
 }
 
+type DeployDBConstructor func(RelationalDB) DeployDB
+
+/* Domain DB */
+
 type DomainDB interface {
 	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
 	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) ([]rstypes.Domain, error)
 	GetDomain(ctx context.Context, domain string) (rstypes.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
 	ChooseRandomDomain(ctx context.Context) (rstypes.Domain, error)
+	ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (int, error)
 }
+
+type DomainDBConstructor func(RelationalDB) DomainDB
+
+/* Ingress DB */
 
 type IngressDB interface {
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
@@ -81,19 +104,30 @@ type IngressDB interface {
 	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (rstypes.IngressType, error)
 }
 
+type IngressDBConstructor func(RelationalDB) IngressDB
+
+/* Storage DB */
+
 type StorageDB interface {
 	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
 	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
 	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
 	DeleteStorage(ctx context.Context, name string) error
 	ChooseAvailableStorage(ctx context.Context, minFree int) (rstypes.Storage, error)
-	ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (int, error)
 }
+
+type StorageDBConstructor func(RelationalDB) StorageDB
+
+/* Gluster Endpoints DB */
 
 type GlusterEndpointsDB interface {
 	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
 	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
 }
+
+type GlusterEndpointsDBConstructor func(RelationalDB) GlusterEndpointsDB
+
+/* Service DB */
 
 type ServiceDB interface {
 	CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) error
@@ -103,23 +137,12 @@ type ServiceDB interface {
 	DeleteService(ctx context.Context, userID, nsLabel, serviceName string) error
 }
 
-// DB is an interface to resource-service database
-type DB interface {
-	NamespaceDB
-	VolumeDB
-	AccessDB
-	DeployDB
-	DomainDB
-	IngressDB
-	StorageDB
-	GlusterEndpointsDB
-	ServiceDB
+type ServiceDBConstructor func(RelationalDB) ServiceDB
 
+/* Resource count DB */
+
+type ResourceCountDB interface {
 	GetResourcesCount(ctx context.Context, userID string) (rstypes.GetResourcesCountResponse, error)
-
-	// Perform operations inside transaction
-	// Transaction commits if `f` returns nil error, rollbacks and forwards error otherwise
-	// May return ErrTransactionBegin if transaction start failed,
-	// ErrTransactionCommit if commit failed, ErrTransactionRollback if rollback failed
-	Transactional(ctx context.Context, f func(ctx context.Context, tx DB) error) error
 }
+
+type ResourceCountDBConstructor func(db RelationalDB) ResourceCountDB

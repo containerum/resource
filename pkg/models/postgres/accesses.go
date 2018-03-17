@@ -5,12 +5,26 @@ import (
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *authProto.ResourcesAccess, err error) {
+type AccessPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewAccessPG(db models.RelationalDB) models.AccessDB {
+	return &AccessPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "access_pg")),
+	}
+}
+
+func (db *AccessPG) GetUserResourceAccesses(ctx context.Context, userID string) (ret *authProto.ResourcesAccess, err error) {
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
 	accessObjects := make([]struct {
@@ -45,7 +59,7 @@ func (db *PGDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 	return
 }
 
-func (db *PGDB) SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error) {
+func (db *AccessPG) SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      permRec.UserID,
 		"label":        permRec.ResourceLabel,
@@ -96,7 +110,7 @@ func (db *PGDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 	return
 }
 
-func (db *PGDB) SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) (err error) {
+func (db *AccessPG) SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"new_access_level": access,
@@ -130,7 +144,7 @@ func (db *PGDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 	return
 }
 
-func (db *PGDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) (err error) {
+func (db *AccessPG) DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"resource_id": resource.ID,
 		"user_id":     userID,

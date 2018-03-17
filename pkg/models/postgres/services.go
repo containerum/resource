@@ -8,13 +8,27 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *PGDB) createServicePorts(ctx context.Context, serviceID, domain string,
+type ServicePG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewServicePG(db models.RelationalDB) models.ServiceDB {
+	return &ServicePG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_pg")),
+	}
+}
+
+func (db *ServicePG) createServicePorts(ctx context.Context, serviceID, domain string,
 	serviceType rstypes.ServiceType, ports []kubtypes.ServicePort) (err error) {
 	db.log.WithField("service_id", serviceID).Debugf("add service ports %#v", ports)
 
@@ -57,14 +71,14 @@ func (db *PGDB) createServicePorts(ctx context.Context, serviceID, domain string
 	return
 }
 
-func (db *PGDB) CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) (err error) {
+func (db *ServicePG) CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"type":     serviceType,
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debugf("create service %#v", req)
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -145,7 +159,7 @@ func (db *PGDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 	return
 }
 
-func (db *PGDB) getRawServices(ctx context.Context, nsID string) (serviceMap map[string]kubtypes.Service, serviceIDs []string, err error) {
+func (db *ServicePG) getRawServices(ctx context.Context, nsID string) (serviceMap map[string]kubtypes.Service, serviceIDs []string, err error) {
 	db.log.WithField("ns_id", nsID).Debug("get raw services")
 
 	dbEntries := make([]rstypes.Service, 0)
@@ -182,7 +196,7 @@ func (db *PGDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 	return
 }
 
-func (db *PGDB) getServicesPorts(ctx context.Context, serviceIDs []string, serviceMap map[string]kubtypes.Service) (err error) {
+func (db *ServicePG) getServicesPorts(ctx context.Context, serviceIDs []string, serviceMap map[string]kubtypes.Service) (err error) {
 	db.log.Debugf("get services ports %#v", serviceIDs)
 
 	if len(serviceIDs) == 0 {
@@ -229,13 +243,13 @@ func (db *PGDB) getServicesPorts(ctx context.Context, serviceIDs []string, servi
 	return
 }
 
-func (db *PGDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Service, err error) {
+func (db *ServicePG) GetServices(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Service, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debug("get services")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -257,14 +271,14 @@ func (db *PGDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []
 	return
 }
 
-func (db *PGDB) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, err error) {
+func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": serviceName,
 	}).Debug("get service")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -312,7 +326,7 @@ func (db *PGDB) GetService(ctx context.Context, userID, nsLabel, serviceName str
 	return
 }
 
-func (db *PGDB) UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
+func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"ns_label":         nsLabel,
@@ -320,7 +334,7 @@ func (db *PGDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 		"new_service_type": newServiceType,
 	}).Debugf("update service to %#v", req)
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
@@ -361,14 +375,14 @@ func (db *PGDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 	return
 }
 
-func (db *PGDB) DeleteService(ctx context.Context, userID, nsLabel, serviceName string) (err error) {
+func (db *ServicePG) DeleteService(ctx context.Context, userID, nsLabel, serviceName string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": serviceName,
 	}).Debug("delete service")
 
-	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}

@@ -18,7 +18,7 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 )
 
-type PGDB struct {
+type PG struct {
 	sqlx.ExtContext
 	chutils.SQLXPreparer
 
@@ -35,7 +35,7 @@ type PGDB struct {
 // github.com/jmoiron/sqlx used to to get work with database.
 // Function tries to ping database and apply migrations using github.com/mattes/migrate.
 // If migrations applying failed database goes to dirty state and requires manual conflict resolution.
-func DBConnect(pgConnStr string, migrations string) (*PGDB, error) {
+func DBConnect(pgConnStr string, migrations string) (*PG, error) {
 	log := logrus.WithField("component", "postgres_db")
 	log.Infoln("Connecting to ", pgConnStr)
 	conn, err := sqlx.Connect("postgres", pgConnStr)
@@ -44,7 +44,7 @@ func DBConnect(pgConnStr string, migrations string) (*PGDB, error) {
 		return nil, err
 	}
 
-	ret := &PGDB{
+	ret := &PG{
 		conn:         conn,
 		log:          cherrylog.NewLogrusAdapter(log),
 		ExtContext:   chutils.NewSQLXExtContextLogger(conn, log),
@@ -68,7 +68,7 @@ func DBConnect(pgConnStr string, migrations string) (*PGDB, error) {
 	return ret, nil
 }
 
-func (db *PGDB) migrateUp(path string) (*migrate.Migrate, error) {
+func (db *PG) migrateUp(path string) (*migrate.Migrate, error) {
 	db.log.Infof("Running migrations")
 	instance, err := migdrv.WithInstance(db.conn.DB, &migdrv.Config{})
 	if err != nil {
@@ -84,7 +84,7 @@ func (db *PGDB) migrateUp(path string) (*migrate.Migrate, error) {
 	return m, nil
 }
 
-func (db *PGDB) Transactional(ctx context.Context, f func(ctx context.Context, tx models.DB) error) (err error) {
+func (db *PG) Transactional(ctx context.Context, f func(ctx context.Context, tx models.RelationalDB) error) (err error) {
 	e := db.log.WithField("transaction_id", chutils.NewUUID())
 	e.Debugln("Begin transaction")
 	log := cherrylog.NewLogrusAdapter(e)
@@ -93,7 +93,7 @@ func (db *PGDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 		return rserrors.ErrDatabase().Log(txErr, log)
 	}
 
-	arg := &PGDB{
+	arg := &PG{
 		conn:         db.conn,
 		log:          log,
 		ExtContext:   chutils.NewSQLXExtContextLogger(tx, e),
@@ -126,16 +126,28 @@ func (db *PGDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 	return
 }
 
-func (db *PGDB) String() string {
+func (db *PG) String() string {
 	return fmt.Sprintf("address: %s, migrations path: %s (version: %s)",
 		db.pgConnStr, db.migrations, db.migrationsVersion)
 }
 
-func (db *PGDB) Close() error {
+func (db *PG) Close() error {
 	return db.conn.Close()
 }
 
-func (db *PGDB) GetResourcesCount(ctx context.Context, userID string) (ret rstypes.GetResourcesCountResponse, err error) {
+type ResourceCountPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewResourceCountPG(db models.RelationalDB) models.ResourceCountDB {
+	return &ResourceCountPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_count_pg")),
+	}
+}
+
+func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string) (ret rstypes.GetResourcesCountResponse, err error) {
 	db.log.WithField("user_id", userID).Debug("get resources count")
 
 	var nsIDs []string
