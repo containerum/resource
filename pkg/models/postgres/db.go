@@ -26,9 +26,9 @@ type PGDB struct {
 	log  *cherrylog.LogrusAdapter
 
 	// for information
-	pgConnStr          string
-	migrations         string
-	migrationsVerstion string
+	pgConnStr         string
+	migrations        string
+	migrationsVersion string
 }
 
 // DBConnect initializes connection to postgresql database.
@@ -63,7 +63,7 @@ func DBConnect(pgConnStr string, migrations string) (*PGDB, error) {
 
 	ret.pgConnStr = pgConnStr
 	ret.migrations = migrations
-	ret.migrationsVerstion = fmt.Sprintf("%v; dirty = %v", version, dirty)
+	ret.migrationsVersion = fmt.Sprintf("%v; dirty = %v", version, dirty)
 
 	return ret, nil
 }
@@ -128,7 +128,7 @@ func (db *PGDB) Transactional(ctx context.Context, f func(ctx context.Context, t
 
 func (db *PGDB) String() string {
 	return fmt.Sprintf("address: %s, migrations path: %s (version: %s)",
-		db.pgConnStr, db.migrations, db.migrationsVerstion)
+		db.pgConnStr, db.migrations, db.migrationsVersion)
 }
 
 func (db *PGDB) Close() error {

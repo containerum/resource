@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"io"
 
 	"git.containerum.net/ch/auth/proto"
 	"git.containerum.net/ch/json-types/kube-api"
@@ -17,8 +16,6 @@ type RelationalDB interface {
 	utils.SQLXPreparer
 
 	Transactional(ctx context.Context, f func(ctx context.Context, tx RelationalDB) error) error
-
-	io.Closer
 }
 
 type NamespaceDB interface {
@@ -123,6 +120,4 @@ type DB interface {
 	// May return ErrTransactionBegin if transaction start failed,
 	// ErrTransactionCommit if commit failed, ErrTransactionRollback if rollback failed
 	Transactional(ctx context.Context, f func(ctx context.Context, tx DB) error) error
-
-	io.Closer
 }
