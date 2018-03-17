@@ -533,12 +533,8 @@ func (db *PGDB) CreateDeployment(ctx context.Context, userID, nsLabel string,
 	}
 	db.log.WithFields(params).Debugf("create deployment %#v", deployment)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -580,12 +576,8 @@ func (db *PGDB) DeleteDeployment(ctx context.Context, userID, nsLabel, deplName 
 	}
 	db.log.WithFields(params).Debug("delete deployment")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -623,12 +615,8 @@ func (db *PGDB) ReplaceDeployment(ctx context.Context, userID, nsLabel string, d
 		"ns_label": nsLabel,
 	}).Debugf("replacing deployment with %#v", deploy)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -658,12 +646,8 @@ func (db *PGDB) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, depl
 		"replicas":    replicas,
 	}).Debug("set deployment replicas")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -691,12 +675,8 @@ func (db *PGDB) SetContainerImage(ctx context.Context, userID, nsLabel, deplName
 		"deploy_name": deplName,
 	}).Debugf("set container image %#v", req)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 

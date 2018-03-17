@@ -6,41 +6,12 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
-
-func (db *PGDB) getNamespaceID(ctx context.Context, userID, label string) (id string, err error) {
-	queryFields := map[string]interface{}{
-		"user_id": userID,
-		"label":   label,
-	}
-	entry := db.log.WithFields(queryFields)
-	entry.Debug("check if namespace exists")
-
-	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT resource_id
-		FROM permissions
-		WHERE kind = 'namespace' AND 
-			(owner_user_id = :user_id OR user_id = :user_id) AND
-			resource_label = :label`,
-		queryFields)
-	err = sqlx.GetContext(ctx, db, &id, db.Rebind(query), args...)
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		id = ""
-		err = nil
-	default:
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-
-	entry.Debugf("found namespace %s", id)
-	return
-}
 
 func (db *PGDB) CreateNamespace(ctx context.Context, userID, label string, namespace *rstypes.Namespace) (err error) {
 	db.log.WithFields(logrus.Fields{
@@ -48,12 +19,12 @@ func (db *PGDB) CreateNamespace(ctx context.Context, userID, label string, names
 		"label":   label,
 	}).Debugf("creating namespace %#v", namespace)
 
-	var nsID string
-	if nsID, err = db.getNamespaceID(ctx, userID, label); err != nil {
+	_, err = db.GetNamespaceID(ctx, userID, label)
+	if cherry.Equals(err, rserrors.ErrResourceNotExists()) {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", label).Log(err, db.log)
 		return
 	}
-	if nsID != "" {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", label).Log(err, db.log)
+	if err != nil {
 		return
 	}
 
@@ -518,12 +489,12 @@ func (db *PGDB) RenameNamespace(ctx context.Context, userID, oldLabel, newLabel 
 	}
 	db.log.WithFields(params).Debug("rename namespace")
 
-	var nsID string
-	if nsID, err = db.getNamespaceID(ctx, userID, newLabel); err != nil {
+	_, err = db.GetNamespaceID(ctx, userID, oldLabel)
+	if cherry.Equals(err, rserrors.ErrResourceNotExists()) {
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", oldLabel).Log(err, db.log)
 		return
 	}
-	if nsID != "" {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", newLabel).Log(err, db.log)
+	if err != nil {
 		return
 	}
 
@@ -574,12 +545,28 @@ func (db *PGDB) ResizeNamespace(ctx context.Context, namespace *rstypes.Namespac
 }
 
 func (db *PGDB) GetNamespaceID(ctx context.Context, userID, nsLabel string) (nsID string, err error) {
-	nsID, err = db.getNamespaceID(ctx, userID, nsLabel)
-	if err != nil {
-		return
+	queryFields := map[string]interface{}{
+		"user_id":  userID,
+		"ns_label": nsLabel,
 	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not found for user %s", nsLabel, userID)
+	entry := db.log.WithFields(queryFields)
+	entry.Debug("check if namespace exists")
+
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT resource_id
+		FROM permissions
+		WHERE kind = 'namespace' AND 
+			(owner_user_id = :user_id OR user_id = :user_id) AND
+			resource_label = :label`,
+		queryFields)
+	err = sqlx.GetContext(ctx, db, &nsID, db.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists")
+	default:
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
 	}
 
 	return

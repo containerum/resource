@@ -392,16 +392,6 @@ func (db *PGDB) GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, n
 	}
 	db.log.WithFields(params).Debug("get volumes linked with user namespace")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
-	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
-		return
-	}
-
 	ret = make([]rstypes.VolumeWithPermission, 0)
 
 	query, args, _ := sqlx.Named( /* language=sql */

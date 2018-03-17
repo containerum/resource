@@ -17,13 +17,8 @@ func (db *PGDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 		"ns_label": nsLabel,
 	}).Debug("create endpoints for gluster")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -82,13 +77,8 @@ func (db *PGDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel str
 		"ns_label": nsLabel,
 	}).Info("confirm gluster services created")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 

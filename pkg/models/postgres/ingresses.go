@@ -39,12 +39,8 @@ func (db *PGDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		"ns_label": nsLabel,
 	}).Debugf("create ingress %#v", req)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -92,12 +88,8 @@ func (db *PGDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 		"ns_label": nsLabel,
 	}).Debug("get all ingresses")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -183,12 +175,8 @@ func (db *PGDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 		"domain":   domain,
 	}).Info("delete ingress")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := db.GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
