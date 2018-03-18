@@ -6,12 +6,26 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) isIngressExists(ctx context.Context, nsID, domain string) (exist bool, err error) {
+type IngressPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewIngressPG(db models.RelationalDB) models.IngressDB {
+	return &IngressPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_pg")),
+	}
+}
+
+func (db *IngressPG) isIngressExists(ctx context.Context, nsID, domain string) (exist bool, err error) {
 	params := map[string]interface{}{
 		"ns_id":  nsID,
 		"domain": domain,
@@ -25,7 +39,7 @@ func (db *pgDB) isIngressExists(ctx context.Context, nsID, domain string) (exist
 		JOIN deployments d ON s.deploy_id = d.id
 		WHERE d.ns_id = :ns_id`,
 		params)
-	err = sqlx.GetContext(ctx, db.extLog, &exist, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &exist, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -33,18 +47,14 @@ func (db *pgDB) isIngressExists(ctx context.Context, nsID, domain string) (exist
 	return
 }
 
-func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) (err error) {
+func (db *IngressPG) CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debugf("create ingress %#v", req)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -57,7 +67,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`WITH service_id_name AS (
 			SELECT DISTINCT id, name FROM services WHERE deploy_id IN (SELECT id FROM deployments WHERE ns_id = :ns_id)
 		)
@@ -84,7 +94,7 @@ func (db *pgDB) CreateIngress(ctx context.Context, userID, nsLabel string, req r
 	return
 }
 
-func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) (ret []rstypes.Ingress, err error) {
+func (db *IngressPG) GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) (ret []rstypes.Ingress, err error) {
 	db.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
@@ -92,12 +102,8 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 		"ns_label": nsLabel,
 	}).Debug("get all ingresses")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -121,7 +127,7 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 			"limit":  params.PerPage,
 			"offset": params.PerPage * (params.Page - 1),
 		})
-	err = sqlx.SelectContext(ctx, db.extLog, &entries, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &entries, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -139,7 +145,7 @@ func (db *pgDB) GetUserIngresses(ctx context.Context, userID, nsLabel string, pa
 	return
 }
 
-func (db *pgDB) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (ret []rstypes.Ingress, err error) {
+func (db *IngressPG) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (ret []rstypes.Ingress, err error) {
 	db.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
@@ -158,7 +164,7 @@ func (db *pgDB) GetAllIngresses(ctx context.Context, params rstypes.GetIngresses
 		JOIN services s on i.service_id = s.id
 		LIMIT :limit OFFSET :offset`,
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
-	err = sqlx.SelectContext(ctx, db.extLog, &entries, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &entries, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -176,19 +182,15 @@ func (db *pgDB) GetAllIngresses(ctx context.Context, params rstypes.GetIngresses
 	return
 }
 
-func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (ingressType rstypes.IngressType, err error) {
+func (db *IngressPG) DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (ingressType rstypes.IngressType, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 		"domain":   domain,
 	}).Info("delete ingress")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -203,7 +205,7 @@ func (db *pgDB) DeleteIngress(ctx context.Context, userID, nsLabel, domain strin
 		WHERE service_id IN (SELECT id FROM ns_services) AND custom_domain = :domain
 		RETURNING type`,
 		map[string]interface{}{"ns_id": nsID, "domain": domain})
-	err = sqlx.GetContext(ctx, db.extLog, &ingressType, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &ingressType, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:

@@ -5,6 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -12,14 +13,35 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error {
+type ServiceActionsDB struct {
+	ServiceDB   models.ServiceDBConstructor
+	NamespaceDB models.NamespaceDBConstructor
+	DomainDB    models.DomainDBConstructor
+}
+
+type ServiceActionsImpl struct {
+	*server.ResourceServiceClients
+	*ServiceActionsDB
+
+	log *cherrylog.LogrusAdapter
+}
+
+func NewServiceActionsImpl(clients *server.ResourceServiceClients, constructors *ServiceActionsDB) *ServiceActionsImpl {
+	return &ServiceActionsImpl{
+		ResourceServiceClients: clients,
+		ServiceActionsDB:       constructors,
+		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
+	}
+}
+
+func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	sa.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Infof("create service %#v", req)
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		serviceType := server.DetermineServiceType(req)
 
 		kubeRequest := kubtypesInternal.ServiceWithOwner{
@@ -28,7 +50,8 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 		}
 
 		if serviceType == rstypes.ServiceExternal {
-			domain, selectErr := tx.ChooseRandomDomain(ctx)
+			domainDB := sa.DomainDB(tx)
+			domain, selectErr := domainDB.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr
 			}
@@ -37,7 +60,7 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			kubeRequest.IPs = domain.IP
 			// TODO: SQL queries in loop is not good solution
 			for i := range kubeRequest.Ports {
-				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
+				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
@@ -45,16 +68,16 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 			}
 		}
 
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		if createErr := tx.CreateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); createErr != nil {
+		if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); createErr != nil {
 			return createErr
 		}
 
-		if createErr := rs.Kube.CreateService(ctx, nsID, kubeRequest); createErr != nil {
+		if createErr := sa.Kube.CreateService(ctx, nsID, kubeRequest); createErr != nil {
 			return createErr
 		}
 
@@ -64,40 +87,40 @@ func (rs *resourceServiceImpl) CreateService(ctx context.Context, nsLabel string
 	return err
 }
 
-func (rs *resourceServiceImpl) GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error) {
+func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	sa.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Info("get services")
 
-	ret, err := rs.DB.GetServices(ctx, userID, nsLabel)
+	ret, err := sa.ServiceDB(sa.DB).GetServices(ctx, userID, nsLabel)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error) {
+func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": serviceName,
 	}).Info("get service")
 
-	ret, err := rs.DB.GetService(ctx, userID, nsLabel, serviceName)
+	ret, err := sa.ServiceDB(sa.DB).GetService(ctx, userID, nsLabel, serviceName)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel string, req server.UpdateServiceRequest) error {
+func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string, req server.UpdateServiceRequest) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": req.Name,
 	}).Info("update service")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
 		kubeRequest := kubtypesInternal.ServiceWithOwner{
@@ -106,7 +129,8 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel string
 		}
 
 		if serviceType == rstypes.ServiceExternal {
-			domain, selectErr := tx.ChooseRandomDomain(ctx)
+			domainDB := sa.DomainDB(tx)
+			domain, selectErr := domainDB.ChooseRandomDomain(ctx)
 			if selectErr != nil {
 				return selectErr
 			}
@@ -114,7 +138,7 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel string
 			kubeRequest.Domain = domain.Domain
 			kubeRequest.IPs = domain.IP
 			for i := range kubeRequest.Ports {
-				port, portSelectErr := tx.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
+				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
@@ -122,16 +146,16 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel string
 			}
 		}
 
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		if updErr := tx.UpdateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); updErr != nil {
+		if updErr := sa.ServiceDB(tx).UpdateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); updErr != nil {
 			return updErr
 		}
 
-		if updErr := rs.Kube.UpdateService(ctx, nsID, kubeRequest); updErr != nil {
+		if updErr := sa.Kube.UpdateService(ctx, nsID, kubeRequest); updErr != nil {
 			return updErr
 		}
 
@@ -141,25 +165,25 @@ func (rs *resourceServiceImpl) UpdateService(ctx context.Context, nsLabel string
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
+func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": serviceName,
 	}).Info("delete service")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		if delErr := tx.DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
+		if delErr := sa.ServiceDB(tx).DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
 			return delErr
 		}
 
-		if delErr := rs.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
+		if delErr := sa.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
 			return delErr
 		}
 

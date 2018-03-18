@@ -8,16 +8,30 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (err error) {
+type DomainPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewDomainPG(db models.RelationalDB) models.DomainDB {
+	return &DomainPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "domain_pg")),
+	}
+}
+
+func (db *DomainPG) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (err error) {
 	db.log.Debugf("add domain %#v")
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`INSERT INTO domains
 		(ip, domain, domain_group)
 		VALUES (:ip, :domain, :domain_group)
@@ -32,7 +46,7 @@ func (db *pgDB) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) (er
 	return
 }
 
-func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (domains []rstypes.Domain, err error) {
+func (db *DomainPG) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (domains []rstypes.Domain, err error) {
 	db.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
@@ -42,7 +56,7 @@ func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQ
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT * FROM domains LIMIT :limit OFFSET :offset`,
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
-	err = sqlx.SelectContext(ctx, db.extLog, &domains, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &domains, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -50,13 +64,13 @@ func (db *pgDB) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQ
 	return
 }
 
-func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Domain, err error) {
+func (db *DomainPG) GetDomain(ctx context.Context, domain string) (entry rstypes.Domain, err error) {
 	db.log.WithField("domain", domain).Debug("get domain")
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT * FROM domains WHERE domain = :domain`,
 		rstypes.Domain{Domain: domain})
-	err = sqlx.GetContext(ctx, db.extLog, &entry, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &entry, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -68,10 +82,10 @@ func (db *pgDB) GetDomain(ctx context.Context, domain string) (entry rstypes.Dom
 	return
 }
 
-func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
+func (db *DomainPG) DeleteDomain(ctx context.Context, domain string) (err error) {
 	db.log.WithField("domain", domain).Debug("delete domain")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`DELETE FROM domains WHERE domain = :domain`,
 		rstypes.Domain{Domain: domain})
 	if err != nil {
@@ -85,10 +99,10 @@ func (db *pgDB) DeleteDomain(ctx context.Context, domain string) (err error) {
 	return
 }
 
-func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, err error) {
+func (db *DomainPG) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, err error) {
 	db.log.Debugf("choose random domain")
 
-	err = sqlx.GetContext(ctx, db.extLog, &entry, /* language=sql*/
+	err = sqlx.GetContext(ctx, db, &entry, /* language=sql*/
 		`SELECT * FROM domains ORDER BY RANDOM() LIMIT 1`)
 	switch err {
 	case nil:
@@ -101,7 +115,7 @@ func (db *pgDB) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domain, e
 	return
 }
 
-func (db *pgDB) ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (port int, err error) {
+func (db *DomainPG) ChooseDomainFreePort(ctx context.Context, domain string, protocol kubtypes.Protocol) (port int, err error) {
 	params := map[string]interface{}{
 		"domain":   domain,
 		"protocol": strings.ToLower(string(protocol)),
@@ -109,7 +123,7 @@ func (db *pgDB) ChooseDomainFreePort(ctx context.Context, domain string, protoco
 	db.log.WithFields(params).Debug("choose free port for domain")
 
 	query, args, _ := sqlx.Named( /* language=sql */ `SELECT random_free_domain_port(:domain, :protocol)`, params)
-	err = sqlx.GetContext(ctx, db.extLog, &port, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &port, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}

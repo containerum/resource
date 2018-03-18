@@ -5,6 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -13,9 +14,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error {
+type IngressActionsDB struct {
+	NamespaceDB models.NamespaceDBConstructor
+	ServiceDB   models.ServiceDBConstructor
+	IngressDB   models.IngressDBConstructor
+}
+
+type IngressActionsImpl struct {
+	*server.ResourceServiceClients
+	*IngressActionsDB
+
+	log *cherrylog.LogrusAdapter
+}
+
+func NewIngressActionsImpl(clients *server.ResourceServiceClients, constructors *IngressActionsDB) *IngressActionsImpl {
+	return &IngressActionsImpl{
+		ResourceServiceClients: clients,
+		IngressActionsDB:       constructors,
+		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+	}
+}
+
+func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	ia.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
@@ -28,13 +50,13 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 		req.Path = "/" + req.Path
 	}
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		service, getErr := tx.GetService(ctx, userID, nsLabel, req.Service)
+		service, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Service)
 		if getErr != nil {
 			return getErr
 		}
@@ -44,7 +66,7 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 			return pathsErr
 		}
 
-		if createErr := tx.CreateIngress(ctx, userID, nsLabel, req); createErr != nil {
+		if createErr := ia.IngressDB(tx).CreateIngress(ctx, userID, nsLabel, req); createErr != nil {
 			return createErr
 		}
 
@@ -71,7 +93,7 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 				},
 				Owner: userID,
 			}
-			if createErr := rs.Kube.CreateSecret(ctx, nsID, secret); createErr != nil {
+			if createErr := ia.Kube.CreateSecret(ctx, nsID, secret); createErr != nil {
 				return createErr
 			}
 
@@ -89,7 +111,7 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 			return rserrors.ErrValidation().AddDetailF("invalid ingress type %s", req.TLS)
 		}
 
-		if createErr := rs.Kube.CreateIngress(ctx, nsID, ingress); createErr != nil {
+		if createErr := ia.Kube.CreateIngress(ctx, nsID, ingress); createErr != nil {
 			return createErr
 		}
 
@@ -99,59 +121,59 @@ func (rs *resourceServiceImpl) CreateIngress(ctx context.Context, nsLabel string
 	return err
 }
 
-func (rs *resourceServiceImpl) GetUserIngresses(ctx context.Context, nsLabel string,
+func (ia *IngressActionsImpl) GetUserIngresses(ctx context.Context, nsLabel string,
 	params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	ia.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Info("get user ingresses")
 
-	resp, err := rs.DB.GetUserIngresses(ctx, userID, nsLabel, params)
+	resp, err := ia.IngressDB(ia.DB).GetUserIngresses(ctx, userID, nsLabel, params)
 
 	return resp, err
 }
 
-func (rs *resourceServiceImpl) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
-	rs.log.WithFields(logrus.Fields{
+func (ia *IngressActionsImpl) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
+	ia.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
 	}).Info("get all ingresses")
 
-	resp, err := rs.DB.GetAllIngresses(ctx, params)
+	resp, err := ia.IngressDB(ia.DB).GetAllIngresses(ctx, params)
 
 	return resp, err
 }
 
-func (rs *resourceServiceImpl) DeleteIngress(ctx context.Context, nsLabel, domain string) error {
+func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain string) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	ia.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 		"domain":   domain,
 	}).Info("delete ingress")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		nsID, getErr := tx.GetNamespaceID(ctx, userID, nsLabel)
+	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
-		ingressType, delErr := tx.DeleteIngress(ctx, userID, nsLabel, domain)
+		ingressType, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)
 		if delErr != nil {
 			return delErr
 		}
 
 		ingressName := server.IngressName(domain)
-		if delErr := rs.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
+		if delErr := ia.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
 			return delErr
 		}
 
 		// in CreateIngress() we created secret for "custom_https" ingress so delete it.
 		if ingressType == rstypes.IngressCustomHTTPS {
-			if delErr := rs.Kube.DeleteSecret(ctx, nsID, server.SecretName(ingressName)); delErr != nil {
+			if delErr := ia.Kube.DeleteSecret(ctx, nsID, server.SecretName(ingressName)); delErr != nil {
 				return delErr
 			}
 		}

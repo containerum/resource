@@ -4,97 +4,103 @@ import (
 	"net/http"
 
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
 
-func createDeploymentHandler(ctx *gin.Context) {
+type DeployHandlers struct {
+	server.DeployActions
+	*TranslateValidate
+}
+
+func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
 
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	if err := srv.CreateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 	ctx.Status(http.StatusOK)
 }
 
-func getDeploymentsHandler(ctx *gin.Context) {
-	resp, err := srv.GetDeployments(ctx.Request.Context(), ctx.Param("ns_label"))
+func (h *DeployHandlers) GetDeploymentsHandler(ctx *gin.Context) {
+	resp, err := h.GetDeployments(ctx.Request.Context(), ctx.Param("ns_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func getDeploymentByLabelHandler(ctx *gin.Context) {
-	resp, err := srv.GetDeploymentByLabel(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+func (h *DeployHandlers) GetDeploymentByLabelHandler(ctx *gin.Context) {
+	resp, err := h.GetDeploymentByLabel(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func deleteDeploymentByLabelHandler(ctx *gin.Context) {
-	err := srv.DeleteDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+func (h *DeployHandlers) DeleteDeploymentByLabelHandler(ctx *gin.Context) {
+	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func setContainerImageHandler(ctx *gin.Context) {
+func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 	var req kubtypes.UpdateImage
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	err := srv.SetContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	err := h.SetContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func replaceDeploymentHandler(ctx *gin.Context) {
+func (h *DeployHandlers) ReplaceDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
 	req.Name = ctx.Param("deploy_label")
-	err := srv.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	err := h.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func setReplicasHandler(ctx *gin.Context) {
+func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	var req kubtypes.UpdateReplicas
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
-	err := srv.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 

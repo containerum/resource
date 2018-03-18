@@ -9,63 +9,68 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
-func createServiceHandler(ctx *gin.Context) {
+type ServiceHandlers struct {
+	server.ServiceActions
+	*TranslateValidate
+}
+
+func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	if err := srv.CreateService(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.CreateService(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusCreated)
 }
 
-func getServicesHandler(ctx *gin.Context) {
-	resp, err := srv.GetServices(ctx.Request.Context(), ctx.Param("ns_label"))
+func (h *ServiceHandlers) GetServicesHandler(ctx *gin.Context) {
+	resp, err := h.GetServices(ctx.Request.Context(), ctx.Param("ns_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func getServiceHandler(ctx *gin.Context) {
-	resp, err := srv.GetService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
+func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
+	resp, err := h.GetService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func updateServiceHandler(ctx *gin.Context) {
+func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 	var req server.UpdateServiceRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
 	req.Name = ctx.Param("service_label")
-	err := srv.UpdateService(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	err := h.UpdateService(ctx.Request.Context(), ctx.Param("ns_label"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func deleteServiceHandler(ctx *gin.Context) {
-	err := srv.DeleteService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
+func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
+	err := h.DeleteService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 

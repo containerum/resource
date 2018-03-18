@@ -4,42 +4,63 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error {
-	rs.log.Infof("create storage %#v", req)
+type StorageActionsDB struct {
+	StorageDB models.StorageDBConstructor
+}
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		return tx.CreateStorage(ctx, req)
+type StorageActionsImpl struct {
+	*server.ResourceServiceClients
+	*StorageActionsDB
+
+	log *cherrylog.LogrusAdapter
+}
+
+func NewStorageActionsImpl(clients *server.ResourceServiceClients, constructors *StorageActionsDB) *StorageActionsImpl {
+	return &StorageActionsImpl{
+		ResourceServiceClients: clients,
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "storage_actions")),
+	}
+}
+
+func (sa *StorageActionsImpl) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error {
+	sa.log.Infof("create storage %#v", req)
+
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		return sa.StorageDB(tx).CreateStorage(ctx, req)
 	})
 
 	return err
 }
 
-func (rs *resourceServiceImpl) GetStorages(ctx context.Context) ([]rstypes.Storage, error) {
-	rs.log.Info("get storages")
+func (sa *StorageActionsImpl) GetStorages(ctx context.Context) ([]rstypes.Storage, error) {
+	sa.log.Info("get storages")
 
-	ret, err := rs.DB.GetStorages(ctx)
+	ret, err := sa.StorageDB(sa.DB).GetStorages(ctx)
 
 	return ret, err
 }
 
-func (rs *resourceServiceImpl) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error {
-	rs.log.WithField("name", name).Info("update storage to %#v", req)
+func (sa *StorageActionsImpl) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error {
+	sa.log.WithField("name", name).Info("update storage to %#v", req)
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		return tx.UpdateStorage(ctx, name, req)
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		return sa.StorageDB(tx).UpdateStorage(ctx, name, req)
 	})
 
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteStorage(ctx context.Context, name string) error {
-	rs.log.WithField("name", name).Info("delete storage")
+func (sa *StorageActionsImpl) DeleteStorage(ctx context.Context, name string) error {
+	sa.log.WithField("name", name).Info("delete storage")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if delErr := tx.DeleteStorage(ctx, name); delErr != nil {
+	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if delErr := sa.StorageDB(tx).DeleteStorage(ctx, name); delErr != nil {
 			return delErr
 		}
 

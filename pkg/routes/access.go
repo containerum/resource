@@ -6,68 +6,74 @@ import (
 	"github.com/gin-gonic/gin"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin/binding"
 )
 
-func getUserResourceAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserAccesses(ctx.Request.Context())
+type AccessHandlers struct {
+	server.AccessActions
+	*TranslateValidate
+}
+
+func (h *AccessHandlers) GetUserResourceAccessesHandler(ctx *gin.Context) {
+	resp, err := h.GetUserAccesses(ctx.Request.Context())
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func setUserResourceAccessesHandler(ctx *gin.Context) {
+func (h *AccessHandlers) SetUserResourceAccessesHandler(ctx *gin.Context) {
 	var req rstypes.SetResourcesAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	if err := srv.SetUserAccesses(ctx.Request.Context(), req.Access); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.SetUserAccesses(ctx.Request.Context(), req.Access); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func setUserNamespaceAccessHandler(ctx *gin.Context) {
+func (h *AccessHandlers) SetUserNamespaceAccessHandler(ctx *gin.Context) {
 	var req rstypes.SetNamespaceAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	if err := srv.SetUserNamespaceAccess(ctx.Request.Context(), ctx.Param("ns_label"), &req); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.SetUserNamespaceAccess(ctx.Request.Context(), ctx.Param("ns_label"), &req); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func setUserVolumeAccessHandler(ctx *gin.Context) {
+func (h *AccessHandlers) SetUserVolumeAccessHandler(ctx *gin.Context) {
 	var req rstypes.SetVolumeAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(badRequest(ctx, err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
-	if err := srv.SetUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), &req); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.SetUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), &req); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func getUserNamespaceAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserNamespaceAccesses(ctx.Request.Context(), ctx.Param("ns_label"))
+func (h *AccessHandlers) GetUserNamespaceAccessesHandler(ctx *gin.Context) {
+	resp, err := h.GetUserNamespaceAccesses(ctx.Request.Context(), ctx.Param("ns_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
@@ -76,10 +82,10 @@ func getUserNamespaceAccessesHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func getUserVolumeAccessesHandler(ctx *gin.Context) {
-	resp, err := srv.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("vol_label"))
+func (h *AccessHandlers) GetUserVolumeAccessesHandler(ctx *gin.Context) {
+	resp, err := h.GetUserVolumeAccesses(ctx.Request.Context(), ctx.Param("vol_label"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
@@ -88,30 +94,30 @@ func getUserVolumeAccessesHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func deleteUserNamespaceAccessHandler(ctx *gin.Context) {
+func (h *AccessHandlers) DeleteUserNamespaceAccessHandler(ctx *gin.Context) {
 	var req rstypes.DeleteNamespaceAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	if err := srv.DeleteUserNamespaceAccess(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.DeleteUserNamespaceAccess(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func deleteUserVolumeAccessHandler(ctx *gin.Context) {
+func (h *AccessHandlers) DeleteUserVolumeAccessHandler(ctx *gin.Context) {
 	var req rstypes.DeleteVolumeAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	if err := srv.DeleteUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), req); err != nil {
-		ctx.AbortWithStatusJSON(handleError(err))
+	if err := h.DeleteUserVolumeAccess(ctx.Request.Context(), ctx.Param("vol_label"), req); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 

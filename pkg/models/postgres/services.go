@@ -8,13 +8,27 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) createServicePorts(ctx context.Context, serviceID, domain string,
+type ServicePG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewServicePG(db models.RelationalDB) models.ServiceDB {
+	return &ServicePG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_pg")),
+	}
+}
+
+func (db *ServicePG) createServicePorts(ctx context.Context, serviceID, domain string,
 	serviceType rstypes.ServiceType, ports []kubtypes.ServicePort) (err error) {
 	db.log.WithField("service_id", serviceID).Debugf("add service ports %#v", ports)
 
@@ -32,7 +46,7 @@ func (db *pgDB) createServicePorts(ctx context.Context, serviceID, domain string
 			WHERE d.domain = :domain`
 	}
 
-	stmt, err := db.preparer.PrepareNamed(query)
+	stmt, err := db.PrepareNamed(query)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -57,19 +71,15 @@ func (db *pgDB) createServicePorts(ctx context.Context, serviceID, domain string
 	return
 }
 
-func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) (err error) {
+func (db *ServicePG) CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"type":     serviceType,
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debugf("create service %#v", req)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -83,7 +93,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 			"ns_id": nsID,
 			"name":  req.Name,
 		})
-	err = sqlx.GetContext(ctx, db.extLog, &serviceExists, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &serviceExists, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -97,7 +107,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT id FROM deployments WHERE ns_id = :ns_id AND name = :name`,
 		map[string]interface{}{"ns_id": nsID, "name": req.Deploy})
-	err = sqlx.GetContext(ctx, db.extLog, &deplID, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &deplID, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -115,13 +125,13 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 		VALUES (:deploy_id, :name, :type)
 		RETURNING id`,
 		map[string]interface{}{"deploy_id": deplID, "name": req.Name, "type": serviceType})
-	err = sqlx.GetContext(ctx, db.extLog, &serviceID, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &serviceID, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`INSERT INTO permissions
 		(kind, resource_id, resource_label, owner_user_id, user_id)
 		VALUES (
@@ -149,7 +159,7 @@ func (db *pgDB) CreateService(ctx context.Context, userID, nsLabel string, servi
 	return
 }
 
-func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map[string]kubtypes.Service, serviceIDs []string, err error) {
+func (db *ServicePG) getRawServices(ctx context.Context, nsID string) (serviceMap map[string]kubtypes.Service, serviceIDs []string, err error) {
 	db.log.WithField("ns_id", nsID).Debug("get raw services")
 
 	dbEntries := make([]rstypes.Service, 0)
@@ -166,7 +176,7 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 		JOIN deployments d ON s.deploy_id = d.id
 		WHERE NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID})
-	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &dbEntries, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -186,7 +196,7 @@ func (db *pgDB) getRawServices(ctx context.Context, nsID string) (serviceMap map
 	return
 }
 
-func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, serviceMap map[string]kubtypes.Service) (err error) {
+func (db *ServicePG) getServicesPorts(ctx context.Context, serviceIDs []string, serviceMap map[string]kubtypes.Service) (err error) {
 	db.log.Debugf("get services ports %#v", serviceIDs)
 
 	if len(serviceIDs) == 0 {
@@ -206,7 +216,7 @@ func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, servi
 		FROM service_ports sp
 		LEFT JOIN domains d ON sp.domain_id = d.id
 		WHERE sp.service_id IN (?)`, serviceIDs)
-	err = sqlx.SelectContext(ctx, db.extLog, &dbEntries, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &dbEntries, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -233,18 +243,14 @@ func (db *pgDB) getServicesPorts(ctx context.Context, serviceIDs []string, servi
 	return
 }
 
-func (db *pgDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Service, err error) {
+func (db *ServicePG) GetServices(ctx context.Context, userID, nsLabel string) (ret []kubtypes.Service, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debug("get services")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -265,19 +271,15 @@ func (db *pgDB) GetServices(ctx context.Context, userID, nsLabel string) (ret []
 	return
 }
 
-func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, err error) {
+func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": serviceName,
 	}).Debug("get service")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -295,7 +297,7 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceName str
 		JOIN deployments d ON s.deploy_id = d.id
 		WHERE s.name = :name AND NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceName})
-	err = sqlx.GetContext(ctx, db.extLog, &serviceEntry, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &serviceEntry, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -324,7 +326,7 @@ func (db *pgDB) GetService(ctx context.Context, userID, nsLabel, serviceName str
 	return
 }
 
-func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
+func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"ns_label":         nsLabel,
@@ -332,12 +334,8 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 		"new_service_type": newServiceType,
 	}).Debugf("update service to %#v", req)
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -354,7 +352,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 		WHERE id = (SELECT id FROM service_to_update)
 		RETURNING id`,
 		map[string]interface{}{"ns_id": nsID, "name": req.Name, "new_type": newServiceType})
-	err = sqlx.GetContext(ctx, db.extLog, &serviceID, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &serviceID, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -365,7 +363,7 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`DELETE FROM service_ports WHERE service_id = :service_id`,
 		map[string]interface{}{"servce_id": serviceID})
 	if err != nil {
@@ -377,23 +375,19 @@ func (db *pgDB) UpdateService(ctx context.Context, userID, nsLabel string, newSe
 	return
 }
 
-func (db *pgDB) DeleteService(ctx context.Context, userID, nsLabel, serviceName string) (err error) {
+func (db *ServicePG) DeleteService(ctx context.Context, userID, nsLabel, serviceName string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
 		"service_name": serviceName,
 	}).Debug("delete service")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
 		return
 	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
-		return
-	}
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`WITH service_to_update AS (
 			SELECT s.id
 			FROM services s

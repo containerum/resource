@@ -14,7 +14,6 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/models/postgres"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/en_US"
@@ -64,15 +63,29 @@ func setupLogger() error {
 	return nil
 }
 
-func setupDB(connStr, migrationAddr string) (models.DB, error) {
+func setupDB(connStr, migrationAddr string) (models.RelationalDB, *server.ResourceServiceConstructors, error) {
 	if connStr == "" {
-		return nil, errors.New("db connection string was not specified")
+		return nil, nil, errors.New("db connection string was not specified")
 	}
 	if migrationAddr == "" {
-		return nil, errors.New("migrations address was not specified")
+		return nil, nil, errors.New("migrations address was not specified")
 	}
 
-	return postgres.DBConnect(connStr, migrationAddr)
+	db, err := postgres.DBConnect(connStr, migrationAddr)
+	constructors := &server.ResourceServiceConstructors{
+		NamespaceDB:     postgres.NewNamespacePG,
+		VolumeDB:        postgres.NewVolumePG,
+		StorageDB:       postgres.NewStoragePG,
+		DeployDB:        postgres.NewDeployPG,
+		IngressDB:       postgres.NewIngressPG,
+		DomainDB:        postgres.NewDomainPG,
+		AccessDB:        postgres.NewAccessPG,
+		ServiceDB:       postgres.NewServicePG,
+		ResourceCountDB: postgres.NewResourceCountPG,
+		EndpointsDB:     postgres.NewGlusterPG,
+	}
+
+	return db, constructors, err
 }
 
 func setupAuthClient(addr string) (clients.AuthSvc, error) {
@@ -143,43 +156,43 @@ func setupUserClient(addr string) (clients.UserManagerClient, error) {
 	}
 }
 
-func setupServer() (server.ResourceService, error) {
-	var clients server.ResourceServiceClients
+func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServiceConstructors, error) {
+	var ret server.ResourceServiceClients
+	var constructors *server.ResourceServiceConstructors
 
 	var err error
-	if clients.DB, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
-		return nil, err
+	if ret.DB, constructors, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
+		return nil, nil, err
 	}
-	if clients.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
-		return nil, err
+	if ret.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
+		return nil, nil, err
 	}
-	if clients.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
-		return nil, err
+	if ret.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
+		return nil, nil, err
 	}
-	if clients.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
-		return nil, err
+	if ret.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
+		return nil, nil, err
 	}
-	if clients.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
-		return nil, err
+	if ret.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
+		return nil, nil, err
 	}
-	/*	if clients.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
+	/*	if ret.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
 		return nil, err
 	}*/
-	if clients.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
-		return nil, err
+	if ret.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
+		return nil, nil, err
 	}
 
-	// print info about clients which implements Stringer
-	v := reflect.ValueOf(clients)
-	for i := 0; i < reflect.TypeOf(clients).NumField(); i++ {
+	// print info about ret which implements Stringer
+	v := reflect.ValueOf(ret)
+	for i := 0; i < reflect.TypeOf(ret).NumField(); i++ {
 		f := v.Field(i)
 		if str, ok := f.Interface().(fmt.Stringer); ok {
 			logrus.Infof("%s", str)
 		}
 	}
 
-	srv := impl.NewResourceServiceImpl(clients)
-	return srv, nil
+	return &ret, constructors, nil
 }
 
 func getListenAddr() (la string, err error) {

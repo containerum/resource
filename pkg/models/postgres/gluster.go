@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/json-types/kube-api"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
@@ -11,19 +12,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) (ret []kube_api.Endpoint, err error) {
+type GlusterPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewGlusterPG(db models.RelationalDB) models.GlusterEndpointsDB {
+	return &GlusterPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "gluster_pg")),
+	}
+}
+
+func (db *GlusterPG) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) (ret []kube_api.Endpoint, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Debug("create endpoints for gluster")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
@@ -53,7 +61,7 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 		ID  string         `db:"id"`
 		IPs pq.StringArray `db:"ips"`
 	}
-	err = sqlx.SelectContext(ctx, db.extLog, &storages, db.extLog.Rebind(query), args...)
+	err = sqlx.SelectContext(ctx, db, &storages, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -76,23 +84,18 @@ func (db *pgDB) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel stri
 	return
 }
 
-func (db *pgDB) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) (err error) {
+func (db *GlusterPG) ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Info("confirm gluster services created")
 
-	nsID, err := db.getNamespaceID(ctx, userID, nsLabel)
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
 	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-	if nsID == "" {
-		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists", nsLabel).Log(err, db.log)
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE endpoints SET service_exists = TRUE WHERE namespace_id = :ns_id`,
 		map[string]interface{}{"ns_id": nsID})
 	if err != nil {

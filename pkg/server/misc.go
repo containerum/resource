@@ -1,16 +1,22 @@
 package server
 
 import (
+	"errors"
+	"io"
+	"reflect"
 	"sync"
 
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 
+	"context"
+
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models"
 )
 
 // Parallel runs functions in dedicated goroutines and waits for ending
@@ -99,4 +105,28 @@ func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kub
 func VolumeGlusterName(nsLabel, userID string) string {
 	glusterName := sha256.Sum256([]byte(fmt.Sprintf("%s-volume%s", nsLabel, userID)))
 	return hex.EncodeToString(glusterName[:])
+}
+
+func (rs *ResourceServiceClients) UpdateAccess(ctx context.Context, db models.AccessDB, userID string) error {
+	accesses, err := db.GetUserResourceAccesses(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return rs.Auth.UpdateUserAccess(ctx, userID, accesses)
+}
+
+func (rs *ResourceServiceClients) Close() error {
+	var errs []string
+	v := reflect.ValueOf(rs)
+	for i := 0; i < v.NumField(); i++ {
+		if closer, ok := v.Field(i).Interface().(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				errs = append(errs, closer.Close().Error())
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return errors.New(fmt.Sprintf("%#v", errs))
+	}
+	return nil
 }

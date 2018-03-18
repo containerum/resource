@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -13,17 +14,38 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.CreateVolumeRequest) error {
+type VolumeActionsDB struct {
+	VolumeDB  models.VolumeDBConstructor
+	StorageDB models.StorageDBConstructor
+	AccessDB  models.AccessDBConstructor
+}
+
+type VolumeActionsImpl struct {
+	*server.ResourceServiceClients
+	*VolumeActionsDB
+
+	log *cherrylog.LogrusAdapter
+}
+
+func NewVolumeActionsImpl(clients *server.ResourceServiceClients, constructors *VolumeActionsDB) *VolumeActionsImpl {
+	return &VolumeActionsImpl{
+		ResourceServiceClients: clients,
+		VolumeActionsDB:        constructors,
+		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "volume_actions")),
+	}
+}
+
+func (va *VolumeActionsImpl) CreateVolume(ctx context.Context, req rstypes.CreateVolumeRequest) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"tariff_id": req.TariffID,
 		"label":     req.Label,
 		"user_id":   userID,
 		"admin":     isAdmin,
 	}).Infof("creating volume for user")
 
-	tariff, err := rs.Billing.GetVolumeTariff(ctx, req.TariffID)
+	tariff, err := va.Billing.GetVolumeTariff(ctx, req.TariffID)
 	if err != nil {
 		return err
 	}
@@ -40,18 +62,18 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.Cre
 	}
 	newVolume.Active = new(bool) // false
 
-	err = rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		storage, selectErr := tx.ChooseAvailableStorage(ctx, tariff.StorageLimit)
+	err = va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		storage, selectErr := va.StorageDB(tx).ChooseAvailableStorage(ctx, tariff.StorageLimit)
 		if selectErr != nil {
 			return selectErr
 		}
 		newVolume.StorageID = storage.ID
 
-		if createErr := tx.CreateVolume(ctx, userID, req.Label, newVolume); createErr != nil {
+		if createErr := va.VolumeDB(tx).CreateVolume(ctx, userID, req.Label, newVolume); createErr != nil {
 			return createErr
 		}
 
-		if subErr := rs.Billing.Subscribe(ctx, userID, newVolume.Resource, rstypes.KindVolume); subErr != nil {
+		if subErr := va.Billing.Subscribe(ctx, userID, newVolume.Resource, rstypes.KindVolume); subErr != nil {
 			return subErr
 		}
 
@@ -59,7 +81,7 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.Cre
 
 		// TODO: tariff activation
 
-		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := va.UpdateAccess(ctx, va.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 
@@ -69,35 +91,35 @@ func (rs *resourceServiceImpl) CreateVolume(ctx context.Context, req rstypes.Cre
 		return err
 	}
 
-	if err := rs.Mail.SendVolumeCreated(ctx, userID, req.Label, tariff); err != nil {
-		rs.log.WithError(err).Error("create volume email send failed")
+	if err := va.Mail.SendVolumeCreated(ctx, userID, req.Label, tariff); err != nil {
+		va.log.WithError(err).Error("create volume email send failed")
 	}
 
 	return err
 }
 
-func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label string) error {
+func (va *VolumeActionsImpl) DeleteUserVolume(ctx context.Context, label string) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
 	}).Info("delete user volume")
 
 	var volToDelete rstypes.Volume
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if vol, delVolErr := tx.DeleteUserVolumeByLabel(ctx, userID, label); delVolErr != nil {
+	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if vol, delVolErr := va.VolumeDB(tx).DeleteUserVolumeByLabel(ctx, userID, label); delVolErr != nil {
 			return delVolErr
 		} else {
 			volToDelete = vol
 		}
 
-		if unsubErr := rs.Billing.Unsubscribe(ctx, userID, volToDelete.Resource); unsubErr != nil {
+		if unsubErr := va.Billing.Unsubscribe(ctx, userID, volToDelete.Resource); unsubErr != nil {
 			return unsubErr
 		}
 
 		// TODO: delete from gluster
 
-		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := va.UpdateAccess(ctx, va.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 
@@ -107,19 +129,19 @@ func (rs *resourceServiceImpl) DeleteUserVolume(ctx context.Context, label strin
 		return err
 	}
 
-	if err := rs.Mail.SendVolumeDeleted(ctx, userID, label); err != nil {
-		rs.log.WithError(err).Error("send volume deleted email failed")
+	if err := va.Mail.SendVolumeDeleted(ctx, userID, label); err != nil {
+		va.log.WithError(err).Error("send volume deleted email failed")
 	}
 
 	return nil
 }
 
-func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) error {
+func (va *VolumeActionsImpl) DeleteAllUserVolumes(ctx context.Context) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithField("user_id", userID).Info("delete all user volumes")
+	va.log.WithField("user_id", userID).Info("delete all user volumes")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if _, delErr := tx.DeleteAllUserVolumes(ctx, userID, false); delErr != nil {
+	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if _, delErr := va.VolumeDB(tx).DeleteAllUserVolumes(ctx, userID, false); delErr != nil {
 			return delErr
 		}
 
@@ -127,7 +149,7 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) error {
 
 		// TODO: delete all volumes in gluster
 
-		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := va.UpdateAccess(ctx, va.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 
@@ -137,71 +159,71 @@ func (rs *resourceServiceImpl) DeleteAllUserVolumes(ctx context.Context) error {
 	return err
 }
 
-func (rs *resourceServiceImpl) GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error) {
+func (va *VolumeActionsImpl) GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"filters": filters,
 	}).Info("get user volumes")
 
 	filterstr := models.ParseVolumeFilterParams(strings.Split(filters, ",")...)
-	vols, err := rs.DB.GetUserVolumes(ctx, userID, &filterstr)
+	vols, err := va.VolumeDB(va.DB).GetUserVolumes(ctx, userID, &filterstr)
 
 	return vols, err
 }
 
-func (rs *resourceServiceImpl) GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error) {
+func (va *VolumeActionsImpl) GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
 	}).Info("get user volume")
 
-	vol, err := rs.DB.GetUserVolumeByLabel(ctx, userID, label)
+	vol, err := va.VolumeDB(va.DB).GetUserVolumeByLabel(ctx, userID, label)
 
 	return vol, err
 }
 
-func (rs *resourceServiceImpl) GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error) {
+func (va *VolumeActionsImpl) GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
 	}).Info("get volumes linked with user namespace")
 
-	vols, err := rs.DB.GetVolumesLinkedWithUserNamespace(ctx, userID, label)
+	vols, err := va.VolumeDB(va.DB).GetVolumesLinkedWithUserNamespace(ctx, userID, label)
 
 	return vols, err
 }
 
-func (rs *resourceServiceImpl) GetAllVolumes(ctx context.Context,
+func (va *VolumeActionsImpl) GetAllVolumes(ctx context.Context,
 	params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error) {
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
 		"filters":  params.Filters,
 	}).Info("get all volumes")
 
 	filters := models.ParseVolumeFilterParams(strings.Split(params.Filters, ",")...)
-	vols, err := rs.DB.GetAllVolumes(ctx, params.Page, params.PerPage, &filters)
+	vols, err := va.VolumeDB(va.DB).GetAllVolumes(ctx, params.Page, params.PerPage, &filters)
 
 	return vols, err
 }
 
-func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error {
+func (va *VolumeActionsImpl) RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error {
 	userID := utils.MustGetUserID(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"old_label": oldLabel,
 		"new_label": newLabel,
 	}).Info("rename user volume")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		if renameErr := tx.RenameVolume(ctx, userID, oldLabel, newLabel); renameErr != nil {
+	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if renameErr := va.VolumeDB(tx).RenameVolume(ctx, userID, oldLabel, newLabel); renameErr != nil {
 			return renameErr
 		}
 
-		if updErr := rs.updateAccess(ctx, tx, userID); updErr != nil {
+		if updErr := va.UpdateAccess(ctx, va.AccessDB(tx), userID); updErr != nil {
 			return updErr
 		}
 
@@ -211,18 +233,19 @@ func (rs *resourceServiceImpl) RenameUserVolume(ctx context.Context, oldLabel, n
 	return err
 }
 
-func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label string, newTariffID string) error {
+func (va *VolumeActionsImpl) ResizeUserVolume(ctx context.Context, label string, newTariffID string) error {
 	userID := utils.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
-	rs.log.WithFields(logrus.Fields{
+	va.log.WithFields(logrus.Fields{
 		"user_id":       userID,
 		"new_tariff_id": newTariffID,
 		"label":         label,
 		"admin":         isAdmin,
 	}).Info("resize user namespace")
 
-	err := rs.DB.Transactional(ctx, func(ctx context.Context, tx models.DB) error {
-		vol, getErr := tx.GetUserVolumeByLabel(ctx, userID, label)
+	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		volDB := va.VolumeDB(tx)
+		vol, getErr := volDB.GetUserVolumeByLabel(ctx, userID, label)
 		if getErr != nil {
 			return getErr
 		}
@@ -231,7 +254,7 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 			return rserrors.ErrTariffUnchanged().AddDetails("can`t change tariff to itself")
 		}
 
-		newTariff, getErr := rs.Billing.GetVolumeTariff(ctx, newTariffID)
+		newTariff, getErr := va.Billing.GetVolumeTariff(ctx, newTariffID)
 		if getErr != nil {
 			return getErr
 		}
@@ -245,7 +268,7 @@ func (rs *resourceServiceImpl) ResizeUserVolume(ctx context.Context, label strin
 		vol.Replicas = newTariff.ReplicasLimit
 		vol.Capacity = newTariff.StorageLimit
 
-		if updErr := tx.ResizeVolume(ctx, &vol.Volume); updErr != nil {
+		if updErr := volDB.ResizeVolume(ctx, &vol.Volume); updErr != nil {
 			return updErr
 		}
 

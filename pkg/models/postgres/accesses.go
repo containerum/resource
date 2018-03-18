@@ -5,12 +5,26 @@ import (
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret *authProto.ResourcesAccess, err error) {
+type AccessPG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewAccessPG(db models.RelationalDB) models.AccessDB {
+	return &AccessPG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "access_pg")),
+	}
+}
+
+func (db *AccessPG) GetUserResourceAccesses(ctx context.Context, userID string) (ret *authProto.ResourcesAccess, err error) {
 	db.log.WithField("user_id", userID).Debug("get user resource access")
 
 	accessObjects := make([]struct {
@@ -18,7 +32,7 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 		*authProto.AccessObject
 	}, 0)
 
-	err = sqlx.SelectContext(ctx, db.extLog, &accessObjects, /* language=sql */
+	err = sqlx.SelectContext(ctx, db, &accessObjects, /* language=sql */
 		`SELECT kind, resource_label AS label, resource_id AS id, new_access_level AS access
 		FROM permissions
 		WHERE owner_user_id = user_id AND user_id = $1 AND kind IN ('namespace', 'volume')`, userID)
@@ -45,7 +59,7 @@ func (db *pgDB) GetUserResourceAccesses(ctx context.Context, userID string) (ret
 	return
 }
 
-func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error) {
+func (db *AccessPG) SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      permRec.UserID,
 		"label":        permRec.ResourceLabel,
@@ -88,7 +102,7 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 			access_level_change_time,
 			new_access_level`,
 		permRec)
-	err = sqlx.GetContext(ctx, db.extLog, permRec, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, permRec, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
@@ -96,13 +110,13 @@ func (db *pgDB) SetResourceAccess(ctx context.Context, permRec *rstypes.Permissi
 	return
 }
 
-func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) (err error) {
+func (db *AccessPG) SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"new_access_level": access,
 	}).Debug("set user resources access")
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`WITH current_user_access AS (
 			SELECT id
 		  	FROM permissions
@@ -130,13 +144,13 @@ func (db *pgDB) SetAllResourcesAccess(ctx context.Context, userID string, access
 	return
 }
 
-func (db *pgDB) DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) (err error) {
+func (db *AccessPG) DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) (err error) {
 	db.log.WithFields(logrus.Fields{
 		"resource_id": resource.ID,
 		"user_id":     userID,
 	}).Debug("delete resource access")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`DELETE FROM permissions WHERE (user_id, resource_id) = (:user_id, :resource_id) AND owner_user_id != user_id`,
 		rstypes.PermissionRecord{UserID: userID, ResourceID: &resource.ID})
 	if err != nil {

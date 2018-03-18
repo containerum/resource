@@ -6,18 +6,33 @@ import (
 	"database/sql"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 )
 
-func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
+type StoragePG struct {
+	models.RelationalDB
+	log *cherrylog.LogrusAdapter
+}
+
+func NewStoragePG(db models.RelationalDB) models.StorageDB {
+	return &StoragePG{
+		RelationalDB: db,
+		log:          cherrylog.NewLogrusAdapter(logrus.WithField("component", "storage_pg")),
+	}
+}
+
+func (db *StoragePG) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) (err error) {
 	db.log.Debugf("creating storage %#v", req)
 
 	// we can`t recognise constraint violation error so do this check before insert
 	var exists bool
 	query, args, _ := sqlx.Named( /* language=sql */ `SELECT count(*)>0 FROM storages WHERE "name" = :name`, req)
-	err = sqlx.GetContext(ctx, db.extLog, &exists, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &exists, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
@@ -27,7 +42,7 @@ func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequ
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`INSERT INTO storages
 		(name, size, replicas, ips)
 		VALUES (:name, :size, :replicas, :ips)
@@ -40,11 +55,11 @@ func (db *pgDB) CreateStorage(ctx context.Context, req rstypes.CreateStorageRequ
 	return
 }
 
-func (db *pgDB) GetStorages(ctx context.Context) (ret []rstypes.Storage, err error) {
+func (db *StoragePG) GetStorages(ctx context.Context) (ret []rstypes.Storage, err error) {
 	db.log.Debug("get storages")
 
 	ret = make([]rstypes.Storage, 0)
-	err = sqlx.SelectContext(ctx, db.extLog, &ret /* language=sql */, `SELECT * FROM storages`)
+	err = sqlx.SelectContext(ctx, db, &ret /* language=sql */, `SELECT * FROM storages`)
 	switch err {
 	case nil, sql.ErrNoRows:
 		err = nil
@@ -55,10 +70,10 @@ func (db *pgDB) GetStorages(ctx context.Context) (ret []rstypes.Storage, err err
 	return
 }
 
-func (db *pgDB) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) (err error) {
+func (db *StoragePG) UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) (err error) {
 	db.log.WithField("name", name).Debug("update storage with %#v", req)
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE storages
 		SET
 			name = COALESCE(:name, name),
@@ -85,10 +100,10 @@ func (db *pgDB) UpdateStorage(ctx context.Context, name string, req rstypes.Upda
 	return
 }
 
-func (db *pgDB) DeleteStorage(ctx context.Context, name string) (err error) {
+func (db *StoragePG) DeleteStorage(ctx context.Context, name string) (err error) {
 	db.log.WithField("name", name).Debug("delete storage")
 
-	result, err := sqlx.NamedExecContext(ctx, db.extLog, /* language=sql */
+	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`DELETE FROM storages WHERE name = :name`,
 		map[string]interface{}{"name": name})
 	if err != nil {
@@ -102,7 +117,7 @@ func (db *pgDB) DeleteStorage(ctx context.Context, name string) (err error) {
 	return
 }
 
-func (db *pgDB) ChooseAvailableStorage(ctx context.Context, minFree int) (storage rstypes.Storage, err error) {
+func (db *StoragePG) ChooseAvailableStorage(ctx context.Context, minFree int) (storage rstypes.Storage, err error) {
 	db.log.WithField("min_free", minFree).Debug("choose appropriate storage")
 
 	query, args, _ := sqlx.Named( /* language=sql */
@@ -111,7 +126,7 @@ func (db *pgDB) ChooseAvailableStorage(ctx context.Context, minFree int) (storag
 		WHERE size - used >= :min_free AND name != 'DUMMY'
 		LIMIT 1`,
 		map[string]interface{}{"min_free": minFree})
-	err = sqlx.GetContext(ctx, db.extLog, &storage, db.extLog.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &storage, db.Rebind(query), args...)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
