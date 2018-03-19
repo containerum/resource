@@ -77,7 +77,8 @@ func (db *AccessPG) GetUserResourceAccess(ctx context.Context, userID string, re
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		err = rserrors.ErrAccessRecordNotExists()
+		err = nil
+		perm = rstypes.PermissionStatusNone
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}

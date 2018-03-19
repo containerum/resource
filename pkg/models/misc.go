@@ -9,6 +9,8 @@ import (
 // Owner can do all actions
 func PermCheck(perm, needed rstypes.PermissionStatus) bool {
 	switch perm {
+	case rstypes.PermissionStatusNone:
+		return false
 	case rstypes.PermissionStatusRead:
 		if needed == rstypes.PermissionStatusReadDelete {
 			return false
