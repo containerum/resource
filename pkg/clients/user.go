@@ -48,12 +48,12 @@ func (u *httpUserManagerClient) UserInfoByLogin(ctx context.Context, login strin
 		SetContext(ctx).
 		SetResult(umtypes.User{}).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Get("/info/login/" + login)
+		Get("/user/info/login/" + login)
 	if err != nil {
 		return nil, err
 	}
-	if err := resp.Error(); err != nil {
-		return nil, err.(*cherry.Err)
+	if resp.Error() != nil {
+		return nil, resp.Error().(*cherry.Err)
 	}
 	return resp.Result().(*umtypes.User), nil
 }
@@ -64,12 +64,12 @@ func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string)
 		SetContext(ctx).
 		SetResult(umtypes.User{}).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Get("/info/id/" + userID)
+		Get("/user/info/id/" + userID)
 	if err != nil {
 		return nil, err
 	}
-	if err := resp.Error(); err != nil {
-		return nil, err.(*cherry.Err)
+	if resp.Error() != nil {
+		return nil, resp.Error().(*cherry.Err)
 	}
 	return resp.Result().(*umtypes.User), nil
 }
