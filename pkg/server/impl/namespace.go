@@ -185,6 +185,10 @@ func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label s
 
 	var nsToDelete rstypes.Namespace
 	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, na.AccessDB(tx), userID, rstypes.KindNamespace, label, rstypes.PermissionStatusOwner); permErr != nil {
+			return permErr
+		}
+
 		if ns, delNsErr := na.NamespaceDB(tx).DeleteUserNamespaceByLabel(ctx, userID, label); delNsErr != nil {
 			return delNsErr
 		} else {
@@ -258,6 +262,9 @@ func (na *NamespaceActionsImpl) RenameUserNamespace(ctx context.Context, oldLabe
 	}).Info("rename user namespace")
 
 	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, na.AccessDB(tx), userID, rstypes.KindNamespace, oldLabel, rstypes.PermissionStatusOwner); permErr != nil {
+			return permErr
+		}
 		if renErr := na.NamespaceDB(tx).RenameNamespace(ctx, userID, oldLabel, newLabel); renErr != nil {
 			return renErr
 		}
@@ -281,6 +288,10 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 	}).Info("resize user namespace")
 
 	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, na.AccessDB(tx), userID, rstypes.KindNamespace, label, rstypes.PermissionStatusOwner); permErr != nil {
+			return permErr
+		}
+
 		nsDB := na.NamespaceDB(tx)
 		ns, getErr := nsDB.GetUserNamespaceByLabel(ctx, userID, label)
 		if getErr != nil {

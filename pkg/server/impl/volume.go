@@ -107,6 +107,10 @@ func (va *VolumeActionsImpl) DeleteUserVolume(ctx context.Context, label string)
 
 	var volToDelete rstypes.Volume
 	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, va.AccessDB(tx), userID, rstypes.KindVolume, label, rstypes.PermissionStatusOwner); permErr != nil {
+			return permErr
+		}
+
 		if vol, delVolErr := va.VolumeDB(tx).DeleteUserVolumeByLabel(ctx, userID, label); delVolErr != nil {
 			return delVolErr
 		} else {
@@ -219,6 +223,10 @@ func (va *VolumeActionsImpl) RenameUserVolume(ctx context.Context, oldLabel, new
 	}).Info("rename user volume")
 
 	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, va.AccessDB(tx), userID, rstypes.KindVolume, oldLabel, rstypes.PermissionStatusOwner); permErr != nil {
+			return permErr
+		}
+
 		if renameErr := va.VolumeDB(tx).RenameVolume(ctx, userID, oldLabel, newLabel); renameErr != nil {
 			return renameErr
 		}
@@ -244,6 +252,10 @@ func (va *VolumeActionsImpl) ResizeUserVolume(ctx context.Context, label string,
 	}).Info("resize user namespace")
 
 	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, va.AccessDB(tx), userID, rstypes.KindVolume, label, rstypes.PermissionStatusOwner); permErr != nil {
+			return permErr
+		}
+
 		volDB := va.VolumeDB(tx)
 		vol, getErr := volDB.GetUserVolumeByLabel(ctx, userID, label)
 		if getErr != nil {
