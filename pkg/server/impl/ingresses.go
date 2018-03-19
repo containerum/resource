@@ -18,6 +18,7 @@ type IngressActionsDB struct {
 	NamespaceDB models.NamespaceDBConstructor
 	ServiceDB   models.ServiceDBConstructor
 	IngressDB   models.IngressDBConstructor
+	AccessDB    models.AccessDBConstructor
 }
 
 type IngressActionsImpl struct {
@@ -54,6 +55,10 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
+		}
+
+		if permErr := server.GetAndCheckPermission(ctx, ia.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
 		}
 
 		service, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Service)
@@ -159,6 +164,10 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
+		}
+
+		if permErr := server.GetAndCheckPermission(ctx, ia.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
+			return permErr
 		}
 
 		ingressType, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)

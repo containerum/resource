@@ -65,6 +65,7 @@ func main() {
 		DeployDB:    constructors.DeployDB,
 		NamespaceDB: constructors.NamespaceDB,
 		EndpointsDB: constructors.EndpointsDB,
+		AccessDB:    constructors.AccessDB,
 	}))
 	routes.DomainHandlersSetup(g, tv, impl.NewDomainActionsImpl(clients, &impl.DomainActionsDB{
 		DomainDB: constructors.DomainDB,
@@ -73,11 +74,13 @@ func main() {
 		NamespaceDB: constructors.NamespaceDB,
 		ServiceDB:   constructors.ServiceDB,
 		IngressDB:   constructors.IngressDB,
+		AccessDB:    constructors.AccessDB,
 	}))
 	routes.ServiceHandlersSetup(g, tv, impl.NewServiceActionsImpl(clients, &impl.ServiceActionsDB{
 		ServiceDB:   constructors.ServiceDB,
 		NamespaceDB: constructors.NamespaceDB,
 		DomainDB:    constructors.DomainDB,
+		AccessDB:    constructors.AccessDB,
 	}))
 	routes.StorageHandlersSetup(g, tv, impl.NewStorageActionsImpl(clients, &impl.StorageActionsDB{
 		StorageDB: constructors.StorageDB,

@@ -17,6 +17,7 @@ type ServiceActionsDB struct {
 	ServiceDB   models.ServiceDBConstructor
 	NamespaceDB models.NamespaceDBConstructor
 	DomainDB    models.DomainDBConstructor
+	AccessDB    models.AccessDBConstructor
 }
 
 type ServiceActionsImpl struct {
@@ -42,6 +43,10 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 	}).Infof("create service %#v", req)
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
+		}
+
 		serviceType := server.DetermineServiceType(req)
 
 		kubeRequest := kubtypesInternal.ServiceWithOwner{
@@ -121,6 +126,10 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 	}).Info("update service")
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
+		}
+
 		serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
 		kubeRequest := kubtypesInternal.ServiceWithOwner{
@@ -177,6 +186,10 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
+		}
+
+		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
 		}
 
 		if delErr := sa.ServiceDB(tx).DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {

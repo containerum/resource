@@ -60,6 +60,7 @@ type VolumeDBConstructor func(RelationalDB) VolumeDB
 
 type AccessDB interface {
 	GetUserResourceAccesses(ctx context.Context, userID string) (*authProto.ResourcesAccess, error)
+	GetUserResourceAccess(ctx context.Context, userID string, resourceKind rstypes.Kind, resourceName string) (rstypes.PermissionStatus, error)
 	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
 	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) error
 	DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) error
