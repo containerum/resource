@@ -23,7 +23,7 @@ func dockerImageValidationFunc(fl validator.FieldLevel) bool {
 
 func kubeQuantityValidationFunc(fl validator.FieldLevel) bool {
 	_, err := resource.ParseQuantity(fl.Field().String())
-	return err != nil
+	return err == nil
 }
 
 func registerCustomTags(v *validator.Validate) {
