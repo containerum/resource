@@ -8,9 +8,16 @@ import (
 
 	"net/http"
 
+	"net/url"
+
+	"fmt"
+
 	btypes "git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry"
+	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
+	"git.containerum.net/ch/utils"
+	"gopkg.in/resty.v1"
 )
 
 // Billing is an interface to billing service
@@ -27,8 +34,8 @@ type Billing interface {
 
 // Data for dummy client
 
-type dummyBillingClient struct {
-	log *logrus.Entry
+type DummyBillingClient struct {
+	log *cherrylog.LogrusAdapter
 }
 
 var fakeNSData = `
@@ -104,7 +111,7 @@ func init() {
 	}
 }
 
-var buildErr = cherry.BuildErr(cherry.Billing) // FIXME: add package "billing" to "cherry"
+var buildErr = cherry.BuildErr(cherry.Billing) //FIXME: add package "billing" to "cherry"
 
 func nsTariffNotFound() *cherry.Err {
 	return buildErr("namespace tariff not found", http.StatusNotFound, 1)
@@ -114,14 +121,100 @@ func volTarifNotFound() *cherry.Err {
 	return buildErr("volume tariff not found", http.StatusNotFound, 2)
 }
 
-// NewDummyBilling creates a dummy billing service client. It does nothing but logs actions.
-func NewDummyBillingClient() Billing {
-	return dummyBillingClient{
-		log: logrus.WithField("component", "billing_dummy"),
+type BillingHTTP struct {
+	client *resty.Client
+	log    *cherrylog.LogrusAdapter
+}
+
+func NewHTTPBillingClient(u *url.URL) *BillingHTTP {
+	log := logrus.WithField("component", "billing_client")
+	client := resty.New().
+		SetHostURL(u.String()).
+		SetLogger(log.WriterLevel(logrus.DebugLevel)).
+		SetDebug(true).
+		SetError(cherry.Err{}).
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept", "application/json")
+	client.JSONMarshal = jsoniter.Marshal
+	client.JSONUnmarshal = jsoniter.Unmarshal
+	return &BillingHTTP{
+		client: client,
+		log:    cherrylog.NewLogrusAdapter(log),
 	}
 }
 
-func (b dummyBillingClient) Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error {
+func (b *BillingHTTP) Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error {
+	b.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"tariff_id":   resource.TariffID,
+		"resource_id": resource.ID,
+		"kind":        resourceKind,
+	}).Infoln("subscribing")
+
+	//TODO: request when method will be implemented
+
+	return nil
+}
+
+func (b *BillingHTTP) Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error {
+	b.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"resource_id": resource.ID,
+	}).Infoln("unsubscribing")
+
+	//TODO: request when method will be implemented
+
+	return nil
+}
+
+func (b *BillingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error) {
+	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
+
+	resp, err := resty.R().
+		SetContext(ctx).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetResult(btypes.NamespaceTariff{}).
+		Get(fmt.Sprintf("/tariffs/namespace/%s", tariffID))
+	if err != nil {
+		return btypes.NamespaceTariff{}, err
+	}
+	if resp.Error() != nil {
+		return btypes.NamespaceTariff{}, resp.Error().(*cherry.Err)
+	}
+
+	return *resp.Result().(*btypes.NamespaceTariff), nil
+}
+
+func (b *BillingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error) {
+	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
+
+	resp, err := resty.R().
+		SetContext(ctx).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetResult(btypes.NamespaceTariff{}).
+		Get(fmt.Sprintf("/tariffs/volume/%s", tariffID))
+	if err != nil {
+		return btypes.VolumeTariff{}, err
+	}
+	if resp.Error() != nil {
+		return btypes.VolumeTariff{}, resp.Error().(*cherry.Err)
+	}
+
+	return *resp.Result().(*btypes.VolumeTariff), nil
+}
+
+func (b BillingHTTP) String() string {
+	return fmt.Sprintf("billing service http client: url=%s", b.client.HostURL)
+}
+
+// NewDummyBilling creates a dummy billing service client. It does nothing but logs actions.
+func NewDummyBillingClient() DummyBillingClient {
+	return DummyBillingClient{
+		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "billing_dummy")),
+	}
+}
+
+func (b DummyBillingClient) Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error {
 	b.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"tariff_id":   resource.TariffID,
@@ -131,7 +224,7 @@ func (b dummyBillingClient) Subscribe(ctx context.Context, userID string, resour
 	return nil
 }
 
-func (b dummyBillingClient) Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error {
+func (b DummyBillingClient) Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error {
 	b.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"resource_id": resource.ID,
@@ -139,7 +232,7 @@ func (b dummyBillingClient) Unsubscribe(ctx context.Context, userID string, reso
 	return nil
 }
 
-func (b dummyBillingClient) GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error) {
+func (b DummyBillingClient) GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error) {
 	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
 	for _, nsTariff := range fakeNSTariffs {
 		if nsTariff.ID != "" && nsTariff.ID == tariffID {
@@ -149,7 +242,7 @@ func (b dummyBillingClient) GetNamespaceTariff(ctx context.Context, tariffID str
 	return btypes.NamespaceTariff{}, nsTariffNotFound()
 }
 
-func (b dummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error) {
+func (b DummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error) {
 	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
 	for _, volumeTariff := range fakeVolumeTariffs {
 		if volumeTariff.ID != "" && volumeTariff.ID == tariffID {
@@ -159,6 +252,6 @@ func (b dummyBillingClient) GetVolumeTariff(ctx context.Context, tariffID string
 	return btypes.VolumeTariff{}, volTarifNotFound()
 }
 
-func (b dummyBillingClient) String() string {
+func (b DummyBillingClient) String() string {
 	return "billing service dummy"
 }
