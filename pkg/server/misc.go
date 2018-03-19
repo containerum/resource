@@ -114,7 +114,7 @@ func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID strin
 	}
 
 	if !models.PermCheck(current, needed) {
-		return rserrors.ErrPermissionDenied()
+		return rserrors.ErrPermissionDenied().AddDetailF("permission '%s' required for operation, you have '%s'", needed, current)
 	}
 
 	return nil
