@@ -103,9 +103,8 @@ func setupBillingClient(addr string) (clients.Billing, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
 		return clients.NewDummyBillingClient(), nil
-	// TODO: implement it
-	//case addr != "":
-	//	return clients.NewBillingHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+	case addr != "":
+		return clients.NewHTTPBillingClient(&url.URL{Scheme: "http", Host: addr}), nil
 	default:
 		return nil, errors.New("missing configuration for billing service")
 	}
