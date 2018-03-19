@@ -107,6 +107,19 @@ func VolumeGlusterName(nsLabel, userID string) string {
 	return hex.EncodeToString(glusterName[:])
 }
 
+func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID string, resourceKind rstypes.Kind, resourceName string, needed rstypes.PermissionStatus) error {
+	current, err := db.GetUserResourceAccess(ctx, userID, resourceKind, resourceName)
+	if err != nil {
+		return err
+	}
+
+	if !models.PermCheck(current, needed) {
+		return rserrors.ErrPermissionDenied()
+	}
+
+	return nil
+}
+
 func (rs *ResourceServiceClients) UpdateAccess(ctx context.Context, db models.AccessDB, userID string) error {
 	accesses, err := db.GetUserResourceAccesses(ctx, userID)
 	if err != nil {
