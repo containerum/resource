@@ -638,8 +638,8 @@ func (db *NamespacePG) ResizeNamespace(ctx context.Context, namespace *rstypes.N
 
 func (db *NamespacePG) GetNamespaceID(ctx context.Context, userID, nsLabel string) (nsID string, err error) {
 	queryFields := map[string]interface{}{
-		"user_id":  userID,
-		"ns_label": nsLabel,
+		"user_id": userID,
+		"label":   nsLabel,
 	}
 	entry := db.log.WithFields(queryFields)
 	entry.Debug("check if namespace exists")
