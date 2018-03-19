@@ -108,6 +108,10 @@ func VolumeGlusterName(nsLabel, userID string) string {
 }
 
 func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID string, resourceKind rstypes.Kind, resourceName string, needed rstypes.PermissionStatus) error {
+	if IsAdminRole(ctx) {
+		return nil
+	}
+
 	current, err := db.GetUserResourceAccess(ctx, userID, resourceKind, resourceName)
 	if err != nil {
 		return err
