@@ -5,7 +5,7 @@ import (
 )
 
 type Tariff struct {
-	ID          string    `json:"tariff_id"`
+	ID          string    `json:"id"`
 	Label       string    `json:"label"`
 	Price       float64   `json:"price"`
 	Active      bool      `json:"is_active"`
