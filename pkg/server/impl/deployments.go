@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
@@ -16,6 +17,7 @@ type DeployActionsDB struct {
 	DeployDB    models.DeployDBConstructor
 	NamespaceDB models.NamespaceDBConstructor
 	EndpointsDB models.GlusterEndpointsDBConstructor
+	AccessDB    models.AccessDBConstructor
 }
 
 type DeployActionsImpl struct {
@@ -71,6 +73,10 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 			return getErr
 		}
 
+		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
+		}
+
 		firstInNamespace, createErr := da.DeployDB(tx).CreateDeployment(ctx, userID, nsLabel, deploy)
 		if createErr != nil {
 			return createErr
@@ -123,6 +129,10 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 			return getErr
 		}
 
+		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
+			return permErr
+		}
+
 		lastInNamespace, delErr := da.DeployDB(tx).DeleteDeployment(ctx, userID, nsLabel, deplName)
 		if delErr != nil {
 			return delErr
@@ -156,6 +166,10 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 			return getErr
 		}
 
+		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
+		}
+
 		if replaceErr := da.DeployDB(tx).ReplaceDeployment(ctx, userID, nsLabel, deploy); replaceErr != nil {
 			return replaceErr
 		}
@@ -187,6 +201,10 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 			return getErr
 		}
 
+		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
+		}
+
 		if setErr := da.DeployDB(tx).SetDeploymentReplicas(ctx, userID, nsLabel, deplName, req.Replicas); setErr != nil {
 			return setErr
 		}
@@ -213,6 +231,10 @@ func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, dep
 		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
+		}
+
+		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+			return permErr
 		}
 
 		if setErr := da.DeployDB(tx).SetContainerImage(ctx, userID, nsLabel, deplName, req); setErr != nil {
