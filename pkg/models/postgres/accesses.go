@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 
+	"database/sql"
+
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
@@ -54,6 +56,30 @@ func (db *AccessPG) GetUserResourceAccesses(ctx context.Context, userID string) 
 		default:
 			db.log.Errorf("unexpected kind %s", obj.Kind)
 		}
+	}
+
+	return
+}
+
+func (db *AccessPG) GetUserResourceAccess(ctx context.Context, userID string, resourceKind rstypes.Kind, resourceName string) (perm rstypes.PermissionStatus, err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":       userID,
+		"resource_kind": resourceKind,
+		"resource_name": resourceName,
+	}).Debug("get resource access")
+
+	query, args, _ := sqlx.Named( /* language=sql */
+		`SELECT new_access_level
+		FROM permissions
+		WHERE (user_id, kind, resource_label) = (:user_id, :kind, :resource_label)`,
+		rstypes.PermissionRecord{UserID: userID, Kind: resourceKind, ResourceLabel: resourceName})
+	err = sqlx.GetContext(ctx, db, &perm, db.Rebind(query), args...)
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = rserrors.ErrAccessRecordNotExists()
+	default:
+		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
 	return
