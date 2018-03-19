@@ -42,9 +42,12 @@ func (db *VolumePG) GetVolumeID(ctx context.Context, userID, label string) (volI
 			p.resource_label = :label`,
 		params)
 	err = sqlx.GetContext(ctx, db, &volID, db.Rebind(query), args...)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = rserrors.ErrResourceNotExists().AddDetailF("volume %s not exists", label)
+	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
 	}
 
 	return
