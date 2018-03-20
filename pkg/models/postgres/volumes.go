@@ -376,7 +376,7 @@ func (db *VolumePG) DeleteUserVolumeByLabel(ctx context.Context, userID, label s
 					resource_label = :resource_label
 		)
 		UPDATE volumes
-		SET deleted = TRUE, active = FALSE, delete_time = now() AT TIME ZONE 'UTC'
+		SET deleted = TRUE, active = FALSE, delete_time = now()
 		WHERE id IN (SELECT resource_id FROM user_vol)
 		RETURNING *`,
 		params)
@@ -410,7 +410,7 @@ func (db *VolumePG) DeleteAllUserVolumes(ctx context.Context, userID string, non
 					user_id = :user_id
 		)
 		UPDATE volumes
-		SET deleted = TRUE, active = FALSE, delete_time = now() AT TIME ZONE 'UTC'
+		SET deleted = TRUE, active = FALSE, delete_time = now()
 		WHERE id IN (SELECT resource_id FROM user_vol) AND (ns_id IS NOT NULL OR NOT :non_persistent_only)
 		RETURNING *`,
 		params)

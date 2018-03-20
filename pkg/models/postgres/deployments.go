@@ -597,7 +597,7 @@ func (db *DeployPG) DeleteDeployment(ctx context.Context, userID, nsLabel, deplN
 
 	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE deployments
-		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
+		SET deleted = TRUE, delete_time = now()
 		WHERE (ns_id, "name") = (:ns_id, :name) AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Name: deplName})
 	if err != nil {

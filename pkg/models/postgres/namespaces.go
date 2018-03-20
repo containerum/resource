@@ -530,7 +530,7 @@ func (db *NamespacePG) DeleteUserNamespaceByLabel(ctx context.Context, userID, l
 					kind = 'namespace'
 		)
 		UPDATE namespaces
-		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
+		SET deleted = TRUE, delete_time = now()
 		WHERE id IN (SELECT resource_id FROM user_ns)
 		RETURNING *`,
 		params)
@@ -560,7 +560,7 @@ func (db *NamespacePG) DeleteAllUserNamespaces(ctx context.Context, userID strin
 					kind = 'namespace'
 		)
 		UPDATE namespaces
-		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
+		SET deleted = TRUE, delete_time = now()
 		WHERE id IN (SELECT resource_id FROM user_ns)`,
 		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
