@@ -395,7 +395,7 @@ func (db *ServicePG) DeleteService(ctx context.Context, userID, nsLabel, service
 			WHERE d.ns_id = :ns_id AND s.name = :name
 		)
 		UPDATE services
-		SET deleted = TRUE, delete_time = now() AT TIME ZONE 'UTC'
+		SET deleted = TRUE, delete_time = now()
 		WHERE id = (SELECT id FROM service_to_update)`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceName})
 	if count, _ := result.RowsAffected(); count <= 0 {

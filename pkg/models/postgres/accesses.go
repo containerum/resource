@@ -115,7 +115,7 @@ func (db *AccessPG) SetResourceAccess(ctx context.Context, permRec *rstypes.Perm
 		ON CONFLICT (kind, resource_id, resource_label, user_id) DO UPDATE SET
 			access_level = EXCLUDED.access_level,
 			new_access_level = EXCLUDED.access_level,
-			access_level_change_time = now() AT TIME ZONE 'UTC'
+			access_level_change_time = now()
 		RETURNING
 			id AS perm_id,
 			kind,
@@ -153,7 +153,7 @@ func (db *AccessPG) SetAllResourcesAccess(ctx context.Context, userID string, ac
 			SET limited = new_access_level > :new_access_level,
 				new_access_level = CASE WHEN new_access_level > :new_access_level THEN :new_access_level
 										ELSE access_level END,
-				access_level_change_time = now() AT TIME ZONE 'UTC'						
+				access_level_change_time = now()						
 			WHERE id IN (SELECT id FROM current_user_access)
 			RETURNING *		  
 		)
