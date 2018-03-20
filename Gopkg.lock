@@ -37,8 +37,8 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "2035dec77ef785eae29663b2b361d1d6701eedfc"
-  version = "v0.2.2"
+  revision = "09a5775c1583053a2a4770025f8f8ffcf795e163"
+  version = "v0.2.4"
 
 [[projects]]
   branch = "master"

@@ -103,7 +103,15 @@ func (db *DomainPG) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domai
 	db.log.Debugf("choose random domain")
 
 	err = sqlx.GetContext(ctx, db, &entry, /* language=sql*/
-		`SELECT * FROM domains ORDER BY RANDOM() LIMIT 1`)
+		`WITH min_used_ports_domain AS (
+			SELECT count(sp.port) AS cnt, d.id AS did -- select domain with minimum of ports
+			FROM domains d
+			JOIN service_ports sp ON sp.domain_id = d.id
+			GROUP BY did
+			ORDER BY cnt ASC
+			LIMIT 1
+		)
+		SELECT * FROM domains WHERE id IN (SELECT did FROM min_used_ports_domain)`)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
@@ -119,12 +127,19 @@ func (db *DomainPG) ChooseDomainFreePort(ctx context.Context, domain string, pro
 	params := map[string]interface{}{
 		"domain":   domain,
 		"protocol": strings.ToLower(string(protocol)),
+		"lower":    11000,
+		"upper":    65535,
 	}
 	db.log.WithFields(params).Debug("choose free port for domain")
 
-	query, args, _ := sqlx.Named( /* language=sql */ `SELECT random_free_domain_port(:domain, :protocol)`, params)
+	query, args, _ := sqlx.Named( /* language=sql */ `SELECT random_free_domain_port(:domain, :lower, :upper, :protocol)`, params)
 	err = sqlx.GetContext(ctx, db, &port, db.Rebind(query), args...)
-	if err != nil {
+	switch err {
+	case nil:
+	case sql.ErrNoRows:
+		err = rserrors.ErrPortsExhausted()
+		db.log.Warn("free %s ports for domain %s exhausted", protocol, domain)
+	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
 
