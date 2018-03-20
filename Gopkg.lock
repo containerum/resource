@@ -5,7 +5,7 @@
   branch = "develop"
   name = "git.containerum.net/ch/auth"
   packages = ["proto"]
-  revision = "4a36a5753ee88a793618f8005e50b15e8cef2bd2"
+  revision = "ebda5563c0496e82523f17755cda8b73c33104da"
 
 [[projects]]
   branch = "master"
