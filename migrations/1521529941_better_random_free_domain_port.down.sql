@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS random_free_domain_port(_domain TEXT, _lower INTEGER, _upper INTEGER, _protocol PROTOCOL);
+
 CREATE OR REPLACE FUNCTION random_free_domain_port(_domain TEXT, _protocol PROTOCOL) RETURNS INTEGER AS $random_free_domain_port$
 DECLARE
   rand_port INTEGER;
