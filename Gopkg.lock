@@ -24,7 +24,7 @@
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
   packages = ["pkg/model"]
-  revision = "da306d4a7cf17ca554c9891d7305147d9385b144"
+  revision = "fc28fb503e3e4ae19d3fba7a519833e43d4f5ba3"
 
 [[projects]]
   name = "git.containerum.net/ch/kube-client"
