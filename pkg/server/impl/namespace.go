@@ -74,8 +74,9 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 		}
 
 		nsCreateRequest := kubtypesInternal.NamespaceWithOwner{
+			Name: newNamespace.ID, // in kube we will use namespace ID as name to prevent collisions
 			Namespace: kubtypes.Namespace{
-				Label: newNamespace.ID, // in kube we will use namespace ID as name to prevent collisions
+				Label: req.Label,
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
 						CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
