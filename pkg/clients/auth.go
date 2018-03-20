@@ -69,7 +69,7 @@ func (as authSvcGRPC) UpdateUserAccess(ctx context.Context, userID string, acces
 	as.log.WithField("user_id", userID).Infoln("update user access")
 	_, err := as.client.UpdateAccess(ctx, &authProto.UpdateAccessRequest{
 		Users: []*authProto.UpdateAccessRequestElement{
-			{UserId: &authProto.UUID{Value: userID}, Access: access},
+			{UserId: userID, Access: access},
 		},
 	})
 	return err
