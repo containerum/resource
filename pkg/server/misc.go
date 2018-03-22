@@ -65,12 +65,12 @@ func SecretName(ingressName string) string {
 	return ingressName + "-secret"
 }
 
-// DetermineServiceType deduces service type from service ports. If we have one or more "TargetPort" set it is internal.
+// DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
 func DetermineServiceType(service kubtypes.Service) rstypes.ServiceType {
-	serviceType := rstypes.ServiceInternal
+	serviceType := rstypes.ServiceExternal
 	for _, port := range service.Ports {
 		if port.Port != nil {
-			serviceType = rstypes.ServiceExternal
+			serviceType = rstypes.ServiceInternal
 			break
 		}
 	}
