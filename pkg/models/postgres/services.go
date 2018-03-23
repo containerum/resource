@@ -341,7 +341,7 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 
 	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`DELETE FROM service_ports WHERE service_id = :service_id`,
-		map[string]interface{}{"servce_id": serviceID})
+		map[string]interface{}{"service_id": serviceID})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
