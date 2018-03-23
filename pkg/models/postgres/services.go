@@ -174,7 +174,7 @@ func (db *ServicePG) getRawServices(ctx context.Context, nsID string) (serviceMa
 			s.delete_time
 		FROM services s
 		JOIN deployments d ON s.deploy_id = d.id
-		WHERE NOT s.deleted`,
+		WHERE NOT s.deleted AND d.ns_id = :ns_id`,
 		map[string]interface{}{"ns_id": nsID})
 	err = sqlx.SelectContext(ctx, db, &dbEntries, db.Rebind(query), args...)
 	if err != nil {
