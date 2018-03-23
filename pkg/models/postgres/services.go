@@ -374,6 +374,10 @@ func (db *ServicePG) DeleteService(ctx context.Context, userID, nsLabel, service
 		SET deleted = TRUE, delete_time = now()
 		WHERE id = (SELECT id FROM service_to_update)`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceName})
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
 	if count, _ := result.RowsAffected(); count <= 0 {
 		err = rserrors.ErrResourceNotExists().AddDetailF("service %s not exists", serviceName).Log(err, db.log)
 	}
