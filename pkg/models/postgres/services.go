@@ -131,30 +131,6 @@ func (db *ServicePG) CreateService(ctx context.Context, userID, nsLabel string, 
 		return
 	}
 
-	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
-		`INSERT INTO permissions
-		(kind, resource_id, resource_label, owner_user_id, user_id)
-		VALUES (
-			(CASE :service_type
-				WHEN 'external' THEN CAST('extservice' AS RESOURCE_KIND)
-				WHEN 'internal' THEN CAST('intservice' AS RESOURCE_KIND)
-			END),
-			:service_id,
-			:service_name,
-			:user_id,
-			:user_id
-		)`,
-		map[string]interface{}{
-			"service_type": serviceType,
-			"service_id":   serviceID,
-			"service_name": req.Name,
-			"user_id":      userID,
-		})
-	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-
 	err = db.createServicePorts(ctx, serviceID, req.Domain, serviceType, req.Ports)
 	return
 }

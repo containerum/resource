@@ -164,28 +164,39 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 
 	ret.Namespaces = len(nsIDs)
 
-	var volservs struct {
-		Volumes     int `db:"volcnt"`
-		ExtServices int `db:"extcnt"`
-		IntServices int `db:"intcnt"`
-	}
 	query, args, _ = sqlx.Named( /* language=sql */
-		`SELECT
-			count(*) FILTER (WHERE kind = 'volume') AS volcnt,
-			count(*) FILTER (WHERE kind = 'extservice') AS extcnt,
-			count(*) FILTER (WHERE kind = 'intservice') AS intcnt
-		FROM permissions
-		WHERE user_id = :user_id`,
+		`WITH user_vols AS (
+			SELECT DISTINCT resource_id
+			FROM permissions 
+			WHERE (user_id = :user_id OR owner_user_id = :user_id) AND kind = 'volume'
+		)
+		SELECT count(*) FROM user_vols`,
 		map[string]interface{}{"user_id": userID})
-	err = sqlx.GetContext(ctx, db, &volservs, db.Rebind(query), args...)
+	err = sqlx.GetContext(ctx, db, &ret.Volumes, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
 
-	ret.Volumes = volservs.Volumes
-	ret.ExtServices = volservs.ExtServices
-	ret.IntServices = volservs.IntServices
+	var services struct {
+		ExtServices int `db:"extcnt"`
+		IntServices int `db:"intcnt"`
+	}
+	query, args, _ = sqlx.In( /* language=sql */
+		`SELECT
+			count(s.*) FILTER (WHERE s.type = 'external') AS extcnt,
+			count(s.*) FILTER (WHERE s.type = 'internal') AS intcnt
+		FROM services s
+		JOIN deployments d ON s.deploy_id = d.id
+		WHERE d.ns_id IN (?)`, nsIDs)
+	err = sqlx.GetContext(ctx, db, &services, db.Rebind(query), args...)
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
+
+	ret.ExtServices = services.ExtServices
+	ret.IntServices = services.IntServices
 
 	var deplIDs []string
 	if len(nsIDs) > 0 {
