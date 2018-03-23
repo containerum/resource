@@ -106,7 +106,7 @@ func (db *DomainPG) ChooseRandomDomain(ctx context.Context) (entry rstypes.Domai
 		`WITH min_used_ports_domain AS (
 			SELECT count(sp.port) AS cnt, d.id AS did -- select domain with minimum of ports
 			FROM domains d
-			JOIN service_ports sp ON sp.domain_id = d.id
+			LEFT JOIN service_ports sp ON sp.domain_id = d.id
 			GROUP BY did
 			ORDER BY cnt ASC
 			LIMIT 1
