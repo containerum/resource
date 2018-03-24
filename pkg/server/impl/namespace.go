@@ -335,6 +335,10 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 			return updErr
 		}
 
+		if subErr := na.Billing.EditSubscription(ctx, ns.ID, ns.TariffID); subErr != nil {
+			return subErr
+		}
+
 		nsResizeReq := kubtypesInternal.NamespaceWithOwner{
 			Namespace: kubtypes.Namespace{
 				Label: ns.ID,

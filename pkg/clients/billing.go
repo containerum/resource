@@ -22,6 +22,7 @@ import (
 // Billing is an interface to billing service
 type Billing interface {
 	Subscribe(ctx context.Context, req btypes.SubscribeTariffRequest) error
+	EditSubscription(ctx context.Context, resourceID, tariffID string) error
 	Unsubscribe(ctx context.Context, resourceID string) error
 
 	GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error)
@@ -163,6 +164,28 @@ func (b *BillingHTTP) Subscribe(ctx context.Context, req btypes.SubscribeTariffR
 	return nil
 }
 
+func (b *BillingHTTP) EditSubscription(ctx context.Context, resourceID, tariffID string) error {
+	b.log.WithFields(logrus.Fields{
+		"tariff_id":   tariffID,
+		"resource_id": resourceID,
+	}).Debug("edit subscription")
+
+	resp, err := b.client.R().
+		SetBody(map[string]interface{}{
+			"tariff_id": tariffID, //TODO add to json-types
+		}).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		Put(fmt.Sprintf("/isp/subscription/%s", resourceID))
+	if err != nil {
+		return err
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+
+	return nil
+}
+
 func (b *BillingHTTP) Unsubscribe(ctx context.Context, resourceID string) error {
 	b.log.WithFields(logrus.Fields{
 		"resource_id": resourceID,
@@ -234,6 +257,15 @@ func (b DummyBillingClient) Subscribe(ctx context.Context, req btypes.SubscribeT
 		"resource_id": req.ResourceID,
 		"kind":        req.ResourceType,
 	}).Infoln("subscribing")
+	return nil
+}
+
+func (b DummyBillingClient) EditSubscription(ctx context.Context, resourceID, tariffID string) error {
+	b.log.WithFields(logrus.Fields{
+		"tariff_id":   tariffID,
+		"resource_id": resourceID,
+	}).Debug("edit subscription")
+
 	return nil
 }
 
