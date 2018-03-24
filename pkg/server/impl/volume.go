@@ -5,6 +5,7 @@ import (
 
 	"strings"
 
+	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
@@ -73,7 +74,12 @@ func (va *VolumeActionsImpl) CreateVolume(ctx context.Context, req rstypes.Creat
 			return createErr
 		}
 
-		if subErr := va.Billing.Subscribe(ctx, userID, newVolume.Resource, rstypes.KindVolume); subErr != nil {
+		if subErr := va.Billing.Subscribe(ctx, billing.SubscribeTariffRequest{
+			TariffID:      newVolume.TariffID,
+			ResourceID:    newVolume.ID,
+			ResourceType:  rstypes.KindVolume,
+			ResourceLabel: req.Label,
+		}); subErr != nil {
 			return subErr
 		}
 
@@ -117,7 +123,7 @@ func (va *VolumeActionsImpl) DeleteUserVolume(ctx context.Context, label string)
 			volToDelete = vol
 		}
 
-		if unsubErr := va.Billing.Unsubscribe(ctx, userID, volToDelete.Resource); unsubErr != nil {
+		if unsubErr := va.Billing.Unsubscribe(ctx, volToDelete.ID); unsubErr != nil {
 			return unsubErr
 		}
 
@@ -282,6 +288,10 @@ func (va *VolumeActionsImpl) ResizeUserVolume(ctx context.Context, label string,
 
 		if updErr := volDB.ResizeVolume(ctx, &vol.Volume); updErr != nil {
 			return updErr
+		}
+
+		if subErr := va.Billing.EditSubscription(ctx, vol.ID, vol.TariffID); subErr != nil {
+			return subErr
 		}
 
 		// TODO: resize volume in gluster

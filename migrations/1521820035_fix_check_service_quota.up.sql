@@ -23,7 +23,7 @@ BEGIN
   FROM services s
     JOIN deployments d ON s.deploy_id = d.id
     JOIN namespaces ns ON d.ns_id = ns.id
-  WHERE ns.id = service_ns_id;
+  WHERE ns.id = service_ns_id AND NOT s.deleted;
 
   IF current_external >= max_external AND NEW.type = 'external' THEN
     RAISE EXCEPTION 'can`t add external service, quota exceeded';

@@ -13,7 +13,6 @@ import (
 	"fmt"
 
 	btypes "git.containerum.net/ch/json-types/billing"
-	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/utils"
@@ -22,8 +21,9 @@ import (
 
 // Billing is an interface to billing service
 type Billing interface {
-	Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error
-	Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error
+	Subscribe(ctx context.Context, req btypes.SubscribeTariffRequest) error
+	EditSubscription(ctx context.Context, resourceID, tariffID string) error
+	Unsubscribe(ctx context.Context, resourceID string) error
 
 	GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error)
 	GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error)
@@ -143,26 +143,63 @@ func NewHTTPBillingClient(u *url.URL) *BillingHTTP {
 	}
 }
 
-func (b *BillingHTTP) Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error {
+func (b *BillingHTTP) Subscribe(ctx context.Context, req btypes.SubscribeTariffRequest) error {
 	b.log.WithFields(logrus.Fields{
-		"user_id":     userID,
-		"tariff_id":   resource.TariffID,
-		"resource_id": resource.ID,
-		"kind":        resourceKind,
+		"tariff_id":   req.TariffID,
+		"resource_id": req.ResourceID,
+		"kind":        req.ResourceType,
 	}).Infoln("subscribing")
 
-	//TODO: request when method will be implemented
+	resp, err := b.client.R().
+		SetBody(req).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		Post("/isp/subscription")
+	if err != nil {
+		return err
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
 
 	return nil
 }
 
-func (b *BillingHTTP) Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error {
+func (b *BillingHTTP) EditSubscription(ctx context.Context, resourceID, tariffID string) error {
 	b.log.WithFields(logrus.Fields{
-		"user_id":     userID,
-		"resource_id": resource.ID,
+		"tariff_id":   tariffID,
+		"resource_id": resourceID,
+	}).Debug("edit subscription")
+
+	resp, err := b.client.R().
+		SetBody(map[string]interface{}{
+			"tariff_id": tariffID, //TODO add to json-types
+		}).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		Put(fmt.Sprintf("/isp/subscription/%s", resourceID))
+	if err != nil {
+		return err
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+
+	return nil
+}
+
+func (b *BillingHTTP) Unsubscribe(ctx context.Context, resourceID string) error {
+	b.log.WithFields(logrus.Fields{
+		"resource_id": resourceID,
 	}).Infoln("unsubscribing")
 
-	//TODO: request when method will be implemented
+	resp, err := b.client.R().
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		Delete(fmt.Sprintf("/isp/subscription/%s", resourceID))
+	if err != nil {
+		return err
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
 
 	return nil
 }
@@ -214,20 +251,27 @@ func NewDummyBillingClient() DummyBillingClient {
 	}
 }
 
-func (b DummyBillingClient) Subscribe(ctx context.Context, userID string, resource rstypes.Resource, resourceKind rstypes.Kind) error {
+func (b DummyBillingClient) Subscribe(ctx context.Context, req btypes.SubscribeTariffRequest) error {
 	b.log.WithFields(logrus.Fields{
-		"user_id":     userID,
-		"tariff_id":   resource.TariffID,
-		"resource_id": resource.ID,
-		"kind":        resourceKind,
+		"tariff_id":   req.TariffID,
+		"resource_id": req.ResourceID,
+		"kind":        req.ResourceType,
 	}).Infoln("subscribing")
 	return nil
 }
 
-func (b DummyBillingClient) Unsubscribe(ctx context.Context, userID string, resource rstypes.Resource) error {
+func (b DummyBillingClient) EditSubscription(ctx context.Context, resourceID, tariffID string) error {
 	b.log.WithFields(logrus.Fields{
-		"user_id":     userID,
-		"resource_id": resource.ID,
+		"tariff_id":   tariffID,
+		"resource_id": resourceID,
+	}).Debug("edit subscription")
+
+	return nil
+}
+
+func (b DummyBillingClient) Unsubscribe(ctx context.Context, resourceID string) error {
+	b.log.WithFields(logrus.Fields{
+		"resource_id": resourceID,
 	}).Infoln("unsubscribing")
 	return nil
 }
