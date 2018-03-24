@@ -14,6 +14,11 @@ type OAuthLoginRequest struct {
 	AccessToken string        `json:"access_token"`
 }
 
+type WebAPILoginRequest struct {
+	Login    string `json:"username"`
+	Password string `json:"password"`
+}
+
 type WebAPILoginResponse struct {
 	BadSignature bool   `json:"bad_signature"`
 	IsExpired    bool   `json:"is_expired"`

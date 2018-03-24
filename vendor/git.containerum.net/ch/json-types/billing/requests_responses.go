@@ -7,11 +7,10 @@ type GetNamespaceTariffResponse = NamespaceTariff
 type GetVolumeTariffResponse = VolumeTariff
 
 type SubscribeTariffRequest struct {
-	TariffLabel   string        `json:"tariff_label"`
+	TariffID      string        `json:"tariff_id"`
 	ResourceType  resource.Kind `json:"resource_type"`
 	ResourceLabel string        `json:"resource_label"`
 	ResourceID    string        `json:"resource_id"`
-	UserID        string        `json:"user_id"`
 }
 
 type UnsubscribeTariffRequest struct {
