@@ -7,6 +7,7 @@ import (
 
 	"fmt"
 
+	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
@@ -113,7 +114,12 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 			// TODO: create volume in gluster, do not return error
 		}
 
-		if createErr := na.Billing.Subscribe(ctx, userID, newNamespace.Resource, rstypes.KindNamespace); createErr != nil {
+		if createErr := na.Billing.Subscribe(ctx, billing.SubscribeTariffRequest{
+			TariffID:      newNamespace.TariffID,
+			ResourceType:  rstypes.KindNamespace,
+			ResourceLabel: req.Label,
+			ResourceID:    newNamespace.ID,
+		}); createErr != nil {
 			return createErr
 		}
 
@@ -202,7 +208,7 @@ func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label s
 			return delErr
 		}
 
-		if unsubErr := na.Billing.Unsubscribe(ctx, userID, nsToDelete.Resource); unsubErr != nil {
+		if unsubErr := na.Billing.Unsubscribe(ctx, nsToDelete.ID); unsubErr != nil {
 			return unsubErr
 		}
 
