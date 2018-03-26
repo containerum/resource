@@ -207,7 +207,7 @@ func (b *BillingHTTP) Unsubscribe(ctx context.Context, resourceID string) error 
 func (b *BillingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (btypes.NamespaceTariff, error) {
 	b.log.WithField("tariff_id", tariffID).Infoln("get namespace tariff")
 
-	resp, err := resty.R().
+	resp, err := b.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetResult(btypes.NamespaceTariff{}).
@@ -225,7 +225,7 @@ func (b *BillingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (
 func (b *BillingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (btypes.VolumeTariff, error) {
 	b.log.WithField("tariff_id", tariffID).Infoln("get volume tariff")
 
-	resp, err := resty.R().
+	resp, err := b.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
 		SetResult(btypes.NamespaceTariff{}).
