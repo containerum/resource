@@ -143,7 +143,7 @@ func (db *DeployPG) getRawDeployments(ctx context.Context,
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT d.* 
 		FROM deployments d
-		JOIN namespaces ns ON d.ns_id = ns.id
+		JOIN namespaces ns ON d.ns_id = ns.id AND NOT ns.deleted
 		JOIN permissions p ON ns.id = p.resource_id AND p.kind = 'namespace'
 		WHERE p.resource_label = :ns_label AND p.user_id = :user_id AND NOT d.deleted`,
 		params)
@@ -668,7 +668,7 @@ func (db *DeployPG) SetDeploymentReplicas(ctx context.Context, userID, nsLabel, 
 	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
 		`UPDATE deployments
 		SET replicas = :replicas
-		WHERE ns_id = :ns_id AND name = :name`,
+		WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
 		rstypes.Deployment{NamespaceID: nsID, Replicas: replicas, Name: deplName})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)

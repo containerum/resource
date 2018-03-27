@@ -87,8 +87,8 @@ func (db *ServicePG) CreateService(ctx context.Context, userID, nsLabel string, 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT count(s.*)>0
 		FROM services s
-		JOIN deployments d ON s.deploy_id = d.id
-		WHERE (d.ns_id, s.name) = (:ns_id, :name)`,
+		JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
+		WHERE (d.ns_id, s.name) = (:ns_id, :name) AND NOT s.deleted`,
 		map[string]interface{}{
 			"ns_id": nsID,
 			"name":  req.Name,
@@ -105,7 +105,7 @@ func (db *ServicePG) CreateService(ctx context.Context, userID, nsLabel string, 
 
 	var deplID string
 	query, args, _ = sqlx.Named( /* language=sql */
-		`SELECT id FROM deployments WHERE ns_id = :ns_id AND name = :name`,
+		`SELECT id FROM deployments WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
 		map[string]interface{}{"ns_id": nsID, "name": req.Deploy})
 	err = sqlx.GetContext(ctx, db, &deplID, db.Rebind(query), args...)
 	switch err {
@@ -149,7 +149,7 @@ func (db *ServicePG) getRawServices(ctx context.Context, nsID string) (serviceMa
 			s.deleted,
 			s.delete_time
 		FROM services s
-		JOIN deployments d ON s.deploy_id = d.id
+		JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
 		WHERE NOT s.deleted AND d.ns_id = :ns_id`,
 		map[string]interface{}{"ns_id": nsID})
 	err = sqlx.SelectContext(ctx, db, &dbEntries, db.Rebind(query), args...)
@@ -270,7 +270,7 @@ func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceNam
 			s.deleted,
 			s.delete_time
 		FROM services s
-		JOIN deployments d ON s.deploy_id = d.id
+		JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
 		WHERE s.name = :name AND NOT s.deleted`,
 		map[string]interface{}{"ns_id": nsID, "name": serviceName})
 	err = sqlx.GetContext(ctx, db, &serviceEntry, db.Rebind(query), args...)
@@ -320,8 +320,8 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 		`WITH service_to_update AS (
 			SELECT s.id
 			FROM services s
-			JOIN deployments d ON s.deploy_id = d.id
-			WHERE d.ns_id = :ns_id AND s.name = :name
+			JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
+			WHERE d.ns_id = :ns_id AND s.name = :name AND NOT s.deleted
 		)
 		UPDATE services
 		SET "type" = :new_type
