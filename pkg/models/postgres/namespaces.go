@@ -583,7 +583,7 @@ func (db *NamespacePG) RenameNamespace(ctx context.Context, userID, oldLabel, ne
 
 	_, err = NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, newLabel)
 	if err == nil {
-		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", oldLabel)
+		err = rserrors.ErrResourceAlreadyExists().AddDetailF("namespace %s already exists", newLabel)
 		return
 	}
 	if err != nil && !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
