@@ -93,11 +93,11 @@ func updateServiceValidate(structLevel validator.StructLevel) {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Protocol", i), "", err.(validator.ValidationErrors))
 		}
 
-		if err := v.Var(port.Port, "min=1,max=65535"); err != nil {
+		if err := v.Var(port.TargetPort, "min=1,max=65535"); err != nil {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Port", i), "", err.(validator.ValidationErrors))
 		}
 
-		if err := v.Var(port.TargetPort, "omitempty,min=1,max=65535"); err != nil {
+		if err := v.Var(port.Port, "omitempty,min=1,max=65535"); err != nil {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].TargetPort", i), "", err.(validator.ValidationErrors))
 		}
 
