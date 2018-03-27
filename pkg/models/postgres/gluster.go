@@ -41,7 +41,7 @@ func (db *GlusterPG) CreateGlusterEndpoints(ctx context.Context, userID, nsLabel
 			FROM volume_mounts vm
 			JOIN volumes v ON vm.volume_id = v.id
 			JOIN containers c ON vm.container_id = c.id
-			JOIN deployments d ON c.depl_id = d.id
+			JOIN deployments d ON c.depl_id = d.id AND NOT d.deleted
 			WHERE d.ns_id = :ns_id
 		), volumes_without_endpoints AS (
 			SELECT storage_id FROM ns_volumes

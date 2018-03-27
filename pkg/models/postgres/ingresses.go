@@ -35,8 +35,8 @@ func (db *IngressPG) isIngressExists(ctx context.Context, nsID, domain string) (
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT count(i.*)>0 
 		FROM ingresses i 
-		JOIN services s ON i.service_id = s.id
-		JOIN deployments d ON s.deploy_id = d.id
+		JOIN services s ON i.service_id = s.id AND NOT s.deleted
+		JOIN deployments d ON s.deploy_id = d.id AND NOT s.deleted
 		WHERE d.ns_id = :ns_id`,
 		params)
 	err = sqlx.GetContext(ctx, db, &exist, db.Rebind(query), args...)
@@ -117,8 +117,8 @@ func (db *IngressPG) GetUserIngresses(ctx context.Context, userID, nsLabel strin
 			s.name AS service_id, --hack to inject service name instead of id
 			i.created_at
 		FROM ingresses i 
-		JOIN services s ON i.service_id = s.id
-		JOIN deployments d ON s.deploy_id = d.id
+		JOIN services s ON i.service_id = s.id AND NOT s.deleted
+		JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
 		WHERE d.ns_id = :ns_id
 		LIMIT :limit 
 		OFFSET :offset`,
@@ -161,7 +161,7 @@ func (db *IngressPG) GetAllIngresses(ctx context.Context, params rstypes.GetIngr
 			s.name AS service_id,
 			i.created_at
 		FROM ingresses i
-		JOIN services s on i.service_id = s.id
+		JOIN services s ON i.service_id = s.id AND NOT s.deleted
 		LIMIT :limit OFFSET :offset`,
 		map[string]interface{}{"limit": params.PerPage, "offset": params.PerPage * (params.Page - 1)})
 	err = sqlx.SelectContext(ctx, db, &entries, db.Rebind(query), args...)
@@ -198,8 +198,8 @@ func (db *IngressPG) DeleteIngress(ctx context.Context, userID, nsLabel, domain 
 		`WITH ns_services AS (
 			SELECT s.id 
 			FROM services s
-			JOIN deployments d ON s.deploy_id = d.id
-			WHERE d.ns_id = :ns_id
+			JOIN deployments d ON s.deploy_id = d.id AND NOT s.deleted
+			WHERE d.ns_id = :ns_id AND NOT s.deleted
 		)
 		DELETE FROM ingresses
 		WHERE service_id IN (SELECT id FROM ns_services) AND custom_domain = :domain
