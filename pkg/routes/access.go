@@ -97,7 +97,7 @@ func (h *AccessHandlers) GetUserVolumeAccessesHandler(ctx *gin.Context) {
 func (h *AccessHandlers) DeleteUserNamespaceAccessHandler(ctx *gin.Context) {
 	var req rstypes.DeleteNamespaceAccessRequest
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
