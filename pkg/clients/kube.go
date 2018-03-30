@@ -247,7 +247,7 @@ func (kub kube) DeleteIngress(ctx context.Context, nsID, ingressName string) err
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(utils.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/ingresses", nsID))
+		Delete(fmt.Sprintf("/namespaces/%s/ingresses/%s", nsID, ingressName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
