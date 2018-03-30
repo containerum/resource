@@ -112,7 +112,7 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceNa
 		"service_name": serviceName,
 	}).Info("get service")
 
-	ret, err := sa.ServiceDB(sa.DB).GetService(ctx, userID, nsLabel, serviceName)
+	ret, _, err := sa.ServiceDB(sa.DB).GetService(ctx, userID, nsLabel, serviceName)
 
 	return ret, err
 }

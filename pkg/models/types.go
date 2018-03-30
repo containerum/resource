@@ -133,7 +133,7 @@ type GlusterEndpointsDBConstructor func(RelationalDB) GlusterEndpointsDB
 type ServiceDB interface {
 	CreateService(ctx context.Context, userID, nsLabel string, serviceType rstypes.ServiceType, req kubtypes.Service) error
 	GetServices(ctx context.Context, userID, nsLabel string) ([]kubtypes.Service, error)
-	GetService(ctx context.Context, userID, nsLabel, serviceName string) (kubtypes.Service, error)
+	GetService(ctx context.Context, userID, nsLabel, serviceName string) (kubtypes.Service, rstypes.ServiceType, error)
 	UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) error
 	DeleteService(ctx context.Context, userID, nsLabel, serviceName string) error
 }
