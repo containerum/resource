@@ -414,8 +414,8 @@ func (db *ServicePG) DeleteService(ctx context.Context, userID, nsLabel, service
 		`WITH service_to_update AS (
 			SELECT s.id
 			FROM services s
-			JOIN deployments d ON s.deploy_id = d.id
-			WHERE d.ns_id = :ns_id AND s.name = :name
+			JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
+			WHERE (d.ns_id, s.name) = (:ns_id, :name) AND NOT s.deleted
 		)
 		UPDATE services
 		SET deleted = TRUE, delete_time = now()

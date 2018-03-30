@@ -531,7 +531,7 @@ func (db *NamespacePG) DeleteUserNamespaceByLabel(ctx context.Context, userID, l
 		)
 		UPDATE namespaces
 		SET deleted = TRUE, delete_time = now()
-		WHERE id IN (SELECT resource_id FROM user_ns)
+		WHERE id IN (SELECT resource_id FROM user_ns) AND NOT deleted
 		RETURNING *`,
 		params)
 	err = sqlx.GetContext(ctx, db, &namespace, db.Rebind(query), args...)
@@ -560,7 +560,7 @@ func (db *NamespacePG) DeleteAllUserNamespaces(ctx context.Context, userID strin
 					kind = 'namespace'
 		)
 		UPDATE namespaces
-		SET deleted = TRUE, delete_time = now()
+		SET deleted = TRUE, delete_time = now() AND NOT deleted
 		WHERE id IN (SELECT resource_id FROM user_ns)`,
 		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
