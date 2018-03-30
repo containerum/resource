@@ -247,7 +247,7 @@ func (db *ServicePG) GetServices(ctx context.Context, userID, nsLabel string) (r
 	return
 }
 
-func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, err error) {
+func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceName string) (ret kubtypes.Service, stype rstypes.ServiceType, err error) {
 	db.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -284,6 +284,7 @@ func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceNam
 		return
 	}
 
+	stype = serviceEntry.Type
 	serviceIDs := []string{serviceEntry.ID}
 	createdAt := serviceEntry.CreatedAt.Unix()
 	serviceMap := map[string]kubtypes.Service{

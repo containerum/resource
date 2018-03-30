@@ -61,9 +61,13 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return permErr
 		}
 
-		service, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Service)
+		service, serviceType, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Service)
 		if getErr != nil {
 			return getErr
+		}
+
+		if serviceType != rstypes.ServiceExternal {
+			return rserrors.ErrServiceNotExternal()
 		}
 
 		paths, pathsErr := server.IngressPaths(service, req.Path, req.ServicePort)
