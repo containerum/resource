@@ -377,7 +377,7 @@ func (db *VolumePG) DeleteUserVolumeByLabel(ctx context.Context, userID, label s
 		)
 		UPDATE volumes
 		SET deleted = TRUE, active = FALSE, delete_time = now()
-		WHERE id IN (SELECT resource_id FROM user_vol)
+		WHERE id IN (SELECT resource_id FROM user_vol) AND NOT deleted
 		RETURNING *`,
 		params)
 	err = sqlx.GetContext(ctx, db, &volume, db.Rebind(query), args...)
@@ -411,7 +411,9 @@ func (db *VolumePG) DeleteAllUserVolumes(ctx context.Context, userID string, non
 		)
 		UPDATE volumes
 		SET deleted = TRUE, active = FALSE, delete_time = now()
-		WHERE id IN (SELECT resource_id FROM user_vol) AND (ns_id IS NOT NULL OR NOT :non_persistent_only)
+		WHERE id IN (SELECT resource_id FROM user_vol) AND 
+			(ns_id IS NOT NULL OR NOT :non_persistent_only) AND 
+			NOT deleted
 		RETURNING *`,
 		params)
 	ret = make([]rstypes.Volume, 0)
