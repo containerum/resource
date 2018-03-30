@@ -13,6 +13,7 @@ import (
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
 
@@ -210,9 +211,46 @@ func (db *ServicePG) getServicesPorts(ctx context.Context, serviceIDs []string, 
 		portMap[v.ServiceID] = ports
 	}
 
-	for _, v := range dbEntries {
+	for serviceID, v := range portMap {
+		service := serviceMap[serviceID]
+		service.Ports = v
+		serviceMap[serviceID] = service
+	}
+
+	return
+}
+
+func (db *ServicePG) getServicesDomains(ctx context.Context, serviceIDs []string, serviceMap map[string]kubtypes.Service) (err error) {
+	db.log.Debugf("get services domains %#v", serviceIDs)
+
+	if len(serviceIDs) == 0 {
+		return nil
+	}
+
+	var entries []struct {
+		Domain    string         `db:"domain"`
+		IPs       pq.StringArray `db:"ips"`
+		ServiceID string         `db:"service_id"`
+	}
+	query, args, _ := sqlx.In( /* language=sql */
+		`SELECT
+		d.domain,
+		d.ip AS ips,
+		s.id AS service_id
+		FROM domains d
+		JOIN service_ports sp ON sp.domain_id = d.id
+		JOIN services s ON sp.service_id = s.id AND s.type = 'external'
+		WHERE s.id IN (?)`, serviceIDs)
+	err = sqlx.SelectContext(ctx, db, &entries, db.Rebind(query), args...)
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
+
+	for _, v := range entries {
 		service := serviceMap[v.ServiceID]
-		service.Ports = portMap[v.ServiceID]
+		service.Domain = v.Domain
+		service.IPs = v.IPs
 		serviceMap[v.ServiceID] = service
 	}
 
@@ -236,6 +274,10 @@ func (db *ServicePG) GetServices(ctx context.Context, userID, nsLabel string) (r
 	}
 
 	if err = db.getServicesPorts(ctx, serviceIDs, serviceMap); err != nil {
+		return
+	}
+
+	if err = db.getServicesDomains(ctx, serviceIDs, serviceMap); err != nil {
 		return
 	}
 
@@ -295,6 +337,10 @@ func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceNam
 	}
 
 	if err = db.getServicesPorts(ctx, serviceIDs, serviceMap); err != nil {
+		return
+	}
+
+	if err = db.getServicesDomains(ctx, serviceIDs, serviceMap); err != nil {
 		return
 	}
 
