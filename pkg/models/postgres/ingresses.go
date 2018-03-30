@@ -37,7 +37,7 @@ func (db *IngressPG) isIngressExists(ctx context.Context, nsID, domain string) (
 		FROM ingresses i 
 		JOIN services s ON i.service_id = s.id AND NOT s.deleted
 		JOIN deployments d ON s.deploy_id = d.id AND NOT s.deleted
-		WHERE d.ns_id = :ns_id`,
+		WHERE (d.ns_id, i.custom_domain) = (:ns_id, :domain)`,
 		params)
 	err = sqlx.GetContext(ctx, db, &exist, db.Rebind(query), args...)
 	if err != nil {
@@ -68,15 +68,18 @@ func (db *IngressPG) CreateIngress(ctx context.Context, userID, nsLabel string, 
 	}
 
 	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
-		`WITH service_id_name AS (
-			SELECT DISTINCT id, name FROM services WHERE deploy_id IN (SELECT id FROM deployments WHERE ns_id = :ns_id)
+		`WITH service_id AS (
+			SELECT s.id
+			FROM services s
+			JOIN deployments d ON d.id = s.deploy_id
+			WHERE (d.ns_id, s.name) = (:ns_id, :service) AND NOT s.deleted
 		)
 		INSERT INTO ingresses
 		(custom_domain, "type", service_id, "path", service_port)
 		VALUES (
 			:custom_domain, 
 			:type,
-			(SELECT id FROM service_id_name WHERE name = :service),
+			(SELECT id FROM service_id),
 			:path,
 			:service_port
 		)`,
