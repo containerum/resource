@@ -162,20 +162,20 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 		return
 	}
 
-	ret.Namespaces = len(nsIDs)
-
 	query, args, _ = sqlx.Named( /* language=sql */
-		`WITH user_vols AS (
-			SELECT DISTINCT resource_id
-			FROM permissions 
-			WHERE (user_id = :user_id OR owner_user_id = :user_id) AND kind = 'volume'
-		)
-		SELECT count(*) FROM user_vols`,
+		`SELECT count(DISTINCT resource_id)
+			FROM permissions
+			WHERE (owner_user_id = :user_id OR user_id = :user_id) AND kind = 'volume'`,
 		map[string]interface{}{"user_id": userID})
 	err = sqlx.GetContext(ctx, db, &ret.Volumes, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
+	}
+
+	ret.Namespaces = len(nsIDs)
+	if ret.Namespaces <= 0 {
+		return ret, nil
 	}
 
 	var services struct {
@@ -210,7 +210,7 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 
 	ret.Deployments = len(deplIDs)
 
-	if len(deplIDs) > 0 {
+	if ret.Deployments > 0 {
 		query, args, _ = sqlx.In( /* language=sql */
 			`SELECT count(*) 
 		FROM ingresses i
