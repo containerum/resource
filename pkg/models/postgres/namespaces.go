@@ -663,3 +663,37 @@ func (db *NamespacePG) GetNamespaceID(ctx context.Context, userID, nsLabel strin
 
 	return
 }
+
+func (db *NamespacePG) GetNamespaceUsage(ctx context.Context, ns rstypes.Namespace) (usage models.NamespaceUsage, err error) {
+	db.log.WithField("ns_id", ns.ID).Debugf("get namespace usage")
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH cpu_ram AS (
+			SELECT
+				sum(c.ram)*d.replicas AS cpus,
+				sum(c.cpu)*d.replicas AS rams
+			FROM deployments d
+			JOIN containers c on d.id = c.depl_id
+			WHERE d.ns_id = :id
+			GROUP BY d.replicas
+		), ext_int AS (
+			SELECT
+				count(s.id) FILTER (WHERE s.type = 'external') AS intsvc,
+				count(s.id) FILTER (WHERE s.type = 'internal') AS extsvc
+			FROM deployments d
+			JOIN services s ON s.deploy_id = d.id
+			WHERE d.ns_id = :id
+		)
+		SELECT 
+			sum(cpu_ram.cpus) AS cpu,
+			sum(cpu_ram.rams) AS ram,
+			ext_int.extsvc AS extservices,
+			ext_int.intsvc AS intservivces
+		FROM cpu_ram, ext_int
+		GROUP BY ext_int.intsvc, ext_int.extsvc`, ns)
+	err = sqlx.GetContext(ctx, db, &usage, db.Rebind(query), args...)
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+	}
+
+	return
+}
