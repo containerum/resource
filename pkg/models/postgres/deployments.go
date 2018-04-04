@@ -220,6 +220,7 @@ func (db *DeployPG) GetDeployments(ctx context.Context, userID, nsLabel string) 
 		return
 	}
 
+	var totalCPU, totalRAM int
 	for _, deploy := range deployments {
 		var deployResp kubtypes.Deployment
 		deployResp.Name = deploy.Name
@@ -232,6 +233,9 @@ func (db *DeployPG) GetDeployments(ctx context.Context, userID, nsLabel string) 
 			containerResp.Limits.CPU = resource.NewScaledQuantity(int64(container.CPU), resource.Milli).String()
 			containerResp.Limits.Memory = resource.NewScaledQuantity(int64(container.RAM), resource.Mega).String()
 
+			totalCPU += container.CPU * deploy.Replicas
+			totalRAM += container.RAM * deploy.Replicas
+
 			env := convertEnv(containerEnv[container.ID])
 			containerResp.Env = env
 
@@ -240,6 +244,8 @@ func (db *DeployPG) GetDeployments(ctx context.Context, userID, nsLabel string) 
 
 			deployResp.Containers = append(deployResp.Containers, containerResp)
 		}
+		deployResp.TotalCPU = resource.NewScaledQuantity(int64(totalCPU), resource.Milli).String()
+		deployResp.TotalMemory = resource.NewScaledQuantity(int64(totalRAM), resource.Mega).String()
 
 		ret = append(ret, deployResp)
 	}

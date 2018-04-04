@@ -3,8 +3,9 @@ package model
 import (
 	"errors"
 	"fmt"
-
 	"strings"
+
+	"time"
 
 	kube_types "git.containerum.net/ch/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
@@ -52,7 +53,7 @@ func ParseConfigMap(cmi interface{}) (*ConfigMapWithOwner, error) {
 	}
 
 	owner := cm.GetObjectMeta().GetLabels()[ownerLabel]
-	createdAt := cm.CreationTimestamp.Unix()
+	createdAt := cm.CreationTimestamp.Format(time.RFC3339)
 
 	return &ConfigMapWithOwner{
 		ConfigMap: kube_types.ConfigMap{
@@ -74,7 +75,6 @@ func MakeConfigMap(nsName string, cm ConfigMapWithOwner, labels map[string]strin
 	if labels == nil {
 		labels = make(map[string]string, 0)
 	}
-	labels[appLabel] = cm.Name
 	labels[ownerLabel] = cm.Owner
 	labels[nameLabel] = cm.Name
 
@@ -97,19 +97,18 @@ func ValidateConfigMap(cm ConfigMapWithOwner) []error {
 	errs := []error{}
 	if cm.Owner == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
-	} else {
-		if !IsValidUUID(cm.Owner) {
-			errs = append(errs, errors.New(invalidOwner))
-		}
+	} else if !IsValidUUID(cm.Owner) {
+		errs = append(errs, errors.New(invalidOwner))
 	}
+
 	if cm.Name == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Subdomain(cm.Name); len(err) > 0 {
+	} else if err := api_validation.IsDNS1123Label(cm.Name); len(err) > 0 {
 		errs = append(errs, errors.New(fmt.Sprintf(invalidName, cm.Name, strings.Join(err, ","))))
 	}
 	for k := range cm.Data {
-		if len(api_validation.IsConfigMapKey(k)) > 0 {
-			errs = append(errs, fmt.Errorf(invalidKey, k))
+		if err := api_validation.IsConfigMapKey(k); len(err) > 0 {
+			errs = append(errs, fmt.Errorf(invalidName, k, strings.Join(err, ",")))
 		}
 	}
 	if len(errs) > 0 {

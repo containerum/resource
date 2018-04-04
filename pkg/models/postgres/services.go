@@ -7,6 +7,8 @@ import (
 
 	"strings"
 
+	"time"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
@@ -161,7 +163,7 @@ func (db *ServicePG) getRawServices(ctx context.Context, nsID string) (serviceMa
 
 	serviceMap = make(map[string]kubtypes.Service)
 	for _, v := range dbEntries {
-		createdAt := v.CreatedAt.Unix()
+		createdAt := v.CreatedAt.Format(time.RFC3339)
 		serviceMap[v.ID] = kubtypes.Service{
 			Name:      v.Name,
 			CreatedAt: &createdAt,
@@ -328,7 +330,7 @@ func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceNam
 
 	stype = serviceEntry.Type
 	serviceIDs := []string{serviceEntry.ID}
-	createdAt := serviceEntry.CreatedAt.Unix()
+	createdAt := serviceEntry.CreatedAt.Format(time.RFC3339)
 	serviceMap := map[string]kubtypes.Service{
 		serviceEntry.ID: {
 			Name:      serviceEntry.Name,

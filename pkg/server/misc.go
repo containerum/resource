@@ -17,6 +17,7 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // Parallel runs functions in dedicated goroutines and waits for ending
@@ -117,6 +118,74 @@ func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID strin
 		return rserrors.ErrPermissionDenied().AddDetailF("permission '%s' required for operation, you have '%s'", needed, current)
 	}
 
+	return nil
+}
+
+func CheckNamespaceResize(ns rstypes.Namespace, newTariff billing.NamespaceTariff) error {
+	if newTariff.CPULimit < ns.CPU ||
+		newTariff.MemoryLimit < ns.RAM ||
+		newTariff.ExternalServices < ns.MaxExternalServices ||
+		newTariff.InternalServices < ns.MaxIntServices {
+		return rserrors.ErrDownResizeNotAllowed()
+	}
+	return nil
+}
+
+func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment) error {
+	var deployCPU, deployRAM int
+	cpuQty, _ := resource.ParseQuantity(deploy.TotalCPU)
+	ramQty, _ := resource.ParseQuantity(deploy.TotalMemory)
+	deployCPU = int(cpuQty.ScaledValue(resource.Milli))
+	deployRAM = int(ramQty.ScaledValue(resource.Mega))
+
+	if exceededCPU := ns.CPU - deployCPU - nsUsage.CPU; exceededCPU < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+	}
+
+	if exceededRAM := ns.RAM - deployRAM - nsUsage.RAM; exceededRAM < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+	}
+
+	return nil
+}
+
+func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, oldDeploy, newDeploy kubtypes.Deployment) error {
+	var oldDeployCPU, oldDeployRAM int
+	cpuQty, _ := resource.ParseQuantity(oldDeploy.TotalCPU)
+	ramQty, _ := resource.ParseQuantity(oldDeploy.TotalMemory)
+	oldDeployCPU = int(cpuQty.ScaledValue(resource.Milli))
+	oldDeployRAM = int(ramQty.ScaledValue(resource.Mega))
+
+	var newDeployCPU, newDeployRAM int
+	cpuQty, _ = resource.ParseQuantity(newDeploy.TotalCPU)
+	ramQty, _ = resource.ParseQuantity(newDeploy.TotalMemory)
+	newDeployCPU = int(cpuQty.ScaledValue(resource.Milli))
+	newDeployRAM = int(ramQty.ScaledValue(resource.Mega))
+
+	if exceededCPU := ns.CPU - nsUsage.CPU - newDeployCPU + oldDeployCPU; exceededCPU < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+	}
+
+	if exceededRAM := ns.CPU - nsUsage.CPU - newDeployRAM + oldDeployRAM; exceededRAM < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+	}
+
+	return nil
+}
+
+func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, serviceType rstypes.ServiceType) error {
+	switch serviceType {
+	case rstypes.ServiceExternal:
+		if ns.MaxExternalServices >= nsUsage.ExtServices {
+			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
+		}
+	case rstypes.ServiceInternal:
+		if ns.MaxIntServices >= nsUsage.IntServices {
+			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
+		}
+	default:
+		return rserrors.ErrValidation().AddDetailF("Invalid service type %s", serviceType)
+	}
 	return nil
 }
 

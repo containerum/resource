@@ -3,13 +3,13 @@ package model
 // DeploymentStatus -- represents deployment status
 // CreatedAt and UpdatedAt -- Unix timestamps
 type DeploymentStatus struct {
-	CreatedAt           int64 `json:"created_at"`
-	UpdatedAt           int64 `json:"updated_at"`
-	Replicas            int   `json:"replicas"`
-	ReadyReplicas       int   `json:"ready_replicas"`
-	AvailableReplicas   int   `json:"available_replicas"`
-	UnavailableReplicas int   `json:"unavailable_replicas"`
-	UpdatedReplicas     int   `json:"updated_replicas"`
+	CreatedAt           string `json:"created_at"`
+	UpdatedAt           string `json:"updated_at"`
+	Replicas            int    `json:"replicas"`
+	ReadyReplicas       int    `json:"ready_replicas"`
+	AvailableReplicas   int    `json:"available_replicas"`
+	UnavailableReplicas int    `json:"unavailable_replicas"`
+	UpdatedReplicas     int    `json:"updated_replicas"`
 }
 
 // UpdateReplicas -- contains new number of replicas
@@ -19,11 +19,13 @@ type UpdateReplicas struct {
 
 // Deployment --
 type Deployment struct {
-	Status     *DeploymentStatus `json:"status,omitempty"`
-	Containers []Container       `json:"containers"`
-	Labels     map[string]string `json:"labels,omitempty"`
-	Name       string            `json:"name"`
-	Replicas   int               `json:"replicas"`
+	Status      *DeploymentStatus `json:"status,omitempty"`
+	Containers  []Container       `json:"containers"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Name        string            `json:"name"`
+	Replicas    int               `json:"replicas"`
+	TotalCPU    string            `json:"total_cpu,omitempty"`
+	TotalMemory string            `json:"total_memory,omitempty"`
 }
 
 // Container --

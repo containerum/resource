@@ -3,9 +3,12 @@ package model
 import (
 	"strconv"
 
+	"time"
+
 	"git.containerum.net/ch/kube-client/pkg/model"
 	kube_types "git.containerum.net/ch/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
+	api_resource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type PodsList struct {
@@ -18,42 +21,59 @@ type PodWithOwner struct {
 }
 
 // ParsePodList parses kubernetes v1.PodList to more convenient []Pod struct.
-func ParsePodList(pods interface{}) *PodsList {
+func ParsePodList(pods interface{}, parseforuser bool) *PodsList {
 	objects := pods.(*api_core.PodList)
-	var pos []PodWithOwner
+	pos := make([]PodWithOwner, 0)
 	for _, po := range objects.Items {
-		pos = append(pos, ParsePod(&po))
+		pos = append(pos, ParsePod(&po, parseforuser))
 	}
 	return &PodsList{pos}
 }
 
 // ParsePod parses kubernetes v1.PodList to more convenient Pod struct.
-func ParsePod(pod interface{}) PodWithOwner {
+func ParsePod(pod interface{}, parseforuser bool) PodWithOwner {
 	obj := pod.(*api_core.Pod)
 	owner := obj.GetObjectMeta().GetLabels()[ownerLabel]
-	containers := getContainers(obj.Spec.Containers, nil)
-	return PodWithOwner{
+	containers, cpu, mem := getContainers(obj.Spec.Containers, nil, 1)
+	deploy := obj.GetObjectMeta().GetLabels()[appLabel]
+	createdAt := obj.ObjectMeta.CreationTimestamp.Format(time.RFC3339)
+
+	newPod := PodWithOwner{
 		Pod: model.Pod{
-			Name:       obj.GetName(),
-			Containers: containers,
-			Hostname:   &obj.Spec.Hostname,
+			CreatedAt:   &createdAt,
+			TotalMemory: mem.String(),
+			TotalCPU:    cpu.String(),
+			Deploy:      &deploy,
+			Name:        obj.GetName(),
+			Containers:  containers,
+			Hostname:    &obj.Spec.Hostname,
 			Status: &model.PodStatus{
 				Phase: string(obj.Status.Phase),
 			},
 		},
 		Owner: owner,
 	}
+
+	if parseforuser {
+		newPod.Owner = ""
+	}
+
+	return newPod
 }
 
-func getContainers(cListi interface{}, mode map[string]int32) []model.Container {
+func getContainers(cListi interface{}, mode map[string]int32, replicas int) (containers []model.Container, totalcpu api_resource.Quantity, totalmem api_resource.Quantity) {
 	cList := cListi.([]api_core.Container)
-	var containers []model.Container
 	for _, c := range cList {
 		env := getEnv(c.Env)
 		volumes, configMaps := getVolumes(c.VolumeMounts, mode)
 
 		cpu := c.Resources.Limits["cpu"]
 		mem := c.Resources.Limits["memory"]
+
+		for i := 0; i < replicas; i++ {
+			totalcpu.Add(c.Resources.Limits["cpu"])
+			totalmem.Add(c.Resources.Limits["memory"])
+		}
 
 		containers = append(containers, model.Container{
 			Name:         c.Name,
@@ -68,7 +88,7 @@ func getContainers(cListi interface{}, mode map[string]int32) []model.Container 
 			},
 		})
 	}
-	return containers
+	return containers, totalcpu, totalmem
 }
 
 func getVolumes(vListi interface{}, mode map[string]int32) ([]model.ContainerVolume, []model.ContainerVolume) {

@@ -32,6 +32,7 @@ type NamespaceDB interface {
 	RenameNamespace(ctx context.Context, userID, oldLabel, newLabel string) error
 	ResizeNamespace(ctx context.Context, namespace *rstypes.Namespace) error
 	GetNamespaceID(ctx context.Context, userID, nsLabel string) (string, error)
+	GetNamespaceUsage(ctx context.Context, ns rstypes.Namespace) (NamespaceUsage, error)
 }
 
 type NamespaceDBConstructor func(RelationalDB) NamespaceDB
@@ -147,3 +148,10 @@ type ResourceCountDB interface {
 }
 
 type ResourceCountDBConstructor func(db RelationalDB) ResourceCountDB
+
+type NamespaceUsage struct {
+	CPU         int `db:"cpu"`
+	RAM         int `db:"ram"`
+	ExtServices int `db:"extservices"`
+	IntServices int `db:"intservices"`
+}

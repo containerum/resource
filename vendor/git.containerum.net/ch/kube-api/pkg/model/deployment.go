@@ -6,11 +6,13 @@ import (
 
 	"strconv"
 
+	"path"
 	"strings"
+
+	"time"
 
 	kube_types "git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/pkg/errors"
-	"gopkg.in/inf.v0"
 	api_apps "k8s.io/api/apps/v1"
 	api_core "k8s.io/api/core/v1"
 	api_resource "k8s.io/apimachinery/pkg/api/resource"
@@ -18,18 +20,17 @@ import (
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
 )
 
-const requestCoeffUnscaled = 5
-const requestCoeffScale = 1
-
-const glusterFSEndpoint = "ch-glusterfs"
-
 const (
-	minDeployCPU    = "10m"
-	minDeployMemory = "10Mi"
-	maxDeployCPU    = "4"
-	maxDeployMemory = "4Gi"
+	deploymentKind       = "Deployment"
+	deploymentApiVersion = "apps/v1"
 
-	maxDeployReplicas = 10
+	glusterFSEndpoint = "ch-glusterfs"
+
+	minDeployCPU      = "10m"
+	minDeployMemory   = "10Mi"
+	maxDeployCPU      = "4"
+	maxDeployMemory   = "4Gi"
+	maxDeployReplicas = 15
 )
 
 type DeploymentsList struct {
@@ -42,7 +43,7 @@ type DeploymentWithOwner struct {
 }
 
 // ParseDeploymentList parses kubernetes v1.DeploymentList to more convenient []Deployment struct
-func ParseDeploymentList(deploys interface{}) (*DeploymentsList, error) {
+func ParseDeploymentList(deploys interface{}, parseforuser bool) (*DeploymentsList, error) {
 	objects := deploys.(*api_apps.DeploymentList)
 	if objects == nil {
 		return nil, ErrUnableConvertDeploymentList
@@ -50,7 +51,7 @@ func ParseDeploymentList(deploys interface{}) (*DeploymentsList, error) {
 
 	deployments := make([]DeploymentWithOwner, 0)
 	for _, deployment := range objects.Items {
-		deployment, err := ParseDeployment(&deployment)
+		deployment, err := ParseDeployment(&deployment, parseforuser)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +62,7 @@ func ParseDeploymentList(deploys interface{}) (*DeploymentsList, error) {
 }
 
 // ParseDeployment parses kubernetes v1.Deployment to more convenient Deployment struct
-func ParseDeployment(deployment interface{}) (*DeploymentWithOwner, error) {
+func ParseDeployment(deployment interface{}, parseforuser bool) (*DeploymentWithOwner, error) {
 	obj := deployment.(*api_apps.Deployment)
 	if obj == nil {
 		return nil, ErrUnableConvertDeployment
@@ -69,33 +70,42 @@ func ParseDeployment(deployment interface{}) (*DeploymentWithOwner, error) {
 
 	owner := obj.GetObjectMeta().GetLabels()[ownerLabel]
 	replicas := 0
-	containers := getContainers(obj.Spec.Template.Spec.Containers, getVolumeMode(obj.Spec.Template.Spec.Volumes))
-	updated := obj.ObjectMeta.CreationTimestamp.Unix()
 	if r := obj.Spec.Replicas; r != nil {
 		replicas = int(*r)
 	}
+	containers, totalcpu, totalmem := getContainers(obj.Spec.Template.Spec.Containers, getVolumeMode(obj.Spec.Template.Spec.Volumes), replicas)
+	updated := obj.ObjectMeta.CreationTimestamp
 	for _, c := range obj.Status.Conditions {
-		if t := c.LastUpdateTime.Unix(); t > updated {
-			updated = t
+		if c.LastUpdateTime.After(updated.Time) {
+			updated = c.LastUpdateTime
 		}
 	}
-	return &DeploymentWithOwner{
+
+	newDeploy := DeploymentWithOwner{
 		Deployment: kube_types.Deployment{
 			Name:     obj.GetName(),
 			Replicas: replicas,
 			Status: &kube_types.DeploymentStatus{
-				CreatedAt:           obj.ObjectMeta.CreationTimestamp.Unix(),
-				UpdatedAt:           updated,
+				CreatedAt:           obj.ObjectMeta.CreationTimestamp.Format(time.RFC3339),
+				UpdatedAt:           updated.Format(time.RFC3339),
 				Replicas:            int(obj.Status.Replicas),
 				ReadyReplicas:       int(obj.Status.ReadyReplicas),
 				AvailableReplicas:   int(obj.Status.AvailableReplicas),
 				UpdatedReplicas:     int(obj.Status.UpdatedReplicas),
 				UnavailableReplicas: int(obj.Status.UnavailableReplicas),
 			},
-			Containers: containers,
+			Containers:  containers,
+			TotalCPU:    totalcpu.String(),
+			TotalMemory: totalmem.String(),
 		},
 		Owner: owner,
-	}, nil
+	}
+
+	if parseforuser {
+		newDeploy.Owner = ""
+	}
+
+	return &newDeploy, nil
 }
 
 func getVolumeMode(volumes []api_core.Volume) map[string]int32 {
@@ -130,8 +140,8 @@ func MakeDeployment(nsName string, depl DeploymentWithOwner, labels map[string]s
 
 	deployment := api_apps.Deployment{
 		TypeMeta: api_meta.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
+			Kind:       deploymentKind,
+			APIVersion: deploymentApiVersion,
 		},
 		ObjectMeta: api_meta.ObjectMeta{
 			Labels:    labels,
@@ -197,7 +207,7 @@ func makeContainers(containers []kube_types.Container) ([]api_core.Container, []
 		container.Resources = *rq
 
 		errs := ValidateContainer(c, *container.Resources.Limits.Cpu(), *container.Resources.Limits.Memory())
-		if err != nil {
+		if errs != nil {
 			return nil, nil, nil, errs
 		}
 
@@ -272,24 +282,21 @@ func makeContainerCommands(commands []string) []string {
 
 func makeContainerResourceQuota(cpu string, memory string) (*api_core.ResourceRequirements, error) {
 	limits := make(map[api_core.ResourceName]api_resource.Quantity)
+	requests := make(map[api_core.ResourceName]api_resource.Quantity)
 
-	var err error
-	limits["cpu"], err = api_resource.ParseQuantity(cpu)
+	lcpu, err := api_resource.ParseQuantity(cpu)
 	if err != nil {
 		return nil, ErrInvalidCPUFormat
 	}
-	limits["memory"], err = api_resource.ParseQuantity(memory)
+	lmem, err := api_resource.ParseQuantity(memory)
 	if err != nil {
 		return nil, ErrInvalidMemoryFormat
 	}
 
-	requests := make(map[api_core.ResourceName]api_resource.Quantity)
-	reqCPU := limits["cpu"]
-	reqMem := limits["memory"]
-
-	//TODO Think how to divide Quantity values in adequate way
-	requests["cpu"] = *api_resource.NewScaledQuantity(reqCPU.AsDec().Mul(reqCPU.AsDec(), inf.NewDec(requestCoeffUnscaled, requestCoeffScale)).UnscaledBig().Int64(), api_resource.Scale(0-reqCPU.AsDec().Scale()))
-	requests["memory"] = *api_resource.NewScaledQuantity(reqMem.AsDec().Mul(reqMem.AsDec(), inf.NewDec(requestCoeffUnscaled, requestCoeffScale)).UnscaledBig().Int64(), api_resource.Scale(0-reqMem.AsDec().Scale()))
+	limits["cpu"] = lcpu
+	limits["memory"] = lmem
+	requests["cpu"] = *api_resource.NewMilliQuantity(lcpu.MilliValue()/2, api_resource.BinarySI)
+	requests["memory"] = *api_resource.NewQuantity(lmem.Value()/2, api_resource.BinarySI)
 
 	return &api_core.ResourceRequirements{
 		Limits:   limits,
@@ -355,14 +362,12 @@ func ValidateDeployment(deploy DeploymentWithOwner) []error {
 	errs := []error{}
 	if deploy.Owner == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
-	} else {
-		if !IsValidUUID(deploy.Owner) {
-			errs = append(errs, errors.New(invalidOwner))
-		}
+	} else if !IsValidUUID(deploy.Owner) {
+		errs = append(errs, errors.New(invalidOwner))
 	}
 	if deploy.Name == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Subdomain(deploy.Name); len(err) > 0 {
+	} else if err := api_validation.IsDNS1123Label(deploy.Name); len(err) > 0 {
 		errs = append(errs, errors.New(fmt.Sprintf(invalidName, deploy.Name, strings.Join(err, ","))))
 	}
 	if len(api_validation.IsInRange(deploy.Replicas, 1, maxDeployReplicas)) > 0 {
@@ -377,17 +382,17 @@ func ValidateDeployment(deploy DeploymentWithOwner) []error {
 	return nil
 }
 
+var mincpu, _ = api_resource.ParseQuantity(minDeployCPU)
+var maxcpu, _ = api_resource.ParseQuantity(maxDeployCPU)
+var minmem, _ = api_resource.ParseQuantity(minDeployMemory)
+var maxmem, _ = api_resource.ParseQuantity(maxDeployMemory)
+
 func ValidateContainer(container kube_types.Container, cpu, mem api_resource.Quantity) []error {
 	errs := []error{}
 
-	mincpu, _ := api_resource.ParseQuantity(minDeployCPU)
-	maxcpu, _ := api_resource.ParseQuantity(maxDeployCPU)
-	minmem, _ := api_resource.ParseQuantity(minDeployMemory)
-	maxmem, _ := api_resource.ParseQuantity(maxDeployMemory)
-
 	if container.Name == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Subdomain(container.Name); len(err) > 0 {
+	} else if err := api_validation.IsDNS1123Label(container.Name); len(err) > 0 {
 		errs = append(errs, errors.New(fmt.Sprintf(invalidName, container.Name, strings.Join(err, ","))))
 	}
 
@@ -414,33 +419,116 @@ func ValidateContainer(container kube_types.Container, cpu, mem api_resource.Qua
 	}
 
 	for _, v := range container.Env {
-		if len(api_validation.IsEnvVarName(v.Value)) > 0 {
-			errs = append(errs, fmt.Errorf(fieldShouldExist, "Env: Value"))
-		}
 		if v.Name == "" {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "Env: Name"))
+		} else if err := api_validation.IsEnvVarName(v.Name); len(err) > 0 {
+			errs = append(errs, errors.New(fmt.Sprintf(invalidName, v.Name, strings.Join(err, ","))))
 		}
 	}
 
 	for _, v := range container.VolumeMounts {
 		if v.Name == "" {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "Volume: Name"))
-		} else if err := api_validation.IsDNS1123Subdomain(container.Name); len(err) > 0 {
-			errs = append(errs, errors.New(fmt.Sprintf(invalidName, container.Name, strings.Join(err, ","))))
+		} else if err := api_validation.IsDNS1123Label(v.Name); len(err) > 0 {
+			errs = append(errs, errors.New(fmt.Sprintf(invalidName, v.Name, strings.Join(err, ","))))
 		}
 		if v.MountPath == "" {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "Volume: Mount path"))
+		}
+		if v.SubPath != nil && path.IsAbs(*v.SubPath) {
+			errs = append(errs, fmt.Errorf(subPathRelative, *v.SubPath))
 		}
 	}
 
 	for _, v := range container.ConfigMaps {
 		if v.Name == "" {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "ConfigMap: Name"))
-		} else if err := api_validation.IsDNS1123Subdomain(container.Name); len(err) > 0 {
-			errs = append(errs, errors.New(fmt.Sprintf(invalidName, container.Name, strings.Join(err, ","))))
+		} else if err := api_validation.IsDNS1123Label(v.Name); len(err) > 0 {
+			errs = append(errs, errors.New(fmt.Sprintf(invalidName, v.Name, strings.Join(err, ","))))
 		}
 		if v.MountPath == "" {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "ConfigMap: Mount path"))
+		}
+		if v.SubPath != nil && path.IsAbs(*v.SubPath) {
+			errs = append(errs, fmt.Errorf(subPathRelative, *v.SubPath))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
+}
+
+func ValidateDeploymentFromFile(deploy *api_apps.Deployment) []error {
+	errs := []error{}
+
+	if deploy.Kind != deploymentKind {
+		errs = append(errs, fmt.Errorf(invalidResourceKind, deploy.Kind, deploymentKind))
+	}
+
+	if deploy.APIVersion != "" && deploy.APIVersion != deploymentApiVersion {
+		errs = append(errs, fmt.Errorf(invalidApiVersion, deploy.APIVersion, deploymentApiVersion))
+	}
+
+	if deploy.GetLabels()[ownerLabel] == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Label: Owner"))
+	} else if !IsValidUUID(deploy.GetLabels()[ownerLabel]) {
+		errs = append(errs, errors.New(invalidOwner))
+	}
+
+	if deploy.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if err := api_validation.IsDNS1123Label(deploy.Name); len(err) > 0 {
+		errs = append(errs, errors.New(fmt.Sprintf(invalidName, deploy.Name, strings.Join(err, ","))))
+	}
+
+	if len(api_validation.IsInRange(int(*deploy.Spec.Replicas), 1, maxDeployReplicas)) > 0 {
+		errs = append(errs, fmt.Errorf(invalidReplicas, *deploy.Spec.Replicas, maxDeployReplicas))
+	}
+	if deploy.Spec.Template.Spec.Containers == nil || len(deploy.Spec.Template.Spec.Containers) == 0 {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Containers"))
+	}
+
+	for _, c := range deploy.Spec.Template.Spec.Containers {
+		if c.Resources.Limits.Cpu().Cmp(mincpu) == -1 || c.Resources.Limits.Cpu().Cmp(maxcpu) == 1 {
+			errs = append(errs, fmt.Errorf(invalidCPUQuota, c.Resources.Limits.Cpu().String(), minDeployCPU, maxDeployCPU))
+		}
+		if c.Resources.Limits.Memory().Cmp(minmem) == -1 || c.Resources.Limits.Memory().Cmp(maxmem) == 1 {
+			errs = append(errs, fmt.Errorf(invalidMemoryQuota, c.Resources.Limits.Memory().String(), minDeployMemory, maxDeployMemory))
+		}
+
+		for _, p := range c.Ports {
+			if p.Name == "" {
+				errs = append(errs, fmt.Errorf(fieldShouldExist, "Port: Name"))
+			} else if err := api_validation.IsValidPortName(p.Name); len(err) > 0 {
+				errs = append(errs, errors.New(fmt.Sprintf(invalidName, p.Name, strings.Join(err, ","))))
+			}
+			if len(api_validation.IsValidPortNum(int(p.ContainerPort))) > 0 {
+				errs = append(errs, fmt.Errorf(invalidPort, p.ContainerPort, minport, maxport))
+			}
+		}
+
+		for _, e := range c.Env {
+			if e.Name == "" {
+				errs = append(errs, fmt.Errorf(fieldShouldExist, "Env: Name"))
+			} else if err := api_validation.IsEnvVarName(e.Name); len(err) > 0 {
+				errs = append(errs, errors.New(fmt.Sprintf(invalidName, e.Name, strings.Join(err, ","))))
+			}
+		}
+
+		for _, m := range c.VolumeMounts {
+			if m.Name == "" {
+				errs = append(errs, fmt.Errorf(fieldShouldExist, "Volume: Name"))
+			} else if err := api_validation.IsDNS1123Label(m.Name); len(err) > 0 {
+				errs = append(errs, errors.New(fmt.Sprintf(invalidName, m.Name, strings.Join(err, ","))))
+			}
+			if m.MountPath == "" {
+				errs = append(errs, fmt.Errorf(fieldShouldExist, "Volume: Mount path"))
+			}
+			if m.SubPath != "" && path.IsAbs(m.SubPath) {
+				errs = append(errs, fmt.Errorf(subPathRelative, m.SubPath))
+			}
 		}
 	}
 
