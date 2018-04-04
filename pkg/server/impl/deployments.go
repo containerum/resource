@@ -68,13 +68,22 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 	}).Info("create deployment")
 
 	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
 		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
+		}
+
+		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := server.CheckDeploymentCreateQuotas(ns.Namespace, nsUsage, deploy); chkErr != nil {
+			return chkErr
 		}
 
 		firstInNamespace, createErr := da.DeployDB(tx).CreateDeployment(ctx, userID, nsLabel, deploy)
@@ -105,7 +114,7 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 		deployCreateReq := kubtypesInternal.DeploymentWithOwner{}
 		deployCreateReq.Deployment = deploy
 		deployCreateReq.Owner = userID
-		if createErr := da.Kube.CreateDeployment(ctx, nsID, deployCreateReq); createErr != nil {
+		if createErr := da.Kube.CreateDeployment(ctx, ns.ID, deployCreateReq); createErr != nil {
 			return createErr
 		}
 
@@ -161,13 +170,27 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 	}).Infof("replacing deployment with %#v", deploy)
 
 	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
 
 		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
+		}
+
+		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+		if getErr != nil {
+			return getErr
+		}
+
+		oldDeploy, getErr := da.DeployDB(tx).GetDeploymentByLabel(ctx, userID, nsLabel, deploy.Name)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := server.CheckDeploymentReplaceQuotas(ns.Namespace, nsUsage, oldDeploy, deploy); chkErr != nil {
+			return chkErr
 		}
 
 		if replaceErr := da.DeployDB(tx).ReplaceDeployment(ctx, userID, nsLabel, deploy); replaceErr != nil {
@@ -177,7 +200,7 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
 		deployReplaceReq.Deployment = deploy
 		deployReplaceReq.Owner = userID
-		if replaceErr := da.Kube.ReplaceDeployment(ctx, nsID, deployReplaceReq); replaceErr != nil {
+		if replaceErr := da.Kube.ReplaceDeployment(ctx, ns.ID, deployReplaceReq); replaceErr != nil {
 			return replaceErr
 		}
 

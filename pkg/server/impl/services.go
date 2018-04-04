@@ -73,16 +73,25 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 			}
 		}
 
-		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		ns, getErr := sa.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
+		}
+
+		nsUsage, getErr := sa.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := server.CheckServiceCreateQuotas(ns.Namespace, nsUsage, serviceType); chkErr != nil {
+			return chkErr
 		}
 
 		if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); createErr != nil {
 			return createErr
 		}
 
-		if createErr := sa.Kube.CreateService(ctx, nsID, kubeRequest); createErr != nil {
+		if createErr := sa.Kube.CreateService(ctx, ns.ID, kubeRequest); createErr != nil {
 			return createErr
 		}
 
