@@ -18,13 +18,13 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "bacd09385ad4f2d0593c5ad22a8a5b0bd40b3ae1"
+  revision = "36190bd3a045c3e3e7464862a8cb63061f48870e"
 
 [[projects]]
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
   packages = ["pkg/model"]
-  revision = "9d1616d77cd5bc7ae8b9b50977c6a885e6a2d7f9"
+  revision = "45f3cce498196e77ae5c17143f10477c00110a64"
 
 [[projects]]
   name = "git.containerum.net/ch/kube-client"
