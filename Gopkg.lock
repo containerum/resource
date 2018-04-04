@@ -24,7 +24,7 @@
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
   packages = ["pkg/model"]
-  revision = "fc28fb503e3e4ae19d3fba7a519833e43d4f5ba3"
+  revision = "9d1616d77cd5bc7ae8b9b50977c6a885e6a2d7f9"
 
 [[projects]]
   name = "git.containerum.net/ch/kube-client"
@@ -37,8 +37,8 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "09a5775c1583053a2a4770025f8f8ffcf795e163"
-  version = "v0.2.4"
+  revision = "5028d0b31a8738c807c7f95738da368dfceed95b"
+  version = "v0.8.4"
 
 [[projects]]
   branch = "master"
@@ -243,8 +243,8 @@
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
-  version = "v1.0.4"
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -427,6 +427,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "33dc142f59276c444b467d3b7b5a18c3c2dd50c0bf4d85b4efb911bde2a9ef23"
+  inputs-digest = "d61ea643b0260dabf80b3c34bb67583280b192f68995d08a05ac60d83e4a0604"
   solver-name = "gps-cdcl"
   solver-version = 1

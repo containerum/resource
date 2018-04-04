@@ -3,8 +3,9 @@ package model
 import (
 	"errors"
 	"fmt"
-
 	"strings"
+
+	"time"
 
 	json_types "git.containerum.net/ch/json-types/kube-api"
 	api_core "k8s.io/api/core/v1"
@@ -43,7 +44,7 @@ func ParseEndpoint(endpointi interface{}) (*json_types.Endpoint, error) {
 	ports := make([]json_types.Port, 0)
 	addresses := make([]string, 0)
 
-	createdAt := endpoint.GetCreationTimestamp().Unix()
+	createdAt := endpoint.GetCreationTimestamp().Format(time.RFC3339)
 	owner := endpoint.GetObjectMeta().GetLabels()[ownerLabel]
 
 	newEndpoint := json_types.Endpoint{
@@ -95,7 +96,6 @@ func MakeEndpoint(nsName string, endpoint json_types.Endpoint, labels map[string
 		labels = make(map[string]string, 0)
 	}
 
-	labels[appLabel] = endpoint.Name
 	labels[ownerLabel] = *endpoint.Owner
 	labels[nameLabel] = endpoint.Name
 
@@ -134,14 +134,12 @@ func ValidateEndpoint(endpoint json_types.Endpoint) []error {
 	errs := []error{}
 	if endpoint.Owner == nil {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
-	} else {
-		if !IsValidUUID(*endpoint.Owner) {
-			errs = append(errs, errors.New(invalidOwner))
-		}
+	} else if !IsValidUUID(*endpoint.Owner) {
+		errs = append(errs, errors.New(invalidOwner))
 	}
 	if endpoint.Name == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Subdomain(endpoint.Name); len(err) > 0 {
+	} else if err := api_validation.IsDNS1123Label(endpoint.Name); len(err) > 0 {
 		errs = append(errs, errors.New(fmt.Sprintf(invalidName, endpoint.Name, strings.Join(err, ","))))
 	}
 	if endpoint.Addresses == nil || len(endpoint.Addresses) == 0 {
@@ -158,7 +156,7 @@ func ValidateEndpoint(endpoint json_types.Endpoint) []error {
 	for _, v := range endpoint.Ports {
 		if v.Name == "" {
 			errs = append(errs, fmt.Errorf(fieldShouldExist, "Port name"))
-		} else if err := api_validation.IsValidPortName(v.Name); len(err) > 0 {
+		} else if err := api_validation.IsDNS1123Label(v.Name); len(err) > 0 {
 			errs = append(errs, errors.New(fmt.Sprintf(invalidName, v.Name, strings.Join(err, ","))))
 		}
 		if v.Protocol == "" {

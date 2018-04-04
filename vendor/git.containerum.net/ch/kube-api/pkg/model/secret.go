@@ -3,8 +3,9 @@ package model
 import (
 	"errors"
 	"fmt"
-
 	"strings"
+
+	"time"
 
 	kube_types "git.containerum.net/ch/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
@@ -21,8 +22,13 @@ type SecretWithOwner struct {
 	Owner string `json:"owner,omitempty"`
 }
 
+const (
+	secretKind       = "Secret"
+	secretApiVersion = "v1"
+)
+
 // ParseSecretList parses kubernetes v1.SecretList to more convenient []Secret struct.
-func ParseSecretList(secreti interface{}) (*SecretsList, error) {
+func ParseSecretList(secreti interface{}, parseforuser bool) (*SecretsList, error) {
 	secrets := secreti.(*api_core.SecretList)
 	if secrets == nil {
 		return nil, ErrUnableConvertSecretList
@@ -30,12 +36,15 @@ func ParseSecretList(secreti interface{}) (*SecretsList, error) {
 
 	newSecrets := make([]SecretWithOwner, 0)
 	for _, secret := range secrets.Items {
-		newSecret, err := ParseSecret(&secret)
+		newSecret, err := ParseSecret(&secret, false)
 		if err != nil {
 			return nil, err
 		}
 
-		if newSecret.Owner != "" {
+		if newSecret.Owner != "" || !parseforuser {
+			if parseforuser {
+				newSecret.Owner = ""
+			}
 			newSecrets = append(newSecrets, *newSecret)
 		}
 	}
@@ -43,7 +52,7 @@ func ParseSecretList(secreti interface{}) (*SecretsList, error) {
 }
 
 // ParseSecret parses kubernetes v1.Secret to more convenient Secret struct.
-func ParseSecret(secreti interface{}) (*SecretWithOwner, error) {
+func ParseSecret(secreti interface{}, parseforuser bool) (*SecretWithOwner, error) {
 	secret := secreti.(*api_core.Secret)
 	if secret == nil {
 		return nil, ErrUnableConvertSecret
@@ -55,16 +64,23 @@ func ParseSecret(secreti interface{}) (*SecretWithOwner, error) {
 	}
 
 	owner := secret.GetObjectMeta().GetLabels()[ownerLabel]
-	createdAt := secret.CreationTimestamp.Unix()
+	createdAt := secret.CreationTimestamp.Format(time.RFC3339)
 
-	return &SecretWithOwner{
+	newSecret := SecretWithOwner{
 		Secret: kube_types.Secret{
 			Name:      secret.GetName(),
 			CreatedAt: &createdAt,
 			Data:      newData,
 		},
 		Owner: owner,
-	}, nil
+	}
+
+	if parseforuser {
+		newSecret.Owner = ""
+	}
+
+	return &newSecret, nil
+
 }
 
 // MakeSecret creates kubernetes v1.Secret from Secret struct and namespace labels
@@ -77,14 +93,13 @@ func MakeSecret(nsName string, secret SecretWithOwner, labels map[string]string)
 	if labels == nil {
 		labels = make(map[string]string, 0)
 	}
-	labels[appLabel] = secret.Name
 	labels[ownerLabel] = secret.Owner
 	labels[nameLabel] = secret.Name
 
 	newSecret := api_core.Secret{
 		TypeMeta: api_meta.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
+			Kind:       secretKind,
+			APIVersion: secretApiVersion,
 		},
 		ObjectMeta: api_meta.ObjectMeta{
 			Labels:    labels,
@@ -112,21 +127,54 @@ func ValidateSecret(secret SecretWithOwner) []error {
 	errs := []error{}
 	if secret.Owner == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Owner"))
-	} else {
-		if !IsValidUUID(secret.Owner) {
-			errs = append(errs, errors.New(invalidOwner))
-		}
+	} else if !IsValidUUID(secret.Owner) {
+		errs = append(errs, errors.New(invalidOwner))
 	}
 	if secret.Name == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Subdomain(secret.Name); len(err) > 0 {
+	} else if err := api_validation.IsDNS1123Label(secret.Name); len(err) > 0 {
 		errs = append(errs, errors.New(fmt.Sprintf(invalidName, secret.Name, strings.Join(err, ","))))
 	}
 	for k := range secret.Data {
-		if len(api_validation.IsConfigMapKey(k)) > 0 {
-			errs = append(errs, fmt.Errorf(invalidKey, k))
+		if err := api_validation.IsConfigMapKey(k); len(err) > 0 {
+			errs = append(errs, fmt.Errorf(invalidName, k, strings.Join(err, ",")))
 		}
 	}
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
+}
+
+func ValidateSecretFromFile(secret *api_core.Secret) []error {
+	errs := []error{}
+
+	if secret.Kind != secretKind {
+		errs = append(errs, fmt.Errorf(invalidResourceKind, secret.Kind, secretKind))
+	}
+
+	if secret.APIVersion != "" && secret.APIVersion != secretApiVersion {
+		errs = append(errs, fmt.Errorf(invalidApiVersion, secret.APIVersion, secretApiVersion))
+	}
+
+	if secret.GetLabels()[ownerLabel] == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Label: Owner"))
+	} else if !IsValidUUID(secret.GetLabels()[ownerLabel]) {
+		errs = append(errs, errors.New(invalidOwner))
+	}
+
+	if secret.Name == "" {
+		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
+	} else if err := api_validation.IsDNS1123Label(secret.Name); len(err) > 0 {
+		errs = append(errs, errors.New(fmt.Sprintf(invalidName, secret.Name, strings.Join(err, ","))))
+	}
+
+	for k := range secret.Data {
+		if err := api_validation.IsConfigMapKey(k); len(err) > 0 {
+			errs = append(errs, fmt.Errorf(invalidName, k, strings.Join(err, ",")))
+		}
+	}
+
 	if len(errs) > 0 {
 		return errs
 	}
