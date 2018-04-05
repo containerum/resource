@@ -132,6 +132,10 @@ func CheckNamespaceResize(ns rstypes.Namespace, newTariff billing.NamespaceTarif
 }
 
 func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment) error {
+	if err := CalculateDeployResources(&deploy); err != nil {
+		return err
+	}
+
 	var deployCPU, deployRAM int
 	cpuQty, _ := resource.ParseQuantity(deploy.TotalCPU)
 	ramQty, _ := resource.ParseQuantity(deploy.TotalMemory)
@@ -150,11 +154,19 @@ func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceU
 }
 
 func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, oldDeploy, newDeploy kubtypes.Deployment) error {
+	if err := CalculateDeployResources(&oldDeploy); err != nil {
+		return err
+	}
+
 	var oldDeployCPU, oldDeployRAM int
 	cpuQty, _ := resource.ParseQuantity(oldDeploy.TotalCPU)
 	ramQty, _ := resource.ParseQuantity(oldDeploy.TotalMemory)
 	oldDeployCPU = int(cpuQty.ScaledValue(resource.Milli))
 	oldDeployRAM = int(ramQty.ScaledValue(resource.Mega))
+
+	if err := CalculateDeployResources(&newDeploy); err != nil {
+		return err
+	}
 
 	var newDeployCPU, newDeployRAM int
 	cpuQty, _ = resource.ParseQuantity(newDeploy.TotalCPU)
@@ -167,6 +179,28 @@ func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.Namespace
 	}
 
 	if exceededRAM := ns.CPU - nsUsage.CPU - newDeployRAM + oldDeployRAM; exceededRAM < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+	}
+
+	return nil
+}
+
+func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment, newReplicas int) error {
+	if err := CalculateDeployResources(&deploy); err != nil {
+		return err
+	}
+
+	var deployCPU, deployRAM int
+	cpuQty, _ := resource.ParseQuantity(deploy.TotalCPU)
+	ramQty, _ := resource.ParseQuantity(deploy.TotalMemory)
+	deployCPU = int(cpuQty.ScaledValue(resource.Milli))
+	deployRAM = int(ramQty.ScaledValue(resource.Mega))
+
+	if exceededCPU := ns.CPU - nsUsage.CPU - deployCPU*newReplicas + deployCPU*deploy.Replicas; exceededCPU < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+	}
+
+	if exceededRAM := ns.CPU - nsUsage.CPU - deployRAM*newReplicas + deployRAM*deploy.Replicas; exceededRAM < 0 {
 		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
@@ -186,6 +220,27 @@ func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsag
 	default:
 		return rserrors.ErrValidation().AddDetailF("Invalid service type %s", serviceType)
 	}
+	return nil
+}
+
+func CalculateDeployResources(deploy *kubtypes.Deployment) error {
+	var mCPU, mbRAM int64
+	for i, container := range deploy.Containers {
+		containerCPU, err := resource.ParseQuantity(container.Limits.CPU)
+		if err != nil {
+			return rserrors.ErrValidation().AddDetailF("Container %d CPU limit parse failed", i)
+		}
+		containerRAM, err := resource.ParseQuantity(container.Limits.Memory)
+		if err != nil {
+			return rserrors.ErrValidation().AddDetailF("Container %d memory limit parse failed", 1)
+		}
+		mCPU += containerCPU.ScaledValue(resource.Milli)
+		mbRAM += containerRAM.ScaledValue(resource.Mega)
+	}
+	mCPU *= int64(deploy.Replicas)
+	mbRAM *= int64(deploy.Replicas)
+	deploy.TotalCPU = resource.NewScaledQuantity(mCPU, resource.Milli).String()
+	deploy.TotalMemory = resource.NewScaledQuantity(mbRAM, resource.Mega).String()
 	return nil
 }
 

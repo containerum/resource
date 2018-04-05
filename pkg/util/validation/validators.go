@@ -127,14 +127,6 @@ func deploymentValidate(structLevel validator.StructLevel) {
 		structLevel.ReportValidationErrors("Containers", "", err.(validator.ValidationErrors))
 	}
 
-	if err := v.Var(req.TotalCPU, "required,kube_quantity"); err != nil {
-		structLevel.ReportValidationErrors("TotalCPU", "", err.(validator.ValidationErrors))
-	}
-
-	if err := v.Var(req.TotalMemory, "required,kube_quantity"); err != nil {
-		structLevel.ReportValidationErrors("TotalMemory", "", err.(validator.ValidationErrors))
-	}
-
 	for i, container := range req.Containers {
 		if err := v.Var(container.Name, "dns"); err != nil {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Containers[%d].Name", i), "", err.(validator.ValidationErrors))
