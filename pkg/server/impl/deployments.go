@@ -43,6 +43,11 @@ func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsLabel string)
 	}).Info("get deployments")
 
 	ret, err := da.DeployDB(da.DB).GetDeployments(ctx, userID, nsLabel)
+	for i := range ret {
+		if calcErr := server.CalculateDeployResources(&ret[i]); calcErr != nil {
+			return nil, calcErr
+		}
+	}
 
 	return ret, err
 }
@@ -56,6 +61,9 @@ func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, 
 	}).Info("get deployment by label")
 
 	ret, err := da.DeployDB(da.DB).GetDeploymentByLabel(ctx, userID, nsLabel, deplName)
+	if calcErr := server.CalculateDeployResources(&ret); calcErr != nil {
+		return ret, calcErr
+	}
 
 	return ret, err
 }
@@ -169,6 +177,10 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 		"deploy_name": deploy.Name,
 	}).Infof("replacing deployment with %#v", deploy)
 
+	if err := server.CalculateDeployResources(&deploy); err != nil {
+		return err
+	}
+
 	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
@@ -219,7 +231,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 	}).Infof("set deployment replicas %#v", req)
 
 	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
 		}
@@ -228,11 +240,25 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 			return permErr
 		}
 
+		deploy, getErr := da.DeployDB(tx).GetDeploymentByLabel(ctx, userID, nsLabel, deplName)
+		if getErr != nil {
+			return getErr
+		}
+
+		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := server.CheckDeploymentReplicasChangeQuotas(ns.Namespace, nsUsage, deploy, req.Replicas); chkErr != nil {
+			return chkErr
+		}
+
 		if setErr := da.DeployDB(tx).SetDeploymentReplicas(ctx, userID, nsLabel, deplName, req.Replicas); setErr != nil {
 			return setErr
 		}
 
-		if setErr := da.Kube.SetDeploymentReplicas(ctx, nsID, deplName, req.Replicas); setErr != nil {
+		if setErr := da.Kube.SetDeploymentReplicas(ctx, ns.ID, deplName, req.Replicas); setErr != nil {
 			return setErr
 		}
 
