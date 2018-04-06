@@ -56,16 +56,6 @@ func VolumeLabel(nsLabel string) string {
 	return nsLabel + "-volume"
 }
 
-// IngressName generates ingress name
-func IngressName(domain string) string {
-	return domain + "-ingress"
-}
-
-// SecretName generates secret name for ingress
-func SecretName(ingressName string) string {
-	return ingressName + "-secret"
-}
-
 // DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
 func DetermineServiceType(service kubtypes.Service) rstypes.ServiceType {
 	serviceType := rstypes.ServiceExternal
