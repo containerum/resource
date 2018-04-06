@@ -80,7 +80,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		}
 
 		var ingress kubtypesInternal.IngressWithOwner
-		ingress.Name = server.IngressName(req.Domain)
+		ingress.Name = req.Domain
 		ingress.Owner = userID
 		switch req.Type {
 		case rstypes.IngressHTTPS:
@@ -94,7 +94,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			// So before creating ingress we need to create "secret".
 			secret := kubtypesInternal.SecretWithOwner{
 				Secret: kubtypes.Secret{
-					Name: server.SecretName(ingress.Name),
+					Name: ingress.Name,
 					Data: map[string]string{
 						"tls.crt": req.TLS.Cert,
 						"tls.key": req.TLS.Key,
@@ -179,14 +179,14 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 			return delErr
 		}
 
-		ingressName := server.IngressName(domain)
+		ingressName := domain
 		if delErr := ia.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
 			return delErr
 		}
 
 		// in CreateIngress() we created secret for "custom_https" ingress so delete it.
 		if ingressType == rstypes.IngressCustomHTTPS {
-			if delErr := ia.Kube.DeleteSecret(ctx, nsID, server.SecretName(ingressName)); delErr != nil {
+			if delErr := ia.Kube.DeleteSecret(ctx, nsID, ingressName); delErr != nil {
 				return delErr
 			}
 		}
