@@ -42,5 +42,7 @@ spec:
           value: "${DB_URL}"
         - name: BILLING_ADDR
           value: "${BILLING_ADDR}"
+        - name: USER_ADDR
+          value: "${USER_ADDR}"
       imagePullSecrets:
       - name: gitlab-registry
