@@ -687,7 +687,7 @@ func (db *NamespacePG) GetNamespaceUsage(ctx context.Context, ns rstypes.Namespa
 			sum(cpu_ram.cpus) AS cpu,
 			sum(cpu_ram.rams) AS ram,
 			ext_int.extsvc AS extservices,
-			ext_int.intsvc AS intservivces
+			ext_int.intsvc AS intservices
 		FROM cpu_ram, ext_int
 		GROUP BY ext_int.intsvc, ext_int.extsvc`, ns)
 	err = sqlx.GetContext(ctx, db, &usage, db.Rebind(query), args...)
