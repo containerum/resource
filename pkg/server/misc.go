@@ -111,11 +111,11 @@ func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID strin
 	return nil
 }
 
-func CheckNamespaceResize(ns rstypes.Namespace, newTariff billing.NamespaceTariff) error {
+func CheckNamespaceResize(ns models.NamespaceUsage, newTariff billing.NamespaceTariff) error {
 	if newTariff.CPULimit < ns.CPU ||
 		newTariff.MemoryLimit < ns.RAM ||
-		newTariff.ExternalServices < ns.MaxExternalServices ||
-		newTariff.InternalServices < ns.MaxIntServices {
+		newTariff.ExternalServices < ns.ExtServices ||
+		newTariff.InternalServices < ns.IntServices {
 		return rserrors.ErrDownResizeNotAllowed()
 	}
 	return nil
@@ -206,11 +206,11 @@ func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.Na
 func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, serviceType rstypes.ServiceType) error {
 	switch serviceType {
 	case rstypes.ServiceExternal:
-		if ns.MaxExternalServices >= nsUsage.ExtServices {
+		if ns.MaxExternalServices <= nsUsage.ExtServices {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
 		}
 	case rstypes.ServiceInternal:
-		if ns.MaxIntServices >= nsUsage.IntServices {
+		if ns.MaxIntServices <= nsUsage.IntServices {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
 		}
 	default:

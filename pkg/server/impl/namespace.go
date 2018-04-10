@@ -314,7 +314,12 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 			return getErr
 		}
 
-		if chkErr := server.CheckNamespaceResize(ns.Namespace, newTariff); chkErr != nil {
+		nsUsage, getErr := na.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+		if getErr != nil {
+			return getErr
+		}
+
+		if chkErr := server.CheckNamespaceResize(nsUsage, newTariff); chkErr != nil {
 			return chkErr
 		}
 
