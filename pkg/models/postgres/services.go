@@ -9,6 +9,8 @@ import (
 
 	"time"
 
+	"fmt"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
@@ -352,6 +354,8 @@ func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceNam
 }
 
 func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
+	fmt.Println("TEST111111")
+
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"ns_label":         nsLabel,
@@ -363,6 +367,8 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 	if err != nil {
 		return
 	}
+
+	fmt.Println("IT WORKS1")
 
 	var serviceID string
 	query, args, _ := sqlx.Named( /* language=sql */
@@ -389,9 +395,16 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 	}
 
 	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
-		`DELETE FROM service_ports WHERE service_id = :service_id;
-			REINDEX INDEX port_domain_index; -- to ensure that index will be updated before inserting new ports`,
+		`DELETE FROM service_ports WHERE service_id = :service_id`,
 		map[string]interface{}{"service_id": serviceID})
+	if err != nil {
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
+
+	sqlx.NamedExecContext(ctx, db, /* language=sql */
+		`REINDEX INDEX port_domain_index; -- to ensure that index will be updated before inserting new ports`,
+		map[string]interface{}{})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
