@@ -111,11 +111,11 @@ func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID strin
 	return nil
 }
 
-func CheckNamespaceResize(ns rstypes.Namespace, newTariff billing.NamespaceTariff) error {
+func CheckNamespaceResize(ns models.NamespaceUsage, newTariff billing.NamespaceTariff) error {
 	if newTariff.CPULimit < ns.CPU ||
 		newTariff.MemoryLimit < ns.RAM ||
-		newTariff.ExternalServices < ns.MaxExternalServices ||
-		newTariff.InternalServices < ns.MaxIntServices {
+		newTariff.ExternalServices < ns.ExtServices ||
+		newTariff.InternalServices < ns.IntServices {
 		return rserrors.ErrDownResizeNotAllowed()
 	}
 	return nil
