@@ -206,11 +206,11 @@ func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.Na
 func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, serviceType rstypes.ServiceType) error {
 	switch serviceType {
 	case rstypes.ServiceExternal:
-		if ns.MaxExternalServices >= nsUsage.ExtServices {
+		if ns.MaxExternalServices <= nsUsage.ExtServices {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
 		}
 	case rstypes.ServiceInternal:
-		if ns.MaxIntServices >= nsUsage.IntServices {
+		if ns.MaxIntServices <= nsUsage.IntServices {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
 		}
 	default:
