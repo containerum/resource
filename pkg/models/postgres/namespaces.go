@@ -677,8 +677,8 @@ func (db *NamespacePG) GetNamespaceUsage(ctx context.Context, ns rstypes.Namespa
 			GROUP BY d.replicas
 		), ext_int AS (
 			SELECT
-				count(s.id) FILTER (WHERE s.type = 'external') AS intsvc,
-				count(s.id) FILTER (WHERE s.type = 'internal') AS extsvc
+				count(s.id) FILTER (WHERE s.type = 'external') AS extsvc,
+				count(s.id) FILTER (WHERE s.type = 'internal') AS intsvc
 			FROM deployments d
 			JOIN services s ON s.deploy_id = d.id
 			WHERE d.ns_id = :id
@@ -689,11 +689,13 @@ func (db *NamespacePG) GetNamespaceUsage(ctx context.Context, ns rstypes.Namespa
 			ext_int.extsvc AS extservices,
 			ext_int.intsvc AS intservices
 		FROM cpu_ram, ext_int
-		GROUP BY ext_int.intsvc, ext_int.extsvc`, ns)
+		GROUP BY ext_int.intsvc, ext_int.extsvc
+		UNION ALL 
+        SELECT 0,0,0,0
+        LIMIT 1;`, ns)
 	err = sqlx.GetContext(ctx, db, &usage, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
-
 	return
 }

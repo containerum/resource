@@ -127,8 +127,14 @@ func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceU
 	}
 
 	var deployCPU, deployRAM int
-	cpuQty, _ := resource.ParseQuantity(deploy.TotalCPU)
-	ramQty, _ := resource.ParseQuantity(deploy.TotalMemory)
+	cpuQty, err := resource.ParseQuantity(deploy.TotalCPU)
+	if err != nil {
+		return rserrors.ErrInternal().AddDetailF("unable to parse CPU quota").AddDetailsErr(err)
+	}
+	ramQty, err := resource.ParseQuantity(deploy.TotalMemory)
+	if err != nil {
+		return rserrors.ErrInternal().AddDetailF("unable to parse Memory quota").AddDetailsErr(err)
+	}
 	deployCPU = int(cpuQty.ScaledValue(resource.Milli))
 	deployRAM = int(ramQty.ScaledValue(resource.Mega))
 
