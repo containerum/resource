@@ -17,6 +17,7 @@ import (
 type UserManagerClient interface {
 	UserInfoByLogin(ctx context.Context, login string) (*umtypes.User, error)
 	UserInfoByID(ctx context.Context, userID string) (*umtypes.User, error)
+	UserLoginIDList(ctx context.Context) (map[string]string, error)
 }
 
 type httpUserManagerClient struct {
@@ -74,6 +75,25 @@ func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string)
 	return resp.Result().(*umtypes.User), nil
 }
 
+func (u *httpUserManagerClient) UserLoginIDList(ctx context.Context) (map[string]string, error) {
+	u.log.Info("get users list")
+	resp, err := u.client.R().
+		SetContext(ctx).
+		SetResult(map[string]string{}).
+		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		Get("/user/loginid")
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error() != nil {
+		return nil, resp.Error().(*cherry.Err)
+	}
+
+	ret := resp.Result().(*map[string]string)
+
+	return *ret, nil
+}
+
 type userManagerStub struct {
 	log         *logrus.Entry
 	givenLogins map[string]umtypes.User
@@ -121,4 +141,9 @@ func (u *userManagerStub) UserInfoByID(ctx context.Context, userID string) (*umt
 			},
 		},
 	}, nil
+}
+
+func (u *userManagerStub) UserLoginIDList(ctx context.Context) (map[string]string, error) {
+	u.log.Info("get user info by id")
+	return map[string]string{utils.NewUUID(): "fake-" + utils.NewUUID() + "@test.com"}, nil
 }
