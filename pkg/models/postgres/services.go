@@ -402,9 +402,8 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 		return
 	}
 
-	sqlx.NamedExecContext(ctx, db, /* language=sql */
-		`REINDEX INDEX port_domain_index; -- to ensure that index will be updated before inserting new ports`,
-		map[string]interface{}{})
+	_, err = db.ExecContext(ctx, /* language=sql */
+		`REINDEX INDEX port_domain_index;`)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
