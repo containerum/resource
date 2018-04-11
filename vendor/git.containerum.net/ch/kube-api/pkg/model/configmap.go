@@ -7,6 +7,8 @@ import (
 
 	"time"
 
+	"encoding/base64"
+
 	kube_types "git.containerum.net/ch/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
 	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +25,7 @@ type ConfigMapWithOwner struct {
 }
 
 // ParseConfigMapList parses kubernetes v1.ConfigMapList to more convenient []ConfigMap struct.
-func ParseConfigMapList(cmi interface{}) (*ConfigMapsList, error) {
+func ParseConfigMapList(cmi interface{}, parseforuser bool) (*ConfigMapsList, error) {
 	cm := cmi.(*api_core.ConfigMapList)
 	if cm == nil {
 		return nil, ErrUnableConvertConfigMapList
@@ -31,7 +33,7 @@ func ParseConfigMapList(cmi interface{}) (*ConfigMapsList, error) {
 
 	newCms := make([]ConfigMapWithOwner, 0)
 	for _, cm := range cm.Items {
-		newCm, err := ParseConfigMap(&cm)
+		newCm, err := ParseConfigMap(&cm, parseforuser)
 		if err != nil {
 			return nil, err
 		}
@@ -41,7 +43,7 @@ func ParseConfigMapList(cmi interface{}) (*ConfigMapsList, error) {
 }
 
 // ParseConfigMap parses kubernetes v1.ConfigMap to more convenient ConfigMap struct.
-func ParseConfigMap(cmi interface{}) (*ConfigMapWithOwner, error) {
+func ParseConfigMap(cmi interface{}, parseforuser bool) (*ConfigMapWithOwner, error) {
 	cm := cmi.(*api_core.ConfigMap)
 	if cm == nil {
 		return nil, ErrUnableConvertConfigMap
@@ -55,14 +57,20 @@ func ParseConfigMap(cmi interface{}) (*ConfigMapWithOwner, error) {
 	owner := cm.GetObjectMeta().GetLabels()[ownerLabel]
 	createdAt := cm.CreationTimestamp.Format(time.RFC3339)
 
-	return &ConfigMapWithOwner{
+	newCm := ConfigMapWithOwner{
 		ConfigMap: kube_types.ConfigMap{
 			Name:      cm.GetName(),
 			CreatedAt: &createdAt,
 			Data:      newData,
 		},
 		Owner: owner,
-	}, nil
+	}
+
+	if parseforuser {
+		newCm.Owner = ""
+	}
+
+	return &newCm, nil
 }
 
 // MakeConfigMap creates kubernetes v1.ConfigMap from ConfigMap struct and namespace labels
@@ -76,7 +84,13 @@ func MakeConfigMap(nsName string, cm ConfigMapWithOwner, labels map[string]strin
 		labels = make(map[string]string, 0)
 	}
 	labels[ownerLabel] = cm.Owner
-	labels[nameLabel] = cm.Name
+
+	for k, v := range cm.Data {
+		dec, err := base64.StdEncoding.DecodeString(v)
+		if err == nil {
+			cm.Data[k] = string(dec)
+		}
+	}
 
 	newCm := api_core.ConfigMap{
 		TypeMeta: api_meta.TypeMeta{
@@ -100,7 +114,6 @@ func ValidateConfigMap(cm ConfigMapWithOwner) []error {
 	} else if !IsValidUUID(cm.Owner) {
 		errs = append(errs, errors.New(invalidOwner))
 	}
-
 	if cm.Name == "" {
 		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
 	} else if err := api_validation.IsDNS1123Label(cm.Name); len(err) > 0 {

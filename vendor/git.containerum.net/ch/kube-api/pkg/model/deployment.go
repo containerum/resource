@@ -28,8 +28,8 @@ const (
 
 	minDeployCPU      = "10m"
 	minDeployMemory   = "10Mi"
-	maxDeployCPU      = "4"
-	maxDeployMemory   = "4Gi"
+	maxDeployCPU      = "12"
+	maxDeployMemory   = "16Gi"
 	maxDeployReplicas = 15
 )
 
@@ -136,7 +136,6 @@ func MakeDeployment(nsName string, depl DeploymentWithOwner, labels map[string]s
 	}
 	labels[appLabel] = depl.Name
 	labels[ownerLabel] = depl.Owner
-	labels[nameLabel] = depl.Name
 
 	deployment := api_apps.Deployment{
 		TypeMeta: api_meta.TypeMeta{
