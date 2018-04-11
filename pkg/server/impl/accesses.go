@@ -153,7 +153,7 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 	return err
 }
 
-func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error) {
+func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label string) (*rstypes.GetUserNamespaceAccessesResponse, error) {
 	userID := utils.MustGetUserID(ctx)
 	aa.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -161,8 +161,24 @@ func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label
 	}).Info("get user namespace accesses")
 
 	ret, err := aa.NamespaceDB(aa.DB).GetNamespaceWithUserPermissions(ctx, userID, label)
+	if err != nil {
+		return nil, err
+	}
 
-	return ret, err
+	userlist, err := aa.User.UserLoginIDList(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.UserLogin = userlist[ret.UserID]
+	ret.UserID = ""
+
+	for n, v := range ret.Users {
+		ret.Users[n].UserLogin = userlist[v.UserID]
+		ret.Users[n].UserID = ""
+	}
+
+	return &ret, err
 }
 
 func (aa *AccessActionsImpl) GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error) {

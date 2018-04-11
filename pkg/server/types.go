@@ -65,7 +65,7 @@ type AccessActions interface {
 	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
 	DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error
 	DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error
-	GetUserNamespaceAccesses(ctx context.Context, label string) (rstypes.GetUserNamespaceAccessesResponse, error)
+	GetUserNamespaceAccesses(ctx context.Context, label string) (*rstypes.GetUserNamespaceAccessesResponse, error)
 	GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error)
 }
 

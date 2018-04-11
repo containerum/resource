@@ -456,10 +456,19 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 	ret.Users = make([]rstypes.PermissionRecord, 0)
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT ns.*,
-			p.id AS perm_id,
+		`SELECT 
+			ns.id,
+			ns.create_time,
+			ns.delete_time,
+			ns.deleted,
+			ns.tariff_id,
+			ns.ram,
+			ns.cpu,
+			ns.max_ext_services,
+			ns.max_int_services,
+			ns.max_traffic,
+			p.user_id,
 			p.kind,
-			p.resource_id,
 			p.resource_label,
 			p.owner_user_id,
 			p.create_time,
@@ -485,9 +494,7 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 
 	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT 
-			p.id AS perm_id,
 			p.kind,
-			p.resource_id,
 			p.resource_label,
 			p.owner_user_id,
 			p.create_time,
