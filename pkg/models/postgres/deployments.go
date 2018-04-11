@@ -314,7 +314,8 @@ func (db *DeployPG) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, d
 		var containerResp kubtypes.Container
 		containerResp.Name = container.Name
 		containerResp.Image = container.Image
-
+		containerResp.Limits.CPU = resource.NewScaledQuantity(int64(container.CPU), resource.Milli).String()
+		containerResp.Limits.Memory = resource.NewScaledQuantity(int64(container.RAM), resource.Mega).String()
 		env := convertEnv(containerEnv[container.ID])
 		containerResp.Env = env
 
