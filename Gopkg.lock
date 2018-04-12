@@ -18,7 +18,7 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "6253170f1baf1ee84d8c16d28c3ba858c48f37b3"
+  revision = "c3bb3b6b8ed7f51c189eb27a0d84e43d1e4835c2"
 
 [[projects]]
   branch = "develop"
@@ -275,7 +275,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "f70185d77e8278766928032ee1355e3da47e7181"
+  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
 
 [[projects]]
   branch = "master"
@@ -436,7 +436,7 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "abc8da71b9857a2256d858339349d9324ad5c9fd"
+  revision = "f442ecb314a3679150c272e2b9713d8deed5955d"
 
 [solve-meta]
   analyzer-name = "dep"

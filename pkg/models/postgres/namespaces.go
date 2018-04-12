@@ -336,7 +336,7 @@ func (db *NamespacePG) GetUserNamespaceByLabel(ctx context.Context, userID, labe
 	db.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
-	}).Debug("get namespace with volumes by label")
+	}).Debug("get namespace by label")
 
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT ns.*,
