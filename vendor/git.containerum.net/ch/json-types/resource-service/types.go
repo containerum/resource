@@ -107,7 +107,7 @@ type PermissionRecord struct {
 	OwnerUserID           string           `json:"owner_user_id,omitempty" db:"owner_user_id"`
 	CreateTime            *time.Time       `json:"create_time,omitempty" db:"create_time"`
 	UserID                string           `json:"user_id,omitempty" db:"user_id"`
-	UserLogin             string           `json:"login,omitempty" db:"user_id"`
+	UserLogin             string           `json:"login,omitempty" db:"-"`
 	AccessLevel           PermissionStatus `json:"access" db:"access_level"`
 	Limited               bool             `json:"limited,omitempty" db:"limited"`
 	AccessLevelChangeTime *time.Time       `json:"access_level_change_time" db:"access_level_change_time"`
