@@ -52,6 +52,11 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 	}
 
 	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if permErr := server.GetAndCheckPermission(ctx, ia.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
@@ -97,6 +102,9 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 				},
 				Owner: userID,
 			}
+			if createErr := ia.Kube.CreateSecret(ctx, nsID, secret); createErr != nil {
+				return createErr
+			}
 
 			ingress.Rules = append(ingress.Rules, kubtypes.Rule{
 				Host:      req.Domain,
@@ -110,6 +118,10 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			})
 		default:
 			return rserrors.ErrValidation().AddDetailF("invalid ingress type %s", req.TLS)
+		}
+
+		if createErr := ia.Kube.CreateIngress(ctx, nsID, ingress); createErr != nil {
+			return createErr
 		}
 
 		return nil
@@ -153,13 +165,30 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 	}).Info("delete ingress")
 
 	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if permErr := server.GetAndCheckPermission(ctx, ia.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
 			return permErr
 		}
 
-		_, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)
+		ingressType, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)
 		if delErr != nil {
 			return delErr
+		}
+
+		ingressName := domain
+		if delErr := ia.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
+			return delErr
+		}
+
+		// in CreateIngress() we created secret for "custom_https" ingress so delete it.
+		if ingressType == rstypes.IngressCustomHTTPS {
+			if delErr := ia.Kube.DeleteSecret(ctx, nsID, ingressName); delErr != nil {
+				return delErr
+			}
 		}
 
 		return nil

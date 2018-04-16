@@ -12,6 +12,7 @@ ENV MIGRATION_URL="file:///app/migrations" \
     MODE="release" \
     AUTH_ADDR="" \
     BILLING_ADDR="" \
+    KUBE_ADDR="" \
     MAILER_ADDR="" \
     VOLUMES_ADDR="" \
     USER_ADDR="" \
