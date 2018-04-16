@@ -171,11 +171,9 @@ func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label
 	}
 
 	ret.UserLogin = userlist[ret.UserID]
-	ret.UserID = ""
 
 	for n, v := range ret.Users {
 		ret.Users[n].UserLogin = userlist[v.UserID]
-		ret.Users[n].UserID = ""
 	}
 
 	return &ret, err

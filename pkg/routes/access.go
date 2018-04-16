@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	umtypes "git.containerum.net/ch/json-types/user-manager"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/utils"
 	"github.com/gin-gonic/gin/binding"
@@ -78,6 +79,10 @@ func (h *AccessHandlers) GetUserNamespaceAccessesHandler(ctx *gin.Context) {
 	}
 
 	utils.MaskForNonAdmin(ctx, resp)
+
+	if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" && resp.NewAccessLevel != "owner" {
+		resp.Users = nil
+	}
 
 	ctx.JSON(http.StatusOK, resp)
 }

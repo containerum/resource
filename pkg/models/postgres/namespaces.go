@@ -458,7 +458,6 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 	query, args, _ := sqlx.Named( /* language=sql */
 		`SELECT 
 			ns.id,
-			ns.create_time,
 			ns.delete_time,
 			ns.deleted,
 			ns.tariff_id,
@@ -467,19 +466,17 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 			ns.max_ext_services,
 			ns.max_int_services,
 			ns.max_traffic,
-			p.user_id,
-			p.kind,
-			p.resource_label,
-			p.owner_user_id,
+			p.resource_id,
 			p.create_time,
 			p.user_id,
+			p.owner_user_id,
 			p.access_level,
 			p.limited,
 			p.access_level_change_time,
 			p.new_access_level
 		FROM namespaces ns
 		JOIN permissions p ON p.resource_id = ns.id AND p.kind = 'namespace'
-		WHERE (p.user_id = :user_id OR p.owner_user_id = :user_id) AND p.resource_label = :resource_label`,
+		WHERE (p.user_id = :user_id) AND p.resource_label = :resource_label`,
 		rstypes.PermissionRecord{UserID: userID, ResourceLabel: label})
 	err = sqlx.GetContext(ctx, db, &ret.NamespaceWithPermission, db.Rebind(query), args...)
 	switch err {
@@ -492,13 +489,13 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 		return
 	}
 
+	//TODO: Fix unmarshalling
+	ret.PermissionRecord.CreateTime = ret.Namespace.CreateTime
+
 	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT 
-			p.kind,
-			p.resource_label,
-			p.owner_user_id,
-			p.create_time,
 			p.user_id,
+			p.create_time,
 			p.access_level,
 			p.limited,
 			p.access_level_change_time,
