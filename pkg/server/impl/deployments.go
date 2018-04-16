@@ -4,6 +4,7 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -118,6 +119,13 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 			return confErr
 		}
 
+		deployCreateReq := kubtypesInternal.DeploymentWithOwner{}
+		deployCreateReq.Deployment = deploy
+		deployCreateReq.Owner = userID
+		if createErr := da.Kube.CreateDeployment(ctx, ns.ID, deployCreateReq); createErr != nil {
+			return createErr
+		}
+
 		return nil
 	})
 
@@ -133,12 +141,21 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 	}).Info("delete deployment")
 
 	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
 			return permErr
 		}
 
 		lastInNamespace, delErr := da.DeployDB(tx).DeleteDeployment(ctx, userID, nsLabel, deplName)
 		if delErr != nil {
+			return delErr
+		}
+
+		if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
 			return delErr
 		}
 
@@ -192,6 +209,13 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 			return replaceErr
 		}
 
+		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
+		deployReplaceReq.Deployment = deploy
+		deployReplaceReq.Owner = userID
+		if replaceErr := da.Kube.ReplaceDeployment(ctx, ns.ID, deployReplaceReq); replaceErr != nil {
+			return replaceErr
+		}
+
 		return nil
 	})
 
@@ -234,6 +258,10 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 			return setErr
 		}
 
+		if setErr := da.Kube.SetDeploymentReplicas(ctx, ns.ID, deplName, req.Replicas); setErr != nil {
+			return setErr
+		}
+
 		return nil
 	})
 
@@ -249,11 +277,21 @@ func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, dep
 	}).Infof("set container image %#v", req)
 
 	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+		if getErr != nil {
+			return getErr
+		}
+
 		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
 		if setErr := da.DeployDB(tx).SetContainerImage(ctx, userID, nsLabel, deplName, req); setErr != nil {
+			return setErr
+		}
+
+		setErr := da.Kube.SetContainerImage(ctx, nsID, deplName, req)
+		if setErr != nil {
 			return setErr
 		}
 

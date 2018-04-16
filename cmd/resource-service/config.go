@@ -110,6 +110,17 @@ func setupBillingClient(addr string) (clients.Billing, error) {
 	}
 }
 
+func setupKubeClient(addr string) (clients.Kube, error) {
+	switch {
+	case opMode == modeDebug && addr == "":
+		return clients.NewDummyKube(), nil
+	case addr != "":
+		return clients.NewKubeHTTP(&url.URL{Scheme: "http", Host: addr}), nil
+	default:
+		return nil, errors.New("missing configuration for kube service")
+	}
+}
+
 func setupMailerClient(addr string) (clients.Mailer, error) {
 	switch {
 	case opMode == modeDebug && addr == "":
@@ -156,6 +167,9 @@ func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServi
 		return nil, nil, err
 	}
 	if ret.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
+		return nil, nil, err
+	}
+	if ret.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
 		return nil, nil, err
 	}
 	if ret.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
