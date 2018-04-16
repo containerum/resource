@@ -227,6 +227,14 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 		err = sqlx.GetContext(ctx, db, &ret.Containers, db.Rebind(query), args...)
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
+			return
+		}
+
+		query, args, _ = sqlx.In( /* language=sql */ `SELECT sum(replicas) FROM deployments WHERE id IN (?)`, deplIDs)
+		err = sqlx.GetContext(ctx, db, &ret.Pods, db.Rebind(query), args...)
+		if err != nil {
+			err = rserrors.ErrDatabase().Log(err, db.log)
+			return
 		}
 	}
 	return
