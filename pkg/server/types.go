@@ -14,7 +14,6 @@ import (
 type ResourceServiceClients struct {
 	DB      models.RelationalDB
 	Auth    clients.AuthSvc
-	Kube    clients.Kube
 	Mail    clients.Mailer
 	Billing clients.Billing
 	User    clients.UserManagerClient

@@ -87,9 +87,6 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 			},
 			Owner: userID,
 		}
-		if createErr := na.Kube.CreateNamespace(ctx, nsCreateRequest); createErr != nil {
-			return createErr
-		}
 
 		if tariff.VolumeSize > 0 {
 			storage, selectErr := na.StorageDB(tx).ChooseAvailableStorage(ctx, tariff.VolumeSize)
@@ -203,10 +200,6 @@ func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label s
 		}
 
 		// TODO: stop volumes on volume service
-
-		if delErr := na.Kube.DeleteNamespace(ctx, nsToDelete.ID); delErr != nil {
-			return delErr
-		}
 
 		if unsubErr := na.Billing.Unsubscribe(ctx, nsToDelete.ID); unsubErr != nil {
 			return unsubErr
@@ -346,22 +339,6 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 
 		if subErr := na.Billing.EditSubscription(ctx, ns.ID, ns.TariffID); subErr != nil {
 			return subErr
-		}
-
-		nsResizeReq := kubtypesInternal.NamespaceWithOwner{
-			Namespace: kubtypes.Namespace{
-				Label: ns.ID,
-				Resources: kubtypes.Resources{
-					Hard: kubtypes.Resource{
-						CPU:    fmt.Sprintf("%dm", ns.CPU),
-						Memory: fmt.Sprintf("%dMi", ns.RAM),
-					},
-				},
-			},
-			Owner: userID,
-		}
-		if updErr := na.Kube.SetNamespaceQuota(ctx, nsResizeReq); updErr != nil {
-			return updErr
 		}
 
 		// if namespace has connected volume and new tariff don`t have volumes, remove it

@@ -91,10 +91,6 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 			return createErr
 		}
 
-		if createErr := sa.Kube.CreateService(ctx, ns.ID, kubeRequest); createErr != nil {
-			return createErr
-		}
-
 		return nil
 	})
 
@@ -164,16 +160,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 			}
 		}
 
-		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
-
 		if updErr := sa.ServiceDB(tx).UpdateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); updErr != nil {
-			return updErr
-		}
-
-		if updErr := sa.Kube.UpdateService(ctx, nsID, kubeRequest); updErr != nil {
 			return updErr
 		}
 
@@ -192,20 +179,11 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 	}).Info("delete service")
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
-
 		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
 		if delErr := sa.ServiceDB(tx).DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
-			return delErr
-		}
-
-		if delErr := sa.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
 			return delErr
 		}
 
