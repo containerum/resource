@@ -402,13 +402,6 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 		return
 	}
 
-	_, err = db.ExecContext(ctx, /* language=sql */
-		`REINDEX INDEX port_domain_index;`)
-	if err != nil {
-		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
-	}
-
 	err = db.createServicePorts(ctx, serviceID, req.Domain, newServiceType, req.Ports)
 	return
 }
