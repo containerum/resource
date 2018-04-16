@@ -108,9 +108,9 @@ type PermissionRecord struct {
 	CreateTime            *time.Time       `json:"create_time,omitempty" db:"create_time"`
 	UserID                string           `json:"user_id,omitempty" db:"user_id"`
 	UserLogin             string           `json:"login,omitempty" db:"-"`
-	AccessLevel           PermissionStatus `json:"access" db:"access_level"`
+	AccessLevel           PermissionStatus `json:"access,omitempty" db:"access_level"`
 	Limited               bool             `json:"limited,omitempty" db:"limited"`
-	AccessLevelChangeTime *time.Time       `json:"access_level_change_time" db:"access_level_change_time"`
+	AccessLevelChangeTime *time.Time       `json:"access_level_change_time,omitempty" db:"access_level_change_time"`
 	NewAccessLevel        PermissionStatus `json:"new_access_level,omitempty" db:"new_access_level"`
 }
 
@@ -279,8 +279,17 @@ type NamespaceWithUserPermissions struct {
 }
 
 func (nu *NamespaceWithUserPermissions) Mask() {
-	nu.Users = nil
-
+	nu.ID = ""
+	nu.UserID = ""
+	nu.ResourceID = nil
+	nu.OwnerUserID = ""
+	nu.AccessLevelChangeTime = nil
+	nu.AccessLevel = ""
+	for n := range nu.Users {
+		nu.Users[n].UserID = ""
+		nu.Users[n].AccessLevel = ""
+		nu.Users[n].AccessLevelChangeTime = nil
+	}
 }
 
 type VolumeWithUserPermissions struct {
