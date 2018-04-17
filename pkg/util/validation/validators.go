@@ -154,11 +154,11 @@ func deploymentValidate(structLevel validator.StructLevel) {
 			}
 		}
 
-		if err := v.Var(container.Limits.Memory, "kube_quantity"); err != nil {
+		if err := v.Var(container.Limits.Memory, "min=10,max=16000"); err != nil {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Containers[%d].Limits.Memory", i), "", err.(validator.ValidationErrors))
 		}
 
-		if err := v.Var(container.Limits.CPU, "kube_quantity"); err != nil {
+		if err := v.Var(container.Limits.CPU, "min=10,max=12000"); err != nil {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Containers[%d].Limits.CPU", i), "", err.(validator.ValidationErrors))
 		}
 	}
