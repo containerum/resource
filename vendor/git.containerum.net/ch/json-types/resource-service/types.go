@@ -275,7 +275,7 @@ func (nv *NamespaceWithVolumes) Mask() {
 
 type NamespaceWithUserPermissions struct {
 	NamespaceWithPermission
-	Users []PermissionRecord `json:"users,omitempty"`
+	Users []PermissionRecord `json:"users"`
 }
 
 func (nu *NamespaceWithUserPermissions) Mask() {

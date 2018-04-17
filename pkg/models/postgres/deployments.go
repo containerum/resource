@@ -13,7 +13,6 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 type DeployPG struct {
@@ -229,8 +228,8 @@ func (db *DeployPG) GetDeployments(ctx context.Context, userID, nsLabel string) 
 			var containerResp kubtypes.Container
 			containerResp.Name = container.Name
 			containerResp.Image = container.Image
-			containerResp.Limits.CPU = resource.NewScaledQuantity(int64(container.CPU), resource.Milli).String()
-			containerResp.Limits.Memory = resource.NewScaledQuantity(int64(container.RAM), resource.Mega).String()
+			containerResp.Limits.CPU = uint(container.CPU)
+			containerResp.Limits.Memory = uint(container.RAM)
 
 			env := convertEnv(containerEnv[container.ID])
 			containerResp.Env = env
@@ -314,8 +313,8 @@ func (db *DeployPG) GetDeploymentByLabel(ctx context.Context, userID, nsLabel, d
 		var containerResp kubtypes.Container
 		containerResp.Name = container.Name
 		containerResp.Image = container.Image
-		containerResp.Limits.CPU = resource.NewScaledQuantity(int64(container.CPU), resource.Milli).String()
-		containerResp.Limits.Memory = resource.NewScaledQuantity(int64(container.RAM), resource.Mega).String()
+		containerResp.Limits.CPU = uint(container.CPU)
+		containerResp.Limits.Memory = uint(container.RAM)
 		env := convertEnv(containerEnv[container.ID])
 		containerResp.Env = env
 
@@ -395,24 +394,12 @@ func (db *DeployPG) createDeploymentContainers(ctx context.Context, deplID strin
 	contMap = make(map[string]kubtypes.Container)
 	for _, container := range containers {
 		var containerID string
-		var cpuQty, ramQty resource.Quantity
-
-		if cpuQty, err = resource.ParseQuantity(container.Limits.CPU); err != nil {
-			err = rserrors.ErrValidation().AddDetailF("cpu quantity parse failed: %v", err)
-			return
-		}
-
-		if ramQty, err = resource.ParseQuantity(container.Limits.Memory); err != nil {
-			err = rserrors.ErrValidation().AddDetailF("memory quantity parse failed: %v")
-			return
-		}
-
 		err = stmt.GetContext(ctx, &containerID, rstypes.Container{
 			DeployID: deplID,
 			Name:     container.Name,
 			Image:    container.Image,
-			CPU:      int(cpuQty.ScaledValue(resource.Milli)), // our limits fits into "int", stored as mCPU
-			RAM:      int(ramQty.ScaledValue(resource.Mega)),  // stored as megabytes
+			CPU:      int(container.Limits.CPU),    // our limits fits into "int", stored as mCPU
+			RAM:      int(container.Limits.Memory), // stored as megabytes
 		})
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)

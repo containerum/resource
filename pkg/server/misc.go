@@ -17,7 +17,6 @@ import (
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // Parallel runs functions in dedicated goroutines and waits for ending
@@ -127,16 +126,8 @@ func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceU
 	}
 
 	var deployCPU, deployRAM int
-	cpuQty, err := resource.ParseQuantity(deploy.TotalCPU)
-	if err != nil {
-		return rserrors.ErrInternal().AddDetailF("unable to parse CPU quota").AddDetailsErr(err)
-	}
-	ramQty, err := resource.ParseQuantity(deploy.TotalMemory)
-	if err != nil {
-		return rserrors.ErrInternal().AddDetailF("unable to parse Memory quota").AddDetailsErr(err)
-	}
-	deployCPU = int(cpuQty.ScaledValue(resource.Milli))
-	deployRAM = int(ramQty.ScaledValue(resource.Mega))
+	deployCPU = int(deploy.TotalCPU)
+	deployRAM = int(deploy.TotalCPU)
 
 	if exceededCPU := ns.CPU - deployCPU - nsUsage.CPU; exceededCPU < 0 {
 		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
@@ -155,20 +146,16 @@ func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.Namespace
 	}
 
 	var oldDeployCPU, oldDeployRAM int
-	cpuQty, _ := resource.ParseQuantity(oldDeploy.TotalCPU)
-	ramQty, _ := resource.ParseQuantity(oldDeploy.TotalMemory)
-	oldDeployCPU = int(cpuQty.ScaledValue(resource.Milli))
-	oldDeployRAM = int(ramQty.ScaledValue(resource.Mega))
+	oldDeployCPU = int(oldDeploy.TotalCPU)
+	oldDeployRAM = int(oldDeploy.TotalMemory)
 
 	if err := CalculateDeployResources(&newDeploy); err != nil {
 		return err
 	}
 
 	var newDeployCPU, newDeployRAM int
-	cpuQty, _ = resource.ParseQuantity(newDeploy.TotalCPU)
-	ramQty, _ = resource.ParseQuantity(newDeploy.TotalMemory)
-	newDeployCPU = int(cpuQty.ScaledValue(resource.Milli))
-	newDeployRAM = int(ramQty.ScaledValue(resource.Mega))
+	newDeployCPU = int(newDeploy.TotalCPU)
+	newDeployRAM = int(newDeploy.TotalMemory)
 
 	if exceededCPU := ns.CPU - nsUsage.CPU - newDeployCPU + oldDeployCPU; exceededCPU < 0 {
 		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
@@ -187,10 +174,8 @@ func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.Na
 	}
 
 	var deployCPU, deployRAM int
-	cpuQty, _ := resource.ParseQuantity(deploy.TotalCPU)
-	ramQty, _ := resource.ParseQuantity(deploy.TotalMemory)
-	deployCPU = int(cpuQty.ScaledValue(resource.Milli))
-	deployRAM = int(ramQty.ScaledValue(resource.Mega))
+	deployCPU = int(deploy.TotalCPU)
+	deployRAM = int(deploy.TotalMemory)
 
 	if exceededCPU := ns.CPU - nsUsage.CPU - deployCPU*newReplicas + deployCPU*deploy.Replicas; exceededCPU < 0 {
 		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
@@ -221,22 +206,14 @@ func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsag
 
 func CalculateDeployResources(deploy *kubtypes.Deployment) error {
 	var mCPU, mbRAM int64
-	for i, container := range deploy.Containers {
-		containerCPU, err := resource.ParseQuantity(container.Limits.CPU)
-		if err != nil {
-			return rserrors.ErrValidation().AddDetailF("Container %d CPU limit parse failed", i)
-		}
-		containerRAM, err := resource.ParseQuantity(container.Limits.Memory)
-		if err != nil {
-			return rserrors.ErrValidation().AddDetailF("Container %d memory limit parse failed", 1)
-		}
-		mCPU += containerCPU.ScaledValue(resource.Milli)
-		mbRAM += containerRAM.ScaledValue(resource.Mega)
+	for _, container := range deploy.Containers {
+		mCPU += int64(container.Limits.CPU)
+		mbRAM += int64(container.Limits.Memory)
 	}
 	mCPU *= int64(deploy.Replicas)
 	mbRAM *= int64(deploy.Replicas)
-	deploy.TotalCPU = resource.NewScaledQuantity(mCPU, resource.Milli).String()
-	deploy.TotalMemory = resource.NewScaledQuantity(mbRAM, resource.Mega).String()
+	deploy.TotalCPU = uint(mCPU)
+	deploy.TotalMemory = uint(mbRAM)
 	return nil
 }
 
