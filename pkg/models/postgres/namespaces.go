@@ -49,10 +49,24 @@ func (db *NamespacePG) CreateNamespace(ctx context.Context, userID, label string
 			cpu,
 			max_ext_services,
 			max_int_services,
-			max_traffic
+			max_traffic,
+			owner_user_id
 		)
-		VALUES (:tariff_id, :ram, :cpu, :max_ext_services, :max_int_services, :max_traffic)
-		RETURNING *`, namespace)
+		VALUES (:tariff_id, :ram, :cpu, :max_ext_services, :max_int_services, :max_traffic, :owner_user_id)
+		RETURNING 
+			tariff_id,
+			ram,
+			cpu,
+			max_ext_services,
+			max_int_services,
+			max_traffic`,
+		struct {
+			*rstypes.Namespace
+			Owner string `db:"owner_user_id"`
+		}{
+			Namespace: namespace,
+			Owner:     userID,
+		})
 	err = sqlx.GetContext(ctx, db, namespace, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
