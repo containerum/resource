@@ -187,8 +187,8 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 			count(s.*) FILTER (WHERE s.type = 'external') AS extcnt,
 			count(s.*) FILTER (WHERE s.type = 'internal') AS intcnt
 		FROM services s
-		JOIN deployments d ON s.deploy_id = d.id
-		WHERE d.ns_id IN (?)`, nsIDs)
+		JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
+		WHERE d.ns_id IN (?) AND NOT s.deleted`, nsIDs)
 	err = sqlx.GetContext(ctx, db, &services, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -200,7 +200,7 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 
 	var deplIDs []string
 	if len(nsIDs) > 0 {
-		query, args, _ = sqlx.In( /* language=sql */ `SELECT id FROM deployments WHERE ns_id IN (?)`, nsIDs)
+		query, args, _ = sqlx.In( /* language=sql */ `SELECT id FROM deployments WHERE ns_id IN (?) AND NOT deleted`, nsIDs)
 		err = sqlx.SelectContext(ctx, db, &deplIDs, db.Rebind(query), args...)
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
@@ -214,7 +214,7 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 		query, args, _ = sqlx.In( /* language=sql */
 			`SELECT count(*) 
 		FROM ingresses i
-		JOIN services s ON i.service_id = s.id
+		JOIN services s ON i.service_id = s.id AND NOT s.deleted
 		WHERE s.deploy_id IN (?)`,
 			deplIDs)
 		err = sqlx.GetContext(ctx, db, &ret.Ingresses, db.Rebind(query), args...)
@@ -227,6 +227,14 @@ func (db *ResourceCountPG) GetResourcesCount(ctx context.Context, userID string)
 		err = sqlx.GetContext(ctx, db, &ret.Containers, db.Rebind(query), args...)
 		if err != nil {
 			err = rserrors.ErrDatabase().Log(err, db.log)
+			return
+		}
+
+		query, args, _ = sqlx.In( /* language=sql */ `SELECT sum(replicas) FROM deployments WHERE id IN (?) AND NOT deleted`, deplIDs)
+		err = sqlx.GetContext(ctx, db, &ret.Pods, db.Rebind(query), args...)
+		if err != nil {
+			err = rserrors.ErrDatabase().Log(err, db.log)
+			return
 		}
 	}
 	return
