@@ -5,8 +5,6 @@ import (
 
 	"strings"
 
-	"fmt"
-
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
@@ -80,8 +78,8 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 				Label: req.Label,
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
-						CPU:    fmt.Sprintf("%dm", newNamespace.CPU),
-						Memory: fmt.Sprintf("%dMi", newNamespace.RAM),
+						CPU:    uint(newNamespace.CPU),
+						Memory: uint(newNamespace.RAM),
 					},
 				},
 			},
@@ -353,8 +351,8 @@ func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label s
 				Label: ns.ID,
 				Resources: kubtypes.Resources{
 					Hard: kubtypes.Resource{
-						CPU:    fmt.Sprintf("%dm", ns.CPU),
-						Memory: fmt.Sprintf("%dMi", ns.RAM),
+						CPU:    uint(ns.CPU),
+						Memory: uint(ns.RAM),
 					},
 				},
 			},
