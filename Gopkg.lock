@@ -18,13 +18,13 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "541a20ce28e4ad5e21e92f006e2809d5ee5df9e7"
+  revision = "30c858d1d744198ab8d3f6077347c223c4d079ad"
 
 [[projects]]
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
   packages = ["pkg/model"]
-  revision = "db4773771a20b81dcb00e347494195ce9803dc45"
+  revision = "c99c43c617a8758dc406ce1771e3f0f36764636b"
 
 [[projects]]
   name = "git.containerum.net/ch/kube-client"
@@ -37,8 +37,8 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "b5dd7ebef54c79c70f90db81fa448dca491b8351"
-  version = "v0.8.8"
+  revision = "422fecc2d8718b157f6cd4bb405baef6634af8dd"
+  version = "v0.9.2"
 
 [[projects]]
   branch = "master"
@@ -183,7 +183,7 @@
     "tags",
     "tags/logrus"
   ]
-  revision = "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8"
+  revision = "c7eebe484b34233f6a2619271ba9f9b234890a64"
 
 [[projects]]
   name = "github.com/jmoiron/sqlx"
@@ -282,6 +282,7 @@
   name = "golang.org/x/net"
   packages = [
     "context",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
@@ -290,7 +291,7 @@
     "publicsuffix",
     "trace"
   ]
-  revision = "500e7a4f953ddaf55d316b4d3adc516aa0379622"
+  revision = "8d16fa6dc9a85c1cd3ed24ad08ff21cf94f10888"
 
 [[projects]]
   branch = "master"
@@ -299,7 +300,7 @@
     "unix",
     "windows"
   ]
-  revision = "2f57af4873d00d535c5c9028850aa2152e6a5566"
+  revision = "b126b21c05a91c856b027c16779c12e3bf236954"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -441,6 +442,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d61ea643b0260dabf80b3c34bb67583280b192f68995d08a05ac60d83e4a0604"
+  inputs-digest = "c25e55bf121d2be62bd56b4bcc042a8f291a00265822229628c641b7c1e35117"
   solver-name = "gps-cdcl"
   solver-version = 1
