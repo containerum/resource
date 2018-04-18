@@ -9,8 +9,6 @@ import (
 
 	"time"
 
-	"fmt"
-
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
@@ -354,8 +352,6 @@ func (db *ServicePG) GetService(ctx context.Context, userID, nsLabel, serviceNam
 }
 
 func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, newServiceType rstypes.ServiceType, req kubtypes.Service) (err error) {
-	fmt.Println("TEST111111")
-
 	db.log.WithFields(logrus.Fields{
 		"user_id":          userID,
 		"ns_label":         nsLabel,
@@ -367,8 +363,6 @@ func (db *ServicePG) UpdateService(ctx context.Context, userID, nsLabel string, 
 	if err != nil {
 		return
 	}
-
-	fmt.Println("IT WORKS1")
 
 	var serviceID string
 	query, args, _ := sqlx.Named( /* language=sql */
@@ -422,7 +416,7 @@ func (db *ServicePG) DeleteService(ctx context.Context, userID, nsLabel, service
 		`WITH service_to_update AS (
 			SELECT s.id
 			FROM services s
-			JOIN deployments d ON s.deploy_id = d.id AND NOT d.deleted
+			JOIN deployments d ON s.deploy_id = d.id
 			WHERE (d.ns_id, s.name) = (:ns_id, :name) AND NOT s.deleted
 		)
 		UPDATE services
