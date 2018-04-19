@@ -249,6 +249,7 @@ func (db *VolumePG) GetUserVolumeByLabel(ctx context.Context,
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
 	}
+	ret.PermissionRecord.OwnerUserID = ret.Volume.OwnerUserID
 
 	return
 }
@@ -290,6 +291,7 @@ func (db *VolumePG) GetVolumeWithUserPermissions(ctx context.Context,
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
+	ret.PermissionRecord.OwnerUserID = ret.Volume.OwnerUserID
 
 	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT
