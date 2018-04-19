@@ -18,7 +18,7 @@
     "resource-service",
     "user-manager"
   ]
-  revision = "30c858d1d744198ab8d3f6077347c223c4d079ad"
+  revision = "041a989c67953d829255c2fb10985b9bc1b25e51"
 
 [[projects]]
   branch = "develop"
