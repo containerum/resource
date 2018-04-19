@@ -87,6 +87,10 @@ func (aa *AccessActionsImpl) SetUserVolumeAccess(ctx context.Context, label stri
 			return getErr
 		}
 
+		if info.ID == vol.OwnerUserID || info.ID == userID {
+			return rserrors.ErrValidation().AddDetailF("owner can`t change own permissions")
+		}
+
 		vol.PermissionRecord.UserID = info.ID
 		vol.PermissionRecord.AccessLevel = req.Access
 
@@ -133,6 +137,10 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 		info, getErr := aa.User.UserInfoByLogin(ctx, req.Username)
 		if getErr != nil {
 			return getErr
+		}
+
+		if info.ID == ns.OwnerUserID || info.ID == userID {
+			return rserrors.ErrValidation().AddDetailF("owner can`t change own permissions")
 		}
 
 		ns.PermissionRecord.UserID = info.ID
