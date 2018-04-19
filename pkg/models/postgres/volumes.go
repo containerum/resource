@@ -77,9 +77,10 @@ func (db *VolumePG) CreateVolume(ctx context.Context, userID, label string, volu
 			replicas,
 			ns_id,
 			storage_id,
-			gluster_name
+			gluster_name,
+			owner_user_id
 		)
-		VALUES (:tariff_id, :capacity, :replicas, :ns_id, :storage_id, :gluster_name)
+		VALUES (:tariff_id, :capacity, :replicas, :ns_id, :storage_id, :gluster_name, :owner_user_id)
 		RETURNING *`,
 		volume)
 	err = sqlx.GetContext(ctx, db, volume, db.Rebind(query), args...)
