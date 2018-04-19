@@ -367,6 +367,7 @@ func (db *NamespacePG) GetUserNamespaceByLabel(ctx context.Context, userID, labe
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
+	ret.PermissionRecord.OwnerUserID = ret.Namespace.OwnerUserID
 
 	return
 }
@@ -487,6 +488,7 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 
 	//TODO: Fix unmarshalling
 	ret.PermissionRecord.CreateTime = ret.Namespace.CreateTime
+	ret.PermissionRecord.OwnerUserID = ret.Namespace.OwnerUserID
 
 	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT 
