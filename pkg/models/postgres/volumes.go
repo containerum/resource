@@ -68,6 +68,7 @@ func (db *VolumePG) CreateVolume(ctx context.Context, userID, label string, volu
 		return
 	}
 
+	volume.OwnerUserID = userID
 	query, args, _ := sqlx.Named( /* language=sql */
 		`INSERT INTO volumes
 		(
