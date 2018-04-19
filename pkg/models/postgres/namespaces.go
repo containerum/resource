@@ -41,6 +41,7 @@ func (db *NamespacePG) CreateNamespace(ctx context.Context, userID, label string
 		return
 	}
 
+	namespace.OwnerUserID = userID
 	query, args, _ := sqlx.Named( /* language=sql */
 		`INSERT INTO namespaces
 		(
@@ -53,20 +54,7 @@ func (db *NamespacePG) CreateNamespace(ctx context.Context, userID, label string
 			owner_user_id
 		)
 		VALUES (:tariff_id, :ram, :cpu, :max_ext_services, :max_int_services, :max_traffic, :owner_user_id)
-		RETURNING 
-			tariff_id,
-			ram,
-			cpu,
-			max_ext_services,
-			max_int_services,
-			max_traffic`,
-		struct {
-			*rstypes.Namespace
-			Owner string `db:"owner_user_id"`
-		}{
-			Namespace: namespace,
-			Owner:     userID,
-		})
+		RETURNING *`, namespace)
 	err = sqlx.GetContext(ctx, db, namespace, db.Rebind(query), args...)
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
@@ -470,20 +458,14 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 	ret.Users = make([]rstypes.PermissionRecord, 0)
 
 	query, args, _ := sqlx.Named( /* language=sql */
-		`SELECT 
-			ns.id,
-			ns.delete_time,
-			ns.deleted,
-			ns.tariff_id,
-			ns.ram,
-			ns.cpu,
-			ns.max_ext_services,
-			ns.max_int_services,
-			ns.max_traffic,
+		`SELECT ns.*,
+			p.id AS perm_id,
+			p.kind,
 			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
 			p.create_time,
 			p.user_id,
-			p.owner_user_id,
 			p.access_level,
 			p.limited,
 			p.access_level_change_time,
@@ -508,8 +490,13 @@ func (db *NamespacePG) GetNamespaceWithUserPermissions(ctx context.Context,
 
 	query, args, _ = sqlx.Named( /* language=sql */
 		`SELECT 
-			p.user_id,
+			p.id AS perm_id,
+			p.kind,
+			p.resource_id,
+			p.resource_label,
+			p.owner_user_id,
 			p.create_time,
+			p.user_id,
 			p.access_level,
 			p.limited,
 			p.access_level_change_time,

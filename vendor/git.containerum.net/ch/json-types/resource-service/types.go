@@ -26,11 +26,12 @@ const (
 )
 
 type Resource struct {
-	ID         string     `json:"id,omitempty" db:"id"`
-	CreateTime *time.Time `json:"create_time,omitempty" db:"create_time"`
-	Deleted    bool       `json:"deleted,omitempty" db:"deleted"` // not optional because we actually don`t need it if it`s false
-	DeleteTime *time.Time `json:"delete_time,omitempty" db:"delete_time"`
-	TariffID   string     `json:"tariff_id,omitempty" db:"tariff_id"`
+	ID          string     `json:"id,omitempty" db:"id"`
+	CreateTime  *time.Time `json:"create_time,omitempty" db:"create_time"`
+	Deleted     bool       `json:"deleted,omitempty" db:"deleted"` // not optional because we actually don`t need it if it`s false
+	DeleteTime  *time.Time `json:"delete_time,omitempty" db:"delete_time"`
+	TariffID    string     `json:"tariff_id,omitempty" db:"tariff_id"`
+	OwnerUserID string     `json:"owner_user_id,omitempty" db:"owner_user_id"`
 }
 
 func (r *Resource) Mask() {
@@ -39,6 +40,7 @@ func (r *Resource) Mask() {
 	r.Deleted = false
 	r.DeleteTime = nil
 	r.TariffID = ""
+	r.OwnerUserID = ""
 }
 
 type Namespace struct {
