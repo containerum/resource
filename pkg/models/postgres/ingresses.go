@@ -219,3 +219,37 @@ func (db *IngressPG) DeleteIngress(ctx context.Context, userID, nsLabel, domain 
 
 	return
 }
+
+func (db *IngressPG) GetIngress(ctx context.Context, userID, nsLabel, serviceName string) (ingress rstypes.IngressEntry, err error) {
+	db.log.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"ns_label": nsLabel,
+		"service":  serviceName,
+	}).Info("get ingress")
+
+	nsID, err := NewNamespacePG(db.RelationalDB).GetNamespaceID(ctx, userID, nsLabel)
+	if err != nil {
+		return
+	}
+
+	query, args, _ := sqlx.Named( /* language=sql */
+		`WITH ns_services AS (
+			SELECT s.id 
+			FROM services s
+			JOIN deployments d ON s.deploy_id = d.id AND NOT s.deleted
+			WHERE d.ns_id = :ns_id AND NOT s.deleted AND s.name = :name
+		)
+		SELECT * FROM ingresses WHERE service_id IN (SELECT id FROM ns_services)`,
+		map[string]interface{}{"ns_id": nsID, "name": serviceName})
+	err = sqlx.GetContext(ctx, db, &ingress, db.Rebind(query), args...)
+	switch err {
+	case nil:
+		// pass
+	case sql.ErrNoRows:
+		err = rserrors.ErrResourceNotExists().AddDetailF("ingress for service %s not exists", serviceName)
+	default:
+		err = rserrors.ErrDatabase().Log(err, db.log)
+	}
+
+	return
+}

@@ -5,6 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
@@ -68,6 +69,16 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 
 		if serviceType != rstypes.ServiceExternal {
 			return rserrors.ErrServiceNotExternal()
+		}
+
+		_, getErr = ia.IngressDB(tx).GetIngress(ctx, userID, nsLabel, service.Name)
+		switch {
+		case getErr == nil:
+			return rserrors.ErrResourceAlreadyExists().AddDetailF("ingress for service %s already exists", service.Name)
+		case cherry.Equals(getErr, rserrors.ErrResourceNotExists()):
+			// pass
+		default:
+			return getErr
 		}
 
 		paths, pathsErr := server.IngressPaths(service, req.Path, req.ServicePort)

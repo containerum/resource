@@ -103,6 +103,7 @@ type IngressDB interface {
 	CreateIngress(ctx context.Context, userID, nsLabel string, req rstypes.CreateIngressRequest) error
 	GetUserIngresses(ctx context.Context, userID, nsLabel string, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) ([]rstypes.Ingress, error)
+	GetIngress(ctx context.Context, userID, nsLabel, serviceName string) (rstypes.IngressEntry, error)
 	DeleteIngress(ctx context.Context, userID, nsLabel, domain string) (rstypes.IngressType, error)
 }
 
