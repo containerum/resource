@@ -44,9 +44,9 @@ func NamespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend s
 		ns.PUT("/:ns_label", nsHandlers.ResizeUserNamespaceHandler)
 	}
 
-	nss := router.Group("/namespaces", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	nss := router.Group("/namespaces")
 	{
-		nss.GET("", nsHandlers.GetAllNamespacesHandler)
+		nss.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), nsHandlers.GetAllNamespacesHandler)
 
 		nss.DELETE("", nsHandlers.DeleteAllUserNamespacesHandler)
 	}
@@ -181,7 +181,7 @@ func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 	{
 		vols.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.GetAllVolumesHandler)
 
-		vols.DELETE("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.DeleteAllUserVolumesHandler)
+		vols.DELETE("", volumeHandlers.DeleteAllUserVolumesHandler)
 	}
 }
 
