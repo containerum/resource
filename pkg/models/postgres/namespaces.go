@@ -567,8 +567,8 @@ func (db *NamespacePG) DeleteAllUserNamespaces(ctx context.Context, userID strin
 					kind = 'namespace'
 		)
 		UPDATE namespaces
-		SET deleted = TRUE, delete_time = now() AND NOT deleted
-		WHERE id IN (SELECT resource_id FROM user_ns)`,
+		SET deleted = TRUE, delete_time = now()
+		WHERE id IN (SELECT resource_id FROM user_ns) AND NOT deleted`,
 		rstypes.PermissionRecord{UserID: userID})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
