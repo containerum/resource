@@ -99,7 +99,7 @@ func (aa *AccessActionsImpl) SetUserVolumeAccess(ctx context.Context, label stri
 			return setErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, accessDB, userID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, info.ID); updErr != nil {
 			return updErr
 		}
 
@@ -116,7 +116,7 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 		"to":           req.Username,
 		"label":        label,
 		"access_level": req.Access,
-	}).Info("change user volume access level")
+	}).Info("change user namespace access level")
 
 	isAdmin := server.IsAdminRole(ctx)
 
@@ -151,7 +151,7 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 			return setErr
 		}
 
-		if updErr := aa.UpdateAccess(ctx, accessDB, userID); updErr != nil {
+		if updErr := aa.UpdateAccess(ctx, accessDB, info.ID); updErr != nil {
 			return updErr
 		}
 
