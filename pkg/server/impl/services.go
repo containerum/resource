@@ -5,7 +5,9 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	"git.containerum.net/ch/kube-client/pkg/cherry"
 	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
+	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -18,6 +20,7 @@ type ServiceActionsDB struct {
 	NamespaceDB models.NamespaceDBConstructor
 	DomainDB    models.DomainDBConstructor
 	AccessDB    models.AccessDBConstructor
+	IngressDB   models.IngressDBConstructor
 }
 
 type ServiceActionsImpl struct {
@@ -203,6 +206,30 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 
 		if delErr := sa.ServiceDB(tx).DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
 			return delErr
+		}
+
+		ingress, getErr := sa.IngressDB(tx).GetIngress(ctx, userID, nsLabel, serviceName)
+		switch {
+		case getErr == nil:
+			ingressType, delErr := sa.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, ingress.Domain)
+			if delErr != nil {
+				return delErr
+			}
+
+			if delErr := sa.Kube.DeleteIngress(ctx, nsID, ingress.Domain); delErr != nil {
+				return delErr
+			}
+
+			// in CreateIngress() we created secret for "custom_https" ingress so delete it.
+			if ingressType == rstypes.IngressCustomHTTPS {
+				if delErr := sa.Kube.DeleteSecret(ctx, nsID, ingress.Domain); delErr != nil {
+					return delErr
+				}
+			}
+		case cherry.Equals(getErr, rserrors.ErrResourceNotExists()):
+			// pass
+		default:
+			return getErr
 		}
 
 		if delErr := sa.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
