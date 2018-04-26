@@ -622,21 +622,47 @@ func (db *DeployPG) ReplaceDeployment(ctx context.Context, userID, nsLabel strin
 		return
 	}
 
+	var deplID string
+
 	// assuming cascade removal of containers, etc.
-	result, err := sqlx.NamedExecContext(ctx, db, /* language=sql */
-		`DELETE FROM deployments
-		WHERE ns_id = :ns_id AND name = :name AND NOT deleted`,
-		rstypes.Deployment{NamespaceID: nsID, Name: deploy.Name})
+	query, args, _ := sqlx.Named( /* language=sql */
+		`UPDATE deployments
+		SET replicas = :replicas
+		WHERE ns_id = :ns_id AND name = :name AND NOT deleted
+		RETURNING id`,
+		rstypes.Deployment{NamespaceID: nsID, Name: deploy.Name, Replicas: deploy.Replicas})
+	err = sqlx.GetContext(ctx, db, &deplID, db.Rebind(query), args...)
+	switch err {
+	case nil:
+		// pass
+	case sql.ErrNoRows:
+		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deploy.Name).Log(err, db.log)
+		return
+	default:
+		err = rserrors.ErrDatabase().Log(err, db.log)
+		return
+	}
+
+	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
+		`DELETE FROM containers WHERE depl_id = :id`, map[string]string{"id": deplID})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
 	}
-	if count, _ := result.RowsAffected(); count == 0 {
-		err = rserrors.ErrResourceNotExists().AddDetailF("deployment %s not exists", deploy.Name).Log(err, db.log)
+
+	contMap, err := db.createDeploymentContainers(ctx, deplID, deploy.Containers)
+	if err != nil {
 		return
 	}
 
-	_, err = db.CreateDeployment(ctx, userID, nsLabel, deploy)
+	if err = db.createContainersEnvs(ctx, contMap); err != nil {
+		return
+	}
+
+	if err = db.createContainersVolumes(ctx, userID, contMap); err != nil {
+		return
+	}
+
 	return
 }
 
