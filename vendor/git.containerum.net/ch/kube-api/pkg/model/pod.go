@@ -5,17 +5,24 @@ import (
 
 	"time"
 
-	"git.containerum.net/ch/kube-client/pkg/model"
-	kube_types "git.containerum.net/ch/kube-client/pkg/model"
+	"github.com/containerum/kube-client/pkg/model"
+	kube_types "github.com/containerum/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
 	api_resource "k8s.io/apimachinery/pkg/api/resource"
 )
 
+// PodsList -- model for pods list
+//
+// swagger:model
 type PodsList struct {
 	Pods []PodWithOwner `json:"pods"`
 }
 
+// PodWithOwner -- model for pod with owner
+//
+// swagger:model
 type PodWithOwner struct {
+	// swagger: allOf
 	kube_types.Pod
 	Owner string `json:"owner,omitempty"`
 }
@@ -36,7 +43,7 @@ func ParseKubePod(pod interface{}, parseforuser bool) PodWithOwner {
 	owner := obj.GetObjectMeta().GetLabels()[ownerLabel]
 	containers, cpu, mem := getContainers(obj.Spec.Containers, nil, 1)
 	deploy := obj.GetObjectMeta().GetLabels()[appLabel]
-	createdAt := obj.ObjectMeta.CreationTimestamp.Format(time.RFC3339)
+	createdAt := obj.ObjectMeta.CreationTimestamp.UTC().Format(time.RFC3339)
 
 	newPod := PodWithOwner{
 		Pod: model.Pod{
@@ -49,7 +56,7 @@ func ParseKubePod(pod interface{}, parseforuser bool) PodWithOwner {
 				Phase: string(obj.Status.Phase),
 			},
 			TotalCPU:    uint(cpu.ScaledValue(api_resource.Milli)),
-			TotalMemory: uint(mem.ScaledValue(api_resource.Mega)),
+			TotalMemory: uint(mem.Value() / 1024 / 1024),
 		},
 		Owner: owner,
 	}
@@ -84,7 +91,7 @@ func getContainers(cListi interface{}, mode map[string]int32, replicas int) (con
 			Commands:     c.Command,
 			Limits: model.Resource{
 				CPU:    uint(cpu.ScaledValue(api_resource.Milli)),
-				Memory: uint(mem.ScaledValue(api_resource.Mega)),
+				Memory: uint(mem.Value() / 1024 / 1024),
 			},
 		})
 	}

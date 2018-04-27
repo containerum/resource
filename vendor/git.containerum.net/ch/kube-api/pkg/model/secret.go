@@ -7,18 +7,26 @@ import (
 
 	"time"
 
-	kube_types "git.containerum.net/ch/kube-client/pkg/model"
+	kube_types "github.com/containerum/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
 	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
 )
 
+// SecretsList -- model for secrets list
+//
+// swagger:model
 type SecretsList struct {
 	Secrets []SecretWithOwner `json:"secrets"`
 }
 
+// SecretWithOwner -- model for secret with owner
+//
+// swagger:model
 type SecretWithOwner struct {
+	// swagger: allOf
 	kube_types.Secret
+	// required: true
 	Owner string `json:"owner,omitempty"`
 }
 
@@ -64,7 +72,7 @@ func ParseKubeSecret(secreti interface{}, parseforuser bool) (*SecretWithOwner, 
 	}
 
 	owner := secret.GetObjectMeta().GetLabels()[ownerLabel]
-	createdAt := secret.CreationTimestamp.Format(time.RFC3339)
+	createdAt := secret.CreationTimestamp.UTC().Format(time.RFC3339)
 
 	newSecret := SecretWithOwner{
 		Secret: kube_types.Secret{
@@ -140,41 +148,6 @@ func (secret *SecretWithOwner) Validate() []error {
 			errs = append(errs, fmt.Errorf(invalidName, k, strings.Join(err, ",")))
 		}
 	}
-	if len(errs) > 0 {
-		return errs
-	}
-	return nil
-}
-
-func ValidateSecretFromFile(secret *api_core.Secret) []error {
-	errs := []error{}
-
-	if secret.Kind != secretKind {
-		errs = append(errs, fmt.Errorf(invalidResourceKind, secret.Kind, secretKind))
-	}
-
-	if secret.APIVersion != "" && secret.APIVersion != secretAPIVersion {
-		errs = append(errs, fmt.Errorf(invalidAPIVersion, secret.APIVersion, secretAPIVersion))
-	}
-
-	if secret.GetLabels()[ownerLabel] == "" {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Label: Owner"))
-	} else if !IsValidUUID(secret.GetLabels()[ownerLabel]) {
-		errs = append(errs, errors.New(invalidOwner))
-	}
-
-	if secret.Name == "" {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Label(secret.Name); len(err) > 0 {
-		errs = append(errs, fmt.Errorf(invalidName, secret.Name, strings.Join(err, ",")))
-	}
-
-	for k := range secret.Data {
-		if err := api_validation.IsConfigMapKey(k); len(err) > 0 {
-			errs = append(errs, fmt.Errorf(invalidName, k, strings.Join(err, ",")))
-		}
-	}
-
 	if len(errs) > 0 {
 		return errs
 	}

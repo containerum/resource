@@ -14,7 +14,6 @@
     "billing",
     "kube-api",
     "mail-templater",
-    "misc",
     "resource-service",
     "user-manager"
   ]
@@ -23,28 +22,11 @@
 [[projects]]
   branch = "develop"
   name = "git.containerum.net/ch/kube-api"
-  packages = ["pkg/model"]
-  revision = "c99c43c617a8758dc406ce1771e3f0f36764636b"
-
-[[projects]]
-  name = "git.containerum.net/ch/kube-client"
   packages = [
-    "pkg/cherry",
-    "pkg/cherry/adaptors/cherrygrpc",
-    "pkg/cherry/adaptors/cherrylog",
-    "pkg/cherry/adaptors/gonic",
-    "pkg/cherry/kube-api",
-    "pkg/cherry/resource-service",
+    "pkg/kubeErrors",
     "pkg/model"
   ]
-  revision = "422fecc2d8718b157f6cd4bb405baef6634af8dd"
-  version = "v0.9.2"
-
-[[projects]]
-  branch = "master"
-  name = "git.containerum.net/ch/utils"
-  packages = ["."]
-  revision = "9e2da5343a462956ff0baf54aaa56f62f9321250"
+  revision = "15b8a669401acef895e747eaeabb6100a6adb8ab"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -57,6 +39,35 @@
   name = "github.com/PuerkitoBio/urlesc"
   packages = ["."]
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[projects]]
+  name = "github.com/containerum/cherry"
+  packages = [
+    ".",
+    "adaptors/cherrygrpc",
+    "adaptors/cherrylog",
+    "adaptors/gonic"
+  ]
+  revision = "3076e36aee79538b125d060e5b671649cbb2db4e"
+  version = "v1.0.1-rc2"
+
+[[projects]]
+  name = "github.com/containerum/kube-client"
+  packages = [
+    "pkg/cherry/resource-service",
+    "pkg/model"
+  ]
+  revision = "f5726b4cacfa4f7d1d53c651ca3606c5be518435"
+  version = "v0.11.0"
+
+[[projects]]
+  name = "github.com/containerum/utils"
+  packages = [
+    "httputil",
+    "sqlxutil"
+  ]
+  revision = "5e922affb542eaeb55ab395ff3c7161179df54b3"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/emicklei/go-restful"
@@ -254,6 +265,12 @@
   version = "v0.8.0"
 
 [[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
@@ -442,6 +459,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c25e55bf121d2be62bd56b4bcc042a8f291a00265822229628c641b7c1e35117"
+  inputs-digest = "1466b71d4bd7146c7bb47068ba8116c7f2e06218f01e8cca7fa5dcceb2762ed3"
   solver-name = "gps-cdcl"
   solver-version = 1
