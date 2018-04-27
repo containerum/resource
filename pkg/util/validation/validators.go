@@ -3,7 +3,6 @@ package validation
 import (
 	"fmt"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/go-playground/locales/en"
@@ -27,7 +26,7 @@ func StandardResourceValidator(uni *ut.UniversalTranslator) (ret *validator.Vali
 	registerCustomTagsENTranslation(ret, enTranslator)
 	registerCustomTagsENTranslation(ret, enUSTranslator)
 
-	ret.RegisterStructValidation(createIngressRequestValidate, rstypes.CreateIngressRequest{})
+	ret.RegisterStructValidation(ingressValidate, kubtypes.Ingress{})
 	ret.RegisterStructValidation(serviceValidate, kubtypes.Service{})
 	ret.RegisterStructValidation(updateServiceValidate, server.UpdateServiceRequest{})
 	ret.RegisterStructValidation(deploymentValidate, kubtypes.Deployment{})
@@ -39,13 +38,37 @@ func StandardResourceValidator(uni *ut.UniversalTranslator) (ret *validator.Vali
 	return
 }
 
-func createIngressRequestValidate(structLevel validator.StructLevel) {
-	req := structLevel.Current().Interface().(rstypes.CreateIngressRequest)
+func ingressValidate(structLevel validator.StructLevel) {
+	req := structLevel.Current().Interface().(kubtypes.Ingress)
 
-	if req.Type == rstypes.IngressCustomHTTPS {
-		if req.TLS == nil {
-			structLevel.ReportError(req.TLS, "TLS", "tls", "exists", "")
-		}
+	v := structLevel.Validator()
+
+	if err := v.Var(req.Name, "dns"); err != nil {
+		structLevel.ReportValidationErrors("Name", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Rules, "len=1"); err != nil {
+		structLevel.ReportValidationErrors("Rules", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Rules[0].TLSSecret, "omitempty,dns"); err != nil {
+		structLevel.ReportValidationErrors("Rules[0].TLSSecret", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Rules[0].Host, "required"); err != nil {
+		structLevel.ReportValidationErrors("Rules[0].Host", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Rules[0].Path, "len=1"); err != nil {
+		structLevel.ReportValidationErrors("Rules[0].Path", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Rules[0].Path[0].ServiceName, "dns"); err != nil {
+		structLevel.ReportValidationErrors("Rules[0].Path[0].ServiceName", "", err.(validator.ValidationErrors))
+	}
+
+	if err := v.Var(req.Rules[0].Path[0].ServicePort, "min=1,max=65535"); err != nil {
+		structLevel.ReportValidationErrors("Rules[0].Path[0].ServicePort", "", err.(validator.ValidationErrors))
 	}
 }
 
