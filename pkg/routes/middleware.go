@@ -3,9 +3,9 @@ package routes
 import (
 	"net/textproto"
 
-	"git.containerum.net/ch/kube-client/pkg/cherry"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -27,7 +27,7 @@ func (tv *TranslateValidate) BadRequest(ctx *gin.Context, err error) (int, *cher
 			if fieldErr == nil {
 				continue
 			}
-			t, _ := tv.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
+			t, _ := tv.FindTranslator(httputil.GetAcceptedLanguages(ctx.Request.Context())...)
 			ret.AddDetailF("Field %s: %s", fieldErr.Namespace(), fieldErr.Translate(t))
 		}
 		return ret.StatusHTTP, ret
@@ -51,7 +51,7 @@ func (tv *TranslateValidate) ValidateHeaders(headerTagMap map[string]string) gin
 					if fieldErr == nil {
 						continue
 					}
-					t, _ := tv.FindTranslator(utils.GetAcceptedLanguages(ctx.Request.Context())...)
+					t, _ := tv.FindTranslator(httputil.GetAcceptedLanguages(ctx.Request.Context())...)
 					ret.AddDetailF("Header %s: %s", header, fieldErr.Translate(t))
 				}
 			}

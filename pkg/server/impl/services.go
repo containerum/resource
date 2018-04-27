@@ -5,11 +5,11 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
+	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +36,7 @@ func NewServiceActionsImpl(clients *server.ResourceServiceClients, constructors 
 }
 
 func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -102,7 +102,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 }
 
 func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -114,7 +114,7 @@ func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsLabel string) (
 }
 
 func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -127,7 +127,7 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceNa
 }
 
 func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string, req server.UpdateServiceRequest) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -184,7 +184,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 }
 
 func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,

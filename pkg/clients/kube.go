@@ -6,11 +6,11 @@ import (
 	"net/url"
 
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
-	"git.containerum.net/ch/kube-client/pkg/cherry"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
+	"github.com/containerum/utils/httputil"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
@@ -73,7 +73,7 @@ func (kub kube) CreateNamespace(ctx context.Context, ns kubtypesInternal.Namespa
 	resp, err := kub.client.R().
 		SetBody(ns).
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Post("/namespaces")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -89,7 +89,7 @@ func (kub kube) DeleteNamespace(ctx context.Context, label string) error {
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete("/namespaces/" + url.PathEscape(label))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -110,7 +110,7 @@ func (kub kube) SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.Names
 	resp, err := kub.client.R().
 		SetBody(ns).
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Put("/namespaces/" + url.PathEscape(ns.Label))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -127,7 +127,7 @@ func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtyp
 	resp, err := kub.client.R().
 		SetBody(deploy).
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Post(fmt.Sprintf("/namespaces/%s/deployments", nsID))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -146,7 +146,7 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) err
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -164,7 +164,7 @@ func (kub kube) ReplaceDeployment(ctx context.Context, nsID string, deploy kubty
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(deploy).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deploy.Name))
 	if err != nil {
@@ -185,7 +185,7 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplName string
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(kubtypes.UpdateReplicas{Replicas: replicas}).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsID, deplName))
 	if err != nil {
@@ -207,7 +207,7 @@ func (kub kube) SetContainerImage(ctx context.Context, nsID, deplName string, co
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(container).
 		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsID, deplName))
 	if err != nil {
@@ -226,7 +226,7 @@ func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypes
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(ingress).
 		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsID))
 	if err != nil {
@@ -246,7 +246,7 @@ func (kub kube) DeleteIngress(ctx context.Context, nsID, ingressName string) err
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/ingresses/%s", nsID, ingressName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -264,7 +264,7 @@ func (kub kube) CreateSecret(ctx context.Context, nsID string, secret kubtypesIn
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(secret).
 		Post(fmt.Sprintf("/namespaces/%s/secrets", nsID))
 	if err != nil {
@@ -284,7 +284,7 @@ func (kub kube) DeleteSecret(ctx context.Context, nsID, secretName string) error
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/secrets/%s", nsID, secretName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -301,7 +301,7 @@ func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(service).
 		Post(fmt.Sprintf("/namespaces/%s/services", nsID))
 
@@ -323,7 +323,7 @@ func (kub kube) UpdateService(ctx context.Context, nsID string, service kubtypes
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(service).
 		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsID, service.Name))
 
@@ -345,7 +345,7 @@ func (kub kube) DeleteService(ctx context.Context, nsID, serviceName string) err
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/services/%s", nsID, serviceName))
 
 	if err != nil {

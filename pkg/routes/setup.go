@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	umtypes "git.containerum.net/ch/json-types/user-manager"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
@@ -18,14 +18,14 @@ type TranslateValidate struct {
 }
 
 func MainMiddlewareSetup(router gin.IRouter, tv *TranslateValidate) {
-	router.Use(utils.SaveHeaders)
-	router.Use(utils.PrepareContext)
-	router.Use(utils.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	router.Use(httputil.SaveHeaders)
+	router.Use(httputil.PrepareContext)
+	router.Use(httputil.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
 	router.Use(tv.ValidateHeaders(map[string]string{
 		umtypes.UserIDHeader:   "uuid",
 		umtypes.UserRoleHeader: "eq=admin|eq=user",
 	}))
-	router.Use(utils.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
+	router.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 }
 
 func NamespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.NamespaceActions) {
@@ -46,7 +46,7 @@ func NamespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend s
 
 	nss := router.Group("/namespaces")
 	{
-		nss.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), nsHandlers.GetAllNamespacesHandler)
+		nss.GET("", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), nsHandlers.GetAllNamespacesHandler)
 
 		nss.DELETE("", nsHandlers.DeleteAllUserNamespacesHandler)
 	}
@@ -73,7 +73,7 @@ func AccessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 		vol.PUT("/:vol_label/access", accessHandlers.SetUserVolumeAccessHandler)
 	}
 
-	adm := router.Group("/adm", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	adm := router.Group("/adm", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
 		adm.PUT("/access", accessHandlers.SetUserResourceAccessesHandler)
 	}
@@ -102,7 +102,7 @@ func DeployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 func DomainHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.DomainActions) {
 	domainHandlers := DomainHandlers{DomainActions: backend, TranslateValidate: tv}
 
-	domain := router.Group("/domain", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	domain := router.Group("/domain", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
 		domain.POST("", domainHandlers.AddDomainHandler)
 
@@ -125,7 +125,7 @@ func IngressHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 		ingress.DELETE("/:domain", ingressHandlers.DeleteIngressHandler)
 	}
 
-	router.GET("/ingresses", utils.RequireAdminRole(rserrors.ErrPermissionDenied), ingressHandlers.GetAllIngressesHandler)
+	router.GET("/ingresses", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), ingressHandlers.GetAllIngressesHandler)
 }
 
 func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.ServiceActions) {
@@ -147,7 +147,7 @@ func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 func StorageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.StorageActions) {
 	storageHandlers := StorageHandlers{StorageActions: backend, TranslateValidate: tv}
 
-	storage := router.Group("/storage", utils.RequireAdminRole(rserrors.ErrPermissionDenied))
+	storage := router.Group("/storage", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
 		storage.POST("", storageHandlers.CreateStorageHandler)
 
@@ -179,7 +179,7 @@ func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend serv
 
 	vols := router.Group("/volumes")
 	{
-		vols.GET("", utils.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.GetAllVolumesHandler)
+		vols.GET("", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.GetAllVolumesHandler)
 
 		vols.DELETE("", volumeHandlers.DeleteAllUserVolumesHandler)
 	}

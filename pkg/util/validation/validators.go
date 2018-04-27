@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/en_US"
 	"github.com/go-playground/universal-translator"

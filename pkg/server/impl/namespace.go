@@ -8,12 +8,12 @@ import (
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
+	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,7 +40,7 @@ func NewNamespaceActionsImpl(clients *server.ResourceServiceClients, constructor
 }
 
 func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes.CreateNamespaceRequest) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	na.log.WithFields(logrus.Fields{
 		"tariff_id": req.TariffID,
@@ -143,7 +143,7 @@ func (na *NamespaceActionsImpl) CreateNamespace(ctx context.Context, req rstypes
 }
 
 func (na *NamespaceActionsImpl) GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	na.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"filters": filters,
@@ -156,7 +156,7 @@ func (na *NamespaceActionsImpl) GetUserNamespaces(ctx context.Context, filters s
 }
 
 func (na *NamespaceActionsImpl) GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	na.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -182,7 +182,7 @@ func (na *NamespaceActionsImpl) GetAllNamespaces(ctx context.Context,
 }
 
 func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	na.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -228,7 +228,7 @@ func (na *NamespaceActionsImpl) DeleteUserNamespace(ctx context.Context, label s
 }
 
 func (na *NamespaceActionsImpl) DeleteAllUserNamespaces(ctx context.Context) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	na.log.WithField("user_id", userID).Info("delete all user namespaces")
 
 	err := na.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
@@ -259,7 +259,7 @@ func (na *NamespaceActionsImpl) DeleteAllUserNamespaces(ctx context.Context) err
 }
 
 func (na *NamespaceActionsImpl) RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	na.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"old_label": oldLabel,
@@ -283,7 +283,7 @@ func (na *NamespaceActionsImpl) RenameUserNamespace(ctx context.Context, oldLabe
 }
 
 func (na *NamespaceActionsImpl) ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	na.log.WithFields(logrus.Fields{
 		"user_id":       userID,

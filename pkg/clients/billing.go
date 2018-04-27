@@ -13,9 +13,9 @@ import (
 	"fmt"
 
 	btypes "git.containerum.net/ch/json-types/billing"
-	"git.containerum.net/ch/kube-client/pkg/cherry"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/utils/httputil"
 	"gopkg.in/resty.v1"
 )
 
@@ -111,7 +111,7 @@ func init() {
 	}
 }
 
-var buildErr = cherry.BuildErr(cherry.Billing) //FIXME: add package "billing" to "cherry"
+var buildErr = cherry.BuildErr("billing")
 
 func nsTariffNotFound() *cherry.Err {
 	return buildErr("namespace tariff not found", http.StatusNotFound, 1)
@@ -152,7 +152,7 @@ func (b *BillingHTTP) Subscribe(ctx context.Context, req btypes.SubscribeTariffR
 
 	resp, err := b.client.R().
 		SetBody(req).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Post("/isp/subscription")
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (b *BillingHTTP) EditSubscription(ctx context.Context, resourceID, tariffID
 		SetBody(map[string]interface{}{
 			"tariff_id": tariffID, //TODO add to json-types
 		}).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Put(fmt.Sprintf("/isp/subscription/%s", resourceID))
 	if err != nil {
 		return err
@@ -192,7 +192,7 @@ func (b *BillingHTTP) Unsubscribe(ctx context.Context, resourceID string) error 
 	}).Infoln("unsubscribing")
 
 	resp, err := b.client.R().
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/isp/subscription/%s", resourceID))
 	if err != nil {
 		return err
@@ -209,7 +209,7 @@ func (b *BillingHTTP) GetNamespaceTariff(ctx context.Context, tariffID string) (
 
 	resp, err := b.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetResult(btypes.NamespaceTariff{}).
 		Get(fmt.Sprintf("/tariffs/namespace/%s", tariffID))
 	if err != nil {
@@ -227,7 +227,7 @@ func (b *BillingHTTP) GetVolumeTariff(ctx context.Context, tariffID string) (bty
 
 	resp, err := b.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetResult(btypes.NamespaceTariff{}).
 		Get(fmt.Sprintf("/tariffs/volume/%s", tariffID))
 	if err != nil {

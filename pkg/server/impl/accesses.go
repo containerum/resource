@@ -5,11 +5,11 @@ import (
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,7 +35,7 @@ func NewAccessActionsImpl(clients *server.ResourceServiceClients, constructors *
 }
 
 func (aa *AccessActionsImpl) SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	aa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"access_level": accessLevel,
@@ -58,7 +58,7 @@ func (aa *AccessActionsImpl) SetUserAccesses(ctx context.Context, accessLevel rs
 }
 
 func (aa *AccessActionsImpl) SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	aa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"to":           req.Username,
@@ -110,7 +110,7 @@ func (aa *AccessActionsImpl) SetUserVolumeAccess(ctx context.Context, label stri
 }
 
 func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	aa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"to":           req.Username,
@@ -162,7 +162,7 @@ func (aa *AccessActionsImpl) SetUserNamespaceAccess(ctx context.Context, label s
 }
 
 func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label string) (*rstypes.GetUserNamespaceAccessesResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	aa.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -188,7 +188,7 @@ func (aa *AccessActionsImpl) GetUserNamespaceAccesses(ctx context.Context, label
 }
 
 func (aa *AccessActionsImpl) GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	aa.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -200,7 +200,7 @@ func (aa *AccessActionsImpl) GetUserVolumeAccesses(ctx context.Context, label st
 }
 
 func (aa *AccessActionsImpl) GetUserAccesses(ctx context.Context) (*authProto.ResourcesAccess, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	aa.log.WithField("user_id", userID).Info("get all user accesses")
 
 	ret, err := aa.AccessDB(aa.DB).GetUserResourceAccesses(ctx, userID)

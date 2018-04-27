@@ -4,10 +4,10 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,7 +31,7 @@ func NewResourceCountActionsImpl(clients *server.ResourceServiceClients, constru
 }
 
 func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("get resources count")
 
 	ret, err := rs.ResourceCountDB(rs.DB).GetResourcesCount(ctx, userID)
