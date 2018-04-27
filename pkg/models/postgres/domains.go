@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )

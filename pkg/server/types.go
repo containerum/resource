@@ -5,9 +5,9 @@ import (
 
 	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
 
 // ResourceServiceClients is a structure with all client interfaces needed for resource-service functioning

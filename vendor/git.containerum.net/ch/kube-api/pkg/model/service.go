@@ -3,7 +3,7 @@ package model
 import (
 	"errors"
 
-	kube_types "git.containerum.net/ch/kube-client/pkg/model"
+	kube_types "github.com/containerum/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
 	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
@@ -31,15 +31,25 @@ const (
 	serviceAPIVersion = "v1"
 )
 
+// ServicesList -- model for services list
+//
+// swagger:model
 type ServicesList struct {
 	Services []ServiceWithOwner `json:"services"`
 }
 
+// ServiceWithOwner -- model for service with owner
+//
+// swagger:model
 type ServiceWithOwner struct {
+	// swagger: allOf
 	kube_types.Service
-	Owner      string `json:"owner,omitempty"`
-	Hidden     bool   `json:"hidden,omitempty"`
-	NoSelector bool   `json:"no_selector,omitempty"`
+	// required: true
+	Owner string `json:"owner,omitempty"`
+	//hide service from users
+	Hidden bool `json:"hidden,omitempty"`
+	//don't add selectors to service (so don't create endpoint)
+	NoSelector bool `json:"no_selector,omitempty"`
 }
 
 // ParseKubeServiceList parses kubernetes v1.ServiceList to more convenient Service struct.
@@ -75,7 +85,7 @@ func ParseKubeService(srv interface{}, parseforuser bool) (*ServiceWithOwner, er
 
 	ports := make([]kube_types.ServicePort, 0, 1)
 
-	createdAt := native.GetCreationTimestamp().Format(time.RFC3339)
+	createdAt := native.GetCreationTimestamp().UTC().UTC().Format(time.RFC3339)
 	owner := native.GetObjectMeta().GetLabels()[ownerLabel]
 	deploy := native.GetObjectMeta().GetLabels()[appLabel]
 	domain := native.GetObjectMeta().GetLabels()[domainLabel]
@@ -221,49 +231,6 @@ func (service *ServiceWithOwner) Validate() []error {
 		if len(service.IPs) > 0 {
 			if len(api_validation.IsInRange(*v.Port, minport, maxport)) > 0 {
 				errs = append(errs, fmt.Errorf(invalidPort, *v.Port, minport, maxport))
-			}
-		}
-	}
-	if len(errs) > 0 {
-		return errs
-	}
-	return nil
-}
-
-func ValidateServiceFromFile(svc *api_core.Service) []error {
-	errs := []error{}
-
-	if svc.Kind != serviceKind {
-		errs = append(errs, fmt.Errorf(invalidResourceKind, svc.Kind, serviceKind))
-	}
-
-	if svc.APIVersion != "" && svc.APIVersion != serviceAPIVersion {
-		errs = append(errs, fmt.Errorf(invalidAPIVersion, svc.APIVersion, serviceAPIVersion))
-	}
-
-	if svc.GetLabels()[ownerLabel] == "" {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Label: Owner"))
-	} else if !IsValidUUID(svc.GetLabels()[ownerLabel]) {
-		errs = append(errs, errors.New(invalidOwner))
-	}
-
-	if svc.Name == "" {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1035Label(svc.Name); len(err) > 0 {
-		errs = append(errs, fmt.Errorf(invalidName, svc.Name, strings.Join(err, ",")))
-	}
-	if svc.Spec.Ports == nil || len(svc.Spec.Ports) == 0 {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Ports"))
-	}
-	for _, v := range svc.Spec.Ports {
-		if v.Name == "" {
-			errs = append(errs, fmt.Errorf(fieldShouldExist, "Port name"))
-		} else if err := api_validation.IsDNS1123Label(v.Name); len(err) > 0 {
-			errs = append(errs, fmt.Errorf(invalidName, v.Name, strings.Join(err, ",")))
-		}
-		if len(svc.Spec.ExternalIPs) > 0 {
-			if len(api_validation.IsInRange(int(v.Port), minport, maxport)) > 0 {
-				errs = append(errs, fmt.Errorf(invalidPort, v.Port, minport, maxport))
 			}
 		}
 	}

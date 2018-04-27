@@ -7,7 +7,7 @@ import (
 
 	"time"
 
-	kube_types "git.containerum.net/ch/kube-client/pkg/model"
+	kube_types "github.com/containerum/kube-client/pkg/model"
 	api_core "k8s.io/api/core/v1"
 	api_resource "k8s.io/apimachinery/pkg/api/resource"
 	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,14 +24,23 @@ const (
 	maxNamespaceMemory = 28672 //Mi
 )
 
+// NamespacesList -- model for namespaces list
+//
+// swagger:model
 type NamespacesList struct {
 	Namespaces []NamespaceWithOwner `json:"namespaces"`
 }
 
+// NamespaceWithOwner -- model for namespace with owner
+//
+// swagger:model
 type NamespaceWithOwner struct {
+	// swagger: allOf
 	kube_types.Namespace
-	Name   string `json:"name,omitempty"`
-	Owner  string `json:"owner,omitempty"`
+	//hosting-internal name
+	Name  string `json:"name,omitempty"`
+	Owner string `json:"owner,omitempty"`
+	//access from X-User-Namespace header
 	Access string `json:"access,omitempty"`
 }
 
@@ -43,7 +52,7 @@ func ParseKubeResourceQuotaList(quotas interface{}, parseforadmin bool) (*Namesp
 		return nil, ErrUnableConvertNamespaceList
 	}
 
-	namespaces := make([]NamespaceWithOwner, 0)
+	namespaces := make([]NamespaceWithOwner, 0, objects.Size())
 	for _, quota := range objects.Items {
 		ns, err := ParseKubeResourceQuota(&quota, parseforadmin)
 		if err != nil {
@@ -67,7 +76,7 @@ func ParseKubeResourceQuota(quota interface{}, parseforadmin bool) (*NamespaceWi
 	cpuUsed := obj.Status.Used[api_core.ResourceLimitsCPU]
 	memoryUsed := obj.Status.Used[api_core.ResourceLimitsMemory]
 	owner := obj.GetObjectMeta().GetLabels()[ownerLabel]
-	createdAt := obj.ObjectMeta.CreationTimestamp.Format(time.RFC3339)
+	createdAt := obj.ObjectMeta.CreationTimestamp.UTC().Format(time.RFC3339)
 
 	ns := NamespaceWithOwner{
 		Owner: owner,
@@ -77,11 +86,11 @@ func ParseKubeResourceQuota(quota interface{}, parseforadmin bool) (*NamespaceWi
 			Resources: kube_types.Resources{
 				Hard: kube_types.Resource{
 					CPU:    uint(cpuLimit.ScaledValue(api_resource.Milli)),
-					Memory: uint(memoryLimit.ScaledValue(api_resource.Mega)),
+					Memory: uint(memoryLimit.Value() / 1024 / 1024),
 				},
 				Used: &kube_types.Resource{
 					CPU:    uint(cpuUsed.ScaledValue(api_resource.Milli)),
-					Memory: uint(memoryUsed.ScaledValue(api_resource.Mega)),
+					Memory: uint(memoryUsed.Value() / 1024 / 1024),
 				},
 			},
 		},
@@ -127,11 +136,9 @@ func MakeResourceQuota(ns string, labels map[string]string, resources kube_types
 	}
 
 	cpuLim := api_resource.NewScaledQuantity(int64(resources.CPU), api_resource.Milli)
-	memLim := api_resource.NewScaledQuantity(int64(resources.Memory), api_resource.Mega)
-	memLim.Format = api_resource.BinarySI
-	cpuReq := api_resource.NewScaledQuantity(int64(resources.CPU/10), api_resource.Milli)
-	memReq := api_resource.NewScaledQuantity(int64(resources.Memory/8), api_resource.Mega)
-	memReq.Format = api_resource.BinarySI
+	memLim := api_resource.NewQuantity(int64(resources.Memory)*1024*1024, api_resource.BinarySI)
+	cpuReq := cpuLim
+	memReq := memLim
 
 	newRq := api_core.ResourceQuota{
 		TypeMeta: api_meta.TypeMeta{

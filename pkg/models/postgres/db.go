@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"git.containerum.net/ch/resource-service/pkg/models"
-	chutils "git.containerum.net/ch/utils"
+	sqlxutil "github.com/containerum/utils/sqlxutil"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // postgresql database driver
 	"github.com/mattes/migrate"
@@ -13,14 +13,16 @@ import (
 	_ "github.com/mattes/migrate/source/file" // needed to load migrations scripts from files
 	"github.com/sirupsen/logrus"
 
+	"time"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 )
 
 type PG struct {
 	sqlx.ExtContext
-	chutils.SQLXPreparer
+	sqlxutil.SQLXPreparer
 
 	conn *sqlx.DB // do not use for operations
 	log  *cherrylog.LogrusAdapter
@@ -47,8 +49,8 @@ func DBConnect(pgConnStr string, migrations string) (*PG, error) {
 	ret := &PG{
 		conn:         conn,
 		log:          cherrylog.NewLogrusAdapter(log),
-		ExtContext:   chutils.NewSQLXExtContextLogger(conn, log),
-		SQLXPreparer: chutils.NewSQLXPreparerLogger(conn, log),
+		ExtContext:   sqlxutil.NewSQLXExtContextLogger(conn, log),
+		SQLXPreparer: sqlxutil.NewSQLXPreparerLogger(conn, log),
 	}
 
 	m, err := ret.migrateUp(migrations)
@@ -85,7 +87,7 @@ func (db *PG) migrateUp(path string) (*migrate.Migrate, error) {
 }
 
 func (db *PG) Transactional(ctx context.Context, f func(ctx context.Context, tx models.RelationalDB) error) (err error) {
-	e := db.log.WithField("transaction_id", chutils.NewUUID())
+	e := db.log.WithField("transaction_id", time.Now().UTC().Unix())
 	e.Debugln("Begin transaction")
 	log := cherrylog.NewLogrusAdapter(e)
 	tx, txErr := db.conn.Beginx()
@@ -96,8 +98,8 @@ func (db *PG) Transactional(ctx context.Context, f func(ctx context.Context, tx 
 	arg := &PG{
 		conn:         db.conn,
 		log:          log,
-		ExtContext:   chutils.NewSQLXExtContextLogger(tx, e),
-		SQLXPreparer: chutils.NewSQLXPreparerLogger(tx, e),
+		ExtContext:   sqlxutil.NewSQLXExtContextLogger(tx, e),
+		SQLXPreparer: sqlxutil.NewSQLXPreparerLogger(tx, e),
 	}
 
 	// needed for recovering panics in transactions.

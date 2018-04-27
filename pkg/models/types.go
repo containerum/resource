@@ -6,14 +6,14 @@ import (
 	"git.containerum.net/ch/auth/proto"
 	"git.containerum.net/ch/json-types/kube-api"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypes "git.containerum.net/ch/kube-client/pkg/model"
-	"git.containerum.net/ch/utils"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
+	sqlxutil "github.com/containerum/utils/sqlxutil"
 	"github.com/jmoiron/sqlx"
 )
 
 type RelationalDB interface {
 	sqlx.ExtContext
-	utils.SQLXPreparer
+	sqlxutil.SQLXPreparer
 
 	Transactional(ctx context.Context, f func(ctx context.Context, tx RelationalDB) error) error
 }

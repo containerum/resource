@@ -3,7 +3,7 @@ package model
 import (
 	"errors"
 
-	kube_types "git.containerum.net/ch/kube-client/pkg/model"
+	kube_types "github.com/containerum/kube-client/pkg/model"
 	api_extensions "k8s.io/api/extensions/v1beta1"
 
 	"fmt"
@@ -16,12 +16,25 @@ import (
 	api_validation "k8s.io/apimachinery/pkg/util/validation"
 )
 
+// SelectedIngressesList -- model for ingresses list from all namespaces
+//
+// swagger:model
+type SelectedIngressesList map[string]IngressesList
+
+// IngressesList -- model for ingresses list
+//
+// swagger:model
 type IngressesList struct {
 	Ingress []IngressWithOwner `json:"ingresses"`
 }
 
+// IngressWithOwner -- model for ingress with owner
+//
+// swagger:model
 type IngressWithOwner struct {
+	// swagger: allOf
 	kube_types.Ingress
+	// required: true
 	Owner string `json:"owner,omitempty"`
 }
 
@@ -55,7 +68,7 @@ func ParseKubeIngress(ingressi interface{}, parseforuser bool) (*IngressWithOwne
 	if ingress == nil {
 		return nil, ErrUnableConvertIngress
 	}
-	createdAt := ingress.CreationTimestamp.Format(time.RFC3339)
+	createdAt := ingress.CreationTimestamp.UTC().Format(time.RFC3339)
 	owner := ingress.GetObjectMeta().GetLabels()[ownerLabel]
 
 	secrets := parseTLS(ingress.Spec.TLS)
@@ -212,57 +225,6 @@ func (ingress *IngressWithOwner) Validate() []error {
 			}
 			if len(api_validation.IsValidPortNum(p.ServicePort)) > 0 {
 				errs = append(errs, fmt.Errorf(invalidPort, p.ServicePort, 1, maxport))
-			}
-			if p.Path == "" {
-				errs = append(errs, fmt.Errorf(fieldShouldExist, "Path"))
-			}
-		}
-	}
-
-	if len(errs) > 0 {
-		return errs
-	}
-	return nil
-}
-
-func ValidateIngressFromFile(ingress *api_extensions.Ingress) []error {
-	errs := []error{}
-
-	if ingress.Kind != ingressKind {
-		errs = append(errs, fmt.Errorf(invalidResourceKind, ingress.Kind, ingressKind))
-	}
-
-	if ingress.APIVersion != "" && ingress.APIVersion != ingressAPIVersion {
-		errs = append(errs, fmt.Errorf(invalidAPIVersion, ingress.APIVersion, ingressAPIVersion))
-	}
-
-	if ingress.GetLabels()[ownerLabel] == "" {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Label: Owner"))
-	} else if !IsValidUUID(ingress.GetLabels()[ownerLabel]) {
-		errs = append(errs, errors.New(invalidOwner))
-	}
-
-	if ingress.Name == "" {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-	} else if err := api_validation.IsDNS1123Subdomain(ingress.Name); len(err) > 0 {
-		errs = append(errs, fmt.Errorf(invalidName, ingress.Name, strings.Join(err, ",")))
-	}
-
-	if ingress.Spec.Rules == nil || len(ingress.Spec.Rules) == 0 {
-		errs = append(errs, fmt.Errorf(fieldShouldExist, "Rules"))
-	}
-	for _, r := range ingress.Spec.Rules {
-		if r.HTTP.Paths == nil || len(r.HTTP.Paths) == 0 {
-			errs = append(errs, fmt.Errorf(fieldShouldExist, "Path"))
-		}
-		for _, p := range r.HTTP.Paths {
-			if p.Backend.ServiceName == "" {
-				errs = append(errs, fmt.Errorf(fieldShouldExist, "Name"))
-			} else if err := api_validation.IsDNS1035Label(p.Backend.ServiceName); len(err) > 0 {
-				errs = append(errs, fmt.Errorf(invalidName, p.Backend.ServiceName, strings.Join(err, ",")))
-			}
-			if len(api_validation.IsValidPortNum(int(p.Backend.ServicePort.IntVal))) > 0 {
-				errs = append(errs, fmt.Errorf(invalidPort, p.Backend.ServicePort.IntVal, 1, maxport))
 			}
 			if p.Path == "" {
 				errs = append(errs, fmt.Errorf(fieldShouldExist, "Path"))

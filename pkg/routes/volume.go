@@ -5,7 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -55,7 +55,7 @@ func (h *VolumeHandlers) GetUserVolumesHandler(ctx *gin.Context) {
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, vols)
+	httputil.MaskForNonAdmin(ctx, vols)
 
 	ctx.JSON(http.StatusOK, vols)
 }
@@ -67,7 +67,7 @@ func (h *VolumeHandlers) GetUserVolumeHandler(ctx *gin.Context) {
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, &vol)
+	httputil.MaskForNonAdmin(ctx, &vol)
 
 	ctx.JSON(http.StatusOK, vol)
 }
@@ -122,7 +122,7 @@ func (h *VolumeHandlers) GetVolumesLinkedWithUserNamespaceHandler(ctx *gin.Conte
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, &resp)
+	httputil.MaskForNonAdmin(ctx, &resp)
 
 	ctx.JSON(http.StatusOK, resp)
 }

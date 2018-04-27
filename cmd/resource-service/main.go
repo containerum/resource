@@ -9,12 +9,12 @@ import (
 
 	"context"
 
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/gonic"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/routes"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/cherry/adaptors/gonic"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

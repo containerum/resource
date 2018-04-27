@@ -7,11 +7,11 @@ import (
 
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrylog"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,7 +37,7 @@ func NewVolumeActionsImpl(clients *server.ResourceServiceClients, constructors *
 }
 
 func (va *VolumeActionsImpl) CreateVolume(ctx context.Context, req rstypes.CreateVolumeRequest) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	va.log.WithFields(logrus.Fields{
 		"tariff_id": req.TariffID,
@@ -105,7 +105,7 @@ func (va *VolumeActionsImpl) CreateVolume(ctx context.Context, req rstypes.Creat
 }
 
 func (va *VolumeActionsImpl) DeleteUserVolume(ctx context.Context, label string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -147,7 +147,7 @@ func (va *VolumeActionsImpl) DeleteUserVolume(ctx context.Context, label string)
 }
 
 func (va *VolumeActionsImpl) DeleteAllUserVolumes(ctx context.Context) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	va.log.WithField("user_id", userID).Info("delete all user volumes")
 
 	err := va.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
@@ -170,7 +170,7 @@ func (va *VolumeActionsImpl) DeleteAllUserVolumes(ctx context.Context) error {
 }
 
 func (va *VolumeActionsImpl) GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"filters": filters,
@@ -183,7 +183,7 @@ func (va *VolumeActionsImpl) GetUserVolumes(ctx context.Context, filters string)
 }
 
 func (va *VolumeActionsImpl) GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -195,7 +195,7 @@ func (va *VolumeActionsImpl) GetUserVolume(ctx context.Context, label string) (r
 }
 
 func (va *VolumeActionsImpl) GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error) {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	va.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"label":   label,
@@ -221,7 +221,7 @@ func (va *VolumeActionsImpl) GetAllVolumes(ctx context.Context,
 }
 
 func (va *VolumeActionsImpl) RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	va.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"old_label": oldLabel,
@@ -248,7 +248,7 @@ func (va *VolumeActionsImpl) RenameUserVolume(ctx context.Context, oldLabel, new
 }
 
 func (va *VolumeActionsImpl) ResizeUserVolume(ctx context.Context, label string, newTariffID string) error {
-	userID := utils.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	isAdmin := server.IsAdminRole(ctx)
 	va.log.WithFields(logrus.Fields{
 		"user_id":       userID,

@@ -6,9 +6,10 @@ import (
 	"net/url"
 
 	umtypes "git.containerum.net/ch/json-types/user-manager"
-	"git.containerum.net/ch/kube-client/pkg/cherry"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry"
+	"github.com/containerum/utils/httputil"
 	"github.com/json-iterator/go"
+	"github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
 )
@@ -48,7 +49,7 @@ func (u *httpUserManagerClient) UserInfoByLogin(ctx context.Context, login strin
 	resp, err := u.client.R().
 		SetContext(ctx).
 		SetResult(umtypes.User{}).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Get("/user/info/login/" + login)
 	if err != nil {
 		return nil, err
@@ -64,7 +65,7 @@ func (u *httpUserManagerClient) UserInfoByID(ctx context.Context, userID string)
 	resp, err := u.client.R().
 		SetContext(ctx).
 		SetResult(umtypes.User{}).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Get("/user/info/id/" + userID)
 	if err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func (u *httpUserManagerClient) UserLoginIDList(ctx context.Context) (map[string
 	resp, err := u.client.R().
 		SetContext(ctx).
 		SetResult(map[string]string{}).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Get("/user/loginid")
 	if err != nil {
 		return nil, err
@@ -112,7 +113,7 @@ func (u *userManagerStub) UserInfoByLogin(ctx context.Context, login string) (*u
 	if !ok {
 		resp = umtypes.User{
 			UserLogin: &umtypes.UserLogin{
-				ID:    utils.NewUUID(),
+				ID:    uuid.NewV4().String(),
 				Login: login,
 			},
 			Role: "user",
@@ -145,5 +146,5 @@ func (u *userManagerStub) UserInfoByID(ctx context.Context, userID string) (*umt
 
 func (u *userManagerStub) UserLoginIDList(ctx context.Context) (map[string]string, error) {
 	u.log.Info("get user info by id")
-	return map[string]string{utils.NewUUID(): "fake-" + utils.NewUUID() + "@test.com"}, nil
+	return map[string]string{uuid.NewV4().String(): "fake-" + uuid.NewV4().String() + "@test.com"}, nil
 }

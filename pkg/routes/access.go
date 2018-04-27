@@ -8,7 +8,7 @@ import (
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	umtypes "git.containerum.net/ch/json-types/user-manager"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin/binding"
 )
 
@@ -78,7 +78,7 @@ func (h *AccessHandlers) GetUserNamespaceAccessesHandler(ctx *gin.Context) {
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, resp)
+	httputil.MaskForNonAdmin(ctx, resp)
 
 	if ctx.GetHeader(umtypes.UserRoleHeader) != "admin" && resp.NewAccessLevel != "owner" {
 		resp.Users = nil
@@ -94,7 +94,7 @@ func (h *AccessHandlers) GetUserVolumeAccessesHandler(ctx *gin.Context) {
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, &resp)
+	httputil.MaskForNonAdmin(ctx, &resp)
 
 	ctx.JSON(http.StatusOK, resp)
 }

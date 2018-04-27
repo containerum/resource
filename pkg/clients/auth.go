@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"git.containerum.net/ch/auth/proto"
-	"git.containerum.net/ch/kube-client/pkg/cherry/adaptors/cherrygrpc"
-	"git.containerum.net/ch/kube-client/pkg/cherry/resource-service"
+	"github.com/containerum/cherry/adaptors/cherrygrpc"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/json-iterator/go"

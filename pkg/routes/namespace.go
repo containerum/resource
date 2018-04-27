@@ -5,7 +5,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -37,7 +37,7 @@ func (h *NamespaceHandlers) GetUserNamespacesHandler(ctx *gin.Context) {
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, resp)
+	httputil.MaskForNonAdmin(ctx, resp)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -49,7 +49,7 @@ func (h *NamespaceHandlers) GetUserNamespaceHandler(ctx *gin.Context) {
 		return
 	}
 
-	utils.MaskForNonAdmin(ctx, &resp)
+	httputil.MaskForNonAdmin(ctx, &resp)
 
 	ctx.JSON(http.StatusOK, resp)
 }

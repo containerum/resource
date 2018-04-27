@@ -9,8 +9,8 @@ import (
 
 	"context"
 
-	"git.containerum.net/ch/kube-client/pkg/cherry"
-	"git.containerum.net/ch/utils"
+	"github.com/containerum/cherry"
+	"github.com/containerum/utils/httputil"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
@@ -55,7 +55,7 @@ func (ml mailerHTTP) sendRequest(ctx context.Context, eventName string, userID s
 	}).Infof("sending mail with vars %v", vars)
 	resp, err := ml.client.R().
 		SetContext(ctx).
-		SetHeaders(utils.RequestXHeadersMap(ctx)).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(mttypes.SimpleSendRequest{
 			Template:  eventName,
 			UserID:    userID,
