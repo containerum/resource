@@ -81,6 +81,7 @@ func main() {
 		NamespaceDB: constructors.NamespaceDB,
 		DomainDB:    constructors.DomainDB,
 		AccessDB:    constructors.AccessDB,
+		IngressDB:   constructors.IngressDB,
 	}))
 	routes.StorageHandlersSetup(g, tv, impl.NewStorageActionsImpl(clients, &impl.StorageActionsDB{
 		StorageDB: constructors.StorageDB,
