@@ -57,8 +57,8 @@
     "pkg/cherry/resource-service",
     "pkg/model"
   ]
-  revision = "f5726b4cacfa4f7d1d53c651ca3606c5be518435"
-  version = "v0.11.0"
+  revision = "605f5c4eb1d6a673da90088efdc543f8a0cf8d97"
+  version = "v0.11.1"
 
 [[projects]]
   name = "github.com/containerum/utils"
