@@ -644,7 +644,7 @@ func (db *DeployPG) ReplaceDeployment(ctx context.Context, userID, nsLabel strin
 	}
 
 	_, err = sqlx.NamedExecContext(ctx, db, /* language=sql */
-		`DELETE FROM containers WHERE depl_id = :id`, map[string]string{"id": deplID})
+		`DELETE FROM containers WHERE depl_id = :id`, rstypes.Deployment{ID: deplID})
 	if err != nil {
 		err = rserrors.ErrDatabase().Log(err, db.log)
 		return
