@@ -7,7 +7,9 @@ import (
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
@@ -18,6 +20,7 @@ type ServiceActionsDB struct {
 	NamespaceDB models.NamespaceDBConstructor
 	DomainDB    models.DomainDBConstructor
 	AccessDB    models.AccessDBConstructor
+	IngressDB   models.IngressDBConstructor
 }
 
 type ServiceActionsImpl struct {
@@ -199,6 +202,16 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 
 		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
+		}
+
+		_, getErr = sa.IngressDB(tx).GetIngress(ctx, userID, nsLabel, serviceName)
+		switch {
+		case getErr == nil:
+			return rserrors.ErrServiceHasIngresses()
+		case cherry.Equals(getErr, rserrors.ErrResourceNotExists()):
+			// pass
+		default:
+			return getErr
 		}
 
 		if delErr := sa.ServiceDB(tx).DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
