@@ -47,8 +47,9 @@ func ingressValidate(structLevel validator.StructLevel) {
 		structLevel.ReportValidationErrors("Name", "", err.(validator.ValidationErrors))
 	}
 
-	if err := v.Var(req.Rules, "len=1"); err != nil {
+	if err := v.Var(req.Rules, "required,len=1"); err != nil {
 		structLevel.ReportValidationErrors("Rules", "", err.(validator.ValidationErrors))
+		return
 	}
 
 	if err := v.Var(req.Rules[0].TLSSecret, "omitempty,dns"); err != nil {
@@ -59,8 +60,9 @@ func ingressValidate(structLevel validator.StructLevel) {
 		structLevel.ReportValidationErrors("Rules[0].Host", "", err.(validator.ValidationErrors))
 	}
 
-	if err := v.Var(req.Rules[0].Path, "len=1"); err != nil {
+	if err := v.Var(req.Rules[0].Path, "required,len=1"); err != nil {
 		structLevel.ReportValidationErrors("Rules[0].Path", "", err.(validator.ValidationErrors))
+		return
 	}
 
 	if err := v.Var(req.Rules[0].Path[0].ServiceName, "dns"); err != nil {
