@@ -103,7 +103,9 @@ func (db *PG) Transactional(ctx context.Context, f func(ctx context.Context, tx 
 	}
 
 	// needed for recovering panics in transactions.
-	defer func(dberr error) {
+	var dberr error
+
+	defer func() {
 		// if panic recovered, try to rollback transaction
 		if panicErr := recover(); panicErr != nil {
 			dberr = rserrors.ErrDatabase().AddDetailF("caused by %v", panicErr)
@@ -123,7 +125,9 @@ func (db *PG) Transactional(ctx context.Context, f func(ctx context.Context, tx 
 		if cerr := tx.Commit(); cerr != nil {
 			err = rserrors.ErrDatabase().Log(cerr, log)
 		}
-	}(f(ctx, arg))
+	}()
+
+	dberr = f(ctx, arg)
 
 	return
 }
