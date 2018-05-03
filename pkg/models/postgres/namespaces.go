@@ -665,7 +665,6 @@ func (db *NamespacePG) GetNamespaceID(ctx context.Context, userID, nsLabel strin
 		err = rserrors.ErrResourceNotExists().AddDetailF("namespace %s not exists")
 	default:
 		err = rserrors.ErrDatabase().Log(err, db.log)
-		return
 	}
 
 	return

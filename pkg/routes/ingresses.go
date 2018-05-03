@@ -8,7 +8,7 @@ import (
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"github.com/containerum/kube-client/pkg/model"
+	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
 
 type IngressHandlers struct {
@@ -17,7 +17,7 @@ type IngressHandlers struct {
 }
 
 func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
-	var req model.Ingress
+	var req kubtypes.Ingress
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
