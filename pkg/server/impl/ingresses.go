@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 
+	"strings"
+
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -37,20 +39,12 @@ func NewIngressActionsImpl(clients *server.ResourceServiceClients, constructors 
 	}
 }
 
-func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error {
+func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string, req kubtypes.Ingress) error {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
-
-	// path should be "/" or start with "/"
-	if req.Path == "" {
-		req.Path = "/"
-	}
-	if req.Path[0] != '/' {
-		req.Path = "/" + req.Path
-	}
 
 	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
@@ -62,7 +56,11 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return permErr
 		}
 
-		service, serviceType, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Service)
+		if req.Rules[0].Path[0].Path == "" {
+			req.Rules[0].Path[0].Path = "/"
+		}
+
+		service, serviceType, getErr := ia.ServiceDB(tx).GetService(ctx, userID, nsLabel, req.Rules[0].Path[0].ServiceName)
 		if getErr != nil {
 			return getErr
 		}
@@ -81,57 +79,29 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return getErr
 		}
 
-		paths, pathsErr := server.IngressPaths(service, req.Path, req.ServicePort)
-		if pathsErr != nil {
-			return pathsErr
+		var ingressType rstypes.IngressType
+		switch {
+		case req.Rules[0].TLSSecret == nil:
+			ingressType = rstypes.IngressHTTP
+		case strings.HasPrefix(*req.Rules[0].TLSSecret, "letsencrypt"):
+			ingressType = rstypes.IngressHTTPS
+		default:
+			ingressType = rstypes.IngressCustomHTTPS
 		}
 
-		if createErr := ia.IngressDB(tx).CreateIngress(ctx, userID, nsLabel, req); createErr != nil {
+		if createErr := ia.IngressDB(tx).CreateIngress(ctx, userID, nsLabel, rstypes.CreateIngressRequest{
+			Ingress: rstypes.Ingress{
+				Domain:      req.Rules[0].Host,
+				Type:        ingressType,
+				Service:     req.Rules[0].Path[0].ServiceName,
+				Path:        req.Rules[0].Path[0].Path,
+				ServicePort: req.Rules[0].Path[0].ServicePort,
+			},
+		}); createErr != nil {
 			return createErr
 		}
 
-		var ingress kubtypesInternal.IngressWithOwner
-		ingress.Name = req.Domain
-		ingress.Owner = userID
-		switch req.Type {
-		case rstypes.IngressHTTPS:
-			ingress.Rules = append(ingress.Rules, kubtypes.Rule{
-				Host:      req.Domain,
-				TLSSecret: &req.Service, // if we pass non-existing secret "let`s encrypt" will be used.
-				Path:      paths,
-			})
-		case rstypes.IngressCustomHTTPS:
-			// TLS certificate and key stored in "secret" in kube.
-			// So before creating ingress we need to create "secret".
-			secret := kubtypesInternal.SecretWithOwner{
-				Secret: kubtypes.Secret{
-					Name: ingress.Name,
-					Data: map[string]string{
-						"tls.crt": req.TLS.Cert,
-						"tls.key": req.TLS.Key,
-					},
-				},
-				Owner: userID,
-			}
-			if createErr := ia.Kube.CreateSecret(ctx, nsID, secret); createErr != nil {
-				return createErr
-			}
-
-			ingress.Rules = append(ingress.Rules, kubtypes.Rule{
-				Host:      req.Domain,
-				TLSSecret: &secret.Name,
-				Path:      paths,
-			})
-		case rstypes.IngressHTTP:
-			ingress.Rules = append(ingress.Rules, kubtypes.Rule{
-				Host: req.Domain,
-				Path: paths,
-			})
-		default:
-			return rserrors.ErrValidation().AddDetailF("invalid ingress type %s", req.TLS)
-		}
-
-		if createErr := ia.Kube.CreateIngress(ctx, nsID, ingress); createErr != nil {
+		if createErr := ia.Kube.CreateIngress(ctx, nsID, kubtypesInternal.IngressWithOwner{Ingress: req, Owner: userID}); createErr != nil {
 			return createErr
 		}
 
@@ -185,7 +155,7 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 			return permErr
 		}
 
-		ingressType, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)
+		_, delErr := ia.IngressDB(tx).DeleteIngress(ctx, userID, nsLabel, domain)
 		if delErr != nil {
 			return delErr
 		}
@@ -193,13 +163,6 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 		ingressName := domain
 		if delErr := ia.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
 			return delErr
-		}
-
-		// in CreateIngress() we created secret for "custom_https" ingress so delete it.
-		if ingressType == rstypes.IngressCustomHTTPS {
-			if delErr := ia.Kube.DeleteSecret(ctx, nsID, ingressName); delErr != nil {
-				return delErr
-			}
 		}
 
 		return nil

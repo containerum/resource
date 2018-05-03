@@ -87,7 +87,7 @@ type DomainActions interface {
 }
 
 type IngressActions interface {
-	CreateIngress(ctx context.Context, nsLabel string, req rstypes.CreateIngressRequest) error
+	CreateIngress(ctx context.Context, nsLabel string, req kubtypes.Ingress) error
 	GetUserIngresses(ctx context.Context, nsLabel string, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
 	DeleteIngress(ctx context.Context, nsLabel, domain string) error
