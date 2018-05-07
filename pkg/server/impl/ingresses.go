@@ -9,13 +9,13 @@ import (
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"git.containerum.net/ch/resource-service/pkg/util/host2dnslabel"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/idna"
 )
 
 const (
@@ -53,7 +53,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 
 	//Convert host to dns-label, validate it and append ".hub.containerum.io"
 	var err error
-	req.Rules[0].Host, err = host2dnslabel.Host2DNSLabel(req.Rules[0].Host)
+	req.Rules[0].Host, err = idna.Lookup.ToASCII(req.Rules[0].Host)
 	if err != nil {
 		return rserrors.ErrValidation().AddDetailsErr(err)
 	}
