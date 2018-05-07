@@ -9,12 +9,17 @@ import (
 	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/host2dnslabel"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	ingressHostSuffix = ".hub.containerum.io"
 )
 
 type IngressActionsDB struct {
@@ -45,6 +50,10 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		"user_id":  userID,
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
+
+	//Convert host to dns-label and append ".hub.containerum.io"
+	req.Rules[0].Host = host2dnslabel.Host2DNSLabel(req.Rules[0].Host) + ingressHostSuffix
+	req.Name = req.Rules[0].Host
 
 	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
