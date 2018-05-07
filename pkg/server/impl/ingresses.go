@@ -15,6 +15,11 @@ import (
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/idna"
+)
+
+const (
+	ingressHostSuffix = ".hub.containerum.io"
 )
 
 type IngressActionsDB struct {
@@ -46,7 +51,16 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
 
-	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+	//Convert host to dns-label, validate it and append ".hub.containerum.io"
+	var err error
+	req.Rules[0].Host, err = idna.Lookup.ToASCII(req.Rules[0].Host)
+	if err != nil {
+		return rserrors.ErrValidation().AddDetailsErr(err)
+	}
+	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
+	req.Name = req.Rules[0].Host
+
+	err = ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr

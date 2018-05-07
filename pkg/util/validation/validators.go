@@ -43,10 +43,6 @@ func ingressValidate(structLevel validator.StructLevel) {
 
 	v := structLevel.Validator()
 
-	if err := v.Var(req.Name, "dns"); err != nil {
-		structLevel.ReportValidationErrors("Name", "", err.(validator.ValidationErrors))
-	}
-
 	if err := v.Var(req.Rules, "required,len=1"); err != nil {
 		structLevel.ReportValidationErrors("Rules", "", err.(validator.ValidationErrors))
 		return
