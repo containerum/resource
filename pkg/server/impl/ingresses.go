@@ -51,11 +51,16 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		"ns_label": nsLabel,
 	}).Infof("create ingress %#v", req)
 
-	//Convert host to dns-label and append ".hub.containerum.io"
-	req.Rules[0].Host = host2dnslabel.Host2DNSLabel(req.Rules[0].Host) + ingressHostSuffix
+	//Convert host to dns-label, validate it and append ".hub.containerum.io"
+	var err error
+	req.Rules[0].Host, err = host2dnslabel.Host2DNSLabel(req.Rules[0].Host)
+	if err != nil {
+		return rserrors.ErrValidation().AddDetailsErr(err)
+	}
+	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
 	req.Name = req.Rules[0].Host
 
-	err := ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+	err = ia.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		nsID, getErr := ia.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
