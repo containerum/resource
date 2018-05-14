@@ -12,20 +12,10 @@
   name = "git.containerum.net/ch/json-types"
   packages = [
     "billing",
-    "kube-api",
     "resource-service",
     "user-manager"
   ]
   revision = "041a989c67953d829255c2fb10985b9bc1b25e51"
-
-[[projects]]
-  branch = "develop"
-  name = "git.containerum.net/ch/kube-api"
-  packages = [
-    "pkg/kubeErrors",
-    "pkg/model"
-  ]
-  revision = "f04c8e9a8323a22aba1516e0021264437a193000"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -51,7 +41,10 @@
 
 [[projects]]
   name = "github.com/containerum/kube-client"
-  packages = ["pkg/model"]
+  packages = [
+    ".",
+    "pkg/model"
+  ]
   revision = "2da1273465508146137a2a0312889ebbfb1b3346"
   version = "v0.13.1"
 
@@ -72,6 +65,12 @@
   ]
   revision = "2810ccc68e0ca445fa81ebfa03fbf70aca5c41ae"
   version = "v2.7.0"
+
+[[projects]]
+  name = "github.com/gin-contrib/cors"
+  packages = ["."]
+  revision = "cf4846e6a636a76237a28d9286f163c132e841bc"
+  version = "v1.2"
 
 [[projects]]
   branch = "master"
@@ -138,18 +137,9 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = [
-    "proto",
-    "sortkeys"
-  ]
+  packages = ["proto"]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/golang/glog"
-  packages = ["."]
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -163,18 +153,6 @@
   ]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/google/gofuzz"
-  packages = ["."]
-  revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/google/uuid"
-  packages = ["."]
-  revision = "dec09d789f3dba190787f8b4454c7d3c936fed9e"
 
 [[projects]]
   name = "github.com/jmoiron/sqlx"
@@ -255,6 +233,12 @@
   packages = ["codec"]
   revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
   version = "v1.1.1"
+
+[[projects]]
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
 
 [[projects]]
   branch = "master"
@@ -356,8 +340,8 @@
     ".",
     "translations/en"
   ]
-  revision = "ffe836d7363bc7ab3f56d2fc90ce09bfb5a0c2c5"
-  version = "v9.17.0"
+  revision = "1b8c8e19cd250435025214492d9a08411d760fdd"
+  version = "v9.12.0"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
@@ -378,42 +362,8 @@
   version = "v2.2.1"
 
 [[projects]]
-  name = "k8s.io/api"
-  packages = [
-    "apps/v1",
-    "apps/v1beta1",
-    "core/v1",
-    "extensions/v1beta1"
-  ]
-  revision = "acf347b865f29325eb61f4cd2df11e86e073a5ee"
-  version = "kubernetes-1.9.3"
-
-[[projects]]
   name = "k8s.io/apimachinery"
-  packages = [
-    "pkg/api/errors",
-    "pkg/api/resource",
-    "pkg/apis/meta/v1",
-    "pkg/conversion",
-    "pkg/conversion/queryparams",
-    "pkg/fields",
-    "pkg/labels",
-    "pkg/runtime",
-    "pkg/runtime/schema",
-    "pkg/selection",
-    "pkg/types",
-    "pkg/util/errors",
-    "pkg/util/intstr",
-    "pkg/util/json",
-    "pkg/util/net",
-    "pkg/util/runtime",
-    "pkg/util/sets",
-    "pkg/util/validation",
-    "pkg/util/validation/field",
-    "pkg/util/wait",
-    "pkg/watch",
-    "third_party/forked/golang/reflect"
-  ]
+  packages = ["pkg/api/resource"]
   revision = "19e3f5aa3adca672c153d324e6b7d82ff8935f03"
   version = "kubernetes-1.9.3"
 
@@ -426,6 +376,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f70df3cb181be378c9df8a6abcd9a0b9ac9a829627cddbe6cdb39ad57568c15a"
+  inputs-digest = "b4549adaaaeb37a7a69c66a25cbc5c76301e73b2db51879468e073ca85a0a647"
   solver-name = "gps-cdcl"
   solver-version = 1

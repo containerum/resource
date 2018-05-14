@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 
-	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -18,24 +17,20 @@ import (
 
 // Kube is an interface to kube-api service
 type Kube interface {
-	CreateNamespace(ctx context.Context, ns kubtypesInternal.NamespaceWithOwner) error
-	SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.NamespaceWithOwner) error
-	DeleteNamespace(ctx context.Context, label string) error
-
-	CreateDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error
+	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
-	ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error
+	ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error
 	SetContainerImage(ctx context.Context, nsID, deplName string, container kubtypes.UpdateImage) error
 
-	CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error
+	CreateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 
-	CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error
+	CreateSecret(ctx context.Context, nsID string, secret kubtypes.Secret) error
 	DeleteSecret(ctx context.Context, nsID, secretName string) error
 
-	CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error
-	UpdateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error
+	CreateService(ctx context.Context, nsID string, service kubtypes.Service) error
+	UpdateService(ctx context.Context, nsID string, service kubtypes.Service) error
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 }
 
@@ -62,66 +57,7 @@ func NewKubeHTTP(u *url.URL) Kube {
 	}
 }
 
-func (kub kube) CreateNamespace(ctx context.Context, ns kubtypesInternal.NamespaceWithOwner) error {
-	kub.log.WithFields(logrus.Fields{
-		"cpu":    ns.Resources.Hard.CPU,
-		"memory": ns.Resources.Hard.Memory,
-		"name":   ns.Label,
-		"access": ns.Access,
-	}).Debug("create namespace")
-
-	resp, err := kub.client.R().
-		SetBody(ns).
-		SetContext(ctx).
-		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Post("/namespaces")
-	if err != nil {
-		return rserrors.ErrInternal().Log(err, kub.log)
-	}
-	if resp.Error() != nil {
-		return resp.Error().(*cherry.Err)
-	}
-	return nil
-}
-
-func (kub kube) DeleteNamespace(ctx context.Context, label string) error {
-	kub.log.WithField("label", label).Debug("delete namespace")
-
-	resp, err := kub.client.R().
-		SetContext(ctx).
-		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete("/namespaces/" + url.PathEscape(label))
-	if err != nil {
-		return rserrors.ErrInternal().Log(err, kub.log)
-	}
-	if resp.Error() != nil {
-		return resp.Error().(*cherry.Err)
-	}
-	return nil
-}
-
-func (kub kube) SetNamespaceQuota(ctx context.Context, ns kubtypesInternal.NamespaceWithOwner) error {
-	kub.log.WithFields(logrus.Fields{
-		"cpu":    ns.Resources.Hard.CPU,
-		"memory": ns.Resources.Hard.Memory,
-		"label":  ns.Label,
-	}).Debug("set namespace quota")
-
-	resp, err := kub.client.R().
-		SetBody(ns).
-		SetContext(ctx).
-		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Put("/namespaces/" + url.PathEscape(ns.Label))
-	if err != nil {
-		return rserrors.ErrInternal().Log(err, kub.log)
-	}
-	if resp.Error() != nil {
-		return resp.Error().(*cherry.Err)
-	}
-	return nil
-}
-
-func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithField("ns_id", nsID).Debug("create deployment %+v", deploy)
 
 	resp, err := kub.client.R().
@@ -157,7 +93,7 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) err
 	return nil
 }
 
-func (kub kube) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kube) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
 	}).Debug("replace deployment %+v", deploy)
@@ -219,7 +155,7 @@ func (kub kube) SetContainerImage(ctx context.Context, nsID, deplName string, co
 	return nil
 }
 
-func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error {
+func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
 	}).Debugf("create ingress %+v", ingress)
@@ -257,7 +193,7 @@ func (kub kube) DeleteIngress(ctx context.Context, nsID, ingressName string) err
 	return nil
 }
 
-func (kub kube) CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error {
+func (kub kube) CreateSecret(ctx context.Context, nsID string, secret kubtypes.Secret) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
 	}).Debugf("create secret %+v", secret)
@@ -296,7 +232,7 @@ func (kub kube) DeleteSecret(ctx context.Context, nsID, secretName string) error
 	return nil
 }
 
-func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
+func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
 	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
 	resp, err := kub.client.R().
@@ -315,7 +251,7 @@ func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes
 	return nil
 }
 
-func (kub kube) UpdateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
+func (kub kube) UpdateService(ctx context.Context, nsID string, service kubtypes.Service) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"service_name": service.Name,
@@ -373,32 +309,7 @@ func NewDummyKube() Kube {
 	return kubeDummy{log: logrus.WithField("component", "kube_stub")}
 }
 
-func (kub kubeDummy) CreateNamespace(_ context.Context, ns kubtypesInternal.NamespaceWithOwner) error {
-	kub.log.WithFields(logrus.Fields{
-		"cpu":    ns.Resources.Hard.CPU,
-		"memory": ns.Resources.Hard.Memory,
-		"name":   ns.Label,
-		"access": ns.Access,
-	}).Debug("create namespace")
-	return nil
-}
-
-func (kub kubeDummy) DeleteNamespace(_ context.Context, label string) error {
-	kub.log.WithField("label", label).Debug("delete namespace")
-	return nil
-}
-
-func (kub kubeDummy) SetNamespaceQuota(_ context.Context, ns kubtypesInternal.NamespaceWithOwner) error {
-	kub.log.WithFields(logrus.Fields{
-		"cpu":    ns.Resources.Hard.CPU,
-		"memory": ns.Resources.Hard.Memory,
-		"label":  ns.Label,
-	}).Debug("set namespace quota")
-
-	return nil
-}
-
-func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithField("ns_id", nsID).Debug("create deployment %+v", deploy)
 
 	return nil
@@ -413,7 +324,7 @@ func (kub kubeDummy) DeleteDeployment(_ context.Context, nsID, deplName string) 
 	return nil
 }
 
-func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsID string, deploy kubtypesInternal.DeploymentWithOwner) error {
+func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":       nsID,
 		"deploy_name": deploy.Name,
@@ -443,7 +354,7 @@ func (kub kubeDummy) SetContainerImage(ctx context.Context, nsID, deplName strin
 	return nil
 }
 
-func (kub kubeDummy) CreateIngress(ctx context.Context, nsID string, ingress kubtypesInternal.IngressWithOwner) error {
+func (kub kubeDummy) CreateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
 	}).Debugf("create ingress %+v", ingress)
@@ -460,7 +371,7 @@ func (kub kubeDummy) DeleteIngress(ctx context.Context, nsID, ingressName string
 	return nil
 }
 
-func (kub kubeDummy) CreateSecret(ctx context.Context, nsID string, secret kubtypesInternal.SecretWithOwner) error {
+func (kub kubeDummy) CreateSecret(ctx context.Context, nsID string, secret kubtypes.Secret) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
 	}).Debugf("create secret %+v", secret)
@@ -477,13 +388,13 @@ func (kub kubeDummy) DeleteSecret(ctx context.Context, nsID, secretName string) 
 	return nil
 }
 
-func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
+func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
 	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
 	return nil
 }
 
-func (kub kubeDummy) UpdateService(ctx context.Context, nsID string, service kubtypesInternal.ServiceWithOwner) error {
+func (kub kubeDummy) UpdateService(ctx context.Context, nsID string, service kubtypes.Service) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"service_name": service.Name,

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -115,7 +114,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return createErr
 		}
 
-		if createErr := ia.Kube.CreateIngress(ctx, nsID, kubtypesInternal.IngressWithOwner{Ingress: req, Owner: userID}); createErr != nil {
+		if createErr := ia.Kube.CreateIngress(ctx, nsID, req); createErr != nil {
 			return createErr
 		}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -16,7 +15,6 @@ import (
 type DeployActionsDB struct {
 	DeployDB    models.DeployDBConstructor
 	NamespaceDB models.NamespaceDBConstructor
-	EndpointsDB models.GlusterEndpointsDBConstructor
 	AccessDB    models.AccessDBConstructor
 }
 
@@ -94,35 +92,12 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 			return chkErr
 		}
 
-		firstInNamespace, createErr := da.DeployDB(tx).CreateDeployment(ctx, userID, nsLabel, deploy)
+		_, createErr := da.DeployDB(tx).CreateDeployment(ctx, userID, nsLabel, deploy)
 		if createErr != nil {
 			return createErr
 		}
 
-		if firstInNamespace {
-			// TODO: activate volume in gluster
-		}
-
-		epDB := da.EndpointsDB(tx)
-		newEndpoints, epErr := epDB.CreateGlusterEndpoints(ctx, userID, nsLabel)
-		if epErr != nil {
-			return epErr
-		}
-
-		for _, ep := range newEndpoints {
-			// TODO: create new endpoint in kube
-			// TODO: create gluster service in kube
-			_ = ep
-		}
-
-		if confErr := epDB.ConfirmGlusterEndpoints(ctx, userID, nsLabel); confErr != nil {
-			return confErr
-		}
-
-		deployCreateReq := kubtypesInternal.DeploymentWithOwner{}
-		deployCreateReq.Deployment = deploy
-		deployCreateReq.Owner = userID
-		if createErr := da.Kube.CreateDeployment(ctx, ns.ID, deployCreateReq); createErr != nil {
+		if createErr := da.Kube.CreateDeployment(ctx, ns.ID, deploy); createErr != nil {
 			return createErr
 		}
 
@@ -150,17 +125,13 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 			return permErr
 		}
 
-		lastInNamespace, delErr := da.DeployDB(tx).DeleteDeployment(ctx, userID, nsLabel, deplName)
+		_, delErr := da.DeployDB(tx).DeleteDeployment(ctx, userID, nsLabel, deplName)
 		if delErr != nil {
 			return delErr
 		}
 
 		if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
 			return delErr
-		}
-
-		if lastInNamespace {
-			// TODO: deactivate volume in gluster
 		}
 
 		return nil
@@ -209,10 +180,7 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 			return replaceErr
 		}
 
-		deployReplaceReq := kubtypesInternal.DeploymentWithOwner{}
-		deployReplaceReq.Deployment = deploy
-		deployReplaceReq.Owner = userID
-		if replaceErr := da.Kube.ReplaceDeployment(ctx, ns.ID, deployReplaceReq); replaceErr != nil {
+		if replaceErr := da.Kube.ReplaceDeployment(ctx, ns.ID, deploy); replaceErr != nil {
 			return replaceErr
 		}
 
