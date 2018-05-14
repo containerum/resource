@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 )
 
 func TestPermCheck(t *testing.T) {

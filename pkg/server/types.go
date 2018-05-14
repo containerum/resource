@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/clients"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
@@ -17,15 +17,11 @@ type ResourceServiceClients struct {
 
 type ResourceServiceConstructors struct {
 	NamespaceDB     models.NamespaceDBConstructor
-	VolumeDB        models.VolumeDBConstructor
-	StorageDB       models.StorageDBConstructor
 	DeployDB        models.DeployDBConstructor
 	IngressDB       models.IngressDBConstructor
 	DomainDB        models.DomainDBConstructor
-	AccessDB        models.AccessDBConstructor
 	ServiceDB       models.ServiceDBConstructor
 	ResourceCountDB models.ResourceCountDBConstructor
-	EndpointsDB     models.GlusterEndpointsDBConstructor
 }
 
 type UpdateServiceRequest kubtypes.Service

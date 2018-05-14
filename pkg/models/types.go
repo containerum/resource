@@ -3,9 +3,7 @@ package models
 import (
 	"context"
 
-	"git.containerum.net/ch/auth/proto"
-	"git.containerum.net/ch/json-types/kube-api"
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	sqlxutil "github.com/containerum/utils/sqlxutil"
 	"github.com/jmoiron/sqlx"
@@ -36,38 +34,6 @@ type NamespaceDB interface {
 }
 
 type NamespaceDBConstructor func(RelationalDB) NamespaceDB
-
-/* Volume DB */
-
-type VolumeDB interface {
-	CreateVolume(ctx context.Context, userID, label string, volume *rstypes.Volume) error
-	GetUserVolumes(ctx context.Context, userID string, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
-	GetAllVolumes(ctx context.Context, page, perPage int, filters *VolumeFilterParams) ([]rstypes.VolumeWithPermission, error)
-	GetUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.VolumeWithPermission, error)
-	GetVolumeWithUserPermissions(ctx context.Context, userID, label string) (rstypes.VolumeWithUserPermissions, error)
-	GetVolumesLinkedWithUserNamespace(ctx context.Context, userID, label string) ([]rstypes.VolumeWithPermission, error)
-	DeleteUserVolumeByLabel(ctx context.Context, userID, label string) (rstypes.Volume, error)
-	DeleteAllUserVolumes(ctx context.Context, userID string, nonPersistentOnly bool) ([]rstypes.Volume, error)
-	RenameVolume(ctx context.Context, userID, oldLabel, newLabel string) error
-	ResizeVolume(ctx context.Context, volume *rstypes.Volume) error
-	SetVolumeActiveByID(ctx context.Context, id string, active bool) error
-	SetUserVolumeActive(ctx context.Context, userID, label string, active bool) error
-	GetVolumeID(ctx context.Context, userID, label string) (string, error)
-}
-
-type VolumeDBConstructor func(RelationalDB) VolumeDB
-
-/* Access DB */
-
-type AccessDB interface {
-	GetUserResourceAccesses(ctx context.Context, userID string) (*authProto.ResourcesAccess, error)
-	GetUserResourceAccess(ctx context.Context, userID string, resourceKind rstypes.Kind, resourceName string) (rstypes.PermissionStatus, error)
-	SetAllResourcesAccess(ctx context.Context, userID string, access rstypes.PermissionStatus) error
-	SetResourceAccess(ctx context.Context, permRec *rstypes.PermissionRecord) error
-	DeleteResourceAccess(ctx context.Context, resource rstypes.Resource, userID string) error
-}
-
-type AccessDBConstructor func(RelationalDB) AccessDB
 
 /* Deploy DB */
 
@@ -108,27 +74,6 @@ type IngressDB interface {
 }
 
 type IngressDBConstructor func(RelationalDB) IngressDB
-
-/* Storage DB */
-
-type StorageDB interface {
-	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
-	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
-	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
-	DeleteStorage(ctx context.Context, name string) error
-	ChooseAvailableStorage(ctx context.Context, minFree int) (rstypes.Storage, error)
-}
-
-type StorageDBConstructor func(RelationalDB) StorageDB
-
-/* Gluster Endpoints DB */
-
-type GlusterEndpointsDB interface {
-	CreateGlusterEndpoints(ctx context.Context, userID, nsLabel string) ([]kube_api.Endpoint, error)
-	ConfirmGlusterEndpoints(ctx context.Context, userID, nsLabel string) error
-}
-
-type GlusterEndpointsDBConstructor func(RelationalDB) GlusterEndpointsDB
 
 /* Service DB */
 
