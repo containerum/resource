@@ -41,3 +41,13 @@ func (strmap StringMap) Set(key string, value interface{}) StringMap {
 	strmap[key] = value
 	return strmap
 }
+
+func (strmap StringMap) Get(key string, defValues ...interface{}) (interface{}, bool) {
+	value, ok := strmap[key]
+	if !ok {
+		for _, value := range defValues {
+			return value, false
+		}
+	}
+	return value, ok
+}
