@@ -2309,6 +2309,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 	isHeadResp := rws.req.Method == "HEAD"
 	if !rws.sentHeader {
 		rws.sentHeader = true
+
 		var ctype, clen string
 		if clen = rws.snapHeader.Get("Content-Length"); clen != "" {
 			rws.snapHeader.Del("Content-Length")
@@ -2322,10 +2323,33 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 		if clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
 			clen = strconv.Itoa(len(p))
 		}
+
 		_, hasContentType := rws.snapHeader["Content-Type"]
 		if !hasContentType && bodyAllowedForStatus(rws.status) && len(p) > 0 {
-			ctype = http.DetectContentType(p)
+			if cto := rws.snapHeader.Get("X-Content-Type-Options"); strings.EqualFold("nosniff", cto) {
+				// nosniff is an explicit directive not to guess a content-type.
+				// Content-sniffing is no less susceptible to polyglot attacks via
+				// hosted content when done on the server.
+				ctype = "application/octet-stream"
+				rws.conn.logf("http2: WriteHeader called with X-Content-Type-Options:nosniff but no Content-Type")
+			} else {
+				ctype = http.DetectContentType(p)
+			}
 		}
+
+		var noSniff bool
+		if bodyAllowedForStatus(rws.status) && (rws.sentContentLen > 0 || len(p) > 0) {
+			// If the content type triggers client-side sniffing on old browsers,
+			// attach a X-Content-Type-Options header if not present (or explicitly nil).
+			if _, ok := rws.snapHeader["X-Content-Type-Options"]; !ok {
+				if hasContentType {
+					noSniff = httpguts.SniffedContentType(rws.snapHeader.Get("Content-Type"))
+				} else if ctype != "" {
+					noSniff = httpguts.SniffedContentType(ctype)
+				}
+			}
+		}
+
 		var date string
 		if _, ok := rws.snapHeader["Date"]; !ok {
 			// TODO(bradfitz): be faster here, like net/http? measure.
@@ -2344,6 +2368,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 			endStream:     endStream,
 			contentType:   ctype,
 			contentLength: clen,
+			noSniff:       noSniff,
 			date:          date,
 		})
 		if err != nil {

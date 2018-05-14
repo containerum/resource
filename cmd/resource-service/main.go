@@ -10,11 +10,11 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/pkg/routes"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
-	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -50,17 +50,6 @@ func main() {
 
 	tv := &routes.TranslateValidate{UniversalTranslator: translate, Validate: validate}
 	routes.MainMiddlewareSetup(g, tv)
-	routes.NamespaceHandlersSetup(g, tv, impl.NewNamespaceActionsImpl(clients, &impl.NamespaceActionsDB{
-		NamespaceDB: constructors.NamespaceDB,
-		StorageDB:   constructors.StorageDB,
-		VolumeDB:    constructors.VolumeDB,
-		AccessDB:    constructors.AccessDB,
-	}))
-	routes.AccessHandlersSetup(g, tv, impl.NewAccessActionsImpl(clients, &impl.AccessActionsDB{
-		AccessDB:    constructors.AccessDB,
-		NamespaceDB: constructors.NamespaceDB,
-		VolumeDB:    constructors.VolumeDB,
-	}))
 	routes.DeployHandlersSetup(g, tv, impl.NewDeployActionsImpl(clients, &impl.DeployActionsDB{
 		DeployDB:    constructors.DeployDB,
 		NamespaceDB: constructors.NamespaceDB,
@@ -82,14 +71,6 @@ func main() {
 		DomainDB:    constructors.DomainDB,
 		AccessDB:    constructors.AccessDB,
 		IngressDB:   constructors.IngressDB,
-	}))
-	routes.StorageHandlersSetup(g, tv, impl.NewStorageActionsImpl(clients, &impl.StorageActionsDB{
-		StorageDB: constructors.StorageDB,
-	}))
-	routes.VolumeHandlersSetup(g, tv, impl.NewVolumeActionsImpl(clients, &impl.VolumeActionsDB{
-		VolumeDB:  constructors.VolumeDB,
-		StorageDB: constructors.StorageDB,
-		AccessDB:  constructors.AccessDB,
 	}))
 	routes.ResourceCountHandlersSetup(g, tv, impl.NewResourceCountActionsImpl(clients, &impl.ResourceCountActionsDB{
 		ResourceCountDB: constructors.ResourceCountDB,

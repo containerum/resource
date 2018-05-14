@@ -1,0 +1,68 @@
+Name = "rserrors"
+SID = "resource-service"
+
+[[error]]
+    Name = "ErrDatabase"
+    StatusHTTP = 500
+    Message = "Database error"
+    Kind = 1
+
+[[error]]
+    Name = "ErrResourceNotExists"
+    StatusHTTP = 404
+    Message = "Resource doesn't exist"
+    Kind = 2
+
+[[error]]
+    Name = "ErrResourceAlreadyExists"
+    StatusHTTP = 409
+    Message = "Resource already exists"
+    Kind = 3
+
+[[error]]
+    Name = "ErrPermissionDenied"
+    StatusHTTP = 403
+    Message = "Permission denied"
+    Kind = 4
+
+[[error]]
+    Name = "ErrInternal"
+    StatusHTTP = 500
+    Message = "Internal error"
+    Kind = 5
+
+[[error]]
+    Name = "ErrValidation"
+    StatusHTTP = 400
+    Message = "Validation error"
+    Kind = 6
+
+[[error]]
+    Name = "ErrServiceNotExternal"
+    StatusHTTP = 400
+    Message = "Service is not external"
+    Kind = 7
+
+[[error]]
+    Name = "ErrTCPPortNotFound"
+    StatusHTTP = 400
+    Message = "TCP Port was not found in service"
+    Kind = 8
+
+[[error]]
+    Name = "ErrPortsExhausted"
+    StatusHTTP = 507
+    Message = "Free ports pool for domain exhausted"
+    Kind = 9
+
+[[error]]
+    Name = "ErrDownResizeNotAllowed"
+    StatusHTTP = 400
+    Message = "Resize with decreasing quota not allowed"
+    Kind = 10
+
+[[error]]
+    Name = "ErrServiceHasIngresses"
+    StatusHTTP = 400
+    Message = "Can`t delete service with linked ingresses"
+    Kind = 11

@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	umtypes "git.containerum.net/ch/json-types/user-manager"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/universal-translator"
@@ -26,59 +26,6 @@ func MainMiddlewareSetup(router gin.IRouter, tv *TranslateValidate) {
 		umtypes.UserRoleHeader: "eq=admin|eq=user",
 	}))
 	router.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
-}
-
-func NamespaceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.NamespaceActions) {
-	nsHandlers := NamespaceHandlers{NamespaceActions: backend, TranslateValidate: tv}
-
-	ns := router.Group("/namespace")
-	{
-		ns.POST("", nsHandlers.CreateNamespaceHandler)
-
-		ns.GET("", nsHandlers.GetUserNamespacesHandler)
-		ns.GET("/:ns_label", nsHandlers.GetUserNamespaceHandler)
-
-		ns.DELETE("/:ns_label", nsHandlers.DeleteUserNamespaceHandler)
-
-		ns.PUT("/:ns_label/name", nsHandlers.RenameUserNamespaceHandler)
-		ns.PUT("/:ns_label", nsHandlers.ResizeUserNamespaceHandler)
-	}
-
-	nss := router.Group("/namespaces")
-	{
-		nss.GET("", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), nsHandlers.GetAllNamespacesHandler)
-
-		nss.DELETE("", nsHandlers.DeleteAllUserNamespacesHandler)
-	}
-}
-
-func AccessHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.AccessActions) {
-	accessHandlers := AccessHandlers{AccessActions: backend, TranslateValidate: tv}
-
-	ns := router.Group("/namespace")
-	{
-		ns.GET("/:ns_label/access", accessHandlers.GetUserNamespaceAccessesHandler)
-
-		ns.DELETE("/:ns_label/access", accessHandlers.DeleteUserNamespaceAccessHandler)
-
-		ns.PUT("/:ns_label/access", accessHandlers.SetUserNamespaceAccessHandler)
-	}
-
-	vol := router.Group("/volume")
-	{
-		vol.GET("/:vol_label/access", accessHandlers.GetUserVolumeAccessesHandler)
-
-		vol.DELETE("/:vol_label/access", accessHandlers.DeleteUserVolumeAccessHandler)
-
-		vol.PUT("/:vol_label/access", accessHandlers.SetUserVolumeAccessHandler)
-	}
-
-	adm := router.Group("/adm", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
-	{
-		adm.PUT("/access", accessHandlers.SetUserResourceAccessesHandler)
-	}
-
-	router.GET("/access", accessHandlers.GetUserResourceAccessesHandler)
 }
 
 func DeployHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.DeployActions) {
@@ -141,47 +88,6 @@ func ServiceHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend ser
 		service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)
 
 		service.DELETE("/:service_label", serviceHandlers.DeleteServiceHandler)
-	}
-}
-
-func StorageHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.StorageActions) {
-	storageHandlers := StorageHandlers{StorageActions: backend, TranslateValidate: tv}
-
-	storage := router.Group("/storage", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
-	{
-		storage.POST("", storageHandlers.CreateStorageHandler)
-
-		storage.GET("", storageHandlers.GetStoragesHandler)
-
-		storage.PUT("/:storage_name", storageHandlers.UpdateStorageHandler)
-
-		storage.DELETE("/:storage_name", storageHandlers.DeleteStorageHandler)
-	}
-}
-
-func VolumeHandlersSetup(router gin.IRouter, tv *TranslateValidate, backend server.VolumeActions) {
-	volumeHandlers := VolumeHandlers{VolumeActions: backend, TranslateValidate: tv}
-
-	router.GET("/namespace/:ns_label/volumes", volumeHandlers.GetVolumesLinkedWithUserNamespaceHandler)
-
-	vol := router.Group("/volume")
-	{
-		vol.POST("", volumeHandlers.CreateVolumeHandler)
-
-		vol.GET("", volumeHandlers.GetUserVolumesHandler)
-		vol.GET("/:vol_label", volumeHandlers.GetUserVolumeHandler)
-
-		vol.DELETE("/:vol_label", volumeHandlers.DeleteUserVolumeHandler)
-
-		vol.PUT("/:vol_label/name", volumeHandlers.RenameUserVolumeHandler)
-		vol.PUT("/:vol_label", volumeHandlers.ResizeUserVolumeHandler)
-	}
-
-	vols := router.Group("/volumes")
-	{
-		vols.GET("", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), volumeHandlers.GetAllVolumesHandler)
-
-		vols.DELETE("", volumeHandlers.DeleteAllUserVolumesHandler)
 	}
 }
 

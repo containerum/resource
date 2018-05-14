@@ -3,8 +3,8 @@ package routes
 import (
 	"net/textproto"
 
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry"
-	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"

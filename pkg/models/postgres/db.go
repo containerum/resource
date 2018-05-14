@@ -16,8 +16,8 @@ import (
 	"time"
 
 	rstypes "git.containerum.net/ch/json-types/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry/adaptors/cherrylog"
-	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 )
 
 type PG struct {

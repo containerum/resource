@@ -74,40 +74,14 @@ func setupDB(connStr, migrationAddr string) (models.RelationalDB, *server.Resour
 	db, err := postgres.DBConnect(connStr, migrationAddr)
 	constructors := &server.ResourceServiceConstructors{
 		NamespaceDB:     postgres.NewNamespacePG,
-		VolumeDB:        postgres.NewVolumePG,
-		StorageDB:       postgres.NewStoragePG,
 		DeployDB:        postgres.NewDeployPG,
 		IngressDB:       postgres.NewIngressPG,
 		DomainDB:        postgres.NewDomainPG,
-		AccessDB:        postgres.NewAccessPG,
 		ServiceDB:       postgres.NewServicePG,
 		ResourceCountDB: postgres.NewResourceCountPG,
-		EndpointsDB:     postgres.NewGlusterPG,
 	}
 
 	return db, constructors, err
-}
-
-func setupAuthClient(addr string) (clients.AuthSvc, error) {
-	switch {
-	case opMode == modeDebug && addr == "":
-		return clients.NewDummyAuthSvc(), nil
-	case addr != "":
-		return clients.NewAuthSvcGRPC(addr)
-	default:
-		return nil, errors.New("missing configuration for auth service")
-	}
-}
-
-func setupBillingClient(addr string) (clients.Billing, error) {
-	switch {
-	case opMode == modeDebug && addr == "":
-		return clients.NewDummyBillingClient(), nil
-	case addr != "":
-		return clients.NewHTTPBillingClient(&url.URL{Scheme: "http", Host: addr}), nil
-	default:
-		return nil, errors.New("missing configuration for billing service")
-	}
 }
 
 func setupKubeClient(addr string) (clients.Kube, error) {
@@ -121,40 +95,6 @@ func setupKubeClient(addr string) (clients.Kube, error) {
 	}
 }
 
-func setupMailerClient(addr string) (clients.Mailer, error) {
-	switch {
-	case opMode == modeDebug && addr == "":
-		return clients.NewDummyMailer(), nil
-	case addr != "":
-		return clients.NewMailerHTTP(&url.URL{Scheme: "http", Host: addr}), nil
-	default:
-		return nil, errors.New("missing configuration for mailer service")
-	}
-}
-
-// TODO: implement it
-/*func setupVolumesClient(addr string) (clients.VolumeSvc, error) {
-	switch {
-	case opMode == modeDebug && addr == "":
-		return clients.NewVolumeSvcStub(), nil
-	case addr != "":
-		return clients.NewVolumeSvcHTTP(&url.URL{Scheme: "http", Host: addr}), nil
-	default:
-		return nil, errors.New("missing configuration for volume service")
-	}
-}*/
-
-func setupUserClient(addr string) (clients.UserManagerClient, error) {
-	switch {
-	case opMode == modeDebug && addr == "":
-		return clients.NewUserManagerStub(), nil
-	case addr != "":
-		return clients.NewHTTPUserManagerClient(&url.URL{Scheme: "http", Host: addr}), nil
-	default:
-		return nil, errors.New("missing configuration for user-manager service")
-	}
-}
-
 func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServiceConstructors, error) {
 	var ret server.ResourceServiceClients
 	var constructors *server.ResourceServiceConstructors
@@ -163,22 +103,7 @@ func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServi
 	if ret.DB, constructors, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
 		return nil, nil, err
 	}
-	if ret.Auth, err = setupAuthClient(os.Getenv("AUTH_ADDR")); err != nil {
-		return nil, nil, err
-	}
-	if ret.Billing, err = setupBillingClient(os.Getenv("BILLING_ADDR")); err != nil {
-		return nil, nil, err
-	}
 	if ret.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
-		return nil, nil, err
-	}
-	if ret.Mail, err = setupMailerClient(os.Getenv("MAILER_ADDR")); err != nil {
-		return nil, nil, err
-	}
-	/*	if ret.Volume, err = setupVolumesClient(os.Getenv("VOLUMES_ADDR")); err != nil {
-		return nil, err
-	}*/
-	if ret.User, err = setupUserClient(os.Getenv("USER_ADDR")); err != nil {
 		return nil, nil, err
 	}
 
