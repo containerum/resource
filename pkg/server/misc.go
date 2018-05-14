@@ -81,19 +81,19 @@ func VolumeGlusterName(nsLabel, userID string) string {
 	return hex.EncodeToString(glusterName[:])
 }
 
-func GetAndCheckPermission(ctx context.Context, db models.AccessDB, userID string, resourceKind rstypes.Kind, resourceName string, needed rstypes.PermissionStatus) error {
+func GetAndCheckPermission(ctx context.Context, userID string, resourceKind rstypes.Kind, resourceName string, needed rstypes.PermissionStatus) error {
 	if IsAdminRole(ctx) {
 		return nil
 	}
 
-	current, err := db.GetUserResourceAccess(ctx, userID, resourceKind, resourceName)
-	if err != nil {
-		return err
-	}
+	/*	current, err := db.GetUserResourceAccess(ctx, userID, resourceKind, resourceName)
+		if err != nil {
+			return err
+		}
 
-	if !models.PermCheck(current, needed) {
-		return rserrors.ErrPermissionDenied().AddDetailF("permission '%s' required for operation, you have '%s'", needed, current)
-	}
+		if !models.PermCheck(current, needed) {
+			return rserrors.ErrPermissionDenied().AddDetailF("permission '%s' required for operation, you have '%s'", needed, current)
+		}*/
 
 	return nil
 }

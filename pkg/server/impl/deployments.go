@@ -15,7 +15,6 @@ import (
 type DeployActionsDB struct {
 	DeployDB    models.DeployDBConstructor
 	NamespaceDB models.NamespaceDBConstructor
-	AccessDB    models.AccessDBConstructor
 }
 
 type DeployActionsImpl struct {
@@ -79,7 +78,7 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
@@ -121,7 +120,7 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
 			return permErr
 		}
 
@@ -158,7 +157,7 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
@@ -204,7 +203,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
@@ -250,7 +249,7 @@ func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, dep
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, da.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 

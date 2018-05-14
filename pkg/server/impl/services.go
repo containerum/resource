@@ -18,7 +18,6 @@ type ServiceActionsDB struct {
 	ServiceDB   models.ServiceDBConstructor
 	NamespaceDB models.NamespaceDBConstructor
 	DomainDB    models.DomainDBConstructor
-	AccessDB    models.AccessDBConstructor
 	IngressDB   models.IngressDBConstructor
 }
 
@@ -45,7 +44,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 	}).Infof("create service %#v", req)
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
@@ -132,7 +131,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 	}).Info("update service")
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
@@ -189,7 +188,7 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
