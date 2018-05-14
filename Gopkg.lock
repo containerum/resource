@@ -97,6 +97,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
+  revision = "efe0945164a7e582241f37ae8983c075f8f2e870"
+
+[[projects]]
+  branch = "master"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
@@ -426,6 +438,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f70df3cb181be378c9df8a6abcd9a0b9ac9a829627cddbe6cdb39ad57568c15a"
+  inputs-digest = "f7e2c8fb5de2e0784d32a81b3f8174510e5ae7357be2f644e5a2256816b8231a"
   solver-name = "gps-cdcl"
   solver-version = 1
