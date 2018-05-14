@@ -38,18 +38,6 @@ func Parallel(funcs ...func() error) (ret []error) {
 	return
 }
 
-// CheckTariff checks if user has permissions to use tariff
-func CheckTariff(tariff billing.Tariff, isAdmin bool) error {
-	if !tariff.Active {
-		return rserrors.ErrTariffNotFound()
-	}
-	if !isAdmin && !tariff.Public {
-		return rserrors.ErrTariffNotFound()
-	}
-
-	return nil
-}
-
 // VolumeLabel generates label for non-persistent volume
 func VolumeLabel(nsLabel string) string {
 	return nsLabel + "-volume"
@@ -130,11 +118,11 @@ func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceU
 	deployRAM = int(deploy.TotalCPU)
 
 	if exceededCPU := ns.CPU - deployCPU - nsUsage.CPU; exceededCPU < 0 {
-		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
 	}
 
 	if exceededRAM := ns.RAM - deployRAM - nsUsage.RAM; exceededRAM < 0 {
-		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
 	return nil
@@ -158,11 +146,11 @@ func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.Namespace
 	newDeployRAM = int(newDeploy.TotalMemory)
 
 	if exceededCPU := ns.CPU - nsUsage.CPU - newDeployCPU + oldDeployCPU; exceededCPU < 0 {
-		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
 	}
 
 	if exceededRAM := ns.CPU - nsUsage.CPU - newDeployRAM + oldDeployRAM; exceededRAM < 0 {
-		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
 	return nil
@@ -178,11 +166,11 @@ func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.Na
 	deployRAM = int(deploy.TotalMemory)
 
 	if exceededCPU := ns.CPU - nsUsage.CPU - deployCPU*newReplicas + deployCPU*deploy.Replicas; exceededCPU < 0 {
-		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
 	}
 
 	if exceededRAM := ns.CPU - nsUsage.CPU - deployRAM*newReplicas + deployRAM*deploy.Replicas; exceededRAM < 0 {
-		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
 	return nil
@@ -192,11 +180,11 @@ func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsag
 	switch serviceType {
 	case rstypes.ServiceExternal:
 		if ns.MaxExternalServices <= nsUsage.ExtServices {
-			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
+			//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
 		}
 	case rstypes.ServiceInternal:
 		if ns.MaxIntServices <= nsUsage.IntServices {
-			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
+			//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
 		}
 	default:
 		return rserrors.ErrValidation().AddDetailF("Invalid service type %s", serviceType)
@@ -215,14 +203,6 @@ func CalculateDeployResources(deploy *kubtypes.Deployment) error {
 	deploy.TotalCPU = uint(mCPU)
 	deploy.TotalMemory = uint(mbRAM)
 	return nil
-}
-
-func (rs *ResourceServiceClients) UpdateAccess(ctx context.Context, db models.AccessDB, userID string) error {
-	accesses, err := db.GetUserResourceAccesses(ctx, userID)
-	if err != nil {
-		return err
-	}
-	return rs.Auth.UpdateUserAccess(ctx, userID, accesses)
 }
 
 func (rs *ResourceServiceClients) Close() error {

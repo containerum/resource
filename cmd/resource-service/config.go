@@ -74,15 +74,11 @@ func setupDB(connStr, migrationAddr string) (models.RelationalDB, *server.Resour
 	db, err := postgres.DBConnect(connStr, migrationAddr)
 	constructors := &server.ResourceServiceConstructors{
 		NamespaceDB:     postgres.NewNamespacePG,
-		VolumeDB:        postgres.NewVolumePG,
-		StorageDB:       postgres.NewStoragePG,
 		DeployDB:        postgres.NewDeployPG,
 		IngressDB:       postgres.NewIngressPG,
 		DomainDB:        postgres.NewDomainPG,
-		AccessDB:        postgres.NewAccessPG,
 		ServiceDB:       postgres.NewServicePG,
 		ResourceCountDB: postgres.NewResourceCountPG,
-		EndpointsDB:     postgres.NewGlusterPG,
 	}
 
 	return db, constructors, err
