@@ -13,7 +13,6 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
-	umtypes "github.com/containerum/user-manager/pkg/models"
 	"github.com/containerum/utils/httputil"
 	headers "github.com/containerum/utils/httputil"
 	"github.com/gin-contrib/cors"
@@ -68,10 +67,10 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 
 	e.Use(httputil.SaveHeaders)
 	e.Use(httputil.PrepareContext)
-	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, umtypes.UserIDHeader, umtypes.UserRoleHeader))
+	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, headers.UserIDXHeader, headers.UserRoleXHeader))
 	e.Use(tv.ValidateHeaders(map[string]string{
-		umtypes.UserIDHeader:   "uuid",
-		umtypes.UserRoleHeader: "eq=admin|eq=user",
+		headers.UserIDXHeader:   "uuid",
+		headers.UserRoleXHeader: "eq=admin|eq=user",
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 }
