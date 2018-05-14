@@ -17,6 +17,12 @@
   revision = "041a989c67953d829255c2fb10985b9bc1b25e51"
 
 [[projects]]
+  name = "git.containerum.net/ch/kube-client"
+  packages = ["pkg/model"]
+  revision = "c9a90746a0b2131d7221bae7713c8ae8715b4f00"
+  version = "v0.9.5"
+
+[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -39,6 +45,16 @@
   version = "v1.0.1-rc2"
 
 [[projects]]
+  name = "github.com/containerum/chkit"
+  packages = [
+    "pkg/model",
+    "pkg/model/container",
+    "pkg/model/deployment"
+  ]
+  revision = "a8a468a7475907c3f9de33dedc4a502ce9254762"
+  version = "v3.0.2"
+
+[[projects]]
   name = "github.com/containerum/kube-client"
   packages = [
     ".",
@@ -46,12 +62,6 @@
   ]
   revision = "2da1273465508146137a2a0312889ebbfb1b3346"
   version = "v0.13.1"
-
-[[projects]]
-  branch = "develop"
-  name = "github.com/containerum/user-manager"
-  packages = ["pkg/models"]
-  revision = "43f523f45640241cb2a828c8e62cd175cbe467ab"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -101,6 +111,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
+  revision = "efe0945164a7e582241f37ae8983c075f8f2e870"
+
+[[projects]]
+  branch = "master"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
@@ -141,6 +163,12 @@
   version = "v0.16.0"
 
 [[projects]]
+  name = "github.com/go-siris/siris"
+  packages = ["core/errors"]
+  revision = "d6bc3df4b216199bec985043ca6c3e5c00232fd5"
+  version = "v7.4.0"
+
+[[projects]]
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
@@ -158,6 +186,12 @@
   ]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
+  version = "0.2"
 
 [[projects]]
   name = "github.com/jmoiron/sqlx"
@@ -207,6 +241,12 @@
   version = "v0.0.3"
 
 [[projects]]
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
+  version = "v0.0.2"
+
+[[projects]]
   name = "github.com/modern-go/concurrent"
   packages = ["."]
   revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
@@ -217,6 +257,18 @@
   packages = ["."]
   revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
   version = "1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/olekukonko/tablewriter"
+  packages = ["."]
+  revision = "d4647c9c7a84d847478d890b816b7d8b62b0b279"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -378,6 +430,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6ed51a8cfa11d8774c8a738c1824dec665b01c999fbcff8519b3cdf8f2872be2"
+  inputs-digest = "cd9097fead43eb66a3168f94a84a72971165e3116f3bddf3f96bf89d79058407"
   solver-name = "gps-cdcl"
   solver-version = 1
