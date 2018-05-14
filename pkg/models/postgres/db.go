@@ -7,9 +7,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models"
 	sqlxutil "github.com/containerum/utils/sqlxutil"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq" // postgresql database driver
-	"github.com/mattes/migrate"
-	migdrv "github.com/mattes/migrate/database/postgres"
+	_ "github.com/lib/pq"                     // postgresql database driver
 	_ "github.com/mattes/migrate/source/file" // needed to load migrations scripts from files
 	"github.com/sirupsen/logrus"
 
@@ -53,37 +51,9 @@ func DBConnect(pgConnStr string, migrations string) (*PG, error) {
 		SQLXPreparer: sqlxutil.NewSQLXPreparerLogger(conn, log),
 	}
 
-	m, err := ret.migrateUp(migrations)
-	if err != nil {
-		return nil, err
-	}
-	version, dirty, err := m.Version()
-	log.WithError(err).WithFields(logrus.Fields{
-		"dirty":   dirty,
-		"version": version,
-	}).Infoln("Migrate up")
-
 	ret.pgConnStr = pgConnStr
-	ret.migrations = migrations
-	ret.migrationsVersion = fmt.Sprintf("%v; dirty = %v", version, dirty)
 
 	return ret, nil
-}
-
-func (db *PG) migrateUp(path string) (*migrate.Migrate, error) {
-	db.log.Infof("Running migrations")
-	instance, err := migdrv.WithInstance(db.conn.DB, &migdrv.Config{})
-	if err != nil {
-		return nil, err
-	}
-	m, err := migrate.NewWithDatabaseInstance(path, "clickhouse", instance)
-	if err != nil {
-		return nil, err
-	}
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return nil, err
-	}
-	return m, nil
 }
 
 func (db *PG) Transactional(ctx context.Context, f func(ctx context.Context, tx models.RelationalDB) error) (err error) {
