@@ -59,7 +59,7 @@ func (mongo *mongoStorage) UpdateDeployment(ID string, upd deployment.Deployment
 func (mongo *mongoStorage) DeleteDeployment(ID string) error {
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.UpdateId(ID, bson.M{
-		"$set": bson.M{"deleted": false},
+		"$set": bson.M{"deleted": true},
 	})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
