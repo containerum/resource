@@ -38,7 +38,7 @@ func (mongo *mongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	if err = collection.Find(bson.M{
 		"namespace_id": namespaceID,
 		"deleted":      false,
-	}).One(&depl); err != nil {
+	}).All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment")
 	}
 	return depl, err
