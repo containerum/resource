@@ -5,8 +5,8 @@ import (
 
 	"git.containerum.net/ch/json-types/kube-api"
 	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry/adaptors/cherrylog"
-	"github.com/containerum/kube-client/pkg/cherry/resource-service"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"

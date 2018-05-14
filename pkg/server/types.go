@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 
-	"git.containerum.net/ch/auth/proto"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -12,12 +11,8 @@ import (
 
 // ResourceServiceClients is a structure with all client interfaces needed for resource-service functioning
 type ResourceServiceClients struct {
-	DB      models.RelationalDB
-	Auth    clients.AuthSvc
-	Kube    clients.Kube
-	Mail    clients.Mailer
-	Billing clients.Billing
-	User    clients.UserManagerClient
+	DB   models.RelationalDB
+	Kube clients.Kube
 }
 
 type ResourceServiceConstructors struct {
@@ -34,40 +29,6 @@ type ResourceServiceConstructors struct {
 }
 
 type UpdateServiceRequest kubtypes.Service
-
-type NamespaceActions interface {
-	CreateNamespace(ctx context.Context, req rstypes.CreateNamespaceRequest) (err error)
-	GetUserNamespaces(ctx context.Context, filters string) (rstypes.GetAllNamespacesResponse, error)
-	GetUserNamespace(ctx context.Context, label string) (rstypes.GetUserNamespaceResponse, error)
-	GetAllNamespaces(ctx context.Context, params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllNamespacesResponse, error)
-	DeleteUserNamespace(ctx context.Context, label string) error
-	DeleteAllUserNamespaces(ctx context.Context) error
-	RenameUserNamespace(ctx context.Context, oldLabel, newLabel string) error
-	ResizeUserNamespace(ctx context.Context, label string, newTariffID string) error
-}
-
-type VolumeActions interface {
-	CreateVolume(ctx context.Context, req rstypes.CreateVolumeRequest) error
-	GetUserVolumes(ctx context.Context, filters string) (rstypes.GetUserVolumesResponse, error)
-	GetUserVolume(ctx context.Context, label string) (rstypes.GetUserVolumeResponse, error)
-	GetAllVolumes(ctx context.Context, params rstypes.GetAllResourcesQueryParams) (rstypes.GetAllVolumesResponse, error)
-	GetVolumesLinkedWithUserNamespace(ctx context.Context, label string) (rstypes.GetUserVolumesResponse, error)
-	DeleteUserVolume(ctx context.Context, label string) error
-	DeleteAllUserVolumes(ctx context.Context) error
-	RenameUserVolume(ctx context.Context, oldLabel, newLabel string) error
-	ResizeUserVolume(ctx context.Context, label string, newTariffID string) error
-}
-
-type AccessActions interface {
-	GetUserAccesses(ctx context.Context) (*authProto.ResourcesAccess, error)
-	SetUserAccesses(ctx context.Context, accessLevel rstypes.PermissionStatus) error
-	SetUserNamespaceAccess(ctx context.Context, label string, req *rstypes.SetNamespaceAccessRequest) error
-	SetUserVolumeAccess(ctx context.Context, label string, req *rstypes.SetVolumeAccessRequest) error
-	DeleteUserNamespaceAccess(ctx context.Context, nsLabel string, req rstypes.DeleteNamespaceAccessRequest) error
-	DeleteUserVolumeAccess(ctx context.Context, volLabel string, req rstypes.DeleteVolumeAccessRequest) error
-	GetUserNamespaceAccesses(ctx context.Context, label string) (*rstypes.GetUserNamespaceAccessesResponse, error)
-	GetUserVolumeAccesses(ctx context.Context, label string) (rstypes.VolumeWithUserPermissions, error)
-}
 
 type DeployActions interface {
 	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
@@ -91,13 +52,6 @@ type IngressActions interface {
 	GetUserIngresses(ctx context.Context, nsLabel string, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
 	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
 	DeleteIngress(ctx context.Context, nsLabel, domain string) error
-}
-
-type StorageActions interface {
-	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
-	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
-	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
-	DeleteStorage(ctx context.Context, name string) error
 }
 
 type ServiceActions interface {

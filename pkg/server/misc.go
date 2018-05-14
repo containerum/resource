@@ -15,7 +15,7 @@ import (
 	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/models"
-	"github.com/containerum/kube-client/pkg/cherry/resource-service"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
 
