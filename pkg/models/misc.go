@@ -1,7 +1,7 @@
 package models
 
 import (
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"github.com/sirupsen/logrus"
 )
 

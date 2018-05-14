@@ -5,7 +5,6 @@ import (
 
 	"time"
 
-	umtypes "git.containerum.net/ch/json-types/user-manager"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
@@ -14,6 +13,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
+	umtypes "github.com/containerum/user-manager/pkg/models"
 	"github.com/containerum/utils/httputil"
 	headers "github.com/containerum/utils/httputil"
 	"github.com/gin-contrib/cors"

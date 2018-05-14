@@ -12,8 +12,7 @@
   name = "git.containerum.net/ch/json-types"
   packages = [
     "billing",
-    "resource-service",
-    "user-manager"
+    "resource-service"
   ]
   revision = "041a989c67953d829255c2fb10985b9bc1b25e51"
 
@@ -47,6 +46,12 @@
   ]
   revision = "2da1273465508146137a2a0312889ebbfb1b3346"
   version = "v0.13.1"
+
+[[projects]]
+  branch = "develop"
+  name = "github.com/containerum/user-manager"
+  packages = ["pkg/models"]
+  revision = "43f523f45640241cb2a828c8e62cd175cbe467ab"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -189,9 +194,6 @@
 [[projects]]
   name = "github.com/mattes/migrate"
   packages = [
-    ".",
-    "database",
-    "database/postgres",
     "source",
     "source/file"
   ]
@@ -376,6 +378,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b4549adaaaeb37a7a69c66a25cbc5c76301e73b2db51879468e073ca85a0a647"
+  inputs-digest = "6ed51a8cfa11d8774c8a738c1824dec665b01c999fbcff8519b3cdf8f2872be2"
   solver-name = "gps-cdcl"
   solver-version = 1

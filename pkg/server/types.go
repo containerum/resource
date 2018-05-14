@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
 	"git.containerum.net/ch/resource-service/pkg/clients"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )

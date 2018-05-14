@@ -5,7 +5,7 @@ import (
 
 	"strings"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"

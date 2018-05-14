@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	sqlxutil "github.com/containerum/utils/sqlxutil"
 	"github.com/jmoiron/sqlx"
@@ -74,18 +74,6 @@ type IngressDB interface {
 }
 
 type IngressDBConstructor func(RelationalDB) IngressDB
-
-/* Storage DB */
-
-type StorageDB interface {
-	CreateStorage(ctx context.Context, req rstypes.CreateStorageRequest) error
-	GetStorages(ctx context.Context) ([]rstypes.Storage, error)
-	UpdateStorage(ctx context.Context, name string, req rstypes.UpdateStorageRequest) error
-	DeleteStorage(ctx context.Context, name string) error
-	ChooseAvailableStorage(ctx context.Context, minFree int) (rstypes.Storage, error)
-}
-
-type StorageDBConstructor func(RelationalDB) StorageDB
 
 /* Service DB */
 

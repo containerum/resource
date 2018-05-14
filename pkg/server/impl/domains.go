@@ -3,7 +3,7 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"

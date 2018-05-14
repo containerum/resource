@@ -54,10 +54,6 @@ required = ["github.com/containerum/kube-client"]
   version = "0.11.2"
 
 [[constraint]]
-  branch = "master"
-  name = "git.containerum.net/ch/json-types"
-
-[[constraint]]
   version = "kubernetes-1.9.3"
   name = "k8s.io/apimachinery"
 

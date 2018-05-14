@@ -6,7 +6,7 @@ import (
 
 	"net/http"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
