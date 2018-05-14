@@ -5,8 +5,7 @@ import (
 
 	"strings"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -26,7 +25,6 @@ type IngressActionsDB struct {
 	NamespaceDB models.NamespaceDBConstructor
 	ServiceDB   models.ServiceDBConstructor
 	IngressDB   models.IngressDBConstructor
-	AccessDB    models.AccessDBConstructor
 }
 
 type IngressActionsImpl struct {
@@ -66,7 +64,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, ia.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
@@ -115,7 +113,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 			return createErr
 		}
 
-		if createErr := ia.Kube.CreateIngress(ctx, nsID, kubtypesInternal.IngressWithOwner{Ingress: req, Owner: userID}); createErr != nil {
+		if createErr := ia.Kube.CreateIngress(ctx, nsID, req); createErr != nil {
 			return createErr
 		}
 
@@ -165,7 +163,7 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, ia.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
 			return permErr
 		}
 

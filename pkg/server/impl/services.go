@@ -3,8 +3,7 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/json-types/resource-service"
-	kubtypesInternal "git.containerum.net/ch/kube-api/pkg/model"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -19,7 +18,6 @@ type ServiceActionsDB struct {
 	ServiceDB   models.ServiceDBConstructor
 	NamespaceDB models.NamespaceDBConstructor
 	DomainDB    models.DomainDBConstructor
-	AccessDB    models.AccessDBConstructor
 	IngressDB   models.IngressDBConstructor
 }
 
@@ -46,16 +44,11 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 	}).Infof("create service %#v", req)
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
 		serviceType := server.DetermineServiceType(req)
-
-		kubeRequest := kubtypesInternal.ServiceWithOwner{
-			Service: req,
-			Owner:   userID,
-		}
 
 		if serviceType == rstypes.ServiceExternal {
 			domainDB := sa.DomainDB(tx)
@@ -64,15 +57,15 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 				return selectErr
 			}
 
-			kubeRequest.Domain = domain.Domain
-			kubeRequest.IPs = domain.IP
+			req.Domain = domain.Domain
+			req.IPs = domain.IP
 			// TODO: SQL queries in loop is not good solution
-			for i := range kubeRequest.Ports {
-				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
+			for i := range req.Ports {
+				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				kubeRequest.Ports[i].Port = &port
+				req.Ports[i].Port = &port
 			}
 		}
 
@@ -90,11 +83,11 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string,
 			return chkErr
 		}
 
-		if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); createErr != nil {
+		if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
 			return createErr
 		}
 
-		if createErr := sa.Kube.CreateService(ctx, ns.ID, kubeRequest); createErr != nil {
+		if createErr := sa.Kube.CreateService(ctx, ns.ID, req); createErr != nil {
 			return createErr
 		}
 
@@ -138,16 +131,11 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 	}).Info("update service")
 
 	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 
 		serviceType := server.DetermineServiceType(kubtypes.Service(req))
-
-		kubeRequest := kubtypesInternal.ServiceWithOwner{
-			Service: kubtypes.Service(req),
-			Owner:   userID,
-		}
 
 		if serviceType == rstypes.ServiceExternal {
 			domainDB := sa.DomainDB(tx)
@@ -156,14 +144,14 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 				return selectErr
 			}
 
-			kubeRequest.Domain = domain.Domain
-			kubeRequest.IPs = domain.IP
-			for i := range kubeRequest.Ports {
-				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, kubeRequest.Ports[i].Protocol)
+			req.Domain = domain.Domain
+			req.IPs = domain.IP
+			for i := range req.Ports {
+				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
 				if portSelectErr != nil {
 					return portSelectErr
 				}
-				kubeRequest.Ports[i].Port = &port
+				req.Ports[i].Port = &port
 			}
 		}
 
@@ -172,11 +160,11 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 			return getErr
 		}
 
-		if updErr := sa.ServiceDB(tx).UpdateService(ctx, userID, nsLabel, serviceType, kubeRequest.Service); updErr != nil {
+		if updErr := sa.ServiceDB(tx).UpdateService(ctx, userID, nsLabel, serviceType, kubtypes.Service(req)); updErr != nil {
 			return updErr
 		}
 
-		if updErr := sa.Kube.UpdateService(ctx, nsID, kubeRequest); updErr != nil {
+		if updErr := sa.Kube.UpdateService(ctx, nsID, kubtypes.Service(req)); updErr != nil {
 			return updErr
 		}
 
@@ -200,7 +188,7 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 			return getErr
 		}
 
-		if permErr := server.GetAndCheckPermission(ctx, sa.AccessDB(tx), userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
 			return permErr
 		}
 

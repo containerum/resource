@@ -2,13 +2,12 @@ package main
 
 import (
 	"errors"
-	"os"
-	"strconv"
-
 	"net/url"
 
 	"fmt"
 	"reflect"
+
+	"os"
 
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/models"
@@ -19,50 +18,56 @@ import (
 	"github.com/go-playground/locales/en_US"
 	"github.com/go-playground/universal-translator"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
-type operationMode int
-
-const (
-	modeDebug operationMode = iota
-	modeRelease
-)
-
-var opMode operationMode
-
-func setupLogger() error {
-	mode := os.Getenv("MODE")
-	switch mode {
-	case "debug":
-		opMode = modeDebug
-		gin.SetMode(gin.DebugMode)
-		logrus.SetLevel(logrus.DebugLevel)
-	case "release", "":
-		opMode = modeRelease
-		gin.SetMode(gin.ReleaseMode)
-		logrus.SetFormatter(&logrus.JSONFormatter{})
-
-		logLevelString := os.Getenv("LOG_LEVEL")
-		var level logrus.Level
-		if logLevelString == "" {
-			level = logrus.InfoLevel
-		} else {
-			levelI, err := strconv.Atoi(logLevelString)
-			if err != nil {
-				return err
-			}
-			level = logrus.Level(levelI)
-			if level > logrus.DebugLevel || level < logrus.PanicLevel {
-				return errors.New("invalid log level")
-			}
-		}
-		logrus.SetLevel(level)
-	default:
-		return errors.New("invalid operation mode (must be 'debug' or 'release')")
-	}
-	return nil
+var flags = []cli.Flag{
+	cli.BoolFlag{
+		EnvVar: "CH_RESOURCE_DEBUG",
+		Name:   "debug",
+		Usage:  "start the server in debug mode",
+	},
+	cli.StringFlag{
+		EnvVar: "CH_RESOURCE_PORT",
+		Name:   "port",
+		Value:  "1213",
+		Usage:  "port for resource-service server",
+	},
+	cli.StringFlag{
+		EnvVar: "CH_RESOURCE_KUBE_API_ADDR",
+		Name:   "kube_addr",
+		Value:  "config",
+		Usage:  "kube-api service address",
+	},
+	cli.BoolFlag{
+		EnvVar: "CH_KUBE_API_TEXTLOG",
+		Name:   "textlog",
+		Usage:  "output log in text format",
+	},
+	cli.BoolFlag{
+		EnvVar: "CH_KUBE_API_CORS",
+		Name:   "cors",
+		Usage:  "enable CORS",
+	},
 }
 
+func setupLogs(c *cli.Context) {
+	if c.Bool("debug") {
+		gin.SetMode(gin.DebugMode)
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+
+	if c.Bool("textlog") {
+		logrus.SetFormatter(&logrus.TextFormatter{})
+	} else {
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
+}
+
+//TODO
 func setupDB(connStr, migrationAddr string) (models.RelationalDB, *server.ResourceServiceConstructors, error) {
 	if connStr == "" {
 		return nil, nil, errors.New("db connection string was not specified")
@@ -84,9 +89,10 @@ func setupDB(connStr, migrationAddr string) (models.RelationalDB, *server.Resour
 	return db, constructors, err
 }
 
-func setupKubeClient(addr string) (clients.Kube, error) {
+//TODO
+func setupKubeClient(addr string, debug bool) (clients.Kube, error) {
 	switch {
-	case opMode == modeDebug && addr == "":
+	case debug && addr == "":
 		return clients.NewDummyKube(), nil
 	case addr != "":
 		return clients.NewKubeHTTP(&url.URL{Scheme: "http", Host: addr}), nil
@@ -95,15 +101,19 @@ func setupKubeClient(addr string) (clients.Kube, error) {
 	}
 }
 
-func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServiceConstructors, error) {
+func setupServerClients(c *cli.Context) (*server.ResourceServiceClients, *server.ResourceServiceConstructors, error) {
 	var ret server.ResourceServiceClients
 	var constructors *server.ResourceServiceConstructors
 
 	var err error
+
+	//TODO
 	if ret.DB, constructors, err = setupDB(os.Getenv("DB_URL"), os.Getenv("MIGRATION_URL")); err != nil {
 		return nil, nil, err
 	}
-	if ret.Kube, err = setupKubeClient(os.Getenv("KUBE_ADDR")); err != nil {
+	//
+
+	if ret.Kube, err = setupKubeClient(c.String("kube_addr"), c.Bool("debug")); err != nil {
 		return nil, nil, err
 	}
 
@@ -117,13 +127,6 @@ func setupServerClients() (*server.ResourceServiceClients, *server.ResourceServi
 	}
 
 	return &ret, constructors, nil
-}
-
-func getListenAddr() (la string, err error) {
-	if la = os.Getenv("LISTEN_ADDR"); la == "" {
-		return "", errors.New("environment LISTEN_ADDR is not specified")
-	}
-	return la, nil
 }
 
 func setupTranslator() *ut.UniversalTranslator {

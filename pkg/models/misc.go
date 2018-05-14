@@ -1,7 +1,7 @@
 package models
 
 import (
-	rstypes "git.containerum.net/ch/json-types/resource-service"
+	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,9 +31,4 @@ func PermCheck(perm, needed rstypes.PermissionStatus) bool {
 	}
 	logrus.Errorf("unreachable code in PermCheck")
 	return false
-}
-
-// GlusterEndpointName creates special hidden endpoint name for glusterfs operation
-func GlusterEndpointName(storageID string) string {
-	return "ch-glusterfs-" + storageID[len(storageID)-4:]
 }

@@ -1,98 +1,26 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
 	"os"
-	"time"
 
-	"os/signal"
-
-	"context"
-
-	"git.containerum.net/ch/resource-service/pkg/routes"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
-	"git.containerum.net/ch/resource-service/pkg/server/impl"
-	"git.containerum.net/ch/resource-service/pkg/util/validation"
-	"github.com/containerum/cherry/adaptors/cherrylog"
-	"github.com/containerum/cherry/adaptors/gonic"
-	"github.com/gin-gonic/contrib/ginrus"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
-func exitOnError(err error) {
-	if err != nil {
-		logrus.WithError(err).Fatalf("can`t setup resource-service")
-		os.Exit(1)
-	}
-}
+//go:generate swagger generate spec -m -i ../../swagger-basic.yml -o ../../swagger.json
 
 func main() {
-	exitOnError(setupLogger())
+	app := cli.NewApp()
+	app.Name = "ch-resourve-service-server"
+	app.Usage = "Resource-service for managing kubernetes resources"
+	app.Flags = flags
 
-	logrus.Info("starting resource-service")
+	fmt.Printf("Starting %v %v\n", app.Name, app.Version)
 
-	listenAddr, err := getListenAddr()
-	exitOnError(err)
+	app.Action = initServer
 
-	clients, constructors, err := setupServerClients()
-	exitOnError(err)
-	defer clients.Close()
-
-	translate := setupTranslator()
-	validate := validation.StandardResourceValidator(translate)
-
-	g := gin.New()
-	g.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
-	g.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
-	binding.Validator = &validation.GinValidatorV9{Validate: validate} // gin has no local validator
-
-	tv := &routes.TranslateValidate{UniversalTranslator: translate, Validate: validate}
-	routes.MainMiddlewareSetup(g, tv)
-	routes.DeployHandlersSetup(g, tv, impl.NewDeployActionsImpl(clients, &impl.DeployActionsDB{
-		DeployDB:    constructors.DeployDB,
-		NamespaceDB: constructors.NamespaceDB,
-		EndpointsDB: constructors.EndpointsDB,
-		AccessDB:    constructors.AccessDB,
-	}))
-	routes.DomainHandlersSetup(g, tv, impl.NewDomainActionsImpl(clients, &impl.DomainActionsDB{
-		DomainDB: constructors.DomainDB,
-	}))
-	routes.IngressHandlersSetup(g, tv, impl.NewIngressActionsImpl(clients, &impl.IngressActionsDB{
-		NamespaceDB: constructors.NamespaceDB,
-		ServiceDB:   constructors.ServiceDB,
-		IngressDB:   constructors.IngressDB,
-		AccessDB:    constructors.AccessDB,
-	}))
-	routes.ServiceHandlersSetup(g, tv, impl.NewServiceActionsImpl(clients, &impl.ServiceActionsDB{
-		ServiceDB:   constructors.ServiceDB,
-		NamespaceDB: constructors.NamespaceDB,
-		DomainDB:    constructors.DomainDB,
-		AccessDB:    constructors.AccessDB,
-		IngressDB:   constructors.IngressDB,
-	}))
-	routes.ResourceCountHandlersSetup(g, tv, impl.NewResourceCountActionsImpl(clients, &impl.ResourceCountActionsDB{
-		ResourceCountDB: constructors.ResourceCountDB,
-	}))
-
-	// for graceful shutdown
-	httpsrv := &http.Server{
-		Addr:    listenAddr,
-		Handler: g,
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-
-	// serve connections
-	go exitOnError(httpsrv.ListenAndServe())
-
-	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 5 seconds.
-	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt) // subscribe on interrupt event
-	<-quit                            // wait for event
-	logrus.Infoln("shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	exitOnError(httpsrv.Shutdown(ctx))
 }
