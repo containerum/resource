@@ -65,16 +65,16 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 
 	deployment := router.Group("/namespaces/:ns_label/deployments")
 	{
+		deployment.GET("", deployHandlers.GetDeploymentsListHandler)
+		deployment.GET("/:deploy_label", deployHandlers.GetDeploymentHandler)
+
 		deployment.POST("", deployHandlers.CreateDeploymentHandler)
 
-		deployment.GET("", deployHandlers.GetDeploymentsHandler)
-		deployment.GET("/:deploy_label", deployHandlers.GetDeploymentByLabelHandler)
+		deployment.PUT("/:deploy_label", deployHandlers.UpdateDeploymentHandler)
+		deployment.PUT("/:deploy_label/image", deployHandlers.SetContainerImageHandler)
+		deployment.PUT("/:deploy_label/replicas", deployHandlers.SetReplicasHandler)
 
 		deployment.DELETE("/:deploy_label", deployHandlers.DeleteDeploymentByLabelHandler)
-
-		deployment.PUT("/:deploy_label/image", deployHandlers.SetContainerImageHandler)
-		deployment.PUT("/:deploy_label", deployHandlers.ReplaceDeploymentHandler)
-		deployment.PUT("/:deploy_label/replicas", deployHandlers.SetReplicasHandler)
 	}
 }
 
@@ -83,10 +83,10 @@ func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 
 	domain := router.Group("/domains", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
-		domain.POST("", domainHandlers.AddDomainHandler)
-
-		domain.GET("", domainHandlers.GetAllDomainsHandler)
+		domain.GET("", domainHandlers.GetDomainsListHandler)
 		domain.GET("/:domain", domainHandlers.GetDomainHandler)
+
+		domain.POST("", domainHandlers.AddDomainHandler)
 
 		domain.DELETE("/:domain", domainHandlers.DeleteDomainHandler)
 	}
@@ -97,11 +97,14 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 
 	ingress := router.Group("/namespaces/:ns_label/ingresses")
 	{
+		ingress.GET("", ingressHandlers.GetIngressesListHandler)
+		ingress.GET("/:ingress", ingressHandlers.GetIngressHandler)
+
 		ingress.POST("", ingressHandlers.CreateIngressHandler)
 
-		ingress.GET("", ingressHandlers.GetUserIngressesHandler)
+		ingress.PUT("/:ingress", ingressHandlers.UpdateIngressHandler)
 
-		ingress.DELETE("/:domain", ingressHandlers.DeleteIngressHandler)
+		ingress.DELETE("/:ingress", ingressHandlers.DeleteIngressHandler)
 	}
 }
 
@@ -112,7 +115,7 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 	{
 		service.POST("", serviceHandlers.CreateServiceHandler)
 
-		service.GET("", serviceHandlers.GetServicesHandler)
+		service.GET("", serviceHandlers.GetServicesListHandler)
 		service.GET("/:service_label", serviceHandlers.GetServiceHandler)
 
 		service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)

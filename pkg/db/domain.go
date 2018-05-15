@@ -18,7 +18,7 @@ func (mongo *MongoStorage) GetDomain(domainName string) (*domain.Domain, error) 
 	return &result, nil
 }
 
-func (mongo *MongoStorage) GetRandomDomain(domainName string) (*domain.Domain, error) {
+func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 	mongo.logger.Debugf("getting random domain")
 	var collection = mongo.db.C(CollectionDomain)
 	colQuerier := []bson.M{{"$sample": bson.M{"size": 1}}}

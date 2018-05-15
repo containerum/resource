@@ -15,6 +15,26 @@ type DeployHandlers struct {
 	*m.TranslateValidate
 }
 
+func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
+	resp, err := h.GetDeploymentsList(ctx.Request.Context(), ctx.Param("ns_label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
+	resp, err := h.GetDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
 func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	var req kubtypes.Deployment
 
@@ -31,34 +51,21 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, deploy)
 }
 
-func (h *DeployHandlers) GetDeploymentsHandler(ctx *gin.Context) {
-	resp, err := h.GetDeployments(ctx.Request.Context(), ctx.Param("ns_label"))
+func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
+	var req kubtypes.Deployment
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	req.Name = ctx.Param("deploy_label")
+	updDeploy, err := h.UpdateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
-}
-
-func (h *DeployHandlers) GetDeploymentByLabelHandler(ctx *gin.Context) {
-	resp, err := h.GetDeploymentByLabel(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, resp)
-}
-
-func (h *DeployHandlers) DeleteDeploymentByLabelHandler(ctx *gin.Context) {
-	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
-	}
-
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
 func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
@@ -68,30 +75,13 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 		return
 	}
 
-	updatedDeploy, err := h.SetContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	updatedDeploy, err := h.SetDeploymentContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
-}
-
-func (h *DeployHandlers) ReplaceDeploymentHandler(ctx *gin.Context) {
-	var req kubtypes.Deployment
-	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
-		return
-	}
-
-	req.Name = ctx.Param("deploy_label")
-	updDeploy, err := h.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
-	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
 func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
@@ -107,4 +97,14 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
+}
+
+func (h *DeployHandlers) DeleteDeploymentByLabelHandler(ctx *gin.Context) {
+	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }

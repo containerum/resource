@@ -21,7 +21,7 @@ func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 	}
 }
 
-func (da *DomainActionsImpl) GetAllDomains(ctx context.Context) ([]domain.Domain, error) {
+func (da *DomainActionsImpl) GetDomainsList(ctx context.Context) ([]domain.Domain, error) {
 	da.log.Info("get all domains")
 	//TODO Add pagination
 	return da.mongo.GetDomainsList()

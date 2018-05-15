@@ -25,19 +25,17 @@ func NewDeployActionsImpl(mongo *db.MongoStorage) *DeployActionsImpl {
 	}
 }
 
-func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsID string) ([]deployment.Deployment, error) {
+func (da *DeployActionsImpl) GetDeploymentsList(ctx context.Context, nsID string) ([]deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsID,
 	}).Info("get deployments")
 
-	ret, err := da.mongo.GetDeploymentList(nsID)
-
-	return ret, err
+	return da.mongo.GetDeploymentList(nsID)
 }
 
-func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error) {
+func (da *DeployActionsImpl) GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -119,10 +117,10 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplNam
 		return delErr
 	}*/
 
-	return err
+	return nil
 }
 
-func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
+func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -249,7 +247,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 	return &updatedDeploy, nil
 }
 
-func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error) {
+func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,

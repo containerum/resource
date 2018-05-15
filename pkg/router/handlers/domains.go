@@ -16,30 +16,14 @@ type DomainHandlers struct {
 	*m.TranslateValidate
 }
 
-func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
-	var req domain.Domain
-	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
-		return
-	}
-
-	domain, err := h.AddDomain(ctx.Request.Context(), req)
-	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, domain)
-}
-
-func (h *DomainHandlers) GetAllDomainsHandler(ctx *gin.Context) {
+func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
 	var params rstypes.GetAllDomainsQueryParams
 	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	resp, err := h.GetAllDomains(ctx.Request.Context())
+	resp, err := h.GetDomainsList(ctx.Request.Context())
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -56,6 +40,22 @@ func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
+	var req domain.Domain
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	domain, err := h.AddDomain(ctx.Request.Context(), req)
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, domain)
 }
 
 func (h *DomainHandlers) DeleteDomainHandler(ctx *gin.Context) {
