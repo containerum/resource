@@ -31,8 +31,17 @@ func (mongo *MongoStorage) InitIndexes() error {
 		if err := collection.EnsureIndexKey(CollectionService + "." + "domain"); err != nil {
 			errs = append(errs, err)
 		}
-		if err := collection.EnsureIndexKey(CollectionService+"."+"ports.port",
-			CollectionService+"."+"ports.protocol"); err != nil {
+		var portIndex = mgo.Index{
+			Key: []string{
+				CollectionService + "." + "domain",
+				CollectionService + "." + "ports.port",
+				CollectionService + "." + "ports.protocol",
+			},
+			Background: true,
+			Sparse:     true,
+			Unique:     true,
+		}
+		if err := collection.EnsureIndex(portIndex); err != nil {
 			errs = append(errs, err)
 		}
 	}

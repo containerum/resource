@@ -2,6 +2,7 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
 
@@ -58,4 +59,14 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 		return err
 	}
 	return nil
+}
+
+func (mongo *MongoStorage) CountIngresses(owner string) (int, error) {
+	mongo.logger.Debugf("counting ingresses")
+	var collection = mongo.db.C(CollectionIngress)
+	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
+		return 0, err
+	} else {
+		return n, nil
+	}
 }

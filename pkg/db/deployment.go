@@ -91,3 +91,29 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	}
 	return err
 }
+
+func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
+	mongo.logger.Debugf("counting deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
+		return 0, err
+	} else {
+		return n, nil
+	}
+}
+
+func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
+	mongo.logger.Debugf("counting deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	var count struct {
+		Count int `json:"count"`
+	}
+	if err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"owner": owner}},
+		{"count": bson.M{"$sum": "$deployment.replicas"}},
+	}).One(&count); err != nil {
+		return 0, err
+	} else {
+		return count.Count, nil
+	}
+}
