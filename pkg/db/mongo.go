@@ -74,18 +74,18 @@ func (mongo *MongoStorage) Init() error {
 	if err := mongo.CreateIndex("_id"); err != nil {
 		return err
 	}
-	if err := mongo.CreateIndex("name"); err != nil {
-		return err
-	}
-	if err := mongo.CreateIndex("domain"); err != nil {
-		return err
-	}
-	if err := mongo.CreateIndex("owner"); err != nil {
-		return err
-	}
-	if err := mongo.CreateIndex("namespace_id"); err != nil {
-		return err
-	}
+	/*	if err := mongo.CreateIndex("name"); err != nil {
+			return err
+		}
+		if err := mongo.CreateIndex("domain"); err != nil {
+			return err
+		}
+		if err := mongo.CreateIndex("owner"); err != nil {
+			return err
+		}
+		if err := mongo.CreateIndex("namespaceid"); err != nil {
+			return err
+		}*/
 	return nil
 }
 

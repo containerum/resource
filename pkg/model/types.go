@@ -49,7 +49,7 @@ type Volume struct {
 	Active      *bool   `json:"active,omitempty" db:"active"`
 	Capacity    int     `json:"capacity" db:"capacity"` // gigabytes
 	Replicas    int     `json:"replicas,omitempty" db:"replicas"`
-	NamespaceID *string `json:"namespace_id,omitempty" db:"ns_id"`
+	NamespaceID *string `json:"namespaceid,omitempty" db:"ns_id"`
 
 	GlusterName string `json:"gluster_name,omitempty" db:"gluster_name"`
 	StorageID   string `json:"storage_id,omitempty" db:"storage_id"`
@@ -75,7 +75,7 @@ type Storage struct {
 
 type Deployment struct {
 	ID          string     `json:"id,omitempty" db:"id"`
-	NamespaceID string     `json:"namespace_id,omitempty" db:"ns_id"`
+	NamespaceID string     `json:"namespaceid,omitempty" db:"ns_id"`
 	Name        string     `json:"name" db:"name"`
 	CreateTime  *time.Time `json:"create_time,omitempty" db:"create_time"`
 	Deleted     bool       `json:"deleted,omitempty" db:"deleted"`

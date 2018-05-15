@@ -5,6 +5,7 @@ import (
 
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
@@ -32,11 +33,6 @@ func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsID string) ([
 	}).Info("get deployments")
 
 	ret, err := da.mongo.GetDeploymentList(nsID)
-	for i := range ret {
-		if calcErr := server.CalculateDeployResources(&ret[i]); calcErr != nil {
-			return nil, calcErr
-		}
-	}
 
 	return ret, err
 }
@@ -50,9 +46,6 @@ func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsID, dep
 	}).Info("get deployment by label")
 
 	ret, err := da.mongo.GetDeploymentByName(nsID, deplName)
-	if calcErr := server.CalculateDeployResources(&ret); calcErr != nil {
-		return nil, calcErr
-	}
 
 	return &ret, err
 }
@@ -92,58 +85,52 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 	}
 
 	//TODO
-/*	if err = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
+	/*	if err = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
 		return err
 	}*/
 
 	return &createdDeploy, nil
 }
 
-func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, deplName string) error {
+func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"deploy_name": deplName,
 	}).Info("delete deployment")
 
 	/*err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
+	nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
+	if getErr != nil {
+		return getErr
+	}
 
-		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
-			return permErr
-		}*/
+	if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
+		return permErr
+	}*/
 
-		_, delErr := da.mongo.DeleteDeployment())
-		if delErr != nil {
-			return delErr
-		}
+	err := da.mongo.DeleteDeployment(nsID, deplName)
+	if err != nil {
+		return err
+	}
 
-		/*if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
-			return delErr
-		}*/
+	/*if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
+		return delErr
+	}*/
 
-		return nil
-	})
-
-	return err*/
-	return nil
+	return err
 }
 
-func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
+func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"deploy_name": deploy.Name,
 	}).Infof("replacing deployment with %#v", deploy)
 
-	newDeploy := deployment.DeploymentFromKube(nsID, userID, deploy)
-
-	if err := server.CalculateDeployResources(&newDeploy); err != nil {
+	if err := server.CalculateDeployResources(&deploy); err != nil {
 		return nil, err
 	}
 
@@ -184,23 +171,28 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 
 	return err*/
 
-	updatedDeployment, err := da.mongo.CreateDeployment(deployment.dep(nsID, userID, deploy))
+	err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
 	if err != nil {
 		return nil, err
 	}
 
-	return &createdDeploy, nil
+	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deploy.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedDeploy, nil
 }
 
-func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error {
-	/*userID := httputil.MustGetUserID(ctx)
+func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.Deployment, error) {
+	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"deploy_name": deplName,
 	}).Infof("set deployment replicas %#v", req)
 
-	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+	/*err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -236,18 +228,36 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 	})
 
 	return err*/
-	return nil
+
+	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	oldDeploy.Replicas = req.Replicas
+
+	err = da.mongo.UpdateDeployment(oldDeploy)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedDeploy, nil
 }
 
-func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error {
-	/*userID := httputil.MustGetUserID(ctx)
+func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error) {
+	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"deploy_name": deplName,
 	}).Infof("set container image %#v", req)
 
-	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+	/*err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -270,5 +280,34 @@ func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, dep
 	})
 
 	return err*/
-	return nil
+
+	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	updated := false
+	for i, c := range oldDeploy.Containers {
+		if c.Name == req.Container {
+			oldDeploy.Containers[i].Image = req.Image
+			updated = true
+			break
+		}
+
+	}
+	if !updated {
+		return nil, rserrors.ErrInternal().AddDetails("No image found")
+	}
+
+	err = da.mongo.UpdateDeployment(oldDeploy)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedDeploy, nil
 }

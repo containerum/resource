@@ -16,6 +16,16 @@ func (mongo *MongoStorage) GetDomain(domainName string) (*domain.Domain, error) 
 	return &result, nil
 }
 
+func (mongo *MongoStorage) GetRandomDomain(domainName string) (*domain.Domain, error) {
+	var collection = mongo.db.C(CollectionDomain)
+	colQuerier := []bson.M{{"$sample": bson.M{"size": 1}}}
+	result := domain.Domain{}
+	if err := collection.Pipe(colQuerier).One(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (mongo *MongoStorage) GetDomainsList() ([]domain.Domain, error) {
 	var collection = mongo.db.C(CollectionDomain)
 	var result []domain.Domain

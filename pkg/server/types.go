@@ -4,19 +4,20 @@ import (
 	"context"
 
 	rstypes "git.containerum.net/ch/resource-service/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
 
 type DeployActions interface {
-	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
-	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
-	GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (*kubtypes.Deployment, error)
+	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
+	GetDeployments(ctx context.Context, nsLabel string) ([]deployment.Deployment, error)
+	GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (*deployment.Deployment, error)
 	DeleteDeployment(ctx context.Context, nsLabel, deplName string) error
-	ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
-	SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error
-	SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error
+	ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
+	SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) (*deployment.Deployment, error)
+	SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error)
 }
 
 type DomainActions interface {

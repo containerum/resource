@@ -23,11 +23,12 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
+	deploy, err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, deploy)
 }
 
 func (h *DeployHandlers) GetDeploymentsHandler(ctx *gin.Context) {
@@ -67,13 +68,13 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 		return
 	}
 
-	err := h.SetContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	updatedDeploy, err := h.SetContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
 func (h *DeployHandlers) ReplaceDeploymentHandler(ctx *gin.Context) {
@@ -84,13 +85,13 @@ func (h *DeployHandlers) ReplaceDeploymentHandler(ctx *gin.Context) {
 	}
 
 	req.Name = ctx.Param("deploy_label")
-	err := h.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	updDeploy, err := h.ReplaceDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
 func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
@@ -99,11 +100,11 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
-	err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	updatedDeploy, err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
