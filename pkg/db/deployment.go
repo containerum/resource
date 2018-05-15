@@ -109,8 +109,17 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 		Count int `json:"count"`
 	}
 	if err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"owner": owner}},
-		{"count": bson.M{"$sum": "$deployment.replicas"}},
+		{
+			"$match": bson.M{
+				"owner": owner,
+			},
+		},
+		{
+			"$group": bson.M{
+				"count": bson.M{
+					"$sum": "$deployment.replicas"},
+			},
+		},
 	}).One(&count); err != nil {
 		return 0, err
 	} else {
