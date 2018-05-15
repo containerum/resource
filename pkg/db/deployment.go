@@ -92,8 +92,8 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	return err
 }
 
-func (mongo *MongoStorage) CoundDeployments(owner string) (int, error) {
-	mongo.logger.Debugf("deleting deployment")
+func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
+	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
 		return 0, err
