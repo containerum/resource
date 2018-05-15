@@ -9,6 +9,7 @@ import (
 
 // If ID is empty when use UUID4 to generate one
 func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (deployment.Deployment, error) {
+	mongo.logger.Debugf("creating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if deployment.ID == "" {
 		deployment.ID = uuid.New().String()
@@ -21,6 +22,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (d
 }
 
 func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName string) (deployment.Deployment, error) {
+	mongo.logger.Debugf("getting deployment by name")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.Deployment
 	var err error
@@ -36,6 +38,7 @@ func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName strin
 }
 
 func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, error) {
+	mongo.logger.Debugf("getting deployment by ID")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.Deployment
 	var err error
@@ -48,6 +51,7 @@ func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, 
 }
 
 func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
+	mongo.logger.Debugf("getting deployment list")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentList
 	var err error
@@ -61,6 +65,7 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 }
 
 func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
+	mongo.logger.Debugf("updating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(upd.SelectByNameQuery(), upd.UpdateQuery())
 	if err != nil {
@@ -70,6 +75,7 @@ func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 }
 
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
+	mongo.logger.Debugf("deleting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(deployment.Deployment{
 		Deployment: model.Deployment{
