@@ -1,6 +1,22 @@
 package db
 
-import "git.containerum.net/ch/resource-service/pkg/models/ingress"
+import (
+	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"github.com/google/uuid"
+)
+
+func (mongo *MongoStorage) CreateIngress(ingress ingress.Ingress) (ingress.Ingress, error) {
+	mongo.logger.Debugf("creating ingress")
+	var collection = mongo.db.C(CollectionIngress)
+	if ingress.ID == "" {
+		ingress.ID = uuid.New().String()
+	}
+	if err := collection.Insert(ingress); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to create ingress")
+		return ingress, err
+	}
+	return ingress, nil
+}
 
 func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Ingress, error) {
 	mongo.logger.Debugf("getting ingress")

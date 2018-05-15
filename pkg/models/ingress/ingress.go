@@ -3,6 +3,7 @@ package ingress
 import (
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo/bson"
+	"github.com/google/uuid"
 )
 
 type Ingress struct {
@@ -38,6 +39,15 @@ func (ingr Ingress) OneSelectQuery() interface{} {
 		"namespaceid":  ingr.NamespaceID,
 		"deleted":      false,
 		"ingress.name": ingr.Name,
+	}
+}
+
+func IngressFromKube(nsID, owner string, ingress model.Ingress) Ingress {
+	return Ingress{
+		Ingress:     ingress,
+		Owner:       owner,
+		NamespaceID: nsID,
+		ID:          uuid.New().String(),
 	}
 }
 
