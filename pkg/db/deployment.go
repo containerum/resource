@@ -60,9 +60,8 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 
 func (mongo *MongoStorage) UpdateDeployment(ID string, upd deployment.Deployment) error {
 	var collection = mongo.db.C(CollectionDeployment)
-	upd.ID = ""
 	err := collection.UpdateId(ID, bson.M{
-		"$set": upd,
+		"$set": upd.UpdateQuery(),
 	})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment")

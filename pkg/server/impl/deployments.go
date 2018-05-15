@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/pkg/db"
+	"git.containerum.net/ch/resource-service/pkg/models/deployment"
+	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
+	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,92 +24,90 @@ func NewDeployActionsImpl(mongo *db.MongoStorage) *DeployActionsImpl {
 	}
 }
 
-func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error) {
-	/*	userID := httputil.MustGetUserID(ctx)
-		da.log.WithFields(logrus.Fields{
-			"user_id":  userID,
-			"ns_label": nsLabel,
-		}).Info("get deployments")
+func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsID string) ([]deployment.Deployment, error) {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"ns_label": nsID,
+	}).Info("get deployments")
 
-		ret, err := da.DeployDB(da.DB).GetDeployments(ctx, userID, nsLabel)
-		for i := range ret {
-			if calcErr := server.CalculateDeployResources(&ret[i]); calcErr != nil {
-				return nil, calcErr
-			}
+	ret, err := da.mongo.GetDeploymentList(nsID)
+	for i := range ret {
+		if calcErr := server.CalculateDeployResources(&ret[i]); calcErr != nil {
+			return nil, calcErr
 		}
+	}
 
-		return ret, err*/
-	return nil, nil
+	return ret, err
 }
 
-func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (*kubtypes.Deployment, error) {
-	/*userID := httputil.MustGetUserID(ctx)
+func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error) {
+	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
-		"ns_label":    nsLabel,
+		"ns_id":       nsID,
 		"deploy_name": deplName,
 	}).Info("get deployment by label")
 
-	ret, err := da.DeployDB(da.DB).GetDeploymentByLabel(ctx, userID, nsLabel, deplName)
+	ret, err := da.mongo.GetDeploymentByName(nsID, deplName)
 	if calcErr := server.CalculateDeployResources(&ret); calcErr != nil {
-		return ret, calcErr
+		return nil, calcErr
 	}
 
-	return ret, err*/
-	return nil, nil
+	return &ret, err
 }
 
-func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
-	/*userID := httputil.MustGetUserID(ctx)
+func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
+	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"ns_label": nsLabel,
+		"user_id": userID,
+		"ns_id":   nsID,
 	}).Info("create deployment")
 
-	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
+	//TODO Validation
+	/*
+		err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+			ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
+			if getErr != nil {
+				return getErr
+			}
 
-		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
-			return permErr
-		}
+			if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+				return permErr
+			}
 
-		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
-		if getErr != nil {
-			return getErr
-		}
+			nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+			if getErr != nil {
+				return getErr
+			}
 
-		if chkErr := server.CheckDeploymentCreateQuotas(ns.Namespace, nsUsage, deploy); chkErr != nil {
-			return chkErr
-		}
 
-		_, createErr := da.DeployDB(tx).CreateDeployment(ctx, userID, nsLabel, deploy)
-		if createErr != nil {
-			return createErr
-		}
+			if chkErr := server.CheckDeploymentCreateQuotas(ns.Namespace, nsUsage, deploy); chkErr != nil {
+				return chkErr
+			}*/
 
-		if createErr := da.Kube.CreateDeployment(ctx, ns.ID, deploy); createErr != nil {
-			return createErr
-		}
+	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
+	if err != nil {
+		return nil, err
+	}
 
-		return nil
-	})
+	//TODO
+/*	if err = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
+		return err
+	}*/
 
-	return err*/
-	return nil
+	return &createdDeploy, nil
 }
 
 func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, deplName string) error {
-	/*userID := httputil.MustGetUserID(ctx)
+	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deplName,
 	}).Info("delete deployment")
 
-	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+	/*err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		nsID, getErr := da.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -114,16 +115,16 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 
 		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusReadDelete); permErr != nil {
 			return permErr
-		}
+		}*/
 
-		_, delErr := da.DeployDB(tx).DeleteDeployment(ctx, userID, nsLabel, deplName)
+		_, delErr := da.mongo.DeleteDeployment())
 		if delErr != nil {
 			return delErr
 		}
 
-		if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
+		/*if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
 			return delErr
-		}
+		}*/
 
 		return nil
 	})
@@ -132,19 +133,21 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 	return nil
 }
 
-func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
-	/*userID := httputil.MustGetUserID(ctx)
+func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
+	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
 		"deploy_name": deploy.Name,
 	}).Infof("replacing deployment with %#v", deploy)
 
-	if err := server.CalculateDeployResources(&deploy); err != nil {
-		return err
+	newDeploy := deployment.DeploymentFromKube(nsID, userID, deploy)
+
+	if err := server.CalculateDeployResources(&newDeploy); err != nil {
+		return nil, err
 	}
 
-	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+	/*err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
 		ns, getErr := da.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
 		if getErr != nil {
 			return getErr
@@ -180,7 +183,13 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 	})
 
 	return err*/
-	return nil
+
+	updatedDeployment, err := da.mongo.CreateDeployment(deployment.dep(nsID, userID, deploy))
+	if err != nil {
+		return nil, err
+	}
+
+	return &createdDeploy, nil
 }
 
 func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error {
