@@ -20,9 +20,13 @@ func (depl Deployment) UpdateQuery() interface{} {
 
 func (depl Deployment) SelectByNameQuery() interface{} {
 	return bson.M{
-		"namespaceid":     depl.NamespaceID,
-		"deployment.name": depl.Name,
-		"deleted":         false,
+		"$set": bson.M{
+			"deployment": bson.M{
+				"namespaceid":     depl.NamespaceID,
+				"deployment.name": depl.Name,
+				"deleted":         false,
+			},
+		},
 	}
 }
 
