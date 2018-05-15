@@ -5,7 +5,7 @@ import (
 	"github.com/globalsign/mgo"
 )
 
-func (mongo *mongoStorage) CreateIndex(indexName string, options ...func(mongo *mongoStorage, cName, indexName string) (bool, error)) error {
+func (mongo *MongoStorage) CreateIndex(indexName string, options ...func(mongo *MongoStorage, cName, indexName string) (bool, error)) error {
 	dbCollections, err := mongo.db.CollectionNames()
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func (mongo *mongoStorage) CreateIndex(indexName string, options ...func(mongo *
 	return nil
 }
 
-func DropIndexIfExists(mongo *mongoStorage, cName, indexName string) (bool, error) {
+func DropIndexIfExists(mongo *MongoStorage, cName, indexName string) (bool, error) {
 	indexes, err := mongo.db.C(cName).Indexes()
 	if err != nil {
 		return false, err

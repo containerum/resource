@@ -7,7 +7,7 @@ import (
 )
 
 // If ID is empty when use UUID4 to generate one
-func (mongo *mongoStorage) CreateDeployment(deployment deployment.Deployment) (deployment.Deployment, error) {
+func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (deployment.Deployment, error) {
 	var collection = mongo.db.C(CollectionDeployment)
 	if deployment.ID == "" {
 		deployment.ID = uuid.New().String()
@@ -19,19 +19,33 @@ func (mongo *mongoStorage) CreateDeployment(deployment deployment.Deployment) (d
 	return deployment, nil
 }
 
-func (mongo *mongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, error) {
+func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName string) (deployment.Deployment, error) {
+	var collection = mongo.db.C(CollectionDeployment)
+	var depl deployment.Deployment
+	var err error
+	if err = collection.Find(bson.M{
+		"namespace_id": namespaceID,
+		"name":         deploymentName,
+		"deleted":      false,
+	}).One(&depl); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+	}
+	return depl, err
+}
+
+func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, error) {
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.Deployment
 	var err error
 	if err = collection.FindId(ID).Select(bson.M{
 		"deleted": false,
 	}).One(&depl); err != nil {
-		mongo.logger.WithError(err).Errorf("unable to get deployment")
+		mongo.logger.WithError(err).Errorf("unable to get deployment by id")
 	}
 	return depl, err
 }
 
-func (mongo *mongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
+func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentList
 	var err error
@@ -44,7 +58,7 @@ func (mongo *mongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	return depl, err
 }
 
-func (mongo *mongoStorage) UpdateDeployment(ID string, upd deployment.Deployment) error {
+func (mongo *MongoStorage) UpdateDeployment(ID string, upd deployment.Deployment) error {
 	var collection = mongo.db.C(CollectionDeployment)
 	upd.ID = ""
 	err := collection.UpdateId(ID, bson.M{
@@ -56,7 +70,7 @@ func (mongo *mongoStorage) UpdateDeployment(ID string, upd deployment.Deployment
 	return err
 }
 
-func (mongo *mongoStorage) DeleteDeployment(ID string) error {
+func (mongo *MongoStorage) DeleteDeployment(ID string) error {
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.UpdateId(ID, bson.M{
 		"$set": bson.M{"deleted": true},
