@@ -1,6 +1,9 @@
 package ingress
 
-import "github.com/containerum/kube-client/pkg/model"
+import (
+	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo/bson"
+)
 
 type Ingress struct {
 	model.Ingress
@@ -29,3 +32,43 @@ func (ingr Ingress) Paths() []model.Path {
 	}
 	return paths
 }
+
+func (ingr Ingress) OneSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid":  ingr.NamespaceID,
+		"deleted":      false,
+		"ingress.name": ingr.Name,
+	}
+}
+
+func ListSelectQuery(namespaceID string) interface{} {
+	return bson.M{
+		"namespaceid": namespaceID,
+		"deleted":     false,
+	}
+}
+
+func OneSelectQuery(namespaceID, name string) interface{} {
+	return Ingress{
+		NamespaceID: name,
+		Ingress: model.Ingress{
+			Name: name,
+		},
+	}.OneSelectQuery()
+}
+
+func (ingr Ingress) UpdateQuery() interface{} {
+	return bson.M{
+		"$set": bson.M{
+			"ingress": ingr.Ingress,
+		},
+	}
+}
+
+func DeleteQuery() interface{} {
+	return bson.M{
+		"delete": true,
+	}
+}
+
+type IngressList []Ingress
