@@ -22,10 +22,26 @@ func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deploym
 	}
 }
 
+func (depl Deployment) Copy() Deployment {
+	var cp = depl
+	if cp.Status != nil {
+		var status = *cp.Status
+		cp.Status = &status
+	}
+	for i, container := range depl.Containers {
+		depl.Containers[i] = copyContainer(container)
+	}
+	return cp
+}
+
 type DeploymentList []Deployment
 
 func (list DeploymentList) Copy() DeploymentList {
-	return append(make(DeploymentList, 0, list.Len()), list...)
+	var cp = make(DeploymentList, 0, list.Len())
+	for _, depl := range list {
+		cp = append(cp, depl.Copy())
+	}
+	return cp
 }
 
 func (list DeploymentList) Len() int {
@@ -51,9 +67,29 @@ func (list DeploymentList) IDs() []string {
 func (list DeploymentList) Filter(pred func(deployment Deployment) bool) DeploymentList {
 	var filtered = make(DeploymentList, 0, list.Len())
 	for _, depl := range list {
-		if pred(depl) {
-			filtered = append(filtered, depl)
+		if pred(depl.Copy()) {
+			filtered = append(filtered, depl.Copy())
 		}
 	}
 	return filtered
+}
+
+func copyContainer(container model.Container) model.Container {
+	var cp = container
+	for i, env := range cp.Env {
+		cp.Env[i] = env
+	}
+	for i, command := range cp.Commands {
+		cp.Commands[i] = command
+	}
+	for i, port := range cp.Ports {
+		cp.Ports[i] = port
+	}
+	for i, volume := range cp.VolumeMounts {
+		cp.VolumeMounts[i] = volume
+	}
+	for i, config := range cp.ConfigMaps {
+		cp.ConfigMaps[i] = config
+	}
+	return cp
 }
