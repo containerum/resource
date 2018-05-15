@@ -65,7 +65,7 @@ func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 	err := collection.Update(
 		upd.SelectByNameQuery(),
 		bson.M{
-			"$set": upd.UpdateQuery(),
+			"$set": bson.M{"deployment": upd.UpdateQuery()},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment")
