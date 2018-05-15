@@ -4,6 +4,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo/bson"
+	"github.com/google/uuid"
 )
 
 func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.Service, error) {
@@ -36,9 +37,13 @@ func (mongo *MongoStorage) GetServiceList(namespaceID string) (service.ServiceLi
 	return result, nil
 }
 
+// If ID is empty, then generates UUID4 and uses it
 func (mongo *MongoStorage) CreateService(service service.Service) (service.Service, error) {
 	mongo.logger.Debugf("creating service")
 	var collection = mongo.db.C(CollectionService)
+	if service.ID == "" {
+		service.ID = uuid.New().String()
+	}
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
 		return service, err
