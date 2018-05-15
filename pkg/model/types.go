@@ -15,16 +15,6 @@ const (
 	KindIntService Kind = "intservice"
 )
 
-type PermissionStatus string // constants PermissionStatusOwner, PermissionStatusRead
-
-const (
-	PermissionStatusOwner      PermissionStatus = "owner"
-	PermissionStatusRead       PermissionStatus = "read"
-	PermissionStatusWrite      PermissionStatus = "write"
-	PermissionStatusReadDelete PermissionStatus = "readdelete"
-	PermissionStatusNone       PermissionStatus = "none"
-)
-
 type Resource struct {
 	ID          string     `json:"id,omitempty" db:"id"`
 	CreateTime  *time.Time `json:"create_time,omitempty" db:"create_time"`
@@ -99,34 +89,6 @@ func (d *Deployment) Mask() {
 	d.CreateTime = nil
 	d.Deleted = false
 	d.DeleteTime = nil
-}
-
-type PermissionRecord struct {
-	PermID                string           `json:"perm_id,omitempty" db:"perm_id"`
-	Kind                  Kind             `json:"kind,omitempty" db:"kind"`
-	ResourceID            *string          `json:"resource_id,omitempty" db:"resource_id"` // it can be null for resources without tables
-	ResourceLabel         string           `json:"label,omitempty" db:"resource_label"`
-	OwnerUserID           string           `json:"owner_user_id,omitempty" db:"owner_user_id"`
-	CreateTime            *time.Time       `json:"create_time,omitempty" db:"create_time"`
-	UserID                string           `json:"user_id,omitempty" db:"user_id"`
-	UserLogin             string           `json:"login,omitempty" db:"-"`
-	AccessLevel           PermissionStatus `json:"access,omitempty" db:"access_level"`
-	Limited               bool             `json:"limited,omitempty" db:"limited"`
-	AccessLevelChangeTime *time.Time       `json:"access_level_change_time,omitempty" db:"access_level_change_time"`
-	NewAccessLevel        PermissionStatus `json:"new_access_level,omitempty" db:"new_access_level"`
-}
-
-func (p *PermissionRecord) Mask() {
-	p.PermID = ""
-	p.Kind = "" // will be already known though
-	p.ResourceID = nil
-	p.OwnerUserID = ""
-	p.CreateTime = nil
-	p.UserID = ""
-	p.AccessLevel = p.NewAccessLevel
-	p.Limited = false
-	p.AccessLevelChangeTime = nil
-	p.NewAccessLevel = ""
 }
 
 type Container struct {
@@ -239,66 +201,4 @@ type Port struct {
 func (p *Port) Mask() {
 	p.ID = ""
 	p.ServiceID = ""
-}
-
-// Types below is not for storing in db
-
-type NamespaceWithPermission struct {
-	Namespace
-	PermissionRecord
-}
-
-func (np *NamespaceWithPermission) Mask() {
-	np.Namespace.Mask()
-	np.PermissionRecord.Mask()
-}
-
-type VolumeWithPermission struct {
-	Volume
-	PermissionRecord
-}
-
-func (vp *VolumeWithPermission) Mask() {
-	vp.Volume.Mask()
-	vp.PermissionRecord.Mask()
-}
-
-type NamespaceWithVolumes struct {
-	NamespaceWithPermission
-	Volume []VolumeWithPermission `json:"volumes"`
-}
-
-func (nv *NamespaceWithVolumes) Mask() {
-	nv.NamespaceWithPermission.Mask()
-	for i := range nv.Volume {
-		nv.Volume[i].Mask()
-	}
-}
-
-type NamespaceWithUserPermissions struct {
-	NamespaceWithPermission
-	Users []PermissionRecord `json:"users"`
-}
-
-func (nu *NamespaceWithUserPermissions) Mask() {
-	nu.ID = ""
-	nu.UserID = ""
-	nu.ResourceID = nil
-	nu.OwnerUserID = ""
-	nu.AccessLevelChangeTime = nil
-	nu.AccessLevel = ""
-	for n := range nu.Users {
-		nu.Users[n].UserID = ""
-		nu.Users[n].AccessLevel = ""
-		nu.Users[n].AccessLevelChangeTime = nil
-	}
-}
-
-type VolumeWithUserPermissions struct {
-	VolumeWithPermission
-	Users []PermissionRecord `json:"users,omitempty"`
-}
-
-func (vp *VolumeWithUserPermissions) Mask() {
-	vp.Users = nil
 }

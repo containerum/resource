@@ -18,7 +18,8 @@ func (mongo *MongoStorage) CreateIndex(indexName string, options ...func(mongo *
 		}
 		collection := mongo.db.C(cName)
 		var index = mgo.Index{
-			Key: []string{indexName},
+			Key:    []string{indexName},
+			Unique: true,
 		}
 		if collection.EnsureIndex(index); err != nil {
 			return err

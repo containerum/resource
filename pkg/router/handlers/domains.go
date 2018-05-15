@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	rstypes "git.containerum.net/ch/resource-service/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/gin-gonic/gin"
@@ -16,18 +17,19 @@ type DomainHandlers struct {
 }
 
 func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
-	var req rstypes.AddDomainRequest
+	var req domain.Domain
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	if err := h.AddDomain(ctx.Request.Context(), req); err != nil {
+	domain, err := h.AddDomain(ctx.Request.Context(), req)
+	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	ctx.JSON(http.StatusCreated, domain)
 }
 
 func (h *DomainHandlers) GetAllDomainsHandler(ctx *gin.Context) {
@@ -37,7 +39,7 @@ func (h *DomainHandlers) GetAllDomainsHandler(ctx *gin.Context) {
 		return
 	}
 
-	resp, err := h.GetAllDomains(ctx.Request.Context(), params)
+	resp, err := h.GetAllDomains(ctx.Request.Context())
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

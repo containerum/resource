@@ -1,20 +1,9 @@
 package server
 
 import (
-	"errors"
-	"io"
-	"reflect"
 	"sync"
 
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-
-	"context"
-
-	"git.containerum.net/ch/json-types/billing"
 	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
@@ -75,12 +64,7 @@ func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kub
 	return ret, nil
 }
 
-// VolumeGlusterName generates volume name for glusterfs (non-persistent volumes)
-func VolumeGlusterName(nsLabel, userID string) string {
-	glusterName := sha256.Sum256([]byte(fmt.Sprintf("%s-volume%s", nsLabel, userID)))
-	return hex.EncodeToString(glusterName[:])
-}
-
+/*
 func GetAndCheckPermission(ctx context.Context, userID string, resourceKind rstypes.Kind, resourceName string, needed rstypes.PermissionStatus) error {
 	if IsAdminRole(ctx) {
 		return nil
@@ -93,21 +77,12 @@ func GetAndCheckPermission(ctx context.Context, userID string, resourceKind rsty
 
 		if !models.PermCheck(current, needed) {
 			return rserrors.ErrPermissionDenied().AddDetailF("permission '%s' required for operation, you have '%s'", needed, current)
-		}*/
+		}
 
 	return nil
 }
-
-func CheckNamespaceResize(ns models.NamespaceUsage, newTariff billing.NamespaceTariff) error {
-	if newTariff.CPULimit < ns.CPU ||
-		newTariff.MemoryLimit < ns.RAM ||
-		newTariff.ExternalServices < ns.ExtServices ||
-		newTariff.InternalServices < ns.IntServices {
-		return rserrors.ErrDownResizeNotAllowed()
-	}
-	return nil
-}
-
+*/
+/*
 func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment) error {
 	if err := CalculateDeployResources(&deploy); err != nil {
 		return err
@@ -156,6 +131,7 @@ func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.Namespace
 	return nil
 }
 
+
 func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment, newReplicas int) error {
 	if err := CalculateDeployResources(&deploy); err != nil {
 		return err
@@ -175,7 +151,8 @@ func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.Na
 
 	return nil
 }
-
+*/
+/*
 func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, serviceType rstypes.ServiceType) error {
 	switch serviceType {
 	case rstypes.ServiceExternal:
@@ -191,7 +168,7 @@ func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsag
 	}
 	return nil
 }
-
+*/
 func CalculateDeployResources(deploy *kubtypes.Deployment) error {
 	var mCPU, mbRAM int64
 	for _, container := range deploy.Containers {
@@ -202,21 +179,5 @@ func CalculateDeployResources(deploy *kubtypes.Deployment) error {
 	mbRAM *= int64(deploy.Replicas)
 	deploy.TotalCPU = uint(mCPU)
 	deploy.TotalMemory = uint(mbRAM)
-	return nil
-}
-
-func (rs *ResourceServiceClients) Close() error {
-	var errs []string
-	v := reflect.ValueOf(rs)
-	for i := 0; i < v.NumField(); i++ {
-		if closer, ok := v.Field(i).Interface().(io.Closer); ok {
-			if err := closer.Close(); err != nil {
-				errs = append(errs, closer.Close().Error())
-			}
-		}
-	}
-	if len(errs) > 0 {
-		return errors.New(fmt.Sprintf("%#v", errs))
-	}
 	return nil
 }

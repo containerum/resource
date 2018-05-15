@@ -5,6 +5,7 @@ import (
 
 	"time"
 
+	"git.containerum.net/ch/resource-service/pkg/db"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
@@ -22,32 +23,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(clients *server.ResourceServiceClients, constructors *server.ResourceServiceConstructors, tv *m.TranslateValidate, enableCORS bool) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, tv *m.TranslateValidate, enableCORS bool) http.Handler {
 	e := gin.New()
 	initMiddlewares(e, tv, enableCORS)
 
 	//TODO
-	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(clients, &impl.DeployActionsDB{
-		DeployDB:    constructors.DeployDB,
-		NamespaceDB: constructors.NamespaceDB,
-	}))
-	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(clients, &impl.DomainActionsDB{
-		DomainDB: constructors.DomainDB,
-	}))
-	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(clients, &impl.IngressActionsDB{
-		NamespaceDB: constructors.NamespaceDB,
-		ServiceDB:   constructors.ServiceDB,
-		IngressDB:   constructors.IngressDB,
-	}))
-	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(clients, &impl.ServiceActionsDB{
-		ServiceDB:   constructors.ServiceDB,
-		NamespaceDB: constructors.NamespaceDB,
-		DomainDB:    constructors.DomainDB,
-		IngressDB:   constructors.IngressDB,
-	}))
-	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(clients, &impl.ResourceCountActionsDB{
-		ResourceCountDB: constructors.ResourceCountDB,
-	}))
+	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo))
+	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
+	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo))
+	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo))
+	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(mongo))
 
 	return e
 }

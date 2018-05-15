@@ -3,54 +3,44 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
-	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/db"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
-	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
-type DeployActionsDB struct {
-	DeployDB    models.DeployDBConstructor
-	NamespaceDB models.NamespaceDBConstructor
-}
-
 type DeployActionsImpl struct {
-	*server.ResourceServiceClients
-	*DeployActionsDB
-
-	log *cherrylog.LogrusAdapter
+	mongo *db.MongoStorage
+	log   *cherrylog.LogrusAdapter
 }
 
-func NewDeployActionsImpl(clients *server.ResourceServiceClients, constructors *DeployActionsDB) *DeployActionsImpl {
+func NewDeployActionsImpl(mongo *db.MongoStorage) *DeployActionsImpl {
 	return &DeployActionsImpl{
-		ResourceServiceClients: clients,
-		DeployActionsDB:        constructors,
-		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
+		mongo: mongo,
+		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
 	}
 }
 
 func (da *DeployActionsImpl) GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error) {
-	userID := httputil.MustGetUserID(ctx)
-	da.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"ns_label": nsLabel,
-	}).Info("get deployments")
+	/*	userID := httputil.MustGetUserID(ctx)
+		da.log.WithFields(logrus.Fields{
+			"user_id":  userID,
+			"ns_label": nsLabel,
+		}).Info("get deployments")
 
-	ret, err := da.DeployDB(da.DB).GetDeployments(ctx, userID, nsLabel)
-	for i := range ret {
-		if calcErr := server.CalculateDeployResources(&ret[i]); calcErr != nil {
-			return nil, calcErr
+		ret, err := da.DeployDB(da.DB).GetDeployments(ctx, userID, nsLabel)
+		for i := range ret {
+			if calcErr := server.CalculateDeployResources(&ret[i]); calcErr != nil {
+				return nil, calcErr
+			}
 		}
-	}
 
-	return ret, err
+		return ret, err*/
+	return nil, nil
 }
 
-func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error) {
-	userID := httputil.MustGetUserID(ctx)
+func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (*kubtypes.Deployment, error) {
+	/*userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -62,11 +52,12 @@ func (da *DeployActionsImpl) GetDeploymentByLabel(ctx context.Context, nsLabel, 
 		return ret, calcErr
 	}
 
-	return ret, err
+	return ret, err*/
+	return nil, nil
 }
 
 func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -103,11 +94,12 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsLabel strin
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
 
 func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, deplName string) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -136,11 +128,12 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsLabel, depl
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
 
 func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -186,11 +179,12 @@ func (da *DeployActionsImpl) ReplaceDeployment(ctx context.Context, nsLabel stri
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
 
 func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -232,11 +226,12 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsLabel,
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
 
 func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
 		"ns_label":    nsLabel,
@@ -265,5 +260,6 @@ func (da *DeployActionsImpl) SetContainerImage(ctx context.Context, nsLabel, dep
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }

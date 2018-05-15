@@ -16,12 +16,14 @@ const (
 	DBname               = "resources"
 	CollectionDeployment = "deployment"
 	CollectionService    = "service"
+	CollectionDomain     = "domain"
 )
 
 func CollectionsNames() []string {
 	return []string{
 		CollectionDeployment,
 		CollectionService,
+		CollectionDomain,
 	}
 }
 
@@ -69,10 +71,13 @@ func (mongo *MongoStorage) Init() error {
 			return err
 		}
 	}
-	if err := mongo.CreateIndex("id"); err != nil {
+	if err := mongo.CreateIndex("_id"); err != nil {
 		return err
 	}
 	if err := mongo.CreateIndex("name"); err != nil {
+		return err
+	}
+	if err := mongo.CreateIndex("domain"); err != nil {
 		return err
 	}
 	if err := mongo.CreateIndex("owner"); err != nil {
