@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
 
@@ -15,6 +16,14 @@ type Deployment struct {
 
 func (depl Deployment) UpdateQuery() interface{} {
 	return depl.Deployment
+}
+
+func (depl Deployment) SelectByNameQuery() interface{} {
+	return bson.M{
+		"namespaceid": depl.NamespaceID,
+		"name":        depl.Name,
+		"deleted":     false,
+	}
 }
 
 func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deployment {
