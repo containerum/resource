@@ -13,6 +13,10 @@ type Deployment struct {
 	NamespaceID string `json:"namespace_id"`
 }
 
+func (depl Deployment) UpdateQuery() interface{} {
+	return depl.Deployment
+}
+
 func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deployment {
 	return Deployment{
 		Deployment:  deployment,
