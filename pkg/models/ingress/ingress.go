@@ -42,7 +42,7 @@ func (ingr Ingress) OneSelectQuery() interface{} {
 	}
 }
 
-func IngressFromKube(nsID, owner string, ingress model.Deployment) Ingress {
+func IngressFromKube(nsID, owner string, ingress model.Ingress) Ingress {
 	return Ingress{
 		Ingress:     ingress,
 		Owner:       owner,
