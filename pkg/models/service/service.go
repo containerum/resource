@@ -30,3 +30,7 @@ func (serv Service) SelectQuery() interface{} {
 		"deleted":      false,
 	}
 }
+
+func (serv Service) UpdateQuery() interface{} {
+	return serv.Service
+}
