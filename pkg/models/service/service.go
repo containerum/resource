@@ -33,8 +33,8 @@ func (serv Service) Copy() Service {
 func (serv Service) SelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":  serv.NamespaceID,
-		"service.name": serv.Name,
 		"deleted":      false,
+		"service.name": serv.Name,
 	}
 }
 

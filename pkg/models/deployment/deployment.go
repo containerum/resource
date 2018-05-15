@@ -15,18 +15,18 @@ type Deployment struct {
 }
 
 func (depl Deployment) UpdateQuery() interface{} {
-	return depl.Deployment
-}
-
-func (depl Deployment) SelectByNameQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
-			"deployment": bson.M{
-				"namespaceid":     depl.NamespaceID,
-				"deployment.name": depl.Name,
-				"deleted":         false,
-			},
+			"deployment": depl.Deployment,
 		},
+	}
+}
+
+func (depl Deployment) OneSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid":     depl.NamespaceID,
+		"deleted":         false,
+		"deployment.name": depl.Name,
 	}
 }
 
