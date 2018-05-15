@@ -3,7 +3,6 @@ package validation
 import (
 	"fmt"
 
-	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/en_US"
@@ -28,7 +27,6 @@ func StandardResourceValidator(uni *ut.UniversalTranslator) (ret *validator.Vali
 
 	ret.RegisterStructValidation(ingressValidate, kubtypes.Ingress{})
 	ret.RegisterStructValidation(serviceValidate, kubtypes.Service{})
-	ret.RegisterStructValidation(updateServiceValidate, server.UpdateServiceRequest{})
 	ret.RegisterStructValidation(deploymentValidate, kubtypes.Deployment{})
 	ret.RegisterStructValidation(containerVolumeValidate, kubtypes.ContainerVolume{})
 	ret.RegisterStructValidation(containerPortValidate, kubtypes.ContainerPort{})
@@ -95,33 +93,6 @@ func serviceValidate(structLevel validator.StructLevel) {
 		if err := v.Var(port.TargetPort, "min=1,max=65535"); err != nil {
 			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].TargetPort", i), "", err.(validator.ValidationErrors))
 		}
-	}
-
-	for i, ip := range req.IPs {
-		if err := v.Var(ip, "ip"); err != nil {
-			structLevel.ReportValidationErrors(fmt.Sprintf("IPs[%d]", i), "", err.(validator.ValidationErrors))
-		}
-	}
-}
-
-func updateServiceValidate(structLevel validator.StructLevel) {
-	req := structLevel.Current().Interface().(server.UpdateServiceRequest)
-
-	v := structLevel.Validator()
-
-	for i, port := range req.Ports {
-		if err := v.Var(port.Protocol, "eq=TCP|eq=UDP"); err != nil {
-			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Protocol", i), "", err.(validator.ValidationErrors))
-		}
-
-		if err := v.Var(port.TargetPort, "min=1,max=65535"); err != nil {
-			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].Port", i), "", err.(validator.ValidationErrors))
-		}
-
-		if err := v.Var(port.Port, "omitempty,min=1,max=65535"); err != nil {
-			structLevel.ReportValidationErrors(fmt.Sprintf("Ports[%d].TargetPort", i), "", err.(validator.ValidationErrors))
-		}
-
 	}
 
 	for i, ip := range req.IPs {

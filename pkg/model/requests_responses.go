@@ -24,17 +24,8 @@ type GetAllResourcesQueryParams struct {
 	Filters string `form:"filters"`
 }
 
-type SetResourcesAccessRequest struct {
-	Access PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
-}
-
 type ResizeResourceRequest struct {
 	NewTariffID string `json:"tariff_id" binding:"uuid"`
-}
-
-type SetResourceAccessRequest struct {
-	Username string           `json:"username" binding:"email"`
-	Access   PermissionStatus `json:"access" binding:"eq=owner|eq=read|eq=write|eq=readdelete|eq=none"`
 }
 
 type DeleteResourceAccessRequest struct {
@@ -45,29 +36,7 @@ type DeleteResourceAccessRequest struct {
 
 type CreateNamespaceRequest = CreateResourceRequest
 
-type GetUserNamespacesResponse []NamespaceWithVolumes
-
-func (r GetUserNamespacesResponse) Mask() {
-	for i := range r {
-		r[i].Mask()
-	}
-}
-
-type GetUserNamespaceResponse = NamespaceWithVolumes
-
-type GetAllNamespacesResponse []NamespaceWithVolumes
-
-func (r GetAllNamespacesResponse) Mask() {
-	for i := range r {
-		r[i].Mask()
-	}
-}
-
-type GetUserNamespaceAccessesResponse = NamespaceWithUserPermissions
-
 type RenameNamespaceRequest = RenameResourceRequest
-
-type SetNamespaceAccessRequest = SetResourceAccessRequest
 
 type DeleteNamespaceAccessRequest = DeleteResourceAccessRequest
 
@@ -77,29 +46,7 @@ type ResizeNamespaceRequest = ResizeResourceRequest
 
 type CreateVolumeRequest = CreateResourceRequest
 
-type GetUserVolumesResponse []VolumeWithPermission
-
-func (r GetUserVolumesResponse) Mask() {
-	for i := range r {
-		r[i].Mask()
-	}
-}
-
-type GetUserVolumeResponse = VolumeWithPermission
-
-type GetAllVolumesResponse []VolumeWithPermission
-
-func (r GetAllVolumesResponse) Mask() {
-	for i := range r {
-		r[i].Mask()
-	}
-}
-
-type GetVolumeAccessesResponse = VolumeWithUserPermissions
-
 type RenameVolumeRequest = RenameResourceRequest
-
-type SetVolumeAccessRequest = SetResourceAccessRequest
 
 type DeleteVolumeAccessRequest = DeleteResourceAccessRequest
 

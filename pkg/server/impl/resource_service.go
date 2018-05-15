@@ -3,38 +3,30 @@ package impl
 import (
 	"context"
 
+	"git.containerum.net/ch/resource-service/pkg/db"
 	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
-	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
-	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
-type ResourceCountActionsDB struct {
-	ResourceCountDB models.ResourceCountDBConstructor
-}
-
 type ResourceCountActionsImpl struct {
-	*server.ResourceServiceClients
-	*ResourceCountActionsDB
-
-	log *cherrylog.LogrusAdapter
+	mongo *db.MongoStorage
+	log   *cherrylog.LogrusAdapter
 }
 
-func NewResourceCountActionsImpl(clients *server.ResourceServiceClients, constructors *ResourceCountActionsDB) *ResourceCountActionsImpl {
+func NewResourceCountActionsImpl(mongo *db.MongoStorage) *ResourceCountActionsImpl {
 	return &ResourceCountActionsImpl{
-		ResourceServiceClients: clients,
-		ResourceCountActionsDB: constructors,
-		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_service")),
+		mongo: mongo,
+		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_service")),
 	}
 }
 
-func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error) {
-	userID := httputil.MustGetUserID(ctx)
+func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*rstypes.GetResourcesCountResponse, error) {
+	/*userID := httputil.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("get resources count")
 
 	ret, err := rs.ResourceCountDB(rs.DB).GetResourcesCount(ctx, userID)
 
-	return ret, err
+	return ret, err*/
+	return nil, nil
 }

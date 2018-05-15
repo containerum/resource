@@ -16,23 +16,25 @@ const (
 	DBname               = "resources"
 	CollectionDeployment = "deployment"
 	CollectionService    = "service"
+	CollectionDomain     = "domain"
 )
 
 func CollectionsNames() []string {
 	return []string{
 		CollectionDeployment,
 		CollectionService,
+		CollectionDomain,
 	}
 }
 
-type mongoStorage struct {
+type MongoStorage struct {
 	logger logrus.FieldLogger
 	config MongoConfig
 	closed bool
 	db     *mgo.Database
 }
 
-func (mongo *mongoStorage) Close() (err error) {
+func (mongo *MongoStorage) Close() (err error) {
 	defer func() {
 		switch rec := recover().(type) {
 		case nil:
@@ -53,11 +55,11 @@ func (mongo *mongoStorage) Close() (err error) {
 	return nil
 }
 
-func (mongo *mongoStorage) IsClosed() bool {
+func (mongo *MongoStorage) IsClosed() bool {
 	return mongo.closed
 }
 
-func (mongo *mongoStorage) Init() error {
+func (mongo *MongoStorage) Init() error {
 	dbCollections, err := mongo.db.CollectionNames()
 	if err != nil {
 		return err
@@ -69,10 +71,13 @@ func (mongo *mongoStorage) Init() error {
 			return err
 		}
 	}
-	if err := mongo.CreateIndex("id"); err != nil {
+	if err := mongo.CreateIndex("_id"); err != nil {
 		return err
 	}
 	if err := mongo.CreateIndex("name"); err != nil {
+		return err
+	}
+	if err := mongo.CreateIndex("domain"); err != nil {
 		return err
 	}
 	if err := mongo.CreateIndex("owner"); err != nil {
@@ -84,7 +89,7 @@ func (mongo *mongoStorage) Init() error {
 	return nil
 }
 
-func NewMongo(config MongoConfig) (*mongoStorage, error) {
+func NewMongo(config MongoConfig) (*MongoStorage, error) {
 	if config.Logger == nil {
 		var logger = logrus.StandardLogger()
 		if config.Debug {
@@ -126,7 +131,7 @@ func NewMongo(config MongoConfig) (*mongoStorage, error) {
 			return nil, err
 		}
 	}
-	var storage = &mongoStorage{
+	var storage = &MongoStorage{
 		logger: config.Logger,
 		config: config,
 		db:     db,

@@ -8,15 +8,6 @@
   revision = "f0ab7937658e5b0797c5bae1c182fb76291a48ae"
 
 [[projects]]
-  branch = "master"
-  name = "git.containerum.net/ch/json-types"
-  packages = [
-    "billing",
-    "resource-service"
-  ]
-  revision = "041a989c67953d829255c2fb10985b9bc1b25e51"
-
-[[projects]]
   name = "git.containerum.net/ch/kube-client"
   packages = ["pkg/model"]
   revision = "c9a90746a0b2131d7221bae7713c8ae8715b4f00"
@@ -65,10 +56,7 @@
 
 [[projects]]
   name = "github.com/containerum/utils"
-  packages = [
-    "httputil",
-    "sqlxutil"
-  ]
+  packages = ["httputil"]
   revision = "5e922affb542eaeb55ab395ff3c7161179df54b3"
   version = "v1.0.0"
 
@@ -165,8 +153,8 @@
 [[projects]]
   name = "github.com/go-siris/siris"
   packages = ["core/errors"]
-  revision = "d6bc3df4b216199bec985043ca6c3e5c00232fd5"
-  version = "v7.4.0"
+  revision = "bf3b6eec68567b4a1c7b4a26c9dd87815abb363c"
+  version = "v7.3.4"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -194,26 +182,19 @@
   version = "0.2"
 
 [[projects]]
-  name = "github.com/jmoiron/sqlx"
-  packages = [
-    ".",
-    "reflectx"
-  ]
-  revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
-
-[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
   version = "1.1.3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/lib/pq"
   packages = [
     ".",
     "oid"
   ]
-  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
+  revision = "d34b9ff171c21ad295489235aec8b6626023cd04"
 
 [[projects]]
   branch = "master"
@@ -224,15 +205,6 @@
     "jwriter"
   ]
   revision = "8b799c424f57fa123fc63a99d6383bc6e4c02578"
-
-[[projects]]
-  name = "github.com/mattes/migrate"
-  packages = [
-    "source",
-    "source/file"
-  ]
-  revision = "035c07716cd373d88456ec4d701402df52584cb4"
-  version = "v3.0.1"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -265,10 +237,10 @@
   revision = "d4647c9c7a84d847478d890b816b7d8b62b0b279"
 
 [[projects]]
-  branch = "master"
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -298,7 +270,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "94e3fad7f1b4eed4ec147751ad6b4c4d33f00611"
+  revision = "034e5325b6ab92faa14d15c30e86919e911cf8e0"
 
 [[projects]]
   branch = "master"
@@ -322,7 +294,7 @@
     "unix",
     "windows"
   ]
-  revision = "d0faeb539838e250bd0a9db4182d48d4a1915181"
+  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -430,6 +402,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cd9097fead43eb66a3168f94a84a72971165e3116f3bddf3f96bf89d79058407"
+  inputs-digest = "3f5a74b81c2d1371971d0c15d13f5753d083a9af208769552b33eaf8b59425d2"
   solver-name = "gps-cdcl"
   solver-version = 1

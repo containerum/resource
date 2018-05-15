@@ -3,47 +3,31 @@ package impl
 import (
 	"context"
 
-	"strings"
-
+	"git.containerum.net/ch/resource-service/pkg/db"
 	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
-	"git.containerum.net/ch/resource-service/pkg/server"
-	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
-	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/idna"
 )
 
 const (
 	ingressHostSuffix = ".hub.containerum.io"
 )
 
-type IngressActionsDB struct {
-	NamespaceDB models.NamespaceDBConstructor
-	ServiceDB   models.ServiceDBConstructor
-	IngressDB   models.IngressDBConstructor
-}
-
 type IngressActionsImpl struct {
-	*server.ResourceServiceClients
-	*IngressActionsDB
-
-	log *cherrylog.LogrusAdapter
+	mongo *db.MongoStorage
+	log   *cherrylog.LogrusAdapter
 }
 
-func NewIngressActionsImpl(clients *server.ResourceServiceClients, constructors *IngressActionsDB) *IngressActionsImpl {
+func NewIngressActionsImpl(mongo *db.MongoStorage) *IngressActionsImpl {
 	return &IngressActionsImpl{
-		ResourceServiceClients: clients,
-		IngressActionsDB:       constructors,
-		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+		mongo: mongo,
+		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
 	}
 }
 
 func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string, req kubtypes.Ingress) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -120,37 +104,41 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsLabel string,
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
 
 func (ia *IngressActionsImpl) GetUserIngresses(ctx context.Context, nsLabel string,
-	params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
-	userID := httputil.MustGetUserID(ctx)
-	ia.log.WithFields(logrus.Fields{
-		"page":     params.Page,
-		"per_page": params.PerPage,
-		"user_id":  userID,
-		"ns_label": nsLabel,
-	}).Info("get user ingresses")
+	params rstypes.GetIngressesQueryParams) (*rstypes.GetIngressesResponse, error) {
+	/*
+		userID := httputil.MustGetUserID(ctx)
+		ia.log.WithFields(logrus.Fields{
+			"page":     params.Page,
+			"per_page": params.PerPage,
+			"user_id":  userID,
+			"ns_label": nsLabel,
+		}).Info("get user ingresses")
 
-	resp, err := ia.IngressDB(ia.DB).GetUserIngresses(ctx, userID, nsLabel, params)
+		resp, err := ia.IngressDB(ia.DB).GetUserIngresses(ctx, userID, nsLabel, params)
 
-	return resp, err
+		return resp, err*/
+	return nil, nil
 }
 
 func (ia *IngressActionsImpl) GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error) {
-	ia.log.WithFields(logrus.Fields{
+	/*ia.log.WithFields(logrus.Fields{
 		"page":     params.Page,
 		"per_page": params.PerPage,
 	}).Info("get all ingresses")
 
 	resp, err := ia.IngressDB(ia.DB).GetAllIngresses(ctx, params)
 
-	return resp, err
+	return resp, err*/
+	return nil, nil
 }
 
 func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain string) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -180,5 +168,6 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsLabel, domain
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }

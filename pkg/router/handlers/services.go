@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"git.containerum.net/ch/resource-service/pkg/models/service"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
@@ -52,7 +53,7 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 }
 
 func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
-	var req server.UpdateServiceRequest
+	var req service.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return

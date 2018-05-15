@@ -3,102 +3,91 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
-	"git.containerum.net/ch/resource-service/pkg/server"
-	"github.com/containerum/cherry"
+	"git.containerum.net/ch/resource-service/pkg/db"
+	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
-	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
-type ServiceActionsDB struct {
-	ServiceDB   models.ServiceDBConstructor
-	NamespaceDB models.NamespaceDBConstructor
-	DomainDB    models.DomainDBConstructor
-	IngressDB   models.IngressDBConstructor
-}
-
 type ServiceActionsImpl struct {
-	*server.ResourceServiceClients
-	*ServiceActionsDB
-
-	log *cherrylog.LogrusAdapter
+	mongo *db.MongoStorage
+	log   *cherrylog.LogrusAdapter
 }
 
-func NewServiceActionsImpl(clients *server.ResourceServiceClients, constructors *ServiceActionsDB) *ServiceActionsImpl {
+func NewServiceActionsImpl(mongo *db.MongoStorage) *ServiceActionsImpl {
 	return &ServiceActionsImpl{
-		ResourceServiceClients: clients,
-		ServiceActionsDB:       constructors,
-		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
+		mongo: mongo,
+		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
 	}
 }
 
 func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error {
-	userID := httputil.MustGetUserID(ctx)
-	sa.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"ns_label": nsLabel,
-	}).Infof("create service %#v", req)
+	/*	userID := httputil.MustGetUserID(ctx)
+			sa.log.WithFields(logrus.Fields{
+				"user_id":  userID,
+				"ns_label": nsLabel,
+			}).Infof("create service %#v", req)
 
-	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
-			return permErr
-		}
+		//	sa.mongo.CreateService()
 
-		serviceType := server.DetermineServiceType(req)
-
-		if serviceType == rstypes.ServiceExternal {
-			domainDB := sa.DomainDB(tx)
-			domain, selectErr := domainDB.ChooseRandomDomain(ctx)
-			if selectErr != nil {
-				return selectErr
-			}
-
-			req.Domain = domain.Domain
-			req.IPs = domain.IP
-			// TODO: SQL queries in loop is not good solution
-			for i := range req.Ports {
-				port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
-				if portSelectErr != nil {
-					return portSelectErr
+		/*	err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
+				if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
+					return permErr
 				}
-				req.Ports[i].Port = &port
-			}
-		}
 
-		ns, getErr := sa.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
+				serviceType := server.DetermineServiceType(req)
 
-		nsUsage, getErr := sa.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
-		if getErr != nil {
-			return getErr
-		}
+				if serviceType == rstypes.ServiceExternal {
+					domainDB := sa.DomainDB(tx)
+					domain, selectErr := domainDB.ChooseRandomDomain(ctx)
+					if selectErr != nil {
+						return selectErr
+					}
 
-		if chkErr := server.CheckServiceCreateQuotas(ns.Namespace, nsUsage, serviceType); chkErr != nil {
-			return chkErr
-		}
+					req.Domain = domain.Domain
+					req.IPs = domain.IP
+					// TODO: SQL queries in loop is not good solution
+					for i := range req.Ports {
+						port, portSelectErr := domainDB.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
+						if portSelectErr != nil {
+							return portSelectErr
+						}
+						req.Ports[i].Port = &port
+					}
+				}
 
-		if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
-			return createErr
-		}
+				ns, getErr := sa.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
+				if getErr != nil {
+					return getErr
+				}
 
-		if createErr := sa.Kube.CreateService(ctx, ns.ID, req); createErr != nil {
-			return createErr
-		}
+				nsUsage, getErr := sa.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
+				if getErr != nil {
+					return getErr
+				}
 
-		return nil
-	})
+				if chkErr := server.CheckServiceCreateQuotas(ns.Namespace, nsUsage, serviceType); chkErr != nil {
+					return chkErr
+				}
 
-	return err
+				if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
+					return createErr
+				}
+
+				if createErr := sa.Kube.CreateService(ctx, ns.ID, req); createErr != nil {
+					return createErr
+				}
+
+				return nil
+			})
+
+			return err*/
+	return nil
 }
 
 func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error) {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"ns_label": nsLabel,
@@ -106,11 +95,12 @@ func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsLabel string) (
 
 	ret, err := sa.ServiceDB(sa.DB).GetServices(ctx, userID, nsLabel)
 
-	return ret, err
+	return ret, err*/
+	return nil, nil
 }
 
-func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error) {
-	userID := httputil.MustGetUserID(ctx)
+func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceName string) (*kubtypes.Service, error) {
+	/*userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -119,11 +109,12 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsLabel, serviceNa
 
 	ret, _, err := sa.ServiceDB(sa.DB).GetService(ctx, userID, nsLabel, serviceName)
 
-	return ret, err
+	return ret, err*/
+	return nil, nil
 }
 
-func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string, req server.UpdateServiceRequest) error {
-	userID := httputil.MustGetUserID(ctx)
+func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string, req service.Service) error {
+	/*userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -171,11 +162,12 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsLabel string,
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
 
 func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, serviceName string) error {
-	userID := httputil.MustGetUserID(ctx)
+	/*userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
 		"ns_label":     nsLabel,
@@ -213,5 +205,6 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsLabel, servic
 		return nil
 	})
 
-	return err
+	return err*/
+	return nil
 }
