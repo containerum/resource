@@ -24,11 +24,12 @@ func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName strin
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.Deployment
 	var err error
-	if err = collection.Find(bson.M{
-		"namespace_id": namespaceID,
-		"name":         deploymentName,
-		"deleted":      false,
-	}).One(&depl); err != nil {
+	if err = collection.Find(deployment.Deployment{
+		NamespaceID: namespaceID,
+		Deployment: model.Deployment{
+			Name: deploymentName,
+		},
+	}.SelectByNameQuery()).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
 	}
 	return depl, err
@@ -61,7 +62,8 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 
 func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(upd.SelectByNameQuery(),
+	err := collection.Update(
+		upd.SelectByNameQuery(),
 		bson.M{
 			"$set": upd.UpdateQuery(),
 		})
