@@ -2,6 +2,7 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
+	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -58,22 +59,29 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	return depl, err
 }
 
-func (mongo *MongoStorage) UpdateDeployment(ID string, upd deployment.Deployment) error {
+func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.UpdateId(ID, bson.M{
-		"$set": upd.UpdateQuery(),
-	})
+	err := collection.Update(upd.SelectByNameQuery(),
+		bson.M{
+			"$set": upd.UpdateQuery(),
+		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment")
 	}
 	return err
 }
 
-func (mongo *MongoStorage) DeleteDeployment(ID string) error {
+func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.UpdateId(ID, bson.M{
-		"$set": bson.M{"deleted": true},
-	})
+	err := collection.Update(deployment.Deployment{
+		Deployment: model.Deployment{
+			Name: name,
+		},
+		NamespaceID: namespace,
+	}.SelectByNameQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
 	}
