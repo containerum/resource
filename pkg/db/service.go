@@ -77,7 +77,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 }
 
 func (mongo *MongoStorage) CountService(owner string) (int, error) {
-	mongo.logger.Debugf("counting deployment")
+	mongo.logger.Debugf("counting services")
 	var collection = mongo.db.C(CollectionService)
 	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
 		return 0, err

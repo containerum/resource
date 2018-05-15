@@ -103,7 +103,7 @@ func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 }
 
 func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
-	mongo.logger.Debugf("counting deployment")
+	mongo.logger.Debugf("counting deployment replicas")
 	var collection = mongo.db.C(CollectionDeployment)
 	var count struct {
 		Count int `json:"count"`
