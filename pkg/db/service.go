@@ -2,6 +2,7 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
+	"git.containerum.net/ch/resource-service/pkg/models/stats"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
@@ -76,12 +77,33 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) CountService(owner string) (int, error) {
+func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionService)
-	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
-		return 0, err
-	} else {
-		return n, nil
+	var statData []struct {
+		HasDomain bool `json:"_id"`
+		Count     int  `json:"count"`
 	}
+	if err := collection.Pipe([]bson.M{
+		{"$match": bson.M{
+			"owner": owner,
+		}},
+		{
+			"$group": bson.M{
+				"_id": bson.M{"service.domain": bson.M{"$ne": ""}},
+			},
+			"count": bson.M{"$sum": 1},
+		},
+	}).All(&statData); err != nil {
+		return stats.Service{}, err
+	}
+	var serviceStats stats.Service
+	for _, serv := range statData {
+		if serv.HasDomain {
+			serviceStats.External += serv.Count
+		} else {
+			serviceStats.Internal += serv.Count
+		}
+	}
+	return serviceStats, nil
 }

@@ -118,7 +118,8 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 			"$group": bson.M{
 				"_id": "",
 				"count": bson.M{
-					"$sum": "$deployment.replicas"},
+					"$sum": "$deployment.replicas",
+				},
 			},
 		},
 	}).One(&count); err != nil {
