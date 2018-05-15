@@ -18,7 +18,7 @@ func (mongo *MongoStorage) GetDomain(domainName string) (*domain.Domain, error) 
 
 func (mongo *MongoStorage) GetDomainsList() ([]domain.Domain, error) {
 	var collection = mongo.db.C(CollectionDomain)
-	result := []domain.Domain{}
+	var result []domain.Domain
 	if err := collection.Find(nil).All(&result); err != nil {
 		return nil, err
 	}
