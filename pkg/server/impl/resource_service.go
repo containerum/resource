@@ -46,8 +46,8 @@ func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*rst
 	ret := rstypes.GetResourcesCountResponse{
 		Ingresses:   ingresses,
 		Deployments: deploys,
-		ExtServices: services,
-		IntServices: services,
+		ExtServices: services.External,
+		IntServices: services.Internal,
 		Pods:        pods,
 	}
 

@@ -113,10 +113,10 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 
 	service := router.Group("/namespaces/:ns_label/services")
 	{
-		service.POST("", serviceHandlers.CreateServiceHandler)
-
 		service.GET("", serviceHandlers.GetServicesListHandler)
 		service.GET("/:service_label", serviceHandlers.GetServiceHandler)
+
+		service.POST("", serviceHandlers.CreateServiceHandler)
 
 		service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)
 

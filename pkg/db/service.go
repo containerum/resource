@@ -88,11 +88,12 @@ func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 		{"$match": bson.M{
 			"owner": owner,
 		}},
+		{"$project": bson.M{"domain": "$service.domain"}},
 		{
 			"$group": bson.M{
-				"_id": bson.M{"service.domain": bson.M{"$ne": ""}},
+				"_id":   bson.M{"$ne": bson.M{"domain": ""}},
+				"count": bson.M{"$sum": 1},
 			},
-			"count": bson.M{"$sum": 1},
 		},
 	}).All(&statData); err != nil {
 		return stats.Service{}, err

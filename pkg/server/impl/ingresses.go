@@ -4,10 +4,8 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/pkg/db"
-	"git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
-	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
@@ -52,13 +50,9 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 		req.Rules[0].Path[0].Path = "/"
 	}
 
-	svc, err := ia.mongo.GetService(nsID, req.Rules[0].Path[0].ServiceName)
+	_, err = ia.mongo.GetService(nsID, req.Rules[0].Path[0].ServiceName)
 	if err != nil {
 		return nil, err
-	}
-
-	if server.DetermineServiceType(svc.Service) != model.ServiceExternal {
-		return nil, rserrors.ErrServiceNotExternal()
 	}
 
 	createdIngress, err := ia.mongo.CreateIngress(ingress.IngressFromKube(nsID, userID, req))
