@@ -22,4 +22,4 @@ func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deploym
 	}
 }
 
-type DeploymentList Deployment
+type DeploymentList []Deployment
