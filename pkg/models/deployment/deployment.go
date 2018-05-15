@@ -9,8 +9,8 @@ type Deployment struct {
 	model.Deployment
 	Owner       string `json:"owner"`
 	ID          string `json:"_id,omitempty"`
-	Deleted     string `json:"deleted"`
-	NamespaceID string `json:"namespace_id"`
+	Deleted     bool   `json:"deleted"`
+	NamespaceID string `json:"namespaceid"`
 }
 
 func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deployment {
