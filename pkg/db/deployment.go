@@ -31,7 +31,7 @@ func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName strin
 		Deployment: model.Deployment{
 			Name: deploymentName,
 		},
-	}.SelectByNameQuery()).One(&depl); err != nil {
+	}.OneSelectQuery()).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
 	}
 	return depl, err
@@ -67,7 +67,7 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 	mongo.logger.Debugf("updating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(upd.SelectByNameQuery(), upd.UpdateQuery())
+	err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery())
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment")
 	}
@@ -82,7 +82,7 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 			Name: name,
 		},
 		NamespaceID: namespace,
-	}.SelectByNameQuery(),
+	}.OneSelectQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},
 		})
