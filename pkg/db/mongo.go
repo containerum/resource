@@ -17,6 +17,7 @@ const (
 	CollectionDeployment = "deployment"
 	CollectionService    = "service"
 	CollectionDomain     = "domain"
+	CollectionIngress    = "ingress"
 )
 
 func CollectionsNames() []string {
@@ -24,6 +25,7 @@ func CollectionsNames() []string {
 		CollectionDeployment,
 		CollectionService,
 		CollectionDomain,
+		CollectionIngress,
 	}
 }
 
