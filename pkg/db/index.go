@@ -1,9 +1,49 @@
 package db
 
 import (
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
 	"github.com/globalsign/mgo"
 )
+
+func (mongo *MongoStorage) InitIndexes() error {
+	var errs []error
+	for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
+		var collection = mongo.db.C(collectionName)
+		if err := collection.EnsureIndexKey("owner"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey(collectionName + "." + "name"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey("namespaceid"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey("deleted"); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	{
+		var collection = mongo.db.C(CollectionService)
+		if err := collection.EnsureIndexKey(CollectionService + "." + "deployment"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey(CollectionService + "." + "domain"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey(CollectionService + "." + "domain"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey(CollectionService+"."+"ports.port",
+			CollectionService+"."+"ports.protocol"); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return rserrors.ErrDatabase().AddDetailsErr(errs...)
+	}
+	return nil
+}
 
 func (mongo *MongoStorage) CreateIndex(indexName string, options ...func(mongo *MongoStorage, cName, indexName string) (bool, error)) error {
 	dbCollections, err := mongo.db.CollectionNames()

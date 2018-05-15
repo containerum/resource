@@ -68,12 +68,12 @@ func (mongo *MongoStorage) Init() error {
 	}
 	for _, collection := range strset.FromSlice(CollectionsNames()).SubSlice(dbCollections).Items() {
 		if err := mongo.db.C(collection).Create(&mgo.CollectionInfo{
-			ForceIdIndex: false,
+			ForceIdIndex: true,
 		}); err != nil {
 			return err
 		}
 	}
-	if err := mongo.CreateIndex("_id"); err != nil {
+	if err := mongo.InitIndexes(); err != nil {
 		return err
 	}
 	/*	if err := mongo.CreateIndex("name"); err != nil {
