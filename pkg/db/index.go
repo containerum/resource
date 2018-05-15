@@ -31,11 +31,20 @@ func (mongo *MongoStorage) InitIndexes() error {
 		if err := collection.EnsureIndexKey(CollectionService + "." + "domain"); err != nil {
 			errs = append(errs, err)
 		}
-		if err := collection.EnsureIndexKey(CollectionService + "." + "domain"); err != nil {
-			errs = append(errs, err)
-		}
 		if err := collection.EnsureIndexKey(CollectionService+"."+"ports.port",
 			CollectionService+"."+"ports.protocol"); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	{
+		var collection = mongo.db.C(CollectionDomain)
+		if err := collection.EnsureIndexKey("domain"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey("domain_group"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndexKey("domain_group", "domain"); err != nil {
 			errs = append(errs, err)
 		}
 	}
