@@ -5,10 +5,13 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-func (mongo *MongoStorage) GetUserResources(owner string) (model.Resource, error) {
+func (mongo *MongoStorage) GetUserResources(namespaceID string) (model.Resource, error) {
 	var deployments = mongo.db.C(CollectionDeployment)
 	var res model.Resource
 	return res, deployments.Pipe([]bson.M{
+		{"$match": bson.M{
+			"namespaceid": namespaceID,
+		}},
 		{"$project": bson.M{
 			"replicas": "$deployment.replicas",
 			"cpu":      bson.M{"$sum": "$deployment.containers.cpu"},
