@@ -81,8 +81,8 @@ func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionService)
 	var statData []struct {
-		HasDomain bool `json:"_id"`
-		Count     int  `json:"count"`
+		HasDomain bool `bson:"_id"`
+		Count     int  `bson:"count"`
 	}
 	if err := collection.Pipe([]bson.M{
 		{"$match": bson.M{
@@ -90,9 +90,9 @@ func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 		}},
 		{"$project": bson.M{"domain": "$service.domain"}},
 		{
-			"$match": bson.M{
-				"domain": bson.M{"$exists": true},
-				"count":  bson.M{"$sum": 1},
+			"$group": bson.M{
+				"_id":   bson.M{"$eq": []interface{}{"$domain", ""}},
+				"count": bson.M{"$sum": 1},
 			},
 		},
 	}).All(&statData); err != nil {

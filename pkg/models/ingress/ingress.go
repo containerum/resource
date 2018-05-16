@@ -9,7 +9,7 @@ import (
 type Ingress struct {
 	model.Ingress
 	Owner       string `json:"owner"`
-	ID          string `json:"_id,omitempty"`
+	ID          string `json:"_id" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
