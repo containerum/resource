@@ -66,3 +66,28 @@ SID = "resource-service"
     StatusHTTP = 400
     Message = "Can`t delete service with linked ingresses"
     Kind = 11
+
+[[error]]
+    Name = "ErrRequiredHeadersNotProvided"
+    StatusHTTP = 400
+    Message = "Required headers not provided"
+    Kind = 12
+
+[[error]]
+    Name = "ErrInvalidRole"
+    StatusHTTP = 403
+    Message = "Invalid user role"
+    Kind = 13
+
+[[error]]
+    Name = "ErrAccessError"
+    StatusHTTP = 403
+    Message = "Access denied"
+    Kind = 14
+
+[[error]]
+    Name = "ErrAdminRequired"
+    StatusHTTP = 403
+    Message = "Admin access required"
+    Comment = "User is not admin and has no permissions"
+    Kind = 15

@@ -58,6 +58,7 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		headers.UserRoleXHeader: "eq=admin|eq=user",
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
+	e.Use(m.RequiredUserHeaders())
 }
 
 func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DeployActions) {
@@ -65,16 +66,16 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 
 	deployment := router.Group("/namespaces/:namespace/deployments")
 	{
-		deployment.GET("", deployHandlers.GetDeploymentsListHandler)
-		deployment.GET("/:deployment", deployHandlers.GetDeploymentHandler)
+		deployment.GET("", m.ReadAccess, deployHandlers.GetDeploymentsListHandler)
+		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetDeploymentHandler)
 
-		deployment.POST("", deployHandlers.CreateDeploymentHandler)
+		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
 
-		deployment.PUT("/:deployment", deployHandlers.UpdateDeploymentHandler)
-		deployment.PUT("/:deployment/image", deployHandlers.SetContainerImageHandler)
-		deployment.PUT("/:deployment/replicas", deployHandlers.SetReplicasHandler)
+		deployment.PUT("/:deployment", m.WriteAccess, deployHandlers.UpdateDeploymentHandler)
+		deployment.PUT("/:deployment/image", m.WriteAccess, deployHandlers.SetContainerImageHandler)
+		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
 
-		deployment.DELETE("/:deployment", deployHandlers.DeleteDeploymentByLabelHandler)
+		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentByLabelHandler)
 	}
 }
 
@@ -97,14 +98,14 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 
 	ingress := router.Group("/namespaces/:namespace/ingresses")
 	{
-		ingress.GET("", ingressHandlers.GetIngressesListHandler)
-		ingress.GET("/:ingress", ingressHandlers.GetIngressHandler)
+		ingress.GET("", m.ReadAccess, ingressHandlers.GetIngressesListHandler)
+		ingress.GET("/:ingress", m.ReadAccess, ingressHandlers.GetIngressHandler)
 
-		ingress.POST("", ingressHandlers.CreateIngressHandler)
+		ingress.POST("", m.WriteAccess, ingressHandlers.CreateIngressHandler)
 
-		ingress.PUT("/:ingress", ingressHandlers.UpdateIngressHandler)
+		ingress.PUT("/:ingress", m.WriteAccess, ingressHandlers.UpdateIngressHandler)
 
-		ingress.DELETE("/:ingress", ingressHandlers.DeleteIngressHandler)
+		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
 	}
 }
 
@@ -113,14 +114,14 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 
 	service := router.Group("/namespaces/:namespace/services")
 	{
-		service.GET("", serviceHandlers.GetServicesListHandler)
-		service.GET("/:service", serviceHandlers.GetServiceHandler)
+		service.GET("", m.ReadAccess, serviceHandlers.GetServicesListHandler)
+		service.GET("/:service", m.ReadAccess, serviceHandlers.GetServiceHandler)
 
-		service.POST("", serviceHandlers.CreateServiceHandler)
+		service.POST("", m.WriteAccess, serviceHandlers.CreateServiceHandler)
 
-		service.PUT("/:service", serviceHandlers.UpdateServiceHandler)
+		service.PUT("/:service", m.WriteAccess, serviceHandlers.UpdateServiceHandler)
 
-		service.DELETE("/:service", serviceHandlers.DeleteServiceHandler)
+		service.DELETE("/:service", m.WriteAccess, serviceHandlers.DeleteServiceHandler)
 	}
 }
 
