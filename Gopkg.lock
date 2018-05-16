@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "git.containerum.net/ch/kube-client"
-  packages = ["pkg/model"]
-  revision = "c9a90746a0b2131d7221bae7713c8ae8715b4f00"
-  version = "v0.9.5"
-
-[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -28,16 +22,6 @@
   ]
   revision = "3076e36aee79538b125d060e5b671649cbb2db4e"
   version = "v1.0.1-rc2"
-
-[[projects]]
-  name = "github.com/containerum/chkit"
-  packages = [
-    "pkg/model",
-    "pkg/model/container",
-    "pkg/model/deployment"
-  ]
-  revision = "a8a468a7475907c3f9de33dedc4a502ce9254762"
-  version = "v3.0.2"
 
 [[projects]]
   name = "github.com/containerum/kube-client"
@@ -191,12 +175,6 @@
   version = "v0.0.3"
 
 [[projects]]
-  name = "github.com/mattn/go-runewidth"
-  packages = ["."]
-  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
-  version = "v0.0.2"
-
-[[projects]]
   name = "github.com/modern-go/concurrent"
   packages = ["."]
   revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
@@ -207,12 +185,6 @@
   packages = ["."]
   revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
   version = "1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/olekukonko/tablewriter"
-  packages = ["."]
-  revision = "d4647c9c7a84d847478d890b816b7d8b62b0b279"
 
 [[projects]]
   name = "github.com/satori/go.uuid"
@@ -338,6 +310,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "91897f87107bc06b5f2493f5304f0c9d01bc0664a27706888ea2df36af38f744"
+  inputs-digest = "03d9abfec6f13fa074c2c2ffdc6faf2f86b0cd1e5e26588f72e5470ee41bdeec"
   solver-name = "gps-cdcl"
   solver-version = 1
