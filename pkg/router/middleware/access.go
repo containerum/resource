@@ -59,8 +59,8 @@ func ReadAccess(c *gin.Context) {
 }
 
 func WriteAccess(c *gin.Context) {
-	ns := c.MustGet("namespace").(string)
-	if c.MustGet(UserRole).(string) == RoleUser {
+	ns := c.Param("namespace")
+	if c.GetHeader(httputil.UserRoleXHeader) == RoleUser {
 		var userNsData *headers.UserHeaderData
 		nsList := c.MustGet(UserNamespaces).(*UserHeaderDataMap)
 		for _, n := range *nsList {

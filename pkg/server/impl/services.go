@@ -32,11 +32,6 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		"ns_id":   nsID,
 	}).Infof("create service %#v", req)
 
-	/*err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-	if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
-		return permErr
-	}*/
-
 	_, err := sa.mongo.GetDeploymentByName(nsID, req.Deploy)
 	if err != nil {
 		return nil, err
@@ -63,11 +58,8 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	/*ns, getErr := sa.NamespaceDB(tx).GetUserNamespaceByLabel(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
-
+	//TODO
+	/*
 		nsUsage, getErr := sa.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
 		if getErr != nil {
 			return getErr
@@ -77,16 +69,10 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 			return chkErr
 		}
 
-		if createErr := sa.ServiceDB(tx).CreateService(ctx, userID, nsLabel, serviceType, req); createErr != nil {
-			return createErr
-		}
-
 		if createErr := sa.Kube.CreateService(ctx, ns.ID, req); createErr != nil {
 			return createErr
 		}
-
-		return nil
-	})*/
+	*/
 
 	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
 	if err != nil {
@@ -127,11 +113,6 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		"service_name": req.Name,
 	}).Info("update service")
 
-	/*err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-	if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
-		return permErr
-	}*/
-
 	serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
 	if serviceType == model.ServiceExternal {
@@ -153,23 +134,12 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	/*nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
-
-		if updErr := sa.ServiceDB(tx).UpdateService(ctx, userID, nsLabel, serviceType, kubtypes.Service(req)); updErr != nil {
-			return updErr
-		}
-
+	//TODO
+	/*
 		if updErr := sa.Kube.UpdateService(ctx, nsID, kubtypes.Service(req)); updErr != nil {
 			return updErr
 		}
-
-		return nil
-	})
-
-	return err*/
+	*/
 
 	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
 	if err != nil {
@@ -187,40 +157,22 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 		"service_name": serviceName,
 	}).Info("delete service")
 
-	/*err := sa.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		nsID, getErr := sa.NamespaceDB(tx).GetNamespaceID(ctx, userID, nsLabel)
-		if getErr != nil {
-			return getErr
-		}
+	/*
+		TODO Check ingresses
+			_, getErr = sa.IngressDB(tx).GetIngress(ctx, userID, nsLabel, serviceName)
+			switch {
+			case getErr == nil:
+				return rserrors.ErrServiceHasIngresses()
+			case cherry.Equals(getErr, rserrors.ErrResourceNotExists()):
+				// pass
+			default:
+				return getErr
+			}
 
-		if permErr := server.GetAndCheckPermission(ctx, userID, rstypes.KindNamespace, nsLabel, rstypes.PermissionStatusWrite); permErr != nil {
-			return permErr
-		}
-
-
-	TODO Check ingresses
-		_, getErr = sa.IngressDB(tx).GetIngress(ctx, userID, nsLabel, serviceName)
-		switch {
-		case getErr == nil:
-			return rserrors.ErrServiceHasIngresses()
-		case cherry.Equals(getErr, rserrors.ErrResourceNotExists()):
-			// pass
-		default:
-			return getErr
-		}
-
-		if delErr := sa.ServiceDB(tx).DeleteService(ctx, userID, nsLabel, serviceName); delErr != nil {
-			return delErr
-		}
-
-		if delErr := sa.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
-			return delErr
-		}
-
-		return nil
-	})
-
-	return err*/
+			if delErr := sa.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
+				return delErr
+			}
+	*/
 
 	err := sa.mongo.DeleteService(nsID, serviceName)
 	if err != nil {

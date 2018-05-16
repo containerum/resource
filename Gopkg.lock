@@ -270,7 +270,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "034e5325b6ab92faa14d15c30e86919e911cf8e0"
+  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
 
 [[projects]]
   branch = "master"
@@ -322,7 +322,7 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "86e600f69ee4704c6efbf6a2a40a5c10700e76c2"
+  revision = "7bb2a897381c9c5ab2aeb8614f758d7766af68ff"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -402,6 +402,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3f5a74b81c2d1371971d0c15d13f5753d083a9af208769552b33eaf8b59425d2"
+  inputs-digest = "5b8ac1fe2a04681dded5a27260f78d9ce474f094dea556a6f1cd716229b75c51"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -75,7 +75,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.PUT("/:deployment/image", m.WriteAccess, deployHandlers.SetContainerImageHandler)
 		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
 
-		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentByLabelHandler)
+		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
 	}
 }
 

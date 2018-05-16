@@ -41,6 +41,9 @@ func DetermineServiceType(service kubtypes.Service) rstypes.ServiceType {
 			break
 		}
 	}
+	if service.Domain != "" {
+		serviceType = rstypes.ServiceExternal
+	}
 	return serviceType
 }
 

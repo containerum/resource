@@ -99,7 +99,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-func (h *DeployHandlers) DeleteDeploymentByLabelHandler(ctx *gin.Context) {
+func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
