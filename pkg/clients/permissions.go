@@ -24,7 +24,7 @@ type permissions struct {
 	logger logrus.FieldLogger
 }
 
-func NewPermissionsTTP(permissionsHost string) *permissions {
+func NewPermissionsHTTP(permissionsHost string) *permissions {
 	var client = resty.New().
 		SetHostURL(permissionsHost).
 		SetHeader("Content-Type", "application/json").
