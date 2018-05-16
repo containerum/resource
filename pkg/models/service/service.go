@@ -14,6 +14,13 @@ type Service struct {
 	NamespaceID string `json:"namespaceid"`
 }
 
+type ServiceType string
+
+const (
+	ServiceInternal ServiceType = "internal"
+	ServiceExternal ServiceType = "external"
+)
+
 func ServiceFromKube(nsID, owner string, service model.Service) Service {
 	return Service{
 		Service:     service,

@@ -3,10 +3,10 @@ package server
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"git.containerum.net/ch/resource-service/pkg/models/resources"
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
@@ -45,5 +45,5 @@ type ServiceActions interface {
 }
 
 type ResourceCountActions interface {
-	GetResourcesCount(ctx context.Context) (*rstypes.GetResourcesCountResponse, error)
+	GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error)
 }

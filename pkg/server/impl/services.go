@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/pkg/db"
-	"git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -39,7 +38,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 
 	serviceType := server.DetermineServiceType(req)
 
-	if serviceType == model.ServiceExternal {
+	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
 			return nil, err
@@ -113,7 +112,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 
 	serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
-	if serviceType == model.ServiceExternal {
+	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
 			return nil, err

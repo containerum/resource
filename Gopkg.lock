@@ -2,18 +2,6 @@
 
 
 [[projects]]
-  branch = "develop"
-  name = "git.containerum.net/ch/auth"
-  packages = ["proto"]
-  revision = "f0ab7937658e5b0797c5bae1c182fb76291a48ae"
-
-[[projects]]
-  name = "git.containerum.net/ch/kube-client"
-  packages = ["pkg/model"]
-  revision = "c9a90746a0b2131d7221bae7713c8ae8715b4f00"
-  version = "v0.9.5"
-
-[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -34,16 +22,6 @@
   ]
   revision = "3076e36aee79538b125d060e5b671649cbb2db4e"
   version = "v1.0.1-rc2"
-
-[[projects]]
-  name = "github.com/containerum/chkit"
-  packages = [
-    "pkg/model",
-    "pkg/model/container",
-    "pkg/model/deployment"
-  ]
-  revision = "a8a468a7475907c3f9de33dedc4a502ce9254762"
-  version = "v3.0.2"
 
 [[projects]]
   name = "github.com/containerum/kube-client"
@@ -164,14 +142,7 @@
 
 [[projects]]
   name = "github.com/golang/protobuf"
-  packages = [
-    "proto",
-    "ptypes",
-    "ptypes/any",
-    "ptypes/duration",
-    "ptypes/empty",
-    "ptypes/timestamp"
-  ]
+  packages = ["proto"]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
 
@@ -186,15 +157,6 @@
   packages = ["."]
   revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
   version = "1.1.3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/lib/pq"
-  packages = [
-    ".",
-    "oid"
-  ]
-  revision = "d34b9ff171c21ad295489235aec8b6626023cd04"
 
 [[projects]]
   branch = "master"
@@ -213,12 +175,6 @@
   version = "v0.0.3"
 
 [[projects]]
-  name = "github.com/mattn/go-runewidth"
-  packages = ["."]
-  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
-  version = "v0.0.2"
-
-[[projects]]
   name = "github.com/modern-go/concurrent"
   packages = ["."]
   revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
@@ -229,12 +185,6 @@
   packages = ["."]
   revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
   version = "1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/olekukonko/tablewriter"
-  packages = ["."]
-  revision = "d4647c9c7a84d847478d890b816b7d8b62b0b279"
 
 [[projects]]
   name = "github.com/satori/go.uuid"
@@ -276,14 +226,8 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = [
-    "context",
-    "http/httpguts",
-    "http2",
-    "http2/hpack",
     "idna",
-    "internal/timeseries",
-    "publicsuffix",
-    "trace"
+    "publicsuffix"
   ]
   revision = "2491c5de3490fced2f6cff376127c667efeed857"
 
@@ -317,42 +261,6 @@
   ]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
-  revision = "7bb2a897381c9c5ab2aeb8614f758d7766af68ff"
-
-[[projects]]
-  name = "google.golang.org/grpc"
-  packages = [
-    ".",
-    "balancer",
-    "balancer/base",
-    "balancer/roundrobin",
-    "codes",
-    "connectivity",
-    "credentials",
-    "encoding",
-    "encoding/proto",
-    "grpclb/grpc_lb_v1/messages",
-    "grpclog",
-    "internal",
-    "keepalive",
-    "metadata",
-    "naming",
-    "peer",
-    "resolver",
-    "resolver/dns",
-    "resolver/passthrough",
-    "stats",
-    "status",
-    "tap",
-    "transport"
-  ]
-  revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
-  version = "v1.11.3"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -402,6 +310,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5b8ac1fe2a04681dded5a27260f78d9ce474f094dea556a6f1cd716229b75c51"
+  inputs-digest = "03d9abfec6f13fa074c2c2ffdc6faf2f86b0cd1e5e26588f72e5470ee41bdeec"
   solver-name = "gps-cdcl"
   solver-version = 1

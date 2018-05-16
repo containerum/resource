@@ -7,7 +7,6 @@ FROM alpine:3.7
 RUN mkdir -p /app
 COPY --from=builder /bin/resource-service /app
 ENV DB_URL="postgres://user:password@localhost:5432/resource_service?sslmode=disable" \
-    KUBE_ADDR="" \
-    LISTEN_ADDR=""
+    KUBE_ADDR=""
 EXPOSE 1213
 CMD "/app/resource-service"

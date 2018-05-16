@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/pkg/db"
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models/resources"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
@@ -22,7 +22,7 @@ func NewResourceCountActionsImpl(mongo *db.MongoStorage) *ResourceCountActionsIm
 	}
 }
 
-func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*rstypes.GetResourcesCountResponse, error) {
+func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("get resources count")
 
@@ -43,7 +43,7 @@ func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*rst
 		return nil, err
 	}
 
-	ret := rstypes.GetResourcesCountResponse{
+	ret := resources.GetResourcesCountResponse{
 		Ingresses:   ingresses,
 		Deployments: deploys,
 		ExtServices: services.External,
