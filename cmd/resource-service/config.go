@@ -41,6 +41,12 @@ var flags = []cli.Flag{
 		Value:  "http://kube-api:1212",
 		Usage:  "kube-api service address",
 	},
+	cli.StringFlag{
+		EnvVar: "CH_RESOURCE_PERMISSIONS_ADDR",
+		Name:   "permissions_addr",
+		Value:  "http://permisssions:4242",
+		Usage:  "permissions service address",
+	},
 	cli.BoolFlag{
 		EnvVar: "CH_RESOURCE_TEXTLOG",
 		Name:   "textlog",
@@ -110,4 +116,9 @@ func setupKube(c *cli.Context) (*clients.Kube, error) {
 	default:
 		return nil, errors.New("invalid kube-api client type")
 	}
+}
+
+func setupPermissions(c *cli.Context) *clients.Permissions {
+	client := clients.NewPermissionsHTTP(c.String("kube_addr"))
+	return &client
 }

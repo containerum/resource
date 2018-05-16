@@ -23,7 +23,7 @@ func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 	}
 }
 
-func (da *DomainActionsImpl) GetDomainsList(ctx context.Context) ([]domain.Domain, error) {
+func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) ([]domain.Domain, error) {
 	da.log.Info("get all domains")
 
 	return da.mongo.GetDomainsList()

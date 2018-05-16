@@ -16,16 +16,18 @@ import (
 )
 
 type ServiceActionsImpl struct {
-	kube  clients.Kube
-	mongo *db.MongoStorage
-	log   *cherrylog.LogrusAdapter
+	kube        clients.Kube
+	permissions clients.Permissions
+	mongo       *db.MongoStorage
+	log         *cherrylog.LogrusAdapter
 }
 
-func NewServiceActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *ServiceActionsImpl {
+func NewServiceActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube) *ServiceActionsImpl {
 	return &ServiceActionsImpl{
-		kube:  *kube,
-		mongo: mongo,
-		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
+		kube:        *kube,
+		mongo:       mongo,
+		permissions: *permissions,
+		log:         cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
 	}
 }
 
@@ -94,6 +96,20 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 			return chkErr
 		}
 	*/
+
+	nsLimits, err := sa.permissions.GetNamespaceLimits(ctx, nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	nsUsage, err := sa.mongo.CountServicesInNamespace(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := server.CheckServiceCreateQuotas(nsLimits, nsUsage, serviceType); err != nil {
+		return nil, err
+	}
 
 	if err := sa.kube.CreateService(ctx, nsID, req); err != nil {
 		return nil, err

@@ -16,7 +16,7 @@ type DomainHandlers struct {
 }
 
 func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
-	resp, err := h.GetDomainsList(ctx.Request.Context())
+	resp, err := h.GetDomainsList(ctx.Request.Context(), ctx.Query("page"), ctx.Query("per_page"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

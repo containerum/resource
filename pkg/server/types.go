@@ -22,7 +22,7 @@ type DeployActions interface {
 }
 
 type DomainActions interface {
-	GetDomainsList(ctx context.Context) ([]domain.Domain, error)
+	GetDomainsList(ctx context.Context, page, per_page string) ([]domain.Domain, error)
 	GetDomain(ctx context.Context, domain string) (*domain.Domain, error)
 	AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error

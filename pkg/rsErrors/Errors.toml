@@ -91,3 +91,9 @@ SID = "resource-service"
     Message = "Admin access required"
     Comment = "User is not admin and has no permissions"
     Kind = 15
+
+[[error]]
+    Name = "ErrQuotaExceeded"
+    StatusHTTP = 400
+    Message = "Namespace quota exceeded"
+    Kind = 16

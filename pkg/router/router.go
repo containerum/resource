@@ -24,13 +24,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(mongo *db.MongoStorage, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool) http.Handler {
 	e := gin.New()
 	initMiddlewares(e, tv, enableCORS)
-	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, kube))
+	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, permissions, kube))
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
 	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
-	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, kube))
+	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
 	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(mongo))
 
 	return e

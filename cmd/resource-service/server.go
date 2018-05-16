@@ -42,7 +42,9 @@ func initServer(c *cli.Context) error {
 	kube, err := setupKube(c)
 	exitOnError(err)
 
-	app := router.CreateRouter(mongo, kube, tv, c.Bool("cors"))
+	permissions := setupPermissions(c)
+
+	app := router.CreateRouter(mongo, permissions, kube, tv, c.Bool("cors"))
 
 	srv := &http.Server{
 		Addr:    ":" + c.String("port"),

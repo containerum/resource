@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"git.containerum.net/ch/resource-service/pkg/models/service"
+	"git.containerum.net/ch/resource-service/pkg/models/stats"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
@@ -67,26 +68,7 @@ func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kub
 	return ret, nil
 }
 
-/*
-func GetAndCheckPermission(ctx context.Context, userID string, resourceKind rstypes.Kind, resourceName string, needed rstypes.PermissionStatus) error {
-	if IsAdminRole(ctx) {
-		return nil
-	}
-
-	/*	current, err := db.GetUserResourceAccess(ctx, userID, resourceKind, resourceName)
-		if err != nil {
-			return err
-		}
-
-		if !models.PermCheck(current, needed) {
-			return rserrors.ErrPermissionDenied().AddDetailF("permission '%s' required for operation, you have '%s'", needed, current)
-		}
-
-	return nil
-}
-*/
-/*
-func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment) error {
+func CheckDeploymentCreateQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resource, deploy kubtypes.Deployment) error {
 	if err := CalculateDeployResources(&deploy); err != nil {
 		return err
 	}
@@ -95,18 +77,18 @@ func CheckDeploymentCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceU
 	deployCPU = int(deploy.TotalCPU)
 	deployRAM = int(deploy.TotalCPU)
 
-	if exceededCPU := ns.CPU - deployCPU - nsUsage.CPU; exceededCPU < 0 {
-		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+	if exceededCPU := int(ns.Resources.Hard.CPU) - deployCPU - int(nsUsage.CPU); exceededCPU < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
 	}
 
-	if exceededRAM := ns.RAM - deployRAM - nsUsage.RAM; exceededRAM < 0 {
-		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+	if exceededRAM := int(ns.Resources.Hard.Memory) - deployRAM - int(nsUsage.Memory); exceededRAM < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
 	return nil
 }
 
-func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, oldDeploy, newDeploy kubtypes.Deployment) error {
+func CheckDeploymentReplaceQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resource, oldDeploy, newDeploy kubtypes.Deployment) error {
 	if err := CalculateDeployResources(&oldDeploy); err != nil {
 		return err
 	}
@@ -123,19 +105,18 @@ func CheckDeploymentReplaceQuotas(ns rstypes.Namespace, nsUsage models.Namespace
 	newDeployCPU = int(newDeploy.TotalCPU)
 	newDeployRAM = int(newDeploy.TotalMemory)
 
-	if exceededCPU := ns.CPU - nsUsage.CPU - newDeployCPU + oldDeployCPU; exceededCPU < 0 {
-		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+	if exceededCPU := int(ns.Resources.Hard.CPU) - int(nsUsage.CPU) - newDeployCPU + oldDeployCPU; exceededCPU < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
 	}
 
-	if exceededRAM := ns.CPU - nsUsage.CPU - newDeployRAM + oldDeployRAM; exceededRAM < 0 {
-		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+	if exceededRAM := int(ns.Resources.Hard.Memory) - int(nsUsage.Memory) - newDeployRAM + oldDeployRAM; exceededRAM < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
 	return nil
 }
 
-
-func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, deploy kubtypes.Deployment, newReplicas int) error {
+func CheckDeploymentReplicasChangeQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resource, deploy kubtypes.Deployment, newReplicas int) error {
 	if err := CalculateDeployResources(&deploy); err != nil {
 		return err
 	}
@@ -144,34 +125,33 @@ func CheckDeploymentReplicasChangeQuotas(ns rstypes.Namespace, nsUsage models.Na
 	deployCPU = int(deploy.TotalCPU)
 	deployRAM = int(deploy.TotalMemory)
 
-	if exceededCPU := ns.CPU - nsUsage.CPU - deployCPU*newReplicas + deployCPU*deploy.Replicas; exceededCPU < 0 {
-		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
+	if exceededCPU := int(ns.Resources.Hard.CPU) - int(nsUsage.CPU) - deployCPU*newReplicas + deployCPU*deploy.Replicas; exceededCPU < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
 	}
 
-	if exceededRAM := ns.CPU - nsUsage.CPU - deployRAM*newReplicas + deployRAM*deploy.Replicas; exceededRAM < 0 {
-		//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
+	if exceededRAM := int(ns.Resources.Hard.CPU) - int(nsUsage.CPU) - deployRAM*newReplicas + deployRAM*deploy.Replicas; exceededRAM < 0 {
+		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d memory", -exceededRAM)
 	}
 
 	return nil
 }
-*/
-/*
-func CheckServiceCreateQuotas(ns rstypes.Namespace, nsUsage models.NamespaceUsage, serviceType rstypes.ServiceType) error {
+
+func CheckServiceCreateQuotas(ns kubtypes.Namespace, nsUsage stats.Service, serviceType service.ServiceType) error {
 	switch serviceType {
-	case rstypes.ServiceExternal:
-		if ns.MaxExternalServices <= nsUsage.ExtServices {
-			//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
+	case service.ServiceExternal:
+		if int(*ns.MaxExtService) <= nsUsage.External {
+			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
 		}
-	case rstypes.ServiceInternal:
-		if ns.MaxIntServices <= nsUsage.IntServices {
-			//TODO	return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
+	case service.ServiceInternal:
+		if int(*ns.MaxIntService) <= nsUsage.Internal {
+			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
 		}
 	default:
 		return rserrors.ErrValidation().AddDetailF("Invalid service type %s", serviceType)
 	}
 	return nil
 }
-*/
+
 func CalculateDeployResources(deploy *kubtypes.Deployment) error {
 	var mCPU, mbRAM int64
 	for _, container := range deploy.Containers {

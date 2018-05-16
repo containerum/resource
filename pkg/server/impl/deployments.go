@@ -15,16 +15,18 @@ import (
 )
 
 type DeployActionsImpl struct {
-	kube  clients.Kube
-	mongo *db.MongoStorage
-	log   *cherrylog.LogrusAdapter
+	kube        clients.Kube
+	permissions clients.Permissions
+	mongo       *db.MongoStorage
+	log         *cherrylog.LogrusAdapter
 }
 
-func NewDeployActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *DeployActionsImpl {
+func NewDeployActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube) *DeployActionsImpl {
 	return &DeployActionsImpl{
-		kube:  *kube,
-		mongo: mongo,
-		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
+		kube:        *kube,
+		mongo:       mongo,
+		permissions: *permissions,
+		log:         cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
 	}
 }
 
@@ -58,16 +60,19 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 		"ns_id":   nsID,
 	}).Info("create deployment")
 
-	//TODO
-	/*
-		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
-		if getErr != nil {
-			return getErr
-		}
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	if err != nil {
+		return nil, err
+	}
 
-		if chkErr := server.CheckDeploymentCreateQuotas(ns.Namespace, nsUsage, deploy); chkErr != nil {
-			return chkErr
-		}*/
+	nsUsage, err := da.mongo.GetUserResources(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := server.CheckDeploymentCreateQuotas(nsLimits, nsUsage, deploy); err != nil {
+		return nil, err
+	}
 
 	if err := da.kube.CreateDeployment(ctx, nsID, deploy); err != nil {
 		return nil, err
@@ -116,17 +121,24 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	//TODO
-	/*
-		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
-		if getErr != nil {
-			return getErr
-		}
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	if err != nil {
+		return nil, err
+	}
 
-		if chkErr := server.CheckDeploymentReplaceQuotas(ns.Namespace, nsUsage, oldDeploy, deploy); chkErr != nil {
-			return chkErr
-		}
-	*/
+	nsUsage, err := da.mongo.GetUserResources(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deploy.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, deploy); err != nil {
+		return nil, err
+	}
 
 	if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
 		return nil, err
@@ -152,30 +164,33 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		"deploy_name": deplName,
 	}).Infof("set deployment replicas %#v", req)
 
-	//TODO
-	/*
-		nsUsage, getErr := da.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
-		if getErr != nil {
-			return getErr
-		}
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	if err != nil {
+		return nil, err
+	}
 
-		if chkErr := server.CheckDeploymentReplicasChangeQuotas(ns.Namespace, nsUsage, deploy, req.Replicas); chkErr != nil {
-			return chkErr
-		}
-	*/
+	nsUsage, err := da.mongo.GetUserResources(nsID)
+	if err != nil {
+		return nil, err
+	}
 
 	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
 
-	oldDeploy.Replicas = req.Replicas
+	newDeploy := oldDeploy
+	newDeploy.Replicas = req.Replicas
 
-	if err := da.kube.SetDeploymentReplicas(ctx, nsID, oldDeploy.Name, req.Replicas); err != nil {
+	if err := server.CheckDeploymentReplicasChangeQuotas(nsLimits, nsUsage, oldDeploy.Deployment, req.Replicas); err != nil {
 		return nil, err
 	}
 
-	if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+	if err := da.kube.SetDeploymentReplicas(ctx, nsID, newDeploy.Name, req.Replicas); err != nil {
+		return nil, err
+	}
+
+	if err := da.mongo.UpdateDeployment(newDeploy); err != nil {
 		return nil, err
 	}
 
