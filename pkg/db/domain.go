@@ -38,22 +38,7 @@ func (mongo *MongoStorage) GetDomainsList(pages ...int) ([]domain.Domain, error)
 	mongo.logger.Debugf("getting domain list")
 	var collection = mongo.db.C(CollectionDomain)
 	var result []domain.Domain
-	var err error
-	var query = collection.Find(nil)
-	switch len(pages) {
-	case 0:
-		err = query.All(&result)
-	case 1:
-		var max = pages[0]
-		err = query.Limit(max).All(&result)
-	case 2:
-		var offset = pages[1]
-		var max = pages[0]
-		err = query.Skip(offset).Limit(max).All(&result)
-	default:
-		mongo.logger.Fatalf("[resource-service/pkg/db.GetDomainList] invalid pagination config: expected at most 2 args, got %d", len(pages))
-	}
-	if err != nil {
+	if err := Paginate(collection.Find(nil), pages...).All(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain list")
 		return nil, err
 	}
