@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
 	"github.com/containerum/kube-client/pkg/model"
@@ -91,7 +93,7 @@ func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 		{"$project": bson.M{"domain": "$service.domain"}},
 		{
 			"$group": bson.M{
-				"_id":   bson.M{"$ne": bson.M{"domain": ""}},
+				"_id":   bson.M{"$ne": []interface{}{"domain", ""}},
 				"count": bson.M{"$sum": 1},
 			},
 		},
@@ -99,6 +101,7 @@ func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 		return stats.Service{}, err
 	}
 	var serviceStats stats.Service
+	fmt.Println("TEST", statData)
 	for _, serv := range statData {
 		if serv.HasDomain {
 			serviceStats.External += serv.Count

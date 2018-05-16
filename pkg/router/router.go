@@ -63,18 +63,18 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DeployActions) {
 	deployHandlers := h.DeployHandlers{DeployActions: backend, TranslateValidate: tv}
 
-	deployment := router.Group("/namespaces/:ns_label/deployments")
+	deployment := router.Group("/namespaces/:namespace/deployments")
 	{
 		deployment.GET("", deployHandlers.GetDeploymentsListHandler)
-		deployment.GET("/:deploy_label", deployHandlers.GetDeploymentHandler)
+		deployment.GET("/:deployment", deployHandlers.GetDeploymentHandler)
 
 		deployment.POST("", deployHandlers.CreateDeploymentHandler)
 
-		deployment.PUT("/:deploy_label", deployHandlers.UpdateDeploymentHandler)
-		deployment.PUT("/:deploy_label/image", deployHandlers.SetContainerImageHandler)
-		deployment.PUT("/:deploy_label/replicas", deployHandlers.SetReplicasHandler)
+		deployment.PUT("/:deployment", deployHandlers.UpdateDeploymentHandler)
+		deployment.PUT("/:deployment/image", deployHandlers.SetContainerImageHandler)
+		deployment.PUT("/:deployment/replicas", deployHandlers.SetReplicasHandler)
 
-		deployment.DELETE("/:deploy_label", deployHandlers.DeleteDeploymentByLabelHandler)
+		deployment.DELETE("/:deployment", deployHandlers.DeleteDeploymentByLabelHandler)
 	}
 }
 
@@ -95,7 +95,7 @@ func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.IngressActions) {
 	ingressHandlers := h.IngressHandlers{IngressActions: backend, TranslateValidate: tv}
 
-	ingress := router.Group("/namespaces/:ns_label/ingresses")
+	ingress := router.Group("/namespaces/:namespace/ingresses")
 	{
 		ingress.GET("", ingressHandlers.GetIngressesListHandler)
 		ingress.GET("/:ingress", ingressHandlers.GetIngressHandler)
@@ -111,16 +111,16 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
 	serviceHandlers := h.ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
 
-	service := router.Group("/namespaces/:ns_label/services")
+	service := router.Group("/namespaces/:namespace/services")
 	{
 		service.GET("", serviceHandlers.GetServicesListHandler)
-		service.GET("/:service_label", serviceHandlers.GetServiceHandler)
+		service.GET("/:service", serviceHandlers.GetServiceHandler)
 
 		service.POST("", serviceHandlers.CreateServiceHandler)
 
-		service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)
+		service.PUT("/:service", serviceHandlers.UpdateServiceHandler)
 
-		service.DELETE("/:service_label", serviceHandlers.DeleteServiceHandler)
+		service.DELETE("/:service", serviceHandlers.DeleteServiceHandler)
 	}
 }
 

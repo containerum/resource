@@ -16,7 +16,7 @@ type ServiceHandlers struct {
 }
 
 func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
-	resp, err := h.GetServices(ctx.Request.Context(), ctx.Param("ns_label"))
+	resp, err := h.GetServices(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -26,7 +26,7 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 }
 
 func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
-	resp, err := h.GetService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
+	resp, err := h.GetService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
@@ -43,7 +43,7 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 		return
 	}
 
-	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -59,8 +59,8 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 		return
 	}
 
-	req.Name = ctx.Param("service_label")
-	updatedService, err := h.UpdateService(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	req.Name = ctx.Param("service")
+	updatedService, err := h.UpdateService(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -70,7 +70,7 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 }
 
 func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
-	err := h.DeleteService(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("service_label"))
+	err := h.DeleteService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

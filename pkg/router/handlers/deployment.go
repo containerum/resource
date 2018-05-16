@@ -16,7 +16,7 @@ type DeployHandlers struct {
 }
 
 func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
-	resp, err := h.GetDeploymentsList(ctx.Request.Context(), ctx.Param("ns_label"))
+	resp, err := h.GetDeploymentsList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -26,7 +26,7 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 }
 
 func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
-	resp, err := h.GetDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+	resp, err := h.GetDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -43,7 +43,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	deploy, err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	deploy, err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -58,8 +58,8 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	req.Name = ctx.Param("deploy_label")
-	updDeploy, err := h.UpdateDeployment(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	req.Name = ctx.Param("deployment")
+	updDeploy, err := h.UpdateDeployment(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -75,7 +75,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 		return
 	}
 
-	updatedDeploy, err := h.SetDeploymentContainerImage(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	updatedDeploy, err := h.SetDeploymentContainerImage(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -90,7 +90,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
-	updatedDeploy, err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"), req)
+	updatedDeploy, err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -100,7 +100,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 }
 
 func (h *DeployHandlers) DeleteDeploymentByLabelHandler(ctx *gin.Context) {
-	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("deploy_label"))
+	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

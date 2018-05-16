@@ -17,7 +17,7 @@ type IngressHandlers struct {
 }
 
 func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
-	resp, err := h.GetIngressesList(ctx.Request.Context(), ctx.Param("ns_label"))
+	resp, err := h.GetIngressesList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -27,7 +27,7 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 }
 
 func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
-	resp, err := h.GetIngress(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("ingress"))
+	resp, err := h.GetIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -43,7 +43,7 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 		return
 	}
 
-	createdIngress, err := h.CreateIngress(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	createdIngress, err := h.CreateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -59,7 +59,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 		return
 	}
 
-	updatedIngress, err := h.UpdateIngress(ctx.Request.Context(), ctx.Param("ns_label"), req)
+	updatedIngress, err := h.UpdateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -69,7 +69,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 }
 
 func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
-	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("ingress")); err != nil {
+	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress")); err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}

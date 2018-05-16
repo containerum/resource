@@ -28,8 +28,8 @@ func NewDeployActionsImpl(mongo *db.MongoStorage) *DeployActionsImpl {
 func (da *DeployActionsImpl) GetDeploymentsList(ctx context.Context, nsID string) ([]deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"ns_label": nsID,
+		"user_id":   userID,
+		"namespace": nsID,
 	}).Info("get deployments")
 
 	return da.mongo.GetDeploymentList(nsID)

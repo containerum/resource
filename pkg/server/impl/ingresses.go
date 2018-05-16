@@ -128,8 +128,8 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) ([]ingress.Ingress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"ns_label": nsID,
+		"user_id":   userID,
+		"namespace": nsID,
 	}).Info("get user ingresses")
 
 	return ia.mongo.GetIngressList(nsID)

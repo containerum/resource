@@ -99,8 +99,8 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsID string) ([]service.Service, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
-		"user_id":  userID,
-		"ns_label": nsID,
+		"user_id":   userID,
+		"namespace": nsID,
 	}).Info("get services")
 
 	return sa.mongo.GetServiceList(nsID)
@@ -110,7 +110,7 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName 
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
-		"ns_label":     nsID,
+		"namespace":    nsID,
 		"service_name": serviceName,
 	}).Info("get service")
 
@@ -123,7 +123,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
-		"ns_label":     nsID,
+		"namespace":    nsID,
 		"service_name": req.Name,
 	}).Info("update service")
 
