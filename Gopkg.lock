@@ -129,6 +129,12 @@
   version = "v0.16.0"
 
 [[projects]]
+  name = "github.com/go-resty/resty"
+  packages = ["."]
+  revision = "f0976a825c7520308909ce5a9e8b4f8675fdd6de"
+  version = "v1.5"
+
+[[projects]]
   name = "github.com/go-siris/siris"
   packages = ["core/errors"]
   revision = "bf3b6eec68567b4a1c7b4a26c9dd87815abb363c"
@@ -310,6 +316,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "03d9abfec6f13fa074c2c2ffdc6faf2f86b0cd1e5e26588f72e5470ee41bdeec"
+  inputs-digest = "2ccd5314403b84ff88e37ae4a927805da481b2a3e02396a20e278e12616c83df"
   solver-name = "gps-cdcl"
   solver-version = 1
