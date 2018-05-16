@@ -77,7 +77,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
+func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionService)
 	var statData []struct {
@@ -88,13 +88,45 @@ func (mongo *MongoStorage) CountService(owner string) (stats.Service, error) {
 		{"$match": bson.M{
 			"owner": owner,
 		}},
-		{"$project": bson.M{"domain": "$service.domain"}},
-		{
-			"$group": bson.M{
-				"_id":   bson.M{"$eq": []interface{}{"$domain", ""}},
-				"count": bson.M{"$sum": 1},
-			},
-		},
+		{"$project": bson.M{
+			"domain": "$service.domain",
+		}},
+		{"$group": bson.M{
+			"_id":   bson.M{"$eq": []interface{}{"$domain", ""}},
+			"count": bson.M{"$sum": 1},
+		}},
+	}).All(&statData); err != nil {
+		return stats.Service{}, err
+	}
+	var serviceStats stats.Service
+	for _, serv := range statData {
+		if serv.HasDomain {
+			serviceStats.External += serv.Count
+		} else {
+			serviceStats.Internal += serv.Count
+		}
+	}
+	return serviceStats, nil
+}
+
+func (mongo *MongoStorage) CountServicesInNamespace(namespaceID string) (stats.Service, error) {
+	mongo.logger.Debugf("counting deployment")
+	var collection = mongo.db.C(CollectionService)
+	var statData []struct {
+		HasDomain bool `bson:"_id"`
+		Count     int  `bson:"count"`
+	}
+	if err := collection.Pipe([]bson.M{
+		{"$match": bson.M{
+			"namespaceid": namespaceID,
+		}},
+		{"$project": bson.M{
+			"domain": "$service.domain",
+		}},
+		{"$group": bson.M{
+			"_id":   bson.M{"$eq": []interface{}{"$domain", ""}},
+			"count": bson.M{"$sum": 1},
+		}},
 	}).All(&statData); err != nil {
 		return stats.Service{}, err
 	}

@@ -34,7 +34,7 @@ func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*res
 	if err != nil {
 		return nil, err
 	}
-	services, err := rs.mongo.CountService(userID)
+	services, err := rs.mongo.CountServices(userID)
 	if err != nil {
 		return nil, err
 	}
