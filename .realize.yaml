@@ -1,0 +1,32 @@
+settings:
+  legacy:
+    force: false
+    interval: 4s
+
+server:
+    status: true
+    open: true
+    host: localhost
+    port: 5001
+
+schema:
+- name: resource-service
+  path: .
+  env:
+    GOPATH: /home/paul/dev/Go
+  commands:
+    build:
+      status: true
+      method: go build -v -o resource ./cmd/resource-service
+    run:
+      status: true
+      method: ./resource
+  watcher:
+    extensions:
+    - go
+    paths:
+    - /
+    ignored_paths:
+    - .git
+    - .realize
+    - vendor
