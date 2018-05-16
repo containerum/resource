@@ -353,7 +353,7 @@ func (kub kubeDummy) DeleteDeployment(ctx context.Context, nsID, deplName string
 	return nil
 }
 
-func (kub kubeDummy) ReplaceDeployment(_ context.Context, nsID string, deploy kubtypes.Deployment) error {
+func (kub kubeDummy) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":       nsID,
 		"deploy_name": deploy.Name,
