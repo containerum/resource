@@ -2,34 +2,39 @@ package permissions
 
 import (
 	"git.containerum.net/ch/kube-client/pkg/model"
+	"github.com/containerum/cherry"
 	"github.com/go-resty/resty"
 )
 
 type Client struct {
-	role   string
-	userID string
-	resty  *resty.Request
+	resty *resty.Client
 }
 
-func NewClient(permissionsHost, userRole, userID string) *Client {
+func NewClient(permissionsHost string) *Client {
 	return &Client{
-		role:   userRole,
-		userID: userID,
 		resty: resty.New().
-			SetHostURL(permissionsHost).
-			SetHeader("X-User-Role", userRole).
-			SetHeader("X-User-ID", userID).
-			R(),
+			SetHostURL(permissionsHost),
 	}
 }
 
-func (client *Client) GetLimits(namespaceID string) (model.Resources, error) {
+func (client *Client) GetLimits(userRole, userID, namespaceID string) (model.Resources, error) {
 	var ns model.Namespace
-	_, err := client.resty.
+	var errResult cherry.Err
+	_, err := client.resty.R().
 		SetResult(&ns).
+		SetError(&errResult).
 		SetPathParams(map[string]string{
-		"namespace": namespaceID,
-	}).
+			"namespace": namespaceID,
+		}).SetHeader("X-User-Role", userRole).
+		SetHeader("X-User-ID", userID).
 		Get("/namespaces/{namespace}")
-	return ns.Resources, err
+	return ns.Resources, func() error {
+		if err != nil {
+			return err
+		}
+		if errResult.ID != (cherry.ErrID{}) {
+			return &errResult
+		}
+		return nil
+	}()
 }
