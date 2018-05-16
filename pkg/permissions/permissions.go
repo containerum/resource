@@ -1,8 +1,8 @@
 package permissions
 
 import (
-	"git.containerum.net/ch/kube-client/pkg/model"
 	"github.com/containerum/cherry"
+	"github.com/containerum/kube-client/pkg/model"
 	"github.com/go-resty/resty"
 )
 
@@ -17,7 +17,7 @@ func NewClient(permissionsHost string) *Client {
 	}
 }
 
-func (client *Client) GetLimits(userRole, userID, namespaceID string) (model.Resources, error) {
+func (client *Client) GetLimits(userRole, userID, namespaceID string) (model.Namespace, error) {
 	var ns model.Namespace
 	var errResult cherry.Err
 	_, err := client.resty.R().
@@ -28,7 +28,7 @@ func (client *Client) GetLimits(userRole, userID, namespaceID string) (model.Res
 		}).SetHeader("X-User-Role", userRole).
 		SetHeader("X-User-ID", userID).
 		Get("/namespaces/{namespace}")
-	return ns.Resources, func() error {
+	return ns, func() error {
 		if err != nil {
 			return err
 		}
