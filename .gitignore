@@ -1,3 +1,5 @@
 /.idea
 /resource-manager
 /resource-service
+/resource
+!/resource/
