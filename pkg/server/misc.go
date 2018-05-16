@@ -3,7 +3,7 @@ package server
 import (
 	"sync"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
@@ -33,16 +33,16 @@ func VolumeLabel(nsLabel string) string {
 }
 
 // DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
-func DetermineServiceType(service kubtypes.Service) rstypes.ServiceType {
-	serviceType := rstypes.ServiceExternal
-	for _, port := range service.Ports {
+func DetermineServiceType(svc kubtypes.Service) service.ServiceType {
+	serviceType := service.ServiceExternal
+	for _, port := range svc.Ports {
 		if port.Port != nil {
-			serviceType = rstypes.ServiceInternal
+			serviceType = service.ServiceInternal
 			break
 		}
 	}
-	if service.Domain != "" {
-		serviceType = rstypes.ServiceExternal
+	if svc.Domain != "" {
+		serviceType = service.ServiceExternal
 	}
 	return serviceType
 }

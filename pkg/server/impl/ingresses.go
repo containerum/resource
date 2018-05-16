@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"git.containerum.net/ch/resource-service/pkg/db"
-	"git.containerum.net/ch/resource-service/pkg/model"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -57,7 +57,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	if server.DetermineServiceType(svc.Service) != model.ServiceExternal {
+	if server.DetermineServiceType(svc.Service) != service.ServiceExternal {
 		return nil, rserrors.ErrServiceNotExternal()
 	}
 

@@ -9,10 +9,17 @@ import (
 type Service struct {
 	model.Service
 	Owner       string `json:"owner"`
-	ID          string `json:"_id"`
+	ID          string `json:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
+
+type ServiceType string
+
+const (
+	ServiceInternal ServiceType = "internal"
+	ServiceExternal ServiceType = "external"
+)
 
 func ServiceFromKube(nsID, owner string, service model.Service) Service {
 	return Service{
