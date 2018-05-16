@@ -344,7 +344,7 @@ func (kub kubeDummy) UpdateDeployment(ctx context.Context, nsID string, deploy k
 	return nil
 }
 
-func (kub kubeDummy) DeleteDeployment(_ context.Context, nsID, deplName string) error {
+func (kub kubeDummy) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":       nsID,
 		"deploy_name": deplName,
