@@ -177,8 +177,9 @@ func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypes
 
 func (kub kube) UpdateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error {
 	kub.log.WithFields(logrus.Fields{
-		"ns_id": nsID,
-	}).Debugf("update ingress %+v", ingress)
+		"ns_id":        nsID,
+		"ingress_name": ingress.Name,
+	}).Debugf("update ingress to %+v", ingress)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -335,6 +336,14 @@ func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kub
 	return nil
 }
 
+func (kub kubeDummy) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debug("update deployment %+v", deploy)
+
+	return nil
+}
+
 func (kub kubeDummy) DeleteDeployment(_ context.Context, nsID, deplName string) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":       nsID,
@@ -378,6 +387,15 @@ func (kub kubeDummy) CreateIngress(ctx context.Context, nsID string, ingress kub
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
 	}).Debugf("create ingress %+v", ingress)
+
+	return nil
+}
+
+func (kub kubeDummy) UpdateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":        nsID,
+		"ingress_name": ingress.Name,
+	}).Debugf("update ingress to %+v", ingress)
 
 	return nil
 }
