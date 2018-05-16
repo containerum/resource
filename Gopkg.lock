@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  branch = "develop"
-  name = "git.containerum.net/ch/auth"
-  packages = ["proto"]
-  revision = "f0ab7937658e5b0797c5bae1c182fb76291a48ae"
-
-[[projects]]
   name = "git.containerum.net/ch/kube-client"
   packages = ["pkg/model"]
   revision = "c9a90746a0b2131d7221bae7713c8ae8715b4f00"
@@ -164,14 +158,7 @@
 
 [[projects]]
   name = "github.com/golang/protobuf"
-  packages = [
-    "proto",
-    "ptypes",
-    "ptypes/any",
-    "ptypes/duration",
-    "ptypes/empty",
-    "ptypes/timestamp"
-  ]
+  packages = ["proto"]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
 
@@ -186,15 +173,6 @@
   packages = ["."]
   revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
   version = "1.1.3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/lib/pq"
-  packages = [
-    ".",
-    "oid"
-  ]
-  revision = "d34b9ff171c21ad295489235aec8b6626023cd04"
 
 [[projects]]
   branch = "master"
@@ -276,14 +254,8 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = [
-    "context",
-    "http/httpguts",
-    "http2",
-    "http2/hpack",
     "idna",
-    "internal/timeseries",
-    "publicsuffix",
-    "trace"
+    "publicsuffix"
   ]
   revision = "2491c5de3490fced2f6cff376127c667efeed857"
 
@@ -317,42 +289,6 @@
   ]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
-  revision = "7bb2a897381c9c5ab2aeb8614f758d7766af68ff"
-
-[[projects]]
-  name = "google.golang.org/grpc"
-  packages = [
-    ".",
-    "balancer",
-    "balancer/base",
-    "balancer/roundrobin",
-    "codes",
-    "connectivity",
-    "credentials",
-    "encoding",
-    "encoding/proto",
-    "grpclb/grpc_lb_v1/messages",
-    "grpclog",
-    "internal",
-    "keepalive",
-    "metadata",
-    "naming",
-    "peer",
-    "resolver",
-    "resolver/dns",
-    "resolver/passthrough",
-    "stats",
-    "status",
-    "tap",
-    "transport"
-  ]
-  revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
-  version = "v1.11.3"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -402,6 +338,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5b8ac1fe2a04681dded5a27260f78d9ce474f094dea556a6f1cd716229b75c51"
+  inputs-digest = "91897f87107bc06b5f2493f5304f0c9d01bc0664a27706888ea2df36af38f744"
   solver-name = "gps-cdcl"
   solver-version = 1

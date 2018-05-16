@@ -3,7 +3,7 @@ package db
 import (
 	"io"
 
-	"github.com/containerum/chkit/pkg/model/deployment"
+	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"github.com/containerum/kube-client/pkg/model"
 )
 
