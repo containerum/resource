@@ -46,14 +46,12 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 
 		req.Domain = domain.Domain
 		req.IPs = domain.IP
-		for i := range req.Ports {
-			//TODO Select port randomly
-			// port, err := domainDB.ChooseDomainFreePort(ctx, domain.Domain, req.Ports[i].Protocol)
-			//if portSelectErr != nil {
-			//	return portSelectErr
-			//}
-			port := 1000
-			req.Ports[i].Port = &port
+		for i, port := range req.Ports {
+			externalPort, err := sa.mongo.GetFreePort(domain.Domain, port.Protocol)
+			if err != nil {
+				return nil, err
+			}
+			req.Ports[i].Port = &externalPort
 		}
 	}
 
