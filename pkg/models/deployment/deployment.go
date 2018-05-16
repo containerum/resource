@@ -9,7 +9,7 @@ import (
 type Deployment struct {
 	model.Deployment
 	Owner       string `json:"owner"`
-	ID          string `json:"_id,omitempty"`
+	ID          string `json:"_id,omitempty" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
