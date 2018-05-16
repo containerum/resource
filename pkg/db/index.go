@@ -10,13 +10,21 @@ func (mongo *MongoStorage) InitIndexes() error {
 	var errs []error
 	for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
 		var collection = mongo.db.C(collectionName)
-		if err := collection.EnsureIndexKey("owner"); err != nil {
+		if err := collection.EnsureIndex(mgo.Index{
+			Key: []string{"owner"},
+		}); err != nil {
 			errs = append(errs, err)
 		}
 		if err := collection.EnsureIndexKey(collectionName + "." + "name"); err != nil {
 			errs = append(errs, err)
 		}
 		if err := collection.EnsureIndexKey("namespaceid"); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndex(mgo.Index{
+			Key:    []string{collectionName + "." + "name", "namespaceid"},
+			Unique: true,
+		}); err != nil {
 			errs = append(errs, err)
 		}
 		if err := collection.EnsureIndexKey("deleted"); err != nil {
