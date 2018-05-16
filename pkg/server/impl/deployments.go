@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
@@ -14,12 +15,14 @@ import (
 )
 
 type DeployActionsImpl struct {
+	kube  clients.Kube
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }
 
-func NewDeployActionsImpl(mongo *db.MongoStorage) *DeployActionsImpl {
+func NewDeployActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *DeployActionsImpl {
 	return &DeployActionsImpl{
+		kube:  *kube,
 		mongo: mongo,
 		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
 	}
@@ -66,6 +69,10 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 			return chkErr
 		}*/
 
+	if err := da.kube.CreateDeployment(ctx, nsID, deploy); err != nil {
+		return nil, err
+	}
+
 	if err := server.CalculateDeployResources(&deploy); err != nil {
 		return nil, err
 	}
@@ -74,11 +81,6 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 	if err != nil {
 		return nil, err
 	}
-
-	//TODO
-	/*	if err = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
-		return err
-	}*/
 
 	return &createdDeploy, nil
 }
@@ -91,15 +93,13 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplNam
 		"deploy_name": deplName,
 	}).Info("delete deployment")
 
-	err := da.mongo.DeleteDeployment(nsID, deplName)
-	if err != nil {
+	if err := da.kube.DeleteDeployment(ctx, nsID, deplName); err != nil {
 		return err
 	}
 
-	//TODO
-	/*if delErr = da.Kube.DeleteDeployment(ctx, nsID, deplName); delErr != nil {
-		return delErr
-	}*/
+	if err := da.mongo.DeleteDeployment(nsID, deplName); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -126,14 +126,13 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		if chkErr := server.CheckDeploymentReplaceQuotas(ns.Namespace, nsUsage, oldDeploy, deploy); chkErr != nil {
 			return chkErr
 		}
-
-		if replaceErr := da.Kube.ReplaceDeployment(ctx, ns.ID, deploy); replaceErr != nil {
-			return replaceErr
-		}
 	*/
 
-	err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
-	if err != nil {
+	if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
+		return nil, err
+	}
+
+	if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
 		return nil, err
 	}
 
@@ -163,14 +162,6 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		if chkErr := server.CheckDeploymentReplicasChangeQuotas(ns.Namespace, nsUsage, deploy, req.Replicas); chkErr != nil {
 			return chkErr
 		}
-
-		if setErr := da.DeployDB(tx).SetDeploymentReplicas(ctx, userID, nsLabel, deplName, req.Replicas); setErr != nil {
-			return setErr
-		}
-
-		if setErr := da.Kube.SetDeploymentReplicas(ctx, ns.ID, deplName, req.Replicas); setErr != nil {
-			return setErr
-		}
 	*/
 
 	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
@@ -180,8 +171,11 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 
 	oldDeploy.Replicas = req.Replicas
 
-	err = da.mongo.UpdateDeployment(oldDeploy)
-	if err != nil {
+	if err := da.kube.SetDeploymentReplicas(ctx, nsID, oldDeploy.Name, req.Replicas); err != nil {
+		return nil, err
+	}
+
+	if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
 		return nil, err
 	}
 
@@ -201,18 +195,6 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		"deploy_name": deplName,
 	}).Infof("set container image %#v", req)
 
-	//TODO
-	/*
-		if setErr := da.DeployDB(tx).SetContainerImage(ctx, userID, nsLabel, deplName, req); setErr != nil {
-			return setErr
-		}
-
-		setErr := da.Kube.SetContainerImage(ctx, nsID, deplName, req)
-		if setErr != nil {
-			return setErr
-		}
-	*/
-
 	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
 	if err != nil {
 		return nil, err
@@ -229,6 +211,10 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	}
 	if !updated {
 		return nil, rserrors.ErrInternal().AddDetails("No image found")
+	}
+
+	if err := da.kube.SetContainerImage(ctx, nsID, oldDeploy.Name, req); err != nil {
+		return nil, err
 	}
 
 	err = da.mongo.UpdateDeployment(oldDeploy)

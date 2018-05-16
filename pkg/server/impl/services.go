@@ -3,9 +3,12 @@ package impl
 import (
 	"context"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/service"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
@@ -13,15 +16,40 @@ import (
 )
 
 type ServiceActionsImpl struct {
+	kube  clients.Kube
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }
 
-func NewServiceActionsImpl(mongo *db.MongoStorage) *ServiceActionsImpl {
+func NewServiceActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *ServiceActionsImpl {
 	return &ServiceActionsImpl{
+		kube:  *kube,
 		mongo: mongo,
 		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
 	}
+}
+
+func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsID string) ([]service.Service, error) {
+	userID := httputil.MustGetUserID(ctx)
+	sa.log.WithFields(logrus.Fields{
+		"user_id":   userID,
+		"namespace": nsID,
+	}).Info("get services")
+
+	return sa.mongo.GetServiceList(nsID)
+}
+
+func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.Service, error) {
+	userID := httputil.MustGetUserID(ctx)
+	sa.log.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"namespace":    nsID,
+		"service_name": serviceName,
+	}).Info("get service")
+
+	ret, err := sa.mongo.GetService(nsID, serviceName)
+
+	return &ret, err
 }
 
 func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error) {
@@ -65,11 +93,11 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		if chkErr := server.CheckServiceCreateQuotas(ns.Namespace, nsUsage, serviceType); chkErr != nil {
 			return chkErr
 		}
-
-		if createErr := sa.Kube.CreateService(ctx, ns.ID, req); createErr != nil {
-			return createErr
-		}
 	*/
+
+	if err := sa.kube.CreateService(ctx, nsID, req); err != nil {
+		return nil, err
+	}
 
 	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
 	if err != nil {
@@ -77,29 +105,6 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	}
 
 	return &createdService, nil
-}
-
-func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsID string) ([]service.Service, error) {
-	userID := httputil.MustGetUserID(ctx)
-	sa.log.WithFields(logrus.Fields{
-		"user_id":   userID,
-		"namespace": nsID,
-	}).Info("get services")
-
-	return sa.mongo.GetServiceList(nsID)
-}
-
-func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.Service, error) {
-	userID := httputil.MustGetUserID(ctx)
-	sa.log.WithFields(logrus.Fields{
-		"user_id":      userID,
-		"namespace":    nsID,
-		"service_name": serviceName,
-	}).Info("get service")
-
-	ret, err := sa.mongo.GetService(nsID, serviceName)
-
-	return &ret, err
 }
 
 func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error) {
@@ -129,12 +134,9 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	//TODO
-	/*
-		if updErr := sa.Kube.UpdateService(ctx, nsID, kubtypes.Service(req)); updErr != nil {
-			return updErr
-		}
-	*/
+	if err := sa.kube.UpdateService(ctx, nsID, req); err != nil {
+		return nil, err
+	}
 
 	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
 	if err != nil {
@@ -152,25 +154,21 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 		"service_name": serviceName,
 	}).Info("delete service")
 
-	/*
-		TODO Check ingresses
-			_, getErr = sa.IngressDB(tx).GetIngress(ctx, userID, nsLabel, serviceName)
-			switch {
-			case getErr == nil:
-				return rserrors.ErrServiceHasIngresses()
-			case cherry.Equals(getErr, rserrors.ErrResourceNotExists()):
-				// pass
-			default:
-				return getErr
-			}
+	_, err := sa.mongo.GetIngress(nsID, serviceName)
+	switch {
+	case err == nil:
+		return rserrors.ErrServiceHasIngresses()
+	case cherry.Equals(err, rserrors.ErrResourceNotExists()):
+		// pass
+	default:
+		return err
+	}
 
-			if delErr := sa.Kube.DeleteService(ctx, nsID, serviceName); delErr != nil {
-				return delErr
-			}
-	*/
+	if err := sa.kube.DeleteService(ctx, nsID, serviceName); err != nil {
+		return err
+	}
 
-	err := sa.mongo.DeleteService(nsID, serviceName)
-	if err != nil {
+	if err := sa.mongo.DeleteService(nsID, serviceName); err != nil {
 		return err
 	}
 

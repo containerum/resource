@@ -19,11 +19,12 @@ import (
 type Kube interface {
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
-	ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
+	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error
 	SetContainerImage(ctx context.Context, nsID, deplName string, container kubtypes.UpdateImage) error
 
 	CreateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error
+	UpdateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 
 	CreateSecret(ctx context.Context, nsID string, secret kubtypes.Secret) error
@@ -93,10 +94,10 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) err
 	return nil
 }
 
-func (kub kube) ReplaceDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
+func (kub kube) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
-	}).Debug("replace deployment %+v", deploy)
+	}).Debug("update deployment %+v", deploy)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -165,6 +166,25 @@ func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypes
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(ingress).
 		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsID))
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+	return nil
+}
+
+func (kub kube) UpdateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("update ingress %+v", ingress)
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		SetBody(ingress).
+		Put(fmt.Sprintf("/namespaces/%s/ingresses/%s", nsID, ingress.Name))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}

@@ -1,6 +1,10 @@
 package main
 
 import (
+	"errors"
+	"net/url"
+
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
@@ -26,9 +30,15 @@ var flags = []cli.Flag{
 		Usage:  "port for resource-service server",
 	},
 	cli.StringFlag{
+		EnvVar: "CH_RESOURCE_KUBE_API",
+		Name:   "kube",
+		Value:  "http",
+		Usage:  "kube-api service type",
+	},
+	cli.StringFlag{
 		EnvVar: "CH_RESOURCE_KUBE_API_ADDR",
 		Name:   "kube_addr",
-		Value:  "config",
+		Value:  "http://kube-api:1212",
 		Usage:  "kube-api service address",
 	},
 	cli.BoolFlag{
@@ -83,4 +93,21 @@ func setupMongo(c *cli.Context) (*db.MongoStorage, error) {
 	dialInfo := mgo.DialInfo{Username: c.String("mongo_login"), Password: c.String("mongo_password"), Addrs: c.StringSlice("mongo_addr")}
 	cfg := db.MongoConfig{Logger: logrus.WithField("component", "mongo"), Debug: c.Bool("debug"), DialInfo: dialInfo}
 	return db.NewMongo(cfg)
+}
+
+func setupKube(c *cli.Context) (*clients.Kube, error) {
+	switch c.String("kube") {
+	case "http":
+		kubeurl, err := url.Parse(c.String("kube_addr"))
+		if err != nil {
+			return nil, err
+		}
+		client := clients.NewKubeHTTP(kubeurl)
+		return &client, nil
+	case "dummy":
+		client := clients.NewDummyKube()
+		return &client, nil
+	default:
+		return nil, errors.New("invalid kube-api client type")
+	}
 }

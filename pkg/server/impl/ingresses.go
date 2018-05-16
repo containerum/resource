@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
 	"git.containerum.net/ch/resource-service/pkg/models/service"
@@ -20,12 +21,14 @@ const (
 )
 
 type IngressActionsImpl struct {
+	kube  clients.Kube
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }
 
-func NewIngressActionsImpl(mongo *db.MongoStorage) *IngressActionsImpl {
+func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *IngressActionsImpl {
 	return &IngressActionsImpl{
+		kube:  *kube,
 		mongo: mongo,
 		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
 	}
@@ -61,15 +64,15 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 		return nil, rserrors.ErrServiceNotExternal()
 	}
 
+	if err := ia.kube.CreateIngress(ctx, nsID, req); err != nil {
+		return nil, err
+	}
+
 	createdIngress, err := ia.mongo.CreateIngress(ingress.IngressFromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}
-	//TODO
-	/*
-		if createErr := ia.Kube.CreateIngress(ctx, nsID, req); createErr != nil {
-			return createErr
-	*/
+
 	return &createdIngress, nil
 }
 
@@ -99,12 +102,9 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		"ingress": req,
 	}).Info("update ingress")
 
-	//TODO
-	/*
-		if delErr := ia.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
-			return delErr
-		}
-	*/
+	if err := ia.kube.UpdateIngress(ctx, nsID, req); err != nil {
+		return nil, err
+	}
 
 	ingres, err := ia.mongo.UpdateIngress(ingress.IngressFromKube(nsID, userID, req))
 	if err != nil {
@@ -122,12 +122,9 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsID, ingressNa
 		"domain":  ingressName,
 	}).Info("delete ingress")
 
-	//TODO
-	/*
-		if delErr := ia.Kube.DeleteIngress(ctx, nsID, ingressName); delErr != nil {
-			return delErr
-		}
-	*/
+	if err := ia.kube.DeleteIngress(ctx, nsID, ingressName); err != nil {
+		return err
+	}
 
 	err := ia.mongo.DeleteIngress(nsID, ingressName)
 	if err != nil {

@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -10,6 +11,7 @@ import (
 )
 
 type DomainActionsImpl struct {
+	kube  *clients.Kube
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }

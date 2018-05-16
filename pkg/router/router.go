@@ -5,6 +5,7 @@ import (
 
 	"time"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
@@ -23,15 +24,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(mongo *db.MongoStorage, tv *m.TranslateValidate, enableCORS bool) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool) http.Handler {
 	e := gin.New()
 	initMiddlewares(e, tv, enableCORS)
-
-	//TODO
-	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo))
+	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, kube))
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
-	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo))
-	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo))
+	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
+	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, kube))
 	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(mongo))
 
 	return e
