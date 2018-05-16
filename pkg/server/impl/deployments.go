@@ -66,6 +66,10 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 			return chkErr
 		}*/
 
+	if err := server.CalculateDeployResources(&deploy); err != nil {
+		return nil, err
+	}
+
 	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
 	if err != nil {
 		return nil, err
