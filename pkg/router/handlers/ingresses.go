@@ -159,6 +159,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 		return
 	}
 
+	req.Name = ctx.Param("ingress")
 	updatedIngress, err := h.UpdateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
