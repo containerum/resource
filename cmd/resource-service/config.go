@@ -96,8 +96,16 @@ func setupTranslator() *ut.UniversalTranslator {
 }
 
 func setupMongo(c *cli.Context) (*db.MongoStorage, error) {
-	dialInfo := mgo.DialInfo{Username: c.String("mongo_login"), Password: c.String("mongo_password"), Addrs: c.StringSlice("mongo_addr")}
-	cfg := db.MongoConfig{Logger: logrus.WithField("component", "mongo"), Debug: c.Bool("debug"), DialInfo: dialInfo}
+	dialInfo := mgo.DialInfo{
+		Username: c.String("mongo_login"),
+		Password: c.String("mongo_password"),
+		Addrs:    c.StringSlice("mongo_addr"),
+	}
+	cfg := db.MongoConfig{
+		Logger:   logrus.WithField("component", "mongo"),
+		Debug:    c.Bool("debug"),
+		DialInfo: dialInfo,
+	}
 	return db.NewMongo(cfg)
 }
 

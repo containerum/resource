@@ -32,13 +32,11 @@ func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 }
 
 // GetDomainsList supports pagination
-// GetDomainsList(2) will return 2 domains
-// GGetDomainsList(2, 5) will return 2 domains with offset 5
-func (mongo *MongoStorage) GetDomainsList(pages ...int) ([]domain.Domain, error) {
+func (mongo *MongoStorage) GetDomainsList(pages *PageInfo) ([]domain.Domain, error) {
 	mongo.logger.Debugf("getting domain list")
 	var collection = mongo.db.C(CollectionDomain)
 	var result []domain.Domain
-	if err := Paginate(collection.Find(nil), pages...).All(&result); err != nil {
+	if err := Paginate(collection.Find(nil), pages).All(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain list")
 		return nil, err
 	}
