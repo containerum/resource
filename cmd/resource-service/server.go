@@ -39,6 +39,8 @@ func initServer(c *cli.Context) error {
 	err = mongo.Init()
 	exitOnError(err)
 
+	defer mongo.Close()
+
 	kube, err := setupKube(c)
 	exitOnError(err)
 

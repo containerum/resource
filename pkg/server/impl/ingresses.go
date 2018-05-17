@@ -126,8 +126,7 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsID, ingressNa
 		return err
 	}
 
-	err := ia.mongo.DeleteIngress(nsID, ingressName)
-	if err != nil {
+	if err := ia.mongo.DeleteIngress(nsID, ingressName); err != nil {
 		return err
 	}
 
