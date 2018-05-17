@@ -28,11 +28,6 @@ func Parallel(funcs ...func() error) (ret []error) {
 	return
 }
 
-// VolumeLabel generates label for non-persistent volume
-func VolumeLabel(nsLabel string) string {
-	return nsLabel + "-volume"
-}
-
 // DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
 func DetermineServiceType(svc kubtypes.Service) service.ServiceType {
 	serviceType := service.ServiceExternal

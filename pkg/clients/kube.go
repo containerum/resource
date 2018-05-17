@@ -59,7 +59,7 @@ func NewKubeHTTP(u *url.URL) Kube {
 }
 
 func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
-	kub.log.WithField("ns_id", nsID).Debug("create deployment %+v", deploy)
+	kub.log.WithField("ns_id", nsID).Debugf("create deployment %+v", deploy)
 
 	resp, err := kub.client.R().
 		SetBody(deploy).

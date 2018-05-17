@@ -78,7 +78,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 }
 
 func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
-	mongo.logger.Debugf("counting deployment")
+	mongo.logger.Debugf("counting services")
 	var collection = mongo.db.C(CollectionService)
 	var statData []struct {
 		HasDomain bool `bson:"_id"`
@@ -110,7 +110,7 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 }
 
 func (mongo *MongoStorage) CountServicesInNamespace(namespaceID string) (stats.Service, error) {
-	mongo.logger.Debugf("counting deployment")
+	mongo.logger.Debugf("counting services in namespace")
 	var collection = mongo.db.C(CollectionService)
 	var statData []struct {
 		HasDomain bool `bson:"_id"`

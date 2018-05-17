@@ -85,18 +85,6 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	//TODO
-	/*
-		nsUsage, getErr := sa.NamespaceDB(tx).GetNamespaceUsage(ctx, ns.Namespace)
-		if getErr != nil {
-			return getErr
-		}
-
-		if chkErr := server.CheckServiceCreateQuotas(ns.Namespace, nsUsage, serviceType); chkErr != nil {
-			return chkErr
-		}
-	*/
-
 	nsLimits, err := sa.permissions.GetNamespaceLimits(ctx, nsID)
 	if err != nil {
 		return nil, err

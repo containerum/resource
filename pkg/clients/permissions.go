@@ -3,8 +3,6 @@ package clients
 import (
 	"context"
 
-	"fmt"
-
 	"github.com/containerum/cherry"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
@@ -25,6 +23,7 @@ type permissions struct {
 func NewPermissionsHTTP(permissionsHost string) Permissions {
 	var client = resty.New().
 		SetHostURL(permissionsHost).
+		SetDebug(true).
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Accept", "application/json")
 	client.JSONMarshal = jsoniter.Marshal
@@ -50,8 +49,6 @@ func (client permissions) GetNamespaceLimits(ctx context.Context, namespaceID st
 		}).SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Get("/namespaces/{namespace}")
 
-	fmt.Println("TEST", ns.Resources.Hard)
-	fmt.Println("TEST", ns.Resources.Used)
 	return ns, func() error {
 		if err != nil {
 			return err

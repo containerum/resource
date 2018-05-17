@@ -65,7 +65,7 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	nsUsage, err := da.mongo.GetUserResources(nsID)
+	nsUsage, err := da.mongo.GetNamespaceResourcesLimits(nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,6 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplNam
 	if err := da.mongo.DeleteDeployment(nsID, deplName); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -126,7 +125,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	nsUsage, err := da.mongo.GetUserResources(nsID)
+	nsUsage, err := da.mongo.GetNamespaceResourcesLimits(nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +168,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
-	nsUsage, err := da.mongo.GetUserResources(nsID)
+	nsUsage, err := da.mongo.GetNamespaceResourcesLimits(nsID)
 	if err != nil {
 		return nil, err
 	}

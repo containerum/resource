@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 
+	"strconv"
+
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
@@ -25,6 +27,15 @@ func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 
 func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) ([]domain.Domain, error) {
 	da.log.Info("get all domains")
+
+	pagei, pageerr := strconv.Atoi(page)
+	perpagei, perpageerr := strconv.Atoi(page)
+
+	if pageerr == nil && perpageerr == nil {
+		if pagei > 0 && perpagei > 0 {
+			return da.mongo.GetDomainsList(perpagei, pagei)
+		}
+	}
 
 	return da.mongo.GetDomainsList()
 }

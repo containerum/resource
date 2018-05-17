@@ -5,7 +5,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-func (mongo *MongoStorage) GetUserResources(namespaceID string) (kubtypes.Resource, error) {
+func (mongo *MongoStorage) GetNamespaceResourcesLimits(namespaceID string) (kubtypes.Resource, error) {
 	var deployments = mongo.db.C(CollectionDeployment)
 	var res kubtypes.Resource
 	return res, deployments.Pipe([]bson.M{
@@ -14,8 +14,8 @@ func (mongo *MongoStorage) GetUserResources(namespaceID string) (kubtypes.Resour
 		}},
 		{"$project": bson.M{
 			"replicas": "$deployment.replicas",
-			"cpu":      bson.M{"$sum": "$deployment.containers.cpu"},
-			"memory":   bson.M{"$sum": "$deployment.containers.cpu"},
+			"cpu":      bson.M{"$sum": "$deployment.containers.limits.cpu"},
+			"memory":   bson.M{"$sum": "$deployment.containers.limits.memory"},
 		}},
 		{"$project": bson.M{
 			"cpu":    bson.M{"$multiply": []string{"$cpu", "$replicas"}},
@@ -23,8 +23,8 @@ func (mongo *MongoStorage) GetUserResources(namespaceID string) (kubtypes.Resour
 		}},
 		{"$group": bson.M{
 			"_id":    256,
-			"cpu":    bson.M{"$sum": "cpu"},
-			"memory": bson.M{"$sum": "memory"},
+			"cpu":    bson.M{"$sum": "$cpu"},
+			"memory": bson.M{"$sum": "$memory"},
 		}},
 	}).One(&res)
 }

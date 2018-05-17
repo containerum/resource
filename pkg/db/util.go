@@ -9,6 +9,8 @@ import (
 
 func Paginate(query *mgo.Query, pages ...int) *mgo.Query {
 	switch len(pages) {
+	case 0:
+		return query
 	case 1:
 		return query.Limit(pages[0])
 	case 2:
