@@ -3,61 +3,47 @@ package server
 import (
 	"context"
 
-	"git.containerum.net/ch/resource-service/pkg/clients"
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
+	"git.containerum.net/ch/resource-service/pkg/models/deployment"
+	"git.containerum.net/ch/resource-service/pkg/models/domain"
+	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"git.containerum.net/ch/resource-service/pkg/models/resources"
+	"git.containerum.net/ch/resource-service/pkg/models/service"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
 
-// ResourceServiceClients is a structure with all client interfaces needed for resource-service functioning
-type ResourceServiceClients struct {
-	DB   models.RelationalDB
-	Kube clients.Kube
-}
-
-type ResourceServiceConstructors struct {
-	NamespaceDB     models.NamespaceDBConstructor
-	DeployDB        models.DeployDBConstructor
-	IngressDB       models.IngressDBConstructor
-	DomainDB        models.DomainDBConstructor
-	ServiceDB       models.ServiceDBConstructor
-	ResourceCountDB models.ResourceCountDBConstructor
-}
-
-type UpdateServiceRequest kubtypes.Service
-
 type DeployActions interface {
-	CreateDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
-	GetDeployments(ctx context.Context, nsLabel string) ([]kubtypes.Deployment, error)
-	GetDeploymentByLabel(ctx context.Context, nsLabel, deplName string) (kubtypes.Deployment, error)
-	DeleteDeployment(ctx context.Context, nsLabel, deplName string) error
-	ReplaceDeployment(ctx context.Context, nsLabel string, deploy kubtypes.Deployment) error
-	SetDeploymentReplicas(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateReplicas) error
-	SetContainerImage(ctx context.Context, nsLabel, deplName string, req kubtypes.UpdateImage) error
+	GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error)
+	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error)
+	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
+	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
+	DeleteDeployment(ctx context.Context, nsID, deplName string) error
+	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.Deployment, error)
+	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error)
 }
 
 type DomainActions interface {
-	AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error
-	GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error)
-	GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error)
+	GetDomainsList(ctx context.Context, page, per_page string) (domain.DomainList, error)
+	GetDomain(ctx context.Context, domain string) (*domain.Domain, error)
+	AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
 }
 
 type IngressActions interface {
-	CreateIngress(ctx context.Context, nsLabel string, req kubtypes.Ingress) error
-	GetUserIngresses(ctx context.Context, nsLabel string, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
-	GetAllIngresses(ctx context.Context, params rstypes.GetIngressesQueryParams) (rstypes.GetIngressesResponse, error)
-	DeleteIngress(ctx context.Context, nsLabel, domain string) error
+	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
+	GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error)
+	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Ingress, error)
+	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
+	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 }
 
 type ServiceActions interface {
-	CreateService(ctx context.Context, nsLabel string, req kubtypes.Service) error
-	GetServices(ctx context.Context, nsLabel string) ([]kubtypes.Service, error)
-	GetService(ctx context.Context, nsLabel, serviceName string) (kubtypes.Service, error)
-	UpdateService(ctx context.Context, nsLabel string, req UpdateServiceRequest) error
-	DeleteService(ctx context.Context, nsLabel, serviceName string) error
+	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
+	GetServices(ctx context.Context, nsID string) (service.ServiceList, error)
+	GetService(ctx context.Context, nsID, serviceName string) (*service.Service, error)
+	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
+	DeleteService(ctx context.Context, nsID, serviceName string) error
 }
 
 type ResourceCountActions interface {
-	GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error)
+	GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error)
 }

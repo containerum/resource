@@ -5,12 +5,15 @@ import (
 
 	"time"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
+	"git.containerum.net/ch/resource-service/pkg/db"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
+	"git.containerum.net/ch/resource-service/static"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/containerum/utils/httputil"
@@ -22,32 +25,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(clients *server.ResourceServiceClients, constructors *server.ResourceServiceConstructors, tv *m.TranslateValidate, enableCORS bool) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool) http.Handler {
 	e := gin.New()
 	initMiddlewares(e, tv, enableCORS)
-
-	//TODO
-	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(clients, &impl.DeployActionsDB{
-		DeployDB:    constructors.DeployDB,
-		NamespaceDB: constructors.NamespaceDB,
-	}))
-	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(clients, &impl.DomainActionsDB{
-		DomainDB: constructors.DomainDB,
-	}))
-	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(clients, &impl.IngressActionsDB{
-		NamespaceDB: constructors.NamespaceDB,
-		ServiceDB:   constructors.ServiceDB,
-		IngressDB:   constructors.IngressDB,
-	}))
-	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(clients, &impl.ServiceActionsDB{
-		ServiceDB:   constructors.ServiceDB,
-		NamespaceDB: constructors.NamespaceDB,
-		DomainDB:    constructors.DomainDB,
-		IngressDB:   constructors.IngressDB,
-	}))
-	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(clients, &impl.ResourceCountActionsDB{
-		ResourceCountDB: constructors.ResourceCountDB,
-	}))
+	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, permissions, kube))
+	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
+	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
+	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
+	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(mongo))
 
 	return e
 }
@@ -58,9 +43,11 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		cfg := cors.DefaultConfig()
 		cfg.AllowAllOrigins = true
 		cfg.AddAllowMethods(http.MethodDelete)
-		cfg.AddAllowHeaders(headers.UserRoleXHeader, headers.UserIDXHeader)
+		cfg.AddAllowHeaders(headers.UserRoleXHeader, headers.UserIDXHeader, headers.UserNamespacesXHeader, headers.UserVolumesXHeader)
 		e.Use(cors.New(cfg))
 	}
+	e.Group("/static").
+		StaticFS("/", static.HTTP)
 	e.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	e.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 	binding.Validator = &validation.GinValidatorV9{Validate: tv.Validate} // gin has no local validator
@@ -73,23 +60,24 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		headers.UserRoleXHeader: "eq=admin|eq=user",
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
+	e.Use(m.RequiredUserHeaders())
 }
 
 func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DeployActions) {
 	deployHandlers := h.DeployHandlers{DeployActions: backend, TranslateValidate: tv}
 
-	deployment := router.Group("/namespaces/:ns_label/deployments")
+	deployment := router.Group("/namespaces/:namespace/deployments")
 	{
-		deployment.POST("", deployHandlers.CreateDeploymentHandler)
+		deployment.GET("", m.ReadAccess, deployHandlers.GetDeploymentsListHandler)
+		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetDeploymentHandler)
 
-		deployment.GET("", deployHandlers.GetDeploymentsHandler)
-		deployment.GET("/:deploy_label", deployHandlers.GetDeploymentByLabelHandler)
+		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
 
-		deployment.DELETE("/:deploy_label", deployHandlers.DeleteDeploymentByLabelHandler)
+		deployment.PUT("/:deployment", m.WriteAccess, deployHandlers.UpdateDeploymentHandler)
+		deployment.PUT("/:deployment/image", m.WriteAccess, deployHandlers.SetContainerImageHandler)
+		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
 
-		deployment.PUT("/:deploy_label/image", deployHandlers.SetContainerImageHandler)
-		deployment.PUT("/:deploy_label", deployHandlers.ReplaceDeploymentHandler)
-		deployment.PUT("/:deploy_label/replicas", deployHandlers.SetReplicasHandler)
+		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
 	}
 }
 
@@ -98,10 +86,10 @@ func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 
 	domain := router.Group("/domains", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
 	{
-		domain.POST("", domainHandlers.AddDomainHandler)
-
-		domain.GET("", domainHandlers.GetAllDomainsHandler)
+		domain.GET("", domainHandlers.GetDomainsListHandler)
 		domain.GET("/:domain", domainHandlers.GetDomainHandler)
+
+		domain.POST("", domainHandlers.AddDomainHandler)
 
 		domain.DELETE("/:domain", domainHandlers.DeleteDomainHandler)
 	}
@@ -110,29 +98,32 @@ func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.IngressActions) {
 	ingressHandlers := h.IngressHandlers{IngressActions: backend, TranslateValidate: tv}
 
-	ingress := router.Group("/namespaces/:ns_label/ingresses")
+	ingress := router.Group("/namespaces/:namespace/ingresses")
 	{
-		ingress.POST("", ingressHandlers.CreateIngressHandler)
+		ingress.GET("", m.ReadAccess, ingressHandlers.GetIngressesListHandler)
+		ingress.GET("/:ingress", m.ReadAccess, ingressHandlers.GetIngressHandler)
 
-		ingress.GET("", ingressHandlers.GetUserIngressesHandler)
+		ingress.POST("", m.WriteAccess, ingressHandlers.CreateIngressHandler)
 
-		ingress.DELETE("/:domain", ingressHandlers.DeleteIngressHandler)
+		ingress.PUT("/:ingress", m.WriteAccess, ingressHandlers.UpdateIngressHandler)
+
+		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
 	}
 }
 
 func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
 	serviceHandlers := h.ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
 
-	service := router.Group("/namespaces/:ns_label/services")
+	service := router.Group("/namespaces/:namespace/services")
 	{
-		service.POST("", serviceHandlers.CreateServiceHandler)
+		service.GET("", m.ReadAccess, serviceHandlers.GetServicesListHandler)
+		service.GET("/:service", m.ReadAccess, serviceHandlers.GetServiceHandler)
 
-		service.GET("", serviceHandlers.GetServicesHandler)
-		service.GET("/:service_label", serviceHandlers.GetServiceHandler)
+		service.POST("", m.WriteAccess, serviceHandlers.CreateServiceHandler)
 
-		service.PUT("/:service_label", serviceHandlers.UpdateServiceHandler)
+		service.PUT("/:service", m.WriteAccess, serviceHandlers.UpdateServiceHandler)
 
-		service.DELETE("/:service_label", serviceHandlers.DeleteServiceHandler)
+		service.DELETE("/:service", m.WriteAccess, serviceHandlers.DeleteServiceHandler)
 	}
 }
 

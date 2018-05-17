@@ -3,65 +3,64 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
-	"git.containerum.net/ch/resource-service/pkg/server"
+	"strconv"
+
+	"git.containerum.net/ch/resource-service/pkg/clients"
+	"git.containerum.net/ch/resource-service/pkg/db"
+	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/sirupsen/logrus"
 )
 
-type DomainActionsDB struct {
-	DomainDB models.DomainDBConstructor
-}
-
 type DomainActionsImpl struct {
-	*server.ResourceServiceClients
-	*DomainActionsDB
-
-	log *cherrylog.LogrusAdapter
+	kube  *clients.Kube
+	mongo *db.MongoStorage
+	log   *cherrylog.LogrusAdapter
 }
 
-func NewDomainActionsImpl(clients *server.ResourceServiceClients, constructors *DomainActionsDB) *DomainActionsImpl {
+func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 	return &DomainActionsImpl{
-		ResourceServiceClients: clients,
-		DomainActionsDB:        constructors,
-		log:                    cherrylog.NewLogrusAdapter(logrus.WithField("component", "domain_actions")),
+		mongo: mongo,
+		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "domain_actions")),
 	}
 }
 
-func (da *DomainActionsImpl) AddDomain(ctx context.Context, req rstypes.AddDomainRequest) error {
-	da.log.Info("add domain %#v", req)
+func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) (domain.DomainList, error) {
+	da.log.Infof("get all domains page %q per_page %q", page, per_page)
 
-	err := da.DB.Transactional(ctx, func(ctx context.Context, tx models.RelationalDB) error {
-		return da.DomainDB(tx).AddDomain(ctx, req)
+	pagei, pageerr := strconv.Atoi(page)
+	perpagei, perpageerr := strconv.Atoi(per_page)
+
+	if pageerr == nil && perpageerr == nil {
+		if pagei > 0 && perpagei > 0 {
+			return da.mongo.GetDomainsList(&db.PageInfo{
+				Page:    pagei,
+				PerPage: perpagei,
+			})
+		}
+	}
+
+	return da.mongo.GetDomainsList(&db.PageInfo{
+		Page:    1,
+		PerPage: 100,
 	})
-
-	return err
 }
 
-func (da *DomainActionsImpl) GetAllDomains(ctx context.Context, params rstypes.GetAllDomainsQueryParams) (rstypes.GetAllDomainsResponse, error) {
-	da.log.WithFields(logrus.Fields{
-		"page":     params.Page,
-		"per_page": params.PerPage,
-	}).Info("get all domains")
-
-	resp, err := da.DomainDB(da.DB).GetAllDomains(ctx, params)
-
-	return resp, err
-}
-
-func (da *DomainActionsImpl) GetDomain(ctx context.Context, domain string) (rstypes.GetDomainResponse, error) {
+func (da *DomainActionsImpl) GetDomain(ctx context.Context, domain string) (*domain.Domain, error) {
 	da.log.WithField("domain", domain).Info("get domain")
+	return da.mongo.GetDomain(domain)
+}
 
-	resp, err := da.DomainDB(da.DB).GetDomain(ctx, domain)
+func (da *DomainActionsImpl) AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error) {
+	da.log.Infof("add domain %#v", req)
 
-	return resp, err
+	return da.mongo.CreateDomain(req)
 }
 
 func (da *DomainActionsImpl) DeleteDomain(ctx context.Context, domain string) error {
 	da.log.WithField("domain", domain).Info("delete domain")
 
-	err := da.DomainDB(da.DB).DeleteDomain(ctx, domain)
+	err := da.mongo.DeleteDomain(domain)
 
 	return err
 }

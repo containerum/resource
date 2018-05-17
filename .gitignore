@@ -1,3 +1,6 @@
 /.idea
 /resource-manager
 /resource-service
+/resource
+!/resource/
+/pkg/util/mongerr/errors.py

@@ -28,16 +28,25 @@ func initServer(c *cli.Context) error {
 
 	setupLogs(c)
 
-	clients, constructors, err := setupServerClients(c)
-	exitOnError(err)
-	defer clients.Close()
-
 	translate := setupTranslator()
 	validate := validation.StandardResourceValidator(translate)
 
 	tv := &m.TranslateValidate{UniversalTranslator: translate, Validate: validate}
 
-	app := router.CreateRouter(clients, constructors, tv, c.Bool("cors"))
+	mongo, err := setupMongo(c)
+	exitOnError(err)
+
+	err = mongo.Init()
+	exitOnError(err)
+
+	defer mongo.Close()
+
+	kube, err := setupKube(c)
+	exitOnError(err)
+
+	permissions := setupPermissions(c)
+
+	app := router.CreateRouter(mongo, permissions, kube, tv, c.Bool("cors"))
 
 	srv := &http.Server{
 		Addr:    ":" + c.String("port"),

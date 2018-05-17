@@ -3,38 +3,58 @@ package impl
 import (
 	"context"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
-	"git.containerum.net/ch/resource-service/pkg/models"
-	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/db"
+	"git.containerum.net/ch/resource-service/pkg/models/resources"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
 )
 
-type ResourceCountActionsDB struct {
-	ResourceCountDB models.ResourceCountDBConstructor
-}
-
 type ResourceCountActionsImpl struct {
-	*server.ResourceServiceClients
-	*ResourceCountActionsDB
-
-	log *cherrylog.LogrusAdapter
+	mongo *db.MongoStorage
+	log   *cherrylog.LogrusAdapter
 }
 
-func NewResourceCountActionsImpl(clients *server.ResourceServiceClients, constructors *ResourceCountActionsDB) *ResourceCountActionsImpl {
+func NewResourceCountActionsImpl(mongo *db.MongoStorage) *ResourceCountActionsImpl {
 	return &ResourceCountActionsImpl{
-		ResourceServiceClients: clients,
-		ResourceCountActionsDB: constructors,
-		log: cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_service")),
+		mongo: mongo,
+		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_service")),
 	}
 }
 
-func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (rstypes.GetResourcesCountResponse, error) {
+func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("get resources count")
 
-	ret, err := rs.ResourceCountDB(rs.DB).GetResourcesCount(ctx, userID)
+	ingresses, err := rs.mongo.CountIngresses(userID)
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+	deploys, err := rs.mongo.CountDeployments(userID)
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+	services, err := rs.mongo.CountServices(userID)
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+	pods, err := rs.mongo.CountReplicas(userID)
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
 
-	return ret, err
+	ret := resources.GetResourcesCountResponse{
+		Ingresses:   ingresses,
+		Deployments: deploys,
+		ExtServices: services.External,
+		IntServices: services.Internal,
+		Pods:        pods,
+	}
+
+	return &ret, nil
 }

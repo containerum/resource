@@ -1,4 +1,4 @@
-required = ["github.com/containerum/kube-client"]
+required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
 
 [prune]
     non-go = true
@@ -26,18 +26,6 @@ required = ["github.com/containerum/kube-client"]
   name = "github.com/gin-gonic/gin"
 
 [[constraint]]
-  revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
-  name = "github.com/jmoiron/sqlx"
-
-[[constraint]]
-  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
-  name = "github.com/lib/pq"
-
-[[constraint]]
-  name = "github.com/mattes/migrate"
-  version = "3.0.1"
-
-[[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "^1.0.5"
 
@@ -63,12 +51,24 @@ required = ["github.com/containerum/kube-client"]
 
 [[constraint]]
   name = "github.com/satori/go.uuid"
-  version = "~1.2.0"
+  version = "1.2.0"
 
 [[constraint]]
   name = "github.com/json-iterator/go"
   version = "1.0.5"
 
-  [[constraint]]
-    name = "github.com/gin-contrib/cors"
-    version = "1.2.0"
+[[constraint]]
+  name = "github.com/gin-contrib/cors"
+  version = "1.2.0"
+
+[[constraint]]
+  name = "github.com/dghubble/sling"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "develop"
+  name = "git.containerum.net/ch/permissions"
+
+[[constraint]]
+  name = "github.com/go-resty/resty"
+  version = "1.5.0"

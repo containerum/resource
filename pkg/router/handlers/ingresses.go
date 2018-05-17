@@ -6,7 +6,6 @@ import (
 
 	"net/http"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
@@ -17,6 +16,97 @@ type IngressHandlers struct {
 	*m.TranslateValidate
 }
 
+// swagger:operation GET /namespaces/{namespace}/ingresses Ingress GetIngressesListHandler
+// Get ingresses list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: ingresses list
+//    schema:
+//      $ref: '#/definitions/IngressList'
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
+	resp, err := h.GetIngressesList(ctx.Request.Context(), ctx.Param("namespace"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// swagger:operation GET /namespaces/{namespace}/ingresses/{ingress} Ingress GetIngressHandler
+// Get ingresses list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: ingress
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: ingresses
+//    schema:
+//      $ref: '#/definitions/Ingress'
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
+	resp, err := h.GetIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// swagger:operation POST /namespaces/{namespace}/ingresses Ingress CreateIngressHandler
+// Create ingress.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/Ingress'
+// responses:
+//  '201':
+//    description: ingress created
+//    schema:
+//      $ref: '#/definitions/Ingress'
+//  default:
+//    $ref: '#/responses/error'
 func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 	var req kubtypes.Ingress
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
@@ -24,52 +114,89 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.CreateIngress(ctx.Request.Context(), ctx.Param("ns_label"), req); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
-	}
-
-	ctx.Status(http.StatusCreated)
-}
-
-func (h *IngressHandlers) GetUserIngressesHandler(ctx *gin.Context) {
-	var params rstypes.GetIngressesQueryParams
-	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
-		return
-	}
-
-	resp, err := h.GetUserIngresses(ctx.Request.Context(), ctx.Param("ns_label"), params)
+	createdIngress, err := h.CreateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusCreated, createdIngress)
 }
 
-func (h *IngressHandlers) GetAllIngressesHandler(ctx *gin.Context) {
-	var params rstypes.GetIngressesQueryParams
-
-	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
+// swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngressHandler
+// Update ingress.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: ingress
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/Ingress'
+// responses:
+//  '202':
+//    description: ingress updated
+//    schema:
+//      $ref: '#/definitions/Ingress'
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
+	var req kubtypes.Ingress
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
 	}
 
-	resp, err := h.GetAllIngresses(ctx.Request.Context(), params)
+	req.Name = ctx.Param("ingress")
+	updatedIngress, err := h.UpdateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusAccepted, updatedIngress)
 }
 
+// swagger:operation DELETE /namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngressHandler
+// Delete ingress.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: ingress
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: ingress deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
-	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("ns_label"), ctx.Param("domain")); err != nil {
+	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress")); err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusAccepted)
 }

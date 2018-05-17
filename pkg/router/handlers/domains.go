@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	rstypes "git.containerum.net/ch/resource-service/pkg/model"
+	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"github.com/gin-gonic/gin"
@@ -15,29 +15,30 @@ type DomainHandlers struct {
 	*m.TranslateValidate
 }
 
-func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
-	var req rstypes.AddDomainRequest
-	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
-		return
-	}
-
-	if err := h.AddDomain(ctx.Request.Context(), req); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
-	}
-
-	ctx.Status(http.StatusCreated)
-}
-
-func (h *DomainHandlers) GetAllDomainsHandler(ctx *gin.Context) {
-	var params rstypes.GetAllDomainsQueryParams
-	if err := ctx.ShouldBindWith(&params, binding.Form); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
-		return
-	}
-
-	resp, err := h.GetAllDomains(ctx.Request.Context(), params)
+// swagger:operation GET /domains Domain GetDomainsListHandler
+// Get domains list.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: page
+//    in: query
+//    type: string
+//    required: false
+//  - name: per_page
+//    in: query
+//    type: string
+//    required: false
+// responses:
+//  '200':
+//    description: domains list
+//    schema:
+//      $ref: '#/definitions/DomainsList'
+//  default:
+//    $ref: '#/responses/error'
+func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
+	resp, err := h.GetDomainsList(ctx.Request.Context(), ctx.Query("page"), ctx.Query("per_page"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
@@ -46,6 +47,24 @@ func (h *DomainHandlers) GetAllDomainsHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation GET /domains/{domain} Domain GetDomainHandler
+// Get domain.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: domain
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: domains
+//    schema:
+//      $ref: '#/definitions/Domain'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 	resp, err := h.GetDomain(ctx.Request.Context(), ctx.Param("domain"))
 	if err != nil {
@@ -56,6 +75,56 @@ func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation POST /domains Domain AddDomainHandler
+// Add domain.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/Domain'
+// responses:
+//  '201':
+//    description: domains
+//    schema:
+//      $ref: '#/definitions/Domain'
+//  default:
+//    $ref: '#/responses/error'
+func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
+	var req domain.Domain
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	domain, err := h.AddDomain(ctx.Request.Context(), req)
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, domain)
+}
+
+// swagger:operation DELETE /domains/{domain} Domain DeleteDomainHandler
+// Add domain.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: domain
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: domain deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *DomainHandlers) DeleteDomainHandler(ctx *gin.Context) {
 	if err := h.DeleteDomain(ctx.Request.Context(), ctx.Param("domain")); err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
