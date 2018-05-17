@@ -18,7 +18,7 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 		Service: model.Service{
 			Name: serviceName,
 		},
-	}.SelectQuery()).One(&result); err != nil {
+	}.OneSelectQuery()).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
 		return result, PipErr{err}.ToMongerr().Extract()
 	}
@@ -56,7 +56,7 @@ func (mongo *MongoStorage) CreateService(service service.Service) (service.Servi
 func (mongo *MongoStorage) UpdateService(upd service.Service) (service.Service, error) {
 	mongo.logger.Debugf("updating service")
 	var collection = mongo.db.C(CollectionService)
-	if err := collection.Update(upd.SelectQuery(), upd.UpdateQuery()); err != nil {
+	if err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery()); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update service")
 		return upd, PipErr{err}.ToMongerr().Extract()
 	}
@@ -66,12 +66,32 @@ func (mongo *MongoStorage) UpdateService(upd service.Service) (service.Service, 
 func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	mongo.logger.Debugf("deleting service")
 	var collection = mongo.db.C(CollectionService)
-	if err := collection.Update(service.Service{
-		NamespaceID: namespaceID,
+	err := collection.Update(service.Service{
 		Service: model.Service{
 			Name: name,
 		},
-	}.SelectQuery(), bson.M{"deleted": true}); err != nil {
+		NamespaceID: namespaceID,
+	}.OneSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete service")
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) DeleteAllServices(namespaceID, name string) error {
+	mongo.logger.Debugf("deleting service")
+	var collection = mongo.db.C(CollectionService)
+	err := collection.Update(service.Service{
+		NamespaceID: namespaceID,
+	}.AllSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
 		return PipErr{err}.ToMongerr().Extract()
 	}

@@ -8,7 +8,6 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
-	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
@@ -162,7 +161,7 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 	switch {
 	case err == nil:
 		return rserrors.ErrServiceHasIngresses()
-	case cherry.Equals(err, rserrors.ErrResourceNotExists()):
+	case err.Error() == "not found":
 		// pass
 	default:
 		return err

@@ -92,6 +92,21 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	return PipErr{err}.ToMongerr().Extract()
 }
 
+func (mongo *MongoStorage) DeleteAllDeployments(namespace string) error {
+	mongo.logger.Debugf("deleting all deployments in namespace")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(deployment.Deployment{
+		NamespaceID: namespace,
+	}.AllSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete deployment")
+	}
+	return PipErr{err}.ToMongerr().Extract()
+}
+
 func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)

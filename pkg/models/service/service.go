@@ -45,11 +45,18 @@ func (serv Service) Copy() Service {
 	return cp
 }
 
-func (serv Service) SelectQuery() interface{} {
+func (serv Service) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":  serv.NamespaceID,
 		"deleted":      false,
 		"service.name": serv.Name,
+	}
+}
+
+func (serv Service) AllSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid": serv.NamespaceID,
+		"deleted":     false,
 	}
 }
 
