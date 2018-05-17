@@ -7,7 +7,9 @@ FROM alpine:3.7
 RUN mkdir -p /app
 COPY --from=builder /bin/resource-service /app
 ENV CH_RESOURCE_DEBUG="true" \
-    KUBE_ADDR="" \
-    CH_RESOURCE_TEXTLOG="true"
+    CH_RESOURCE_TEXTLOG="true" \
+    CH_RESOURCE_MONGO_ADDR="http://mongo:27017" \
+    CH_RESOURCE_MONGO_LOGIN="archive" \
+    CH_RESOURCE_MONGO_PASSWORD="archive_password"
 EXPOSE 1213
 CMD "/app/resource-service"
