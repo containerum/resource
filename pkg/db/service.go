@@ -86,7 +86,8 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	}
 	if err := collection.Pipe([]bson.M{
 		{"$match": bson.M{
-			"owner": owner,
+			"owner":   owner,
+			"deleted": false,
 		}},
 		{"$project": bson.M{
 			"domain": "$service.domain",
@@ -119,6 +120,7 @@ func (mongo *MongoStorage) CountServicesInNamespace(namespaceID string) (stats.S
 	if err := collection.Pipe([]bson.M{
 		{"$match": bson.M{
 			"namespaceid": namespaceID,
+			"deleted":     false,
 		}},
 		{"$project": bson.M{
 			"domain": "$service.domain",

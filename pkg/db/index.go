@@ -4,6 +4,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
 	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 func (mongo *MongoStorage) InitIndexes() error {
@@ -22,8 +23,22 @@ func (mongo *MongoStorage) InitIndexes() error {
 			errs = append(errs, err)
 		}
 		if err := collection.EnsureIndex(mgo.Index{
-			Key:    []string{collectionName + "." + "name", "namespaceid"},
+			Name: "alive_" + collectionName,
+			Key:  []string{collectionName + "." + "name", "namespaceid"},
+			PartialFilter: bson.M{
+				"deleted": false,
+			},
 			Unique: true,
+		}); err != nil {
+			errs = append(errs, err)
+		}
+		if err := collection.EnsureIndex(mgo.Index{
+			Name: "deleted_" + collectionName,
+			Key:  []string{collectionName + "." + "name", "namespaceid"},
+			PartialFilter: bson.M{
+				"deleted": true,
+			},
+			Unique: false,
 		}); err != nil {
 			errs = append(errs, err)
 		}
