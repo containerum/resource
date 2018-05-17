@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	"github.com/globalsign/mgo"
 )
 
@@ -20,8 +18,8 @@ func (pages PageInfo) Init() (limit, offset int) {
 			pages.PerPage = 100
 		}
 	}
-	if pages.Page < 0 {
-		pages.Page = 1
+	if pages.Page <= 0 {
+		pages.Page = 0
 	} else {
 		pages.Page--
 	}
@@ -29,7 +27,6 @@ func (pages PageInfo) Init() (limit, offset int) {
 }
 
 func Paginate(query *mgo.Query, info *PageInfo) *mgo.Query {
-	fmt.Println(info)
 	if info != nil {
 		var limit, offset = info.Init()
 		return query.Skip(offset).Limit(limit)
