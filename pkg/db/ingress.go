@@ -14,7 +14,7 @@ func (mongo *MongoStorage) CreateIngress(ingress ingress.Ingress) (ingress.Ingre
 	}
 	if err := collection.Insert(ingress); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create ingress")
-		return ingress, err
+		return ingress, PipErr{err}.ToMongerr()
 	}
 	return ingress, nil
 }
@@ -25,7 +25,7 @@ func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Ingress
 	var ingr ingress.Ingress
 	if err := collection.Find(ingress.OneSelectQuery(namespaceID, name)).One(&ingr); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress")
-		return ingr, err
+		return ingr, PipErr{err}.ToMongerr()
 	}
 	return ingr, nil
 }
@@ -36,7 +36,7 @@ func (mongo *MongoStorage) GetIngressList(namespaceID string) (ingress.IngressLi
 	var list ingress.IngressList
 	if err := collection.Find(ingress.ListSelectQuery(namespaceID)).All(&list); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress list")
-		return list, err
+		return list, PipErr{err}.ToMongerr().NotFoundToNil()
 	}
 	return list, nil
 }
@@ -46,7 +46,7 @@ func (mongo *MongoStorage) UpdateIngress(upd ingress.Ingress) (ingress.Ingress, 
 	var collection = mongo.db.C(CollectionIngress)
 	if err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery()); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update ingress")
-		return upd, err
+		return upd, PipErr{err}.ToMongerr()
 	}
 	return upd, nil
 }
@@ -56,7 +56,7 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 	var collection = mongo.db.C(CollectionIngress)
 	if err := collection.Update(ingress.OneSelectQuery(namespaceID, name), ingress.DeleteQuery()); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete ingress")
-		return err
+		return PipErr{err}.ToMongerr()
 	}
 	return nil
 }
@@ -68,7 +68,7 @@ func (mongo *MongoStorage) CountIngresses(owner string) (int, error) {
 		"owner":   owner,
 		"deleted": false,
 	}).Count(); err != nil {
-		return 0, err
+		return 0, PipErr{err}.ToMongerr().NotFoundToNil()
 	} else {
 		return n, nil
 	}
