@@ -6,7 +6,8 @@ RUN go build -v -ldflags="-w -s" -tags "jsoniter" -o /bin/resource-service ./cmd
 FROM alpine:3.7
 RUN mkdir -p /app
 COPY --from=builder /bin/resource-service /app
-ENV DB_URL="postgres://user:password@localhost:5432/resource_service?sslmode=disable" \
-    KUBE_ADDR=""
+ENV CH_RESOURCE_DEBUG="true" \
+    KUBE_ADDR="" \
+    CH_RESOURCE_TEXTLOG ="true"
 EXPOSE 1213
 CMD "/app/resource-service"

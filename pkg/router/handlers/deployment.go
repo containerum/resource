@@ -168,6 +168,35 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImageHandler
+// Update image in deployments container.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/UpdateImage'
+// responses:
+//  '202':
+//    description: deployment updated
+//    schema:
+//      $ref: '#/definitions/Deployment'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 	var req kubtypes.UpdateImage
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
@@ -184,6 +213,35 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicasHandler
+// Update deployments replicas count.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/UpdateReplicas'
+// responses:
+//  '202':
+//    description: deployment updated
+//    schema:
+//      $ref: '#/definitions/Deployment'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	var req kubtypes.UpdateReplicas
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
@@ -199,6 +257,29 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
+// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeploymentHandler
+// Delete deployment.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: deployment deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
 	if err != nil {
@@ -206,5 +287,5 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusAccepted)
 }

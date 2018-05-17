@@ -40,7 +40,10 @@ func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page 
 		}
 	}
 
-	return da.mongo.GetDomainsList()
+	return da.mongo.GetDomainsList(&db.PageInfo{
+		Page:    1,
+		PerPage: 100,
+	})
 }
 
 func (da *DomainActionsImpl) GetDomain(ctx context.Context, domain string) (*domain.Domain, error) {

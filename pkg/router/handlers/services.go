@@ -15,6 +15,27 @@ type ServiceHandlers struct {
 	*m.TranslateValidate
 }
 
+// swagger:operation GET /namespaces/{namespace}/services Service GetServicesListHandler
+// Get services list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: services list
+//    schema:
+//      $ref: '#/definitions/ServiceList'
+//  default:
+//    $ref: '#/responses/error'
 func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 	resp, err := h.GetServices(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
@@ -25,6 +46,31 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation GET /namespaces/{namespace}/services/{service} Service GetServiceHandler
+// Get services list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: service
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: service
+//    schema:
+//      $ref: '#/definitions/Service'
+//  default:
+//    $ref: '#/responses/error'
 func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 	resp, err := h.GetService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 
@@ -36,6 +82,31 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation POST /namespaces/{namespace}/services Service CreateServiceHandler
+// Create service.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/Service'
+// responses:
+//  '201':
+//    description: service created
+//    schema:
+//      $ref: '#/definitions/Service'
+//  default:
+//    $ref: '#/responses/error'
 func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
@@ -52,6 +123,35 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, createdService)
 }
 
+// swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateServiceHandler
+// Update service.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: service
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/Service'
+// responses:
+//  '202':
+//    description: service updated
+//    schema:
+//      $ref: '#/definitions/Service'
+//  default:
+//    $ref: '#/responses/error'
 func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
@@ -66,9 +166,32 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, updatedService)
+	ctx.JSON(http.StatusAccepted, updatedService)
 }
 
+// swagger:operation DELETE /namespaces/{namespace}/services/{service} Service DeleteServiceHandler
+// Delete service.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - $ref: '#/parameters/UserVolumeHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: service
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: service deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 	err := h.DeleteService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 	if err != nil {
@@ -76,5 +199,5 @@ func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusAccepted)
 }

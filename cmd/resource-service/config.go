@@ -23,6 +23,11 @@ var flags = []cli.Flag{
 		Name:   "debug",
 		Usage:  "start the server in debug mode",
 	},
+	cli.BoolFlag{
+		EnvVar: "CH_RESOURCE_TEXTLOG",
+		Name:   "textlog",
+		Usage:  "output log in text format",
+	},
 	cli.StringFlag{
 		EnvVar: "CH_RESOURCE_PORT",
 		Name:   "port",
@@ -44,13 +49,8 @@ var flags = []cli.Flag{
 	cli.StringFlag{
 		EnvVar: "CH_RESOURCE_PERMISSIONS_ADDR",
 		Name:   "permissions_addr",
-		Value:  "http://permisssions:4242",
+		Value:  "http://permissions:4242",
 		Usage:  "permissions service address",
-	},
-	cli.BoolFlag{
-		EnvVar: "CH_RESOURCE_TEXTLOG",
-		Name:   "textlog",
-		Usage:  "output log in text format",
 	},
 	cli.BoolFlag{
 		EnvVar: "CH_RESOURCE_CORS",
