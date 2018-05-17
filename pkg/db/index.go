@@ -103,7 +103,7 @@ func (mongo *MongoStorage) CreateIndex(indexName string, options ...func(mongo *
 			Unique: true,
 		}
 		if collection.EnsureIndex(index); err != nil {
-			return err
+			return PipErr{err}.ToMongerr().Extract()
 		}
 	}
 	return nil
@@ -121,7 +121,7 @@ func DropIndexIfExists(mongo *MongoStorage, cName, indexName string) (bool, erro
 	var collection = mongo.db.C(cName)
 	if strset.FromSlice(indexNames).In(indexName) {
 		if err := collection.DropIndexName(indexName); err != nil {
-			return false, err
+			return false, PipErr{err}.ToMongerr().Extract()
 		}
 	}
 	return true, nil

@@ -28,5 +28,5 @@ func (mongo *MongoStorage) GetNamespaceResourcesLimits(namespaceID string) (kubt
 			"memory": bson.M{"$sum": "$memory"},
 		}},
 	}).One(&res)
-	return res, PipErr{err}.ToMongerr().NotFoundToNil()
+	return res, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
 }

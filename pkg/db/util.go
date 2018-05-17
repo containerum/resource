@@ -36,7 +36,7 @@ func Paginate(query *mgo.Query, info *PageInfo) *mgo.Query {
 }
 
 type PipErr struct {
-	error
+	error error
 }
 
 func (piperr PipErr) NotFoundToNil() PipErr {
