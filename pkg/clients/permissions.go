@@ -23,15 +23,17 @@ type permissions struct {
 }
 
 func NewPermissionsHTTP(permissionsHost string) Permissions {
+	log := logrus.WithField("component", "permissions_client")
 	var client = resty.New().
 		SetHostURL(permissionsHost).
+		SetLogger(log.WriterLevel(logrus.DebugLevel)).
 		SetDebug(true).
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Accept", "application/json")
 	client.JSONMarshal = jsoniter.Marshal
 	client.JSONUnmarshal = jsoniter.Unmarshal
 	return permissions{
-		logger: logrus.WithField("component", "permissions_client"),
+		logger: log,
 		resty:  client,
 	}
 }
