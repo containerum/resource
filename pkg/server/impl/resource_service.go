@@ -5,6 +5,7 @@ import (
 
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/resources"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
@@ -28,19 +29,23 @@ func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*res
 
 	ingresses, err := rs.mongo.CountIngresses(userID)
 	if err != nil {
-		return nil, err
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
 	}
 	deploys, err := rs.mongo.CountDeployments(userID)
 	if err != nil {
-		return nil, err
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
 	}
 	services, err := rs.mongo.CountServices(userID)
 	if err != nil {
-		return nil, err
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
 	}
 	pods, err := rs.mongo.CountReplicas(userID)
 	if err != nil {
-		return nil, err
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
 	}
 
 	ret := resources.GetResourcesCountResponse{

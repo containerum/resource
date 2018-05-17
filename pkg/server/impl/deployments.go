@@ -78,15 +78,12 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	if err := server.CalculateDeployResources(&deploy); err != nil {
-		return nil, err
-	}
+	server.CalculateDeployResources(&deploy)
 
 	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
 	if err != nil {
 		return nil, err
 	}
-
 	return &createdDeploy, nil
 }
 
@@ -116,9 +113,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		"deploy_name": deploy.Name,
 	}).Infof("replacing deployment with %#v", deploy)
 
-	if err := server.CalculateDeployResources(&deploy); err != nil {
-		return nil, err
-	}
+	server.CalculateDeployResources(&deploy)
 
 	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
 	if err != nil {
@@ -224,7 +219,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 
 	}
 	if !updated {
-		return nil, rserrors.ErrInternal().AddDetails("No image found")
+		return nil, rserrors.ErrNoContainer()
 	}
 
 	if err := da.kube.SetContainerImage(ctx, nsID, oldDeploy.Name, req); err != nil {

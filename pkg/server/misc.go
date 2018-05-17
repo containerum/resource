@@ -64,9 +64,7 @@ func IngressPaths(service kubtypes.Service, path string, servicePort int) ([]kub
 }
 
 func CheckDeploymentCreateQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resource, deploy kubtypes.Deployment) error {
-	if err := CalculateDeployResources(&deploy); err != nil {
-		return err
-	}
+	CalculateDeployResources(&deploy)
 
 	var deployCPU, deployRAM int
 	deployCPU = int(deploy.TotalCPU)
@@ -84,17 +82,13 @@ func CheckDeploymentCreateQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resourc
 }
 
 func CheckDeploymentReplaceQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resource, oldDeploy, newDeploy kubtypes.Deployment) error {
-	if err := CalculateDeployResources(&oldDeploy); err != nil {
-		return err
-	}
+	CalculateDeployResources(&oldDeploy)
 
 	var oldDeployCPU, oldDeployRAM int
 	oldDeployCPU = int(oldDeploy.TotalCPU)
 	oldDeployRAM = int(oldDeploy.TotalMemory)
 
-	if err := CalculateDeployResources(&newDeploy); err != nil {
-		return err
-	}
+	CalculateDeployResources(&newDeploy)
 
 	var newDeployCPU, newDeployRAM int
 	newDeployCPU = int(newDeploy.TotalCPU)
@@ -112,10 +106,7 @@ func CheckDeploymentReplaceQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resour
 }
 
 func CheckDeploymentReplicasChangeQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resource, deploy kubtypes.Deployment, newReplicas int) error {
-	if err := CalculateDeployResources(&deploy); err != nil {
-		return err
-	}
-
+	CalculateDeployResources(&deploy)
 	var deployCPU, deployRAM int
 	deployCPU = int(deploy.TotalCPU)
 	deployRAM = int(deploy.TotalMemory)
@@ -147,7 +138,7 @@ func CheckServiceCreateQuotas(ns kubtypes.Namespace, nsUsage stats.Service, serv
 	return nil
 }
 
-func CalculateDeployResources(deploy *kubtypes.Deployment) error {
+func CalculateDeployResources(deploy *kubtypes.Deployment) {
 	var mCPU, mbRAM int64
 	for _, container := range deploy.Containers {
 		mCPU += int64(container.Limits.CPU)
@@ -157,5 +148,4 @@ func CalculateDeployResources(deploy *kubtypes.Deployment) error {
 	mbRAM *= int64(deploy.Replicas)
 	deploy.TotalCPU = uint(mCPU)
 	deploy.TotalMemory = uint(mbRAM)
-	return nil
 }
