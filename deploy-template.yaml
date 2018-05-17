@@ -28,21 +28,15 @@ spec:
       - image: ${IMAGE}
         name: resource-service
         env:
-        - name: AUTH_ADDR
-          value: "${AUTH_ADDR}"
-        - name: KUBE_ADDR
-          value: "${KUBE_ADDR}"
-        - name: MAILER_ADDR
-          value: "${MAILER_ADDR}"
-        - name: MODE
-          value: "${MODE}"
-        - name: LISTEN_ADDR
-          value: "${LISTEN_ADDR}"
-        - name: DB_URL
-          value: "${DB_URL}"
-        - name: BILLING_ADDR
-          value: "${BILLING_ADDR}"
-        - name: USER_ADDR
-          value: "${USER_ADDR}"
+        - name: CH_RESOURCE_DEBUG
+          value: "${CH_RESOURCE_DEBUG}"
+        - name: CH_RESOURCE_TEXTLOG
+          value: "${CH_RESOURCE_TEXTLOG}"
+        - name: CH_RESOURCE_MONGO_ADDR
+          value: "${CH_RESOURCE_MONGO_ADDR}"
+        - name: CH_RESOURCE_MONGO_LOGIN
+          value: "${CH_RESOURCE_MONGO_LOGIN}"
+        - name: CH_RESOURCE_MONGO_PASSWORD
+          value: "${CH_RESOURCE_MONGO_PASSWORD}"
       imagePullSecrets:
       - name: gitlab-registry
