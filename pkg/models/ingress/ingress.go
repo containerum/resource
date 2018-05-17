@@ -50,6 +50,13 @@ func (ingr Ingress) OneSelectQuery() interface{} {
 	}
 }
 
+func (ingr Ingress) AllSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid": ingr.NamespaceID,
+		"deleted":     false,
+	}
+}
+
 func IngressFromKube(nsID, owner string, ingress model.Ingress) Ingress {
 	return Ingress{
 		Ingress:     ingress,

@@ -38,6 +38,13 @@ func (depl Deployment) OneSelectQuery() interface{} {
 	}
 }
 
+func (depl Deployment) AllSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid": depl.NamespaceID,
+		"deleted":     false,
+	}
+}
+
 func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deployment {
 	return Deployment{
 		Deployment:  deployment,

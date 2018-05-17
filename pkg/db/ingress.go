@@ -2,6 +2,7 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -54,11 +55,35 @@ func (mongo *MongoStorage) UpdateIngress(upd ingress.Ingress) (ingress.Ingress, 
 func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 	mongo.logger.Debugf("deleting ingress")
 	var collection = mongo.db.C(CollectionIngress)
-	if err := collection.Update(ingress.OneSelectQuery(namespaceID, name), ingress.DeleteQuery()); err != nil {
+	err := collection.Update(ingress.Ingress{
+		Ingress: model.Ingress{
+			Name: name,
+		},
+		NamespaceID: namespaceID,
+	}.OneSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete ingress")
 		return PipErr{err}.ToMongerr().Extract()
 	}
 	return nil
+}
+
+func (mongo *MongoStorage) DeleteAllIngresses(namespace string) error {
+	mongo.logger.Debugf("deleting all deployments in namespace")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(ingress.Ingress{
+		NamespaceID: namespace,
+	}.AllSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete deployment")
+	}
+	return PipErr{err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) CountIngresses(owner string) (int, error) {
