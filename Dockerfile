@@ -9,7 +9,6 @@ COPY --from=builder /bin/resource-service /app
 ENV CH_RESOURCE_DEBUG="true" \
     CH_RESOURCE_TEXTLOG="true" \
     CH_RESOURCE_MONGO_ADDR="http://mongo:27017" \
-    CH_RESOURCE_MONGO_LOGIN="archive" \
-    CH_RESOURCE_MONGO_PASSWORD="archive_password"
+    CH_RESOURCE_KUBE_API_ADDR="http://kube-api:1214"
 EXPOSE 1213
 CMD "/app/resource-service"

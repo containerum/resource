@@ -43,7 +43,7 @@ var flags = []cli.Flag{
 	cli.StringFlag{
 		EnvVar: "CH_RESOURCE_KUBE_API_ADDR",
 		Name:   "kube_addr",
-		Value:  "http://kube-api:1212",
+		Value:  "http://kube-api:1214",
 		Usage:  "kube-api service address",
 	},
 	cli.StringFlag{
