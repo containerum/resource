@@ -5,7 +5,7 @@ settings:
 
 server:
     status: true
-    open: true
+    open: false
     host: localhost
     port: 5001
 
