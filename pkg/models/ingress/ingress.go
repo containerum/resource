@@ -6,6 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// Ingress --  model for ingress for resource-service db
+//
+// swagger:model
 type Ingress struct {
 	model.Ingress
 	Owner       string `json:"owner"`
@@ -13,6 +16,11 @@ type Ingress struct {
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
+
+// IngressList -- ingresses list
+//
+// swagger:model
+type IngressList []Ingress
 
 func (ingr Ingress) Copy() Ingress {
 	var cp = ingr
@@ -80,5 +88,3 @@ func DeleteQuery() interface{} {
 		"delete": true,
 	}
 }
-
-type IngressList []Ingress

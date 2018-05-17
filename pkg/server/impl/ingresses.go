@@ -76,7 +76,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	return &createdIngress, nil
 }
 
-func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) ([]ingress.Ingress, error) {
+func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id":   userID,

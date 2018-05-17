@@ -119,6 +119,6 @@ func setupKube(c *cli.Context) (*clients.Kube, error) {
 }
 
 func setupPermissions(c *cli.Context) *clients.Permissions {
-	client := clients.NewPermissionsHTTP(c.String("kube_addr"))
+	client := clients.NewPermissionsHTTP(c.String("permissions_addr"))
 	return &client
 }

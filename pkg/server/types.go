@@ -12,7 +12,7 @@ import (
 )
 
 type DeployActions interface {
-	GetDeploymentsList(ctx context.Context, nsID string) ([]deployment.Deployment, error)
+	GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error)
 	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error)
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
@@ -22,7 +22,7 @@ type DeployActions interface {
 }
 
 type DomainActions interface {
-	GetDomainsList(ctx context.Context, page, per_page string) ([]domain.Domain, error)
+	GetDomainsList(ctx context.Context, page, per_page string) (domain.DomainList, error)
 	GetDomain(ctx context.Context, domain string) (*domain.Domain, error)
 	AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
@@ -30,7 +30,7 @@ type DomainActions interface {
 
 type IngressActions interface {
 	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
-	GetIngressesList(ctx context.Context, nsID string) ([]ingress.Ingress, error)
+	GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error)
 	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Ingress, error)
 	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
@@ -38,7 +38,7 @@ type IngressActions interface {
 
 type ServiceActions interface {
 	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
-	GetServices(ctx context.Context, nsID string) ([]service.Service, error)
+	GetServices(ctx context.Context, nsID string) (service.ServiceList, error)
 	GetService(ctx context.Context, nsID, serviceName string) (*service.Service, error)
 	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error

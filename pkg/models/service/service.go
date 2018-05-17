@@ -6,6 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// Service --  model for service for resource-service db
+//
+// swagger:model
 type Service struct {
 	model.Service
 	Owner       string `json:"owner"`
@@ -13,6 +16,11 @@ type Service struct {
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
+
+// ServiceList -- services list
+//
+// swagger:model
+type ServiceList []Service
 
 type ServiceType string
 
@@ -52,8 +60,6 @@ func (serv Service) UpdateQuery() interface{} {
 		},
 	}
 }
-
-type ServiceList []Service
 
 func (list ServiceList) Len() int {
 	return len(list)

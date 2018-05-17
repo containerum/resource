@@ -1,6 +1,8 @@
 package resources
 
-// Other
+// GetResourcesCountResponse --  model for users resources count
+//
+// swagger:model
 type GetResourcesCountResponse struct {
 	Deployments int `json:"deployments"`
 	ExtServices int `json:"external_services"`

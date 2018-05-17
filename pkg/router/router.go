@@ -13,6 +13,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
+	"git.containerum.net/ch/resource-service/static"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/containerum/utils/httputil"
@@ -45,6 +46,8 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		cfg.AddAllowHeaders(headers.UserRoleXHeader, headers.UserIDXHeader, headers.UserNamespacesXHeader, headers.UserVolumesXHeader)
 		e.Use(cors.New(cfg))
 	}
+	e.Group("/static").
+		StaticFS("/", static.HTTP)
 	e.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
 	e.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 	binding.Validator = &validation.GinValidatorV9{Validate: tv.Validate} // gin has no local validator

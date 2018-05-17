@@ -25,7 +25,7 @@ func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 	}
 }
 
-func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) ([]domain.Domain, error) {
+func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) (domain.DomainList, error) {
 	da.log.Info("get all domains")
 
 	pagei, pageerr := strconv.Atoi(page)
@@ -33,7 +33,7 @@ func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page 
 
 	if pageerr == nil && perpageerr == nil {
 		if pagei > 0 && perpagei > 0 {
-			return da.mongo.GetDomainsList(perpagei, pagei)
+			return da.mongo.GetDomainsList(pagei, perpagei)
 		}
 	}
 

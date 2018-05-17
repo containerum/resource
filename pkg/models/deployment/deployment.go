@@ -6,6 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// Deployment -- model for deployments for resource-service db
+//
+// swagger:model
 type Deployment struct {
 	model.Deployment
 	Owner       string `json:"owner"`
@@ -13,6 +16,11 @@ type Deployment struct {
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
+
+// Deployment -- deployments list
+//
+// swagger:model
+type DeploymentList []Deployment
 
 func (depl Deployment) UpdateQuery() interface{} {
 	return bson.M{
@@ -50,8 +58,6 @@ func (depl Deployment) Copy() Deployment {
 	}
 	return cp
 }
-
-type DeploymentList []Deployment
 
 func (list DeploymentList) Copy() DeploymentList {
 	var cp = make(DeploymentList, 0, list.Len())

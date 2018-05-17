@@ -31,7 +31,7 @@ func NewServiceActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissi
 	}
 }
 
-func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsID string) ([]service.Service, error) {
+func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsID string) (service.ServiceList, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":   userID,

@@ -30,7 +30,7 @@ func NewDeployActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissio
 	}
 }
 
-func (da *DeployActionsImpl) GetDeploymentsList(ctx context.Context, nsID string) ([]deployment.Deployment, error) {
+func (da *DeployActionsImpl) GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":   userID,
