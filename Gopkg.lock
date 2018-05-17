@@ -2,13 +2,13 @@
 
 
 [[projects]]
-  branch = "30-add-rename-resource-on-billing"
+  branch = "develop"
   name = "git.containerum.net/ch/permissions"
   packages = [
     "pkg/errors",
     "pkg/model"
   ]
-  revision = "843acb5a3b00046475b0cbfc11c4db236ef2c8b7"
+  revision = "055fa1e2a0db047e49b2458b36db3efe0cc1bf95"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
