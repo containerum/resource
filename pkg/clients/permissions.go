@@ -3,12 +3,14 @@ package clients
 import (
 	"context"
 
+	"github.com/json-iterator/go"
+	"github.com/sirupsen/logrus"
+
+	permtypes "git.containerum.net/ch/permissions/pkg/model"
 	"github.com/containerum/cherry"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/go-resty/resty"
-	"github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 )
 
 type Permissions interface {
@@ -38,7 +40,7 @@ func (client permissions) GetNamespaceLimits(ctx context.Context, namespaceID st
 	client.logger.
 		WithField("namespace_id", namespaceID).
 		Debugf("getting namespace limits")
-	var ns kubtypes.Namespace
+	var ns permtypes.Namespace
 	var errResult cherry.Err
 	_, err := client.resty.R().
 		SetContext(ctx).
@@ -49,7 +51,21 @@ func (client permissions) GetNamespaceLimits(ctx context.Context, namespaceID st
 		}).SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Get("/namespaces/{namespace}")
 
-	return ns, func() error {
+	maxint := uint(ns.MaxIntServices)
+	maxext := uint(ns.MaxExtServices)
+
+	ret := kubtypes.Namespace{
+		MaxIntService: &maxint,
+		MaxExtService: &maxext,
+		Resources: kubtypes.Resources{
+			Hard: kubtypes.Resource{
+				CPU:    uint(ns.CPU),
+				Memory: uint(ns.RAM),
+			},
+		},
+	}
+
+	return ret, func() error {
 		if err != nil {
 			return err
 		}
