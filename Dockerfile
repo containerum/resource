@@ -8,6 +8,6 @@ RUN mkdir -p /app
 COPY --from=builder /bin/resource-service /app
 ENV CH_RESOURCE_DEBUG="true" \
     KUBE_ADDR="" \
-    CH_RESOURCE_TEXTLOG ="true"
+    CH_RESOURCE_TEXTLOG="true"
 EXPOSE 1213
 CMD "/app/resource-service"
