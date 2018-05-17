@@ -61,7 +61,7 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	}).All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment")
 	}
-	return depl, PipErr{err}.ToMongerr()
+	return depl, PipErr{err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
@@ -71,7 +71,7 @@ func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment")
 	}
-	return PipErr{err}.ToMongerr()
+	return PipErr{err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
@@ -89,14 +89,14 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
 	}
-	return PipErr{err}.ToMongerr()
+	return PipErr{err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
-		return 0, PipErr{err}.ToMongerr().NotFoundToNil()
+		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
 	} else {
 		return n, nil
 	}
@@ -124,7 +124,7 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 			},
 		},
 	}).One(&count); err != nil {
-		return 0, PipErr{err}.NotFoundToNil().ToMongerr()
+		return 0, PipErr{err}.NotFoundToNil().ToMongerr().Extract()
 	} else {
 		return count.Count, nil
 	}

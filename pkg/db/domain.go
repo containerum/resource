@@ -14,7 +14,7 @@ func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.
 	var query = collection.Find(colQuerier)
 	if err := query.One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain")
-		return nil, err
+		return nil, PipErr{err}.ToMongerr().Extract()
 	}
 	return &result, nil
 }
@@ -26,7 +26,7 @@ func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 	result := domain.Domain{}
 	if err := collection.Pipe(colQuerier).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get random domain")
-		return nil, err
+		return nil, PipErr{err}.ToMongerr().Extract()
 	}
 	return &result, nil
 }
@@ -38,7 +38,7 @@ func (mongo *MongoStorage) GetDomainsList(pages *PageInfo) ([]domain.Domain, err
 	var result []domain.Domain
 	if err := Paginate(collection.Find(nil), pages).All(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain list")
-		return nil, err
+		return nil, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
 	}
 	return result, nil
 }
@@ -49,7 +49,7 @@ func (mongo *MongoStorage) CreateDomain(domain domain.Domain) (*domain.Domain, e
 	var collection = mongo.db.C(CollectionDomain)
 	if err := collection.Insert(domain); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create domain")
-		return nil, err
+		return nil, PipErr{err}.ToMongerr().Extract()
 	}
 	return &domain, nil
 }
@@ -60,7 +60,7 @@ func (mongo *MongoStorage) UpdateDomain(domain domain.Domain) (*domain.Domain, e
 	colQuerier := bson.M{"domain": domain.Domain}
 	if err := collection.Update(colQuerier, domain); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update domain")
-		return nil, err
+		return nil, PipErr{err}.ToMongerr().Extract()
 	}
 	return &domain, nil
 }
@@ -71,7 +71,7 @@ func (mongo *MongoStorage) DeleteDomain(domainName string) error {
 	colQuerier := bson.M{"domain": domainName}
 	if err := collection.Remove(colQuerier); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete domain")
-		return err
+		return PipErr{err}.ToMongerr().Extract()
 	}
 	return nil
 }
