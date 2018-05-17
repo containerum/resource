@@ -3,3 +3,4 @@
 /resource-service
 /resource
 !/resource/
+/pkg/util/mongerr/errors.py

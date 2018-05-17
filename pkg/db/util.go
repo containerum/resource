@@ -1,6 +1,7 @@
 package db
 
 import (
+	"git.containerum.net/ch/resource-service/pkg/util/mongerr"
 	"github.com/globalsign/mgo"
 )
 
@@ -32,4 +33,32 @@ func Paginate(query *mgo.Query, info *PageInfo) *mgo.Query {
 		return query.Skip(offset).Limit(limit)
 	}
 	return query
+}
+
+type PipErr struct {
+	error
+}
+
+func (piperr PipErr) NotFoundToNil() PipErr {
+	if piperr.error == mgo.ErrNotFound {
+		return PipErr{}
+	}
+	return piperr
+}
+
+func (piperr PipErr) ToMongerr() PipErr {
+	switch err := piperr.error.(type) {
+	case *mgo.QueryError:
+		return PipErr{mongerr.FromMongoErr(err)}
+	default:
+		return piperr
+	}
+}
+
+func (piperr PipErr) Extract() error {
+	return piperr.error
+}
+
+func (piperr PipErr) Apply(op func(error) error) PipErr {
+	return PipErr{op(piperr.error)}
 }

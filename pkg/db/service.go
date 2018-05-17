@@ -12,14 +12,15 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 	mongo.logger.Debugf("getting service")
 	var collection = mongo.db.C(CollectionService)
 	var result service.Service
-	if err := collection.Find(service.Service{
+	var err error
+	if err = collection.Find(service.Service{
 		NamespaceID: namespaceID,
 		Service: model.Service{
 			Name: serviceName,
 		},
 	}.SelectQuery()).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
-		return result, err
+		return result, PipErr{err}.ToMongerr()
 	}
 	return result, nil
 }
@@ -47,7 +48,7 @@ func (mongo *MongoStorage) CreateService(service service.Service) (service.Servi
 	}
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
-		return service, err
+		return service, PipErr{err}.ToMongerr()
 	}
 	return service, nil
 }
@@ -57,7 +58,7 @@ func (mongo *MongoStorage) UpdateService(upd service.Service) (service.Service, 
 	var collection = mongo.db.C(CollectionService)
 	if err := collection.Update(upd.SelectQuery(), upd.UpdateQuery()); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update service")
-		return upd, err
+		return upd, PipErr{err}.ToMongerr()
 	}
 	return upd, nil
 }
@@ -72,7 +73,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 		},
 	}.SelectQuery(), bson.M{"deleted": true}); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
-		return err
+		return PipErr{err}.ToMongerr()
 	}
 	return nil
 }
@@ -97,7 +98,7 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 			"count": bson.M{"$sum": 1},
 		}},
 	}).All(&statData); err != nil {
-		return stats.Service{}, err
+		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil()
 	}
 	var serviceStats stats.Service
 	for _, serv := range statData {
@@ -130,7 +131,7 @@ func (mongo *MongoStorage) CountServicesInNamespace(namespaceID string) (stats.S
 			"count": bson.M{"$sum": 1},
 		}},
 	}).All(&statData); err != nil {
-		return stats.Service{}, err
+		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil()
 	}
 	var serviceStats stats.Service
 	for _, serv := range statData {

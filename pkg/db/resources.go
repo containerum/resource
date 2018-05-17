@@ -8,7 +8,7 @@ import (
 func (mongo *MongoStorage) GetNamespaceResourcesLimits(namespaceID string) (kubtypes.Resource, error) {
 	var deployments = mongo.db.C(CollectionDeployment)
 	var res kubtypes.Resource
-	return res, deployments.Pipe([]bson.M{
+	var err = deployments.Pipe([]bson.M{
 		{"$match": bson.M{
 			"namespaceid": namespaceID,
 			"deleted":     false,
@@ -28,4 +28,5 @@ func (mongo *MongoStorage) GetNamespaceResourcesLimits(namespaceID string) (kubt
 			"memory": bson.M{"$sum": "$memory"},
 		}},
 	}).One(&res)
+	return res, PipErr{err}.ToMongerr().NotFoundToNil()
 }
