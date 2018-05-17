@@ -11,6 +11,7 @@ func (mongo *MongoStorage) GetNamespaceResourcesLimits(namespaceID string) (kubt
 	return res, deployments.Pipe([]bson.M{
 		{"$match": bson.M{
 			"namespaceid": namespaceID,
+			"deleted":     false,
 		}},
 		{"$project": bson.M{
 			"replicas": "$deployment.replicas",
