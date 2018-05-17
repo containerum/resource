@@ -35,8 +35,14 @@
 [[projects]]
   name = "github.com/containerum/utils"
   packages = ["httputil"]
-  revision = "5e922affb542eaeb55ab395ff3c7161179df54b3"
-  version = "v1.0.0"
+  revision = "8604d0da32cc447c0f3a0a026146a3084161dc5e"
+  version = "v1.0.1"
+
+[[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/emicklei/go-restful"
@@ -193,6 +199,12 @@
   version = "1.0.0"
 
 [[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
@@ -209,6 +221,12 @@
   packages = ["."]
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
   version = "v1.0.1"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -232,8 +250,11 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "idna",
-    "publicsuffix"
+    "publicsuffix",
+    "webdav",
+    "webdav/internal/xml"
   ]
   revision = "2491c5de3490fced2f6cff376127c667efeed857"
 
@@ -316,6 +337,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2ccd5314403b84ff88e37ae4a927805da481b2a3e02396a20e278e12616c83df"
+  inputs-digest = "482e279ea267d12c30c0579d0b812faa5d5673ffda9aa25eba04434c991e067a"
   solver-name = "gps-cdcl"
   solver-version = 1
