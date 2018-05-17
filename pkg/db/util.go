@@ -1,23 +1,38 @@
 package db
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/globalsign/mgo"
-	"github.com/sirupsen/logrus"
 )
 
-func Paginate(query *mgo.Query, pages ...int) *mgo.Query {
-	switch len(pages) {
-	case 0:
-		return query
-	case 1:
-		return query.Limit(pages[0])
-	case 2:
-		return query.Skip(pages[1]).Limit(pages[0])
-	default:
-		defer func() { os.Exit(100) }()
-		logrus.Panicf("[resource-service/pkg/db.GetDomainList] invalid pagination config: expected at most 2 args, got %d", len(pages))
-		return nil
+type PageInfo struct {
+	PerPage        int
+	Page           int
+	DefaultPerPage int
+}
+
+func (pages PageInfo) Init() (limit, offset int) {
+	if pages.PerPage <= 0 {
+		if pages.DefaultPerPage > 0 {
+			pages.PerPage = pages.DefaultPerPage
+		} else {
+			pages.PerPage = 100
+		}
 	}
+	if pages.Page < 0 {
+		pages.Page = 1
+	} else {
+		pages.Page--
+	}
+	return pages.PerPage, pages.Page * pages.PerPage
+}
+
+func Paginate(query *mgo.Query, info *PageInfo) *mgo.Query {
+	fmt.Println(info)
+	if info != nil {
+		var limit, offset = info.Init()
+		return query.Skip(offset).Limit(limit)
+	}
+	return query
 }
