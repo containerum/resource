@@ -75,7 +75,8 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 
 	svc, err := ia.mongo.GetService(nsID, req.Rules[0].Path[0].ServiceName)
 	if err != nil {
-		return nil, err
+		ia.log.Error(err)
+		return nil, rserrors.ErrResourceNotExists().AddDetails("service not exists")
 	}
 
 	if server.DetermineServiceType(svc.Service) != service.ServiceExternal {
