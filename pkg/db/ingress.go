@@ -74,6 +74,9 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete ingress")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
 	return nil
