@@ -48,7 +48,7 @@ func (da *DeployActionsImpl) GetDeployment(ctx context.Context, nsID, deplName s
 		"deploy_name": deplName,
 	}).Info("get deployment by label")
 
-	ret, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	ret, err := da.mongo.GetDeployment(nsID, deplName)
 
 	return &ret, err
 }
@@ -87,24 +87,6 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 	return &createdDeploy, nil
 }
 
-func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
-	userID := httputil.MustGetUserID(ctx)
-	da.log.WithFields(logrus.Fields{
-		"user_id":     userID,
-		"ns_id":       nsID,
-		"deploy_name": deplName,
-	}).Info("delete deployment")
-
-	if err := da.kube.DeleteDeployment(ctx, nsID, deplName); err != nil {
-		return err
-	}
-
-	if err := da.mongo.DeleteDeployment(nsID, deplName); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
@@ -125,7 +107,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deploy.Name)
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +124,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deploy.Name)
+	updatedDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +150,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
-	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +170,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
-	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	updatedDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +186,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		"deploy_name": deplName,
 	}).Infof("set container image %#v", req)
 
-	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
@@ -231,10 +213,39 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
-	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	updatedDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &updatedDeploy, nil
+}
+
+func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+	}).Info("delete deployment")
+
+	if err := da.kube.DeleteDeployment(ctx, nsID, deplName); err != nil {
+		return err
+	}
+
+	if err := da.mongo.DeleteDeployment(nsID, deplName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (da *DeployActionsImpl) DeleteAllDeployments(ctx context.Context, nsID string) error {
+	da.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("delete all deployments")
+
+	if err := da.mongo.DeleteAllDeployments(nsID); err != nil {
+		return err
+	}
+	return nil
 }

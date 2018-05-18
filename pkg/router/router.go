@@ -78,6 +78,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
 
 		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
+		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 	}
 }
 
@@ -108,6 +109,7 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		ingress.PUT("/:ingress", m.WriteAccess, ingressHandlers.UpdateIngressHandler)
 
 		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
+		ingress.DELETE("", ingressHandlers.DeleteAllIngressesHandler)
 	}
 }
 
@@ -124,6 +126,7 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		service.PUT("/:service", m.WriteAccess, serviceHandlers.UpdateServiceHandler)
 
 		service.DELETE("/:service", m.WriteAccess, serviceHandlers.DeleteServiceHandler)
+		service.DELETE("", serviceHandlers.DeleteAllServicesHandler)
 	}
 }
 

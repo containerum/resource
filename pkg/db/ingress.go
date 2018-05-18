@@ -2,7 +2,9 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -15,6 +17,9 @@ func (mongo *MongoStorage) CreateIngress(ingress ingress.Ingress) (ingress.Ingre
 	}
 	if err := collection.Insert(ingress); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create ingress")
+		if mgo.IsDup(err) {
+			return ingress, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+		}
 		return ingress, PipErr{err}.ToMongerr().Extract()
 	}
 	return ingress, nil
@@ -26,6 +31,9 @@ func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Ingress
 	var ingr ingress.Ingress
 	if err := collection.Find(ingress.OneSelectQuery(namespaceID, name)).One(&ingr); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress")
+		if err == mgo.ErrNotFound {
+			return ingr, rserrors.ErrResourceNotExists()
+		}
 		return ingr, PipErr{err}.ToMongerr().Extract()
 	}
 	return ingr, nil
@@ -66,15 +74,18 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete ingress")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
 	return nil
 }
 
 func (mongo *MongoStorage) DeleteAllIngresses(namespace string) error {
-	mongo.logger.Debugf("deleting all deployments in namespace")
-	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(ingress.Ingress{
+	mongo.logger.Debugf("deleting all ingresses in namespace")
+	var collection = mongo.db.C(CollectionIngress)
+	_, err := collection.UpdateAll(ingress.Ingress{
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{

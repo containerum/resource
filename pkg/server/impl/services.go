@@ -8,6 +8,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
@@ -60,7 +61,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		"ns_id":   nsID,
 	}).Infof("create service %#v", req)
 
-	_, err := sa.mongo.GetDeploymentByName(nsID, req.Deploy)
+	_, err := sa.mongo.GetDeployment(nsID, req.Deploy)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +142,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
+	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +162,7 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 	switch {
 	case err == nil:
 		return rserrors.ErrServiceHasIngresses()
-	case err.Error() == "not found":
+	case cherry.Equals(err, rserrors.ErrResourceNotExists()):
 		// pass
 	default:
 		return err
@@ -172,6 +173,18 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 	}
 
 	if err := sa.mongo.DeleteService(nsID, serviceName); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sa *ServiceActionsImpl) DeleteAllServices(ctx context.Context, nsID string) error {
+	sa.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("delete all services")
+
+	if err := sa.mongo.DeleteAllServices(nsID); err != nil {
 		return err
 	}
 

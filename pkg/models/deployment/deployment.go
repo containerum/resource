@@ -66,6 +66,15 @@ func (depl Deployment) Copy() Deployment {
 	return cp
 }
 
+func OneSelectQuery(namespaceID, name string) interface{} {
+	return Deployment{
+		NamespaceID: namespaceID,
+		Deployment: model.Deployment{
+			Name: name,
+		},
+	}.OneSelectQuery()
+}
+
 func (list DeploymentList) Copy() DeploymentList {
 	var cp = make(DeploymentList, 0, list.Len())
 	for _, depl := range list {

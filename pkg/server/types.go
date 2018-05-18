@@ -16,9 +16,10 @@ type DeployActions interface {
 	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error)
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
-	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.Deployment, error)
 	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error)
+	DeleteDeployment(ctx context.Context, nsID, deplName string) error
+	DeleteAllDeployments(ctx context.Context, nsID string) error
 }
 
 type DomainActions interface {
@@ -34,6 +35,7 @@ type IngressActions interface {
 	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Ingress, error)
 	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
+	DeleteAllIngresses(ctx context.Context, nsID string) error
 }
 
 type ServiceActions interface {
@@ -42,6 +44,7 @@ type ServiceActions interface {
 	GetService(ctx context.Context, nsID, serviceName string) (*service.Service, error)
 	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error
+	DeleteAllServices(ctx context.Context, nsID string) error
 }
 
 type ResourceCountActions interface {

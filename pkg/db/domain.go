@@ -3,7 +3,7 @@ package db
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"github.com/globalsign/mgo/bson"
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.Domain, error) {
@@ -45,7 +45,9 @@ func (mongo *MongoStorage) GetDomainsList(pages *PageInfo) ([]domain.Domain, err
 
 func (mongo *MongoStorage) CreateDomain(domain domain.Domain) (*domain.Domain, error) {
 	mongo.logger.Debugf("creating domain")
-	domain.ID = uuid.NewV4().String()
+	if domain.ID == "" {
+		domain.ID = uuid.New().String()
+	}
 	var collection = mongo.db.C(CollectionDomain)
 	if err := collection.Insert(domain); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create domain")

@@ -2,41 +2,29 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
 
-// If ID is empty when use UUID4 to generate one
-func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (deployment.Deployment, error) {
-	mongo.logger.Debugf("creating deployment")
-	var collection = mongo.db.C(CollectionDeployment)
-	if deployment.ID == "" {
-		deployment.ID = uuid.New().String()
-	}
-	if err := collection.Insert(deployment); err != nil {
-		mongo.logger.WithError(err).Errorf("unable to create deployment")
-		return deployment, err
-	}
-	return deployment, nil
-}
-
-func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName string) (deployment.Deployment, error) {
+func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (deployment.Deployment, error) {
 	mongo.logger.Debugf("getting deployment by name")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.Deployment
 	var err error
-	if err = collection.Find(deployment.Deployment{
-		NamespaceID: namespaceID,
-		Deployment: model.Deployment{
-			Name: deploymentName,
-		},
-	}.OneSelectQuery()).One(&depl); err != nil {
+	if err = collection.Find(deployment.OneSelectQuery(namespaceID, deploymentName)).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+		if err == mgo.ErrNotFound {
+			return depl, rserrors.ErrResourceNotExists()
+		}
+		return depl, PipErr{err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
 
+//TODO Unused method
 func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, error) {
 	mongo.logger.Debugf("getting deployment by ID")
 	var collection = mongo.db.C(CollectionDeployment)
@@ -64,6 +52,23 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	return depl, PipErr{err}.ToMongerr().Extract()
 }
 
+// If ID is empty when use UUID4 to generate one
+func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (deployment.Deployment, error) {
+	mongo.logger.Debugf("creating deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	if deployment.ID == "" {
+		deployment.ID = uuid.New().String()
+	}
+	if err := collection.Insert(deployment); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to create deployment")
+		if mgo.IsDup(err) {
+			return deployment, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+		}
+		return deployment, err
+	}
+	return deployment, nil
+}
+
 func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 	mongo.logger.Debugf("updating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
@@ -88,14 +93,18 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return nil
 }
 
 func (mongo *MongoStorage) DeleteAllDeployments(namespace string) error {
 	mongo.logger.Debugf("deleting all deployments in namespace")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(deployment.Deployment{
+	_, err := collection.UpdateAll(deployment.Deployment{
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{

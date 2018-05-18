@@ -3,7 +3,9 @@ package db
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -13,13 +15,11 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 	var collection = mongo.db.C(CollectionService)
 	var result service.Service
 	var err error
-	if err = collection.Find(service.Service{
-		NamespaceID: namespaceID,
-		Service: model.Service{
-			Name: serviceName,
-		},
-	}.OneSelectQuery()).One(&result); err != nil {
+	if err = collection.Find(service.OneSelectQuery(namespaceID, serviceName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
+		if err == mgo.ErrNotFound {
+			return result, rserrors.ErrResourceNotExists().AddDetailsErr(err)
+		}
 		return result, PipErr{err}.ToMongerr().Extract()
 	}
 	return result, nil
@@ -48,6 +48,9 @@ func (mongo *MongoStorage) CreateService(service service.Service) (service.Servi
 	}
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
+		if mgo.IsDup(err) {
+			return service, rserrors.ErrResourceAlreadyExists()
+		}
 		return service, PipErr{err}.ToMongerr().Extract()
 	}
 	return service, nil
@@ -77,15 +80,18 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
 	return nil
 }
 
-func (mongo *MongoStorage) DeleteAllServices(namespaceID, name string) error {
-	mongo.logger.Debugf("deleting service")
+func (mongo *MongoStorage) DeleteAllServices(namespaceID string) error {
+	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
-	err := collection.Update(service.Service{
+	_, err := collection.UpdateAll(service.Service{
 		NamespaceID: namespaceID,
 	}.AllSelectQuery(),
 		bson.M{

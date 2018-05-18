@@ -86,7 +86,7 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 // Create service.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -127,7 +127,7 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 // Update service.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -194,6 +194,31 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 	err := h.DeleteService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
+// swagger:operation DELETE /namespaces/{namespace}/services Service DeleteAllServicesHandler
+// Delete service.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: all services in namespace deleted
+//  default:
+//    $ref: '#/responses/error'
+func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
+	err := h.DeleteAllServices(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

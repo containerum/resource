@@ -8,7 +8,7 @@
     "pkg/errors",
     "pkg/model"
   ]
-  revision = "055fa1e2a0db047e49b2458b36db3efe0cc1bf95"
+  revision = "942d7b269f8ddc24e89d8cba6c0059942efdaafa"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -358,11 +358,11 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "b3f03f55328800731ce03a164b80973014ecd455"
+  revision = "86e28c192d2743f0232b9bc5f0a531568ef9f2a5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "00ea90a33d24b91a51c078b1d7c9918e38e74d2904d359c126d5404156c3f181"
+  inputs-digest = "6c08ede3ed6afa641456b053082f80cd0fcb2b2dd119c0b88747fef2c60b9c1d"
   solver-name = "gps-cdcl"
   solver-version = 1

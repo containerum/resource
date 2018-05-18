@@ -75,7 +75,7 @@ func ListSelectQuery(namespaceID string) interface{} {
 
 func OneSelectQuery(namespaceID, name string) interface{} {
 	return Ingress{
-		NamespaceID: name,
+		NamespaceID: namespaceID,
 		Ingress: model.Ingress{
 			Name: name,
 		},

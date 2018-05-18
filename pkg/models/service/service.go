@@ -68,6 +68,15 @@ func (serv Service) UpdateQuery() interface{} {
 	}
 }
 
+func OneSelectQuery(namespaceID, name string) interface{} {
+	return Service{
+		NamespaceID: namespaceID,
+		Service: model.Service{
+			Name: name,
+		},
+	}.OneSelectQuery()
+}
+
 func (list ServiceList) Len() int {
 	return len(list)
 }
