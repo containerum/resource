@@ -34,6 +34,24 @@ func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *IngressA
 	}
 }
 
+func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error) {
+	userID := httputil.MustGetUserID(ctx)
+	ia.log.WithFields(logrus.Fields{
+		"user_id":   userID,
+		"namespace": nsID,
+	}).Info("get user ingresses")
+
+	return ia.mongo.GetIngressList(nsID)
+}
+
+func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Ingress, error) {
+	ia.log.Info("get all ingresses")
+
+	resp, err := ia.mongo.GetIngress(nsID, ingressName)
+
+	return &resp, err
+}
+
 func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
@@ -64,34 +82,20 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 		return nil, rserrors.ErrServiceNotExternal()
 	}
 
-	if err := ia.kube.CreateIngress(ctx, nsID, req); err != nil {
-		return nil, err
-	}
-
 	createdIngress, err := ia.mongo.CreateIngress(ingress.IngressFromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}
 
+	if err := ia.kube.CreateIngress(ctx, nsID, req); err != nil {
+		ia.log.Debug("Kube-API error! Deleting ingress from DB.")
+		if err := ia.mongo.DeleteIngress(nsID, req.Name); err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+
 	return &createdIngress, nil
-}
-
-func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error) {
-	userID := httputil.MustGetUserID(ctx)
-	ia.log.WithFields(logrus.Fields{
-		"user_id":   userID,
-		"namespace": nsID,
-	}).Info("get user ingresses")
-
-	return ia.mongo.GetIngressList(nsID)
-}
-
-func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Ingress, error) {
-	ia.log.Info("get all ingresses")
-
-	resp, err := ia.mongo.GetIngress(nsID, ingressName)
-
-	return &resp, err
 }
 
 func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error) {
@@ -102,12 +106,21 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		"ingress": req,
 	}).Info("update ingress")
 
-	if err := ia.kube.UpdateIngress(ctx, nsID, req); err != nil {
+	oldIngress, err := ia.mongo.GetIngress(nsID, req.Name)
+	if err != nil {
 		return nil, err
 	}
 
 	ingres, err := ia.mongo.UpdateIngress(ingress.IngressFromKube(nsID, userID, req))
 	if err != nil {
+		return nil, err
+	}
+
+	if err := ia.kube.UpdateIngress(ctx, nsID, req); err != nil {
+		ia.log.Debug("Kube-API error! Reverting changes.")
+		if _, err := ia.mongo.UpdateIngress(oldIngress); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -122,11 +135,15 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsID, ingressNa
 		"domain":  ingressName,
 	}).Info("delete ingress")
 
-	if err := ia.kube.DeleteIngress(ctx, nsID, ingressName); err != nil {
+	if err := ia.mongo.DeleteIngress(nsID, ingressName); err != nil {
 		return err
 	}
 
-	if err := ia.mongo.DeleteIngress(nsID, ingressName); err != nil {
+	if err := ia.kube.DeleteIngress(ctx, nsID, ingressName); err != nil {
+		ia.log.Debug("Kube-API error! Reverting changes.")
+		if err := ia.mongo.RestoreIngress(nsID, ingressName); err != nil {
+			return err
+		}
 		return err
 	}
 

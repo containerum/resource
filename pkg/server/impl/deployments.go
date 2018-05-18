@@ -74,16 +74,21 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	if err := da.kube.CreateDeployment(ctx, nsID, deploy); err != nil {
-		return nil, err
-	}
-
 	server.CalculateDeployResources(&deploy)
 
 	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
 	if err != nil {
 		return nil, err
 	}
+
+	if err := da.kube.CreateDeployment(ctx, nsID, deploy); err != nil {
+		da.log.Debug("Kube-API error! Deleting deployment from DB.")
+		if err := da.mongo.DeleteDeployment(nsID, deploy.Name); err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+
 	return &createdDeploy, nil
 }
 
@@ -116,11 +121,15 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
+	if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
 		return nil, err
 	}
 
-	if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
+	if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
+		da.log.Debug("Kube-API error! Reverting changes.")
+		if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -162,11 +171,15 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
-	if err := da.kube.SetDeploymentReplicas(ctx, nsID, newDeploy.Name, req.Replicas); err != nil {
+	if err := da.mongo.UpdateDeployment(newDeploy); err != nil {
 		return nil, err
 	}
 
-	if err := da.mongo.UpdateDeployment(newDeploy); err != nil {
+	if err := da.kube.SetDeploymentReplicas(ctx, nsID, newDeploy.Name, req.Replicas); err != nil {
+		da.log.Debug("Kube-API error! Reverting changes.")
+		if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -191,25 +204,30 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
+	newDeploy := oldDeploy
+
 	updated := false
-	for i, c := range oldDeploy.Containers {
+	for i, c := range newDeploy.Containers {
 		if c.Name == req.Container {
-			oldDeploy.Containers[i].Image = req.Image
+			newDeploy.Containers[i].Image = req.Image
 			updated = true
 			break
 		}
-
 	}
 	if !updated {
 		return nil, rserrors.ErrNoContainer()
 	}
 
-	if err := da.kube.SetContainerImage(ctx, nsID, oldDeploy.Name, req); err != nil {
+	err = da.mongo.UpdateDeployment(oldDeploy)
+	if err != nil {
 		return nil, err
 	}
 
-	err = da.mongo.UpdateDeployment(oldDeploy)
-	if err != nil {
+	if err := da.kube.SetContainerImage(ctx, nsID, newDeploy.Name, req); err != nil {
+		da.log.Debug("Kube-API error! Reverting changes.")
+		if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -229,13 +247,18 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplNam
 		"deploy_name": deplName,
 	}).Info("delete deployment")
 
-	if err := da.kube.DeleteDeployment(ctx, nsID, deplName); err != nil {
-		return err
-	}
-
 	if err := da.mongo.DeleteDeployment(nsID, deplName); err != nil {
 		return err
 	}
+
+	if err := da.kube.DeleteDeployment(ctx, nsID, deplName); err != nil {
+		da.log.Debug("Kube-API error! Reverting changes.")
+		if err := da.mongo.RestoreDeployment(nsID, deplName); err != nil {
+			return err
+		}
+		return err
+	}
+
 	return nil
 }
 

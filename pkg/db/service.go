@@ -88,6 +88,28 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	return nil
 }
 
+func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
+	mongo.logger.Debugf("restoring service")
+	var collection = mongo.db.C(CollectionService)
+	err := collection.Update(service.Service{
+		Service: model.Service{
+			Name: name,
+		},
+		NamespaceID: namespaceID,
+	}.OneSelectDeletedQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to restore service")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
 func (mongo *MongoStorage) DeleteAllServices(namespaceID string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)

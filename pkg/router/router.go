@@ -17,7 +17,6 @@ import (
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/containerum/utils/httputil"
-	headers "github.com/containerum/utils/httputil"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
@@ -32,7 +31,7 @@ func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
 	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
 	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
-	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(mongo))
+	resourceCountHandlersSetup(e, tv, impl.NewResourcesActionsImpl(mongo))
 
 	return e
 }
@@ -43,7 +42,7 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		cfg := cors.DefaultConfig()
 		cfg.AllowAllOrigins = true
 		cfg.AddAllowMethods(http.MethodDelete)
-		cfg.AddAllowHeaders(headers.UserRoleXHeader, headers.UserIDXHeader, headers.UserNamespacesXHeader, headers.UserVolumesXHeader)
+		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader, httputil.UserVolumesXHeader)
 		e.Use(cors.New(cfg))
 	}
 	e.Group("/static").
@@ -54,10 +53,10 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 
 	e.Use(httputil.SaveHeaders)
 	e.Use(httputil.PrepareContext)
-	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, headers.UserIDXHeader, headers.UserRoleXHeader))
+	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, httputil.UserIDXHeader, httputil.UserRoleXHeader))
 	e.Use(tv.ValidateHeaders(map[string]string{
-		headers.UserIDXHeader:   "uuid",
-		headers.UserRoleXHeader: "eq=admin|eq=user",
+		httputil.UserIDXHeader:   "uuid",
+		httputil.UserRoleXHeader: "eq=admin|eq=user",
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 	e.Use(m.RequiredUserHeaders())
@@ -130,14 +129,8 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 	}
 }
 
-func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourceCountActions) {
-	router.GET("/resources", func(ctx *gin.Context) {
-		resp, err := backend.GetResourcesCount(ctx.Request.Context())
-		if err != nil {
-			ctx.AbortWithStatusJSON(tv.HandleError(err))
-			return
-		}
-
-		ctx.JSON(http.StatusOK, resp)
-	})
+func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {
+	resourceHandlers := h.ResourceHandlers{ResourcesActions: backend, TranslateValidate: tv}
+	router.DELETE("/namespaces/:namespace", resourceHandlers.DeleteAllResourcesHandler)
+	router.GET("/resources", resourceHandlers.GetResourcesCountHandler)
 }

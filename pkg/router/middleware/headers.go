@@ -23,8 +23,6 @@ type UserHeaderDataMap map[string]headers.UserHeaderData
 const (
 	UserNamespaces = "user-namespaces"
 	UserVolumes    = "user-volumes"
-	UserRole       = "user-role"
-	UserID         = "user-id"
 
 	RoleUser  = "user"
 	RoleAdmin = "admin"

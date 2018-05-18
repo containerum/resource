@@ -11,19 +11,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ResourceCountActionsImpl struct {
+type ResourcesActionsImpl struct {
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }
 
-func NewResourceCountActionsImpl(mongo *db.MongoStorage) *ResourceCountActionsImpl {
-	return &ResourceCountActionsImpl{
+func NewResourcesActionsImpl(mongo *db.MongoStorage) *ResourcesActionsImpl {
+	return &ResourcesActionsImpl{
 		mongo: mongo,
 		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "resource_service")),
 	}
 }
 
-func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error) {
+func (rs *ResourcesActionsImpl) GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	rs.log.WithField("user_id", userID).Info("get resources count")
 
@@ -57,4 +57,18 @@ func (rs *ResourceCountActionsImpl) GetResourcesCount(ctx context.Context) (*res
 	}
 
 	return &ret, nil
+}
+
+func (rs *ResourcesActionsImpl) DeleteAllResources(ctx context.Context, nsID string) error {
+	rs.log.WithField("namespace_id", nsID).Info("deleting all resources")
+	if err := rs.mongo.DeleteAllIngresses(nsID); err != nil {
+		return err
+	}
+	if err := rs.mongo.DeleteAllServices(nsID); err != nil {
+		return err
+	}
+	if err := rs.mongo.DeleteAllDeployments(nsID); err != nil {
+		return err
+	}
+	return nil
 }
