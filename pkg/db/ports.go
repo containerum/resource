@@ -25,6 +25,7 @@ func (mongo *MongoStorage) GetFreePort(domain string, protocol model.Protocol) (
 		n, err := collection.Find(bson.M{
 			"service.domain":     domain,
 			"service.ports.port": port,
+			"deleted":            false,
 		}).Count()
 		if err != nil {
 			return -1, err
