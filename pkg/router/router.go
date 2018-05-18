@@ -17,7 +17,6 @@ import (
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/containerum/utils/httputil"
-	headers "github.com/containerum/utils/httputil"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
@@ -43,7 +42,7 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		cfg := cors.DefaultConfig()
 		cfg.AllowAllOrigins = true
 		cfg.AddAllowMethods(http.MethodDelete)
-		cfg.AddAllowHeaders(headers.UserRoleXHeader, headers.UserIDXHeader, headers.UserNamespacesXHeader, headers.UserVolumesXHeader)
+		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader, httputil.UserVolumesXHeader)
 		e.Use(cors.New(cfg))
 	}
 	e.Group("/static").
@@ -54,10 +53,10 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 
 	e.Use(httputil.SaveHeaders)
 	e.Use(httputil.PrepareContext)
-	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, headers.UserIDXHeader, headers.UserRoleXHeader))
+	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, httputil.UserIDXHeader, httputil.UserRoleXHeader))
 	e.Use(tv.ValidateHeaders(map[string]string{
-		headers.UserIDXHeader:   "uuid",
-		headers.UserRoleXHeader: "eq=admin|eq=user",
+		httputil.UserIDXHeader:   "uuid",
+		httputil.UserRoleXHeader: "eq=admin|eq=user",
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 	e.Use(m.RequiredUserHeaders())
