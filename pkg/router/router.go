@@ -31,7 +31,7 @@ func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
 	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
 	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
-	resourceCountHandlersSetup(e, tv, impl.NewResourceCountActionsImpl(mongo))
+	resourceCountHandlersSetup(e, tv, impl.NewResourcesActionsImpl(mongo))
 
 	return e
 }
@@ -129,14 +129,8 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 	}
 }
 
-func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourceCountActions) {
-	router.GET("/resources", func(ctx *gin.Context) {
-		resp, err := backend.GetResourcesCount(ctx.Request.Context())
-		if err != nil {
-			ctx.AbortWithStatusJSON(tv.HandleError(err))
-			return
-		}
-
-		ctx.JSON(http.StatusOK, resp)
-	})
+func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {
+	resourceHandlers := h.ResourceHandlers{ResourcesActions: backend, TranslateValidate: tv}
+	router.DELETE("/namespaces/:namespace", resourceHandlers.DeleteAllResourcesHandler)
+	router.GET("/resources", resourceHandlers.GetResourcesCountHandler)
 }
