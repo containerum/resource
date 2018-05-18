@@ -86,7 +86,7 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 // Create ingress.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -127,7 +127,7 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 // Update ingress.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -173,7 +173,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 // Delete ingress.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -194,6 +194,30 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress")); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
+// swagger:operation DELETE /namespaces/{namespace}/ingresses Ingress DeleteAllIngressesHandler
+// Delete all ingresses.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: all ingresses in namespace deleted
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) DeleteAllIngressesHandler(ctx *gin.Context) {
+	if err := h.DeleteAllIngresses(ctx.Request.Context(), ctx.Param("namespace")); err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}

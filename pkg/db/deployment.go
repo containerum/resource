@@ -95,7 +95,7 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 func (mongo *MongoStorage) DeleteAllDeployments(namespace string) error {
 	mongo.logger.Debugf("deleting all deployments in namespace")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(deployment.Deployment{
+	_, err := collection.UpdateAll(deployment.Deployment{
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{

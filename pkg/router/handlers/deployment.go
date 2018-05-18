@@ -85,7 +85,7 @@ func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
 // Create deployment.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -126,7 +126,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 // Update deployment.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -172,7 +172,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 // Update image in deployments container.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -217,7 +217,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 // Update deployments replicas count.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -261,7 +261,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 // Delete deployment.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
@@ -282,6 +282,31 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
+// swagger:operation DELETE /namespaces/{namespace}/deployments Deployment DeleteAllDeploymentsHandler
+// Delete all deployments in namespace.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: all deployments in namespace deleted
+//  default:
+//    $ref: '#/responses/error'
+func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
+	err := h.DeleteAllDeployments(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

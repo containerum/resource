@@ -19,7 +19,7 @@ type DomainHandlers struct {
 // Get domains list.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - name: page
@@ -51,7 +51,7 @@ func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
 // Get domain.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - name: domain
@@ -79,7 +79,7 @@ func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 // Add domain.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - name: body
@@ -113,7 +113,7 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 // Add domain.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - name: domain

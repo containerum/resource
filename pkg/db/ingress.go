@@ -72,9 +72,9 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 }
 
 func (mongo *MongoStorage) DeleteAllIngresses(namespace string) error {
-	mongo.logger.Debugf("deleting all deployments in namespace")
-	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(ingress.Ingress{
+	mongo.logger.Debugf("deleting all ingresses in namespace")
+	var collection = mongo.db.C(CollectionIngress)
+	_, err := collection.UpdateAll(ingress.Ingress{
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{

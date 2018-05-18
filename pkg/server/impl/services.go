@@ -177,3 +177,15 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 
 	return nil
 }
+
+func (sa *ServiceActionsImpl) DeleteAllServices(ctx context.Context, nsID string) error {
+	sa.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("delete all services")
+
+	if err := sa.mongo.DeleteAllServices(nsID); err != nil {
+		return err
+	}
+
+	return nil
+}

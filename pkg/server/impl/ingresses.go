@@ -132,3 +132,15 @@ func (ia *IngressActionsImpl) DeleteIngress(ctx context.Context, nsID, ingressNa
 
 	return nil
 }
+
+func (ia *IngressActionsImpl) DeleteAllIngresses(ctx context.Context, nsID string) error {
+	ia.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("delete all ingresses")
+
+	if err := ia.mongo.DeleteAllIngresses(nsID); err != nil {
+		return err
+	}
+
+	return nil
+}

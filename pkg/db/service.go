@@ -82,10 +82,10 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) DeleteAllServices(namespaceID, name string) error {
-	mongo.logger.Debugf("deleting service")
+func (mongo *MongoStorage) DeleteAllServices(namespaceID string) error {
+	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
-	err := collection.Update(service.Service{
+	_, err := collection.UpdateAll(service.Service{
 		NamespaceID: namespaceID,
 	}.AllSelectQuery(),
 		bson.M{
