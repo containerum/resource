@@ -63,7 +63,8 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 
 	_, err := sa.mongo.GetDeployment(nsID, req.Deploy)
 	if err != nil {
-		return nil, err
+		sa.log.Error(err)
+		return nil, rserrors.ErrResourceNotExists().AddDetails("deployment not exists")
 	}
 
 	serviceType := server.DetermineServiceType(req)
