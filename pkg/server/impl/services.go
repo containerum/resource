@@ -60,7 +60,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		"ns_id":   nsID,
 	}).Infof("create service %#v", req)
 
-	_, err := sa.mongo.GetDeploymentByName(nsID, req.Deploy)
+	_, err := sa.mongo.GetDeployment(nsID, req.Deploy)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
+	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}

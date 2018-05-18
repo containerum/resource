@@ -3,7 +3,9 @@ package db
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -13,13 +15,11 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 	var collection = mongo.db.C(CollectionService)
 	var result service.Service
 	var err error
-	if err = collection.Find(service.Service{
-		NamespaceID: namespaceID,
-		Service: model.Service{
-			Name: serviceName,
-		},
-	}.OneSelectQuery()).One(&result); err != nil {
+	if err = collection.Find(service.OneSelectQuery(namespaceID, serviceName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
+		if err == mgo.ErrNotFound {
+			return result, rserrors.ErrResourceNotExists()
+		}
 		return result, PipErr{err}.ToMongerr().Extract()
 	}
 	return result, nil

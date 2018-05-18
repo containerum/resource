@@ -2,7 +2,9 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -21,22 +23,22 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (d
 	return deployment, nil
 }
 
-func (mongo *MongoStorage) GetDeploymentByName(namespaceID, deploymentName string) (deployment.Deployment, error) {
+func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (deployment.Deployment, error) {
 	mongo.logger.Debugf("getting deployment by name")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.Deployment
 	var err error
-	if err = collection.Find(deployment.Deployment{
-		NamespaceID: namespaceID,
-		Deployment: model.Deployment{
-			Name: deploymentName,
-		},
-	}.OneSelectQuery()).One(&depl); err != nil {
+	if err = collection.Find(deployment.OneSelectQuery(namespaceID, deploymentName)).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+		if err == mgo.ErrNotFound {
+			return depl, rserrors.ErrResourceNotExists()
+		}
+		return depl, PipErr{err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
 
+//TODO Unused method
 func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, error) {
 	mongo.logger.Debugf("getting deployment by ID")
 	var collection = mongo.db.C(CollectionDeployment)

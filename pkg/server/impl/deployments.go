@@ -48,7 +48,7 @@ func (da *DeployActionsImpl) GetDeployment(ctx context.Context, nsID, deplName s
 		"deploy_name": deplName,
 	}).Info("get deployment by label")
 
-	ret, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	ret, err := da.mongo.GetDeployment(nsID, deplName)
 
 	return &ret, err
 }
@@ -107,7 +107,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deploy.Name)
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deploy.Name)
+	updatedDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
-	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
-	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	updatedDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		"deploy_name": deplName,
 	}).Infof("set container image %#v", req)
 
-	oldDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
-	updatedDeploy, err := da.mongo.GetDeploymentByName(nsID, deplName)
+	updatedDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
 		return nil, err
 	}

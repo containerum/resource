@@ -2,7 +2,9 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
@@ -26,6 +28,9 @@ func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Ingress
 	var ingr ingress.Ingress
 	if err := collection.Find(ingress.OneSelectQuery(namespaceID, name)).One(&ingr); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress")
+		if err == mgo.ErrNotFound {
+			return ingr, rserrors.ErrResourceNotExists()
+		}
 		return ingr, PipErr{err}.ToMongerr().Extract()
 	}
 	return ingr, nil
