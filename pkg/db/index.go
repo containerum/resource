@@ -1,6 +1,10 @@
 package db
 
 import (
+	"strings"
+
+	"fmt"
+
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
 	"github.com/globalsign/mgo"
@@ -9,6 +13,9 @@ import (
 
 func (mongo *MongoStorage) InitIndexes() error {
 	var errs []error
+	for _, collectionName := range CollectionsNames() {
+		mongo.db.C(collectionName).DropAllIndexes()
+	}
 	for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
 		var collection = mongo.db.C(collectionName)
 		if err := collection.EnsureIndex(mgo.Index{
@@ -32,39 +39,31 @@ func (mongo *MongoStorage) InitIndexes() error {
 		}); err != nil {
 			errs = append(errs, err)
 		}
-		if err := collection.EnsureIndex(mgo.Index{
-			Name: "deleted_" + collectionName,
-			Key:  []string{collectionName + "." + "name", "namespaceid"},
-			PartialFilter: bson.M{
-				"deleted": true,
-			},
-			Unique: false,
-		}); err != nil {
-			errs = append(errs, err)
-		}
 		if err := collection.EnsureIndexKey("deleted"); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	{
 		var collection = mongo.db.C(CollectionService)
-		if err := collection.EnsureIndexKey(CollectionService + "." + "deployment"); err != nil {
+		if err := collection.EnsureIndexKey(CollectionService + "_" + "deployment"); err != nil {
 			errs = append(errs, err)
 		}
-		if err := collection.EnsureIndexKey(CollectionService + "." + "domain"); err != nil {
+		if err := collection.EnsureIndexKey(CollectionService + "_" + "domain"); err != nil {
 			errs = append(errs, err)
 		}
-		var portIndex = mgo.Index{
+
+		if err := collection.EnsureIndex(mgo.Index{
+			Name: "alive_" + CollectionService + "_with_ports",
 			Key: []string{
 				CollectionService + "." + "domain",
 				CollectionService + "." + "ports.port",
 				CollectionService + "." + "ports.protocol",
 			},
-			Background: true,
-			Sparse:     true,
-			Unique:     true,
-		}
-		if err := collection.EnsureIndex(portIndex); err != nil {
+			PartialFilter: bson.M{
+				"deleted": false,
+			},
+			Unique: true,
+		}); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -78,6 +77,30 @@ func (mongo *MongoStorage) InitIndexes() error {
 		}
 		if err := collection.EnsureIndexKey("domain_group", "domain"); err != nil {
 			errs = append(errs, err)
+		}
+	}
+	for _, collectionName := range CollectionsNames() {
+		var collection = mongo.db.C(collectionName)
+		var indexes, err = collection.Indexes()
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			var names []string
+			var width int
+			for _, index := range indexes {
+				names = append(names, index.Name)
+				if width < len(index.Name) {
+					width = len(index.Name)
+				}
+			}
+			for _, index := range indexes {
+				// TODO: clean logging
+				fmt.Printf("Index in %s: %s%s| Keys: %v\n",
+					collectionName,
+					index.Name,
+					strings.Repeat(" ", width-len(index.Name)+1),
+					index.Key)
+			}
 		}
 	}
 	if len(errs) > 0 {
