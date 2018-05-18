@@ -73,10 +73,6 @@ func serviceValidate(structLevel validator.StructLevel) {
 
 	v := structLevel.Validator()
 
-	if err := v.Var(req.Name, "dns"); err != nil {
-		structLevel.ReportValidationErrors("Name", "", err.(validator.ValidationErrors))
-	}
-
 	if err := v.Var(req.Deploy, "dns"); err != nil {
 		structLevel.ReportValidationErrors("Deploy", "", err.(validator.ValidationErrors))
 	}
@@ -106,10 +102,6 @@ func deploymentValidate(structLevel validator.StructLevel) {
 	req := structLevel.Current().Interface().(kubtypes.Deployment)
 
 	v := structLevel.Validator()
-
-	if err := v.Var(req.Name, "dns"); err != nil {
-		structLevel.ReportValidationErrors("Name", "", err.(validator.ValidationErrors))
-	}
 
 	if err := v.Var(req.Replicas, "min=1,max=15"); err != nil {
 		structLevel.ReportValidationErrors("Replicas", "", err.(validator.ValidationErrors))
