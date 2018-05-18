@@ -294,7 +294,7 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 // Delete all deployments in namespace.
 //
 // ---
-// x-method-visibility: public
+// x-method-visibility: private
 // parameters:
 //  - name: namespace
 //    in: path

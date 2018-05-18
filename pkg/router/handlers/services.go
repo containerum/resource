@@ -206,7 +206,7 @@ func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 // Delete service.
 //
 // ---
-// x-method-visibility: public
+// x-method-visibility: private
 // parameters:
 //  - name: namespace
 //    in: path
