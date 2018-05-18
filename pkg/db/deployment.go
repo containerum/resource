@@ -18,6 +18,9 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (d
 	}
 	if err := collection.Insert(deployment); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create deployment")
+		if mgo.IsDup(err) {
+			return deployment, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+		}
 		return deployment, err
 	}
 	return deployment, nil

@@ -17,6 +17,9 @@ func (mongo *MongoStorage) CreateIngress(ingress ingress.Ingress) (ingress.Ingre
 	}
 	if err := collection.Insert(ingress); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create ingress")
+		if mgo.IsDup(err) {
+			return ingress, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+		}
 		return ingress, PipErr{err}.ToMongerr().Extract()
 	}
 	return ingress, nil

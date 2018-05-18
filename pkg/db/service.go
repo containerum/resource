@@ -18,7 +18,7 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 	if err = collection.Find(service.OneSelectQuery(namespaceID, serviceName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
 		if err == mgo.ErrNotFound {
-			return result, rserrors.ErrResourceNotExists()
+			return result, rserrors.ErrResourceNotExists().AddDetailsErr(err)
 		}
 		return result, PipErr{err}.ToMongerr().Extract()
 	}
@@ -48,6 +48,9 @@ func (mongo *MongoStorage) CreateService(service service.Service) (service.Servi
 	}
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
+		if mgo.IsDup(err) {
+			return service, rserrors.ErrResourceAlreadyExists()
+		}
 		return service, PipErr{err}.ToMongerr().Extract()
 	}
 	return service, nil
