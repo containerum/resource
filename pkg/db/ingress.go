@@ -82,6 +82,28 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 	return nil
 }
 
+func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
+	mongo.logger.Debugf("restoring ingress")
+	var collection = mongo.db.C(CollectionIngress)
+	err := collection.Update(ingress.Ingress{
+		Ingress: model.Ingress{
+			Name: name,
+		},
+		NamespaceID: namespaceID,
+	}.OneSelectDeletedQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": false},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to restore ingress")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
 func (mongo *MongoStorage) DeleteAllIngresses(namespace string) error {
 	mongo.logger.Debugf("deleting all ingresses in namespace")
 	var collection = mongo.db.C(CollectionIngress)

@@ -38,6 +38,14 @@ func (depl Deployment) OneSelectQuery() interface{} {
 	}
 }
 
+func (depl Deployment) OneSelectDeletedQuery() interface{} {
+	return bson.M{
+		"namespaceid":     depl.NamespaceID,
+		"deleted":         true,
+		"deployment.name": depl.Name,
+	}
+}
+
 func (depl Deployment) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": depl.NamespaceID,

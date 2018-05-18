@@ -101,6 +101,28 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	return nil
 }
 
+func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
+	mongo.logger.Debugf("restoring deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(deployment.Deployment{
+		Deployment: model.Deployment{
+			Name: name,
+		},
+		NamespaceID: namespace,
+	}.OneSelectDeletedQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": false},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to restore deployment")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
 func (mongo *MongoStorage) DeleteAllDeployments(namespace string) error {
 	mongo.logger.Debugf("deleting all deployments in namespace")
 	var collection = mongo.db.C(CollectionDeployment)

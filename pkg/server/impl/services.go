@@ -99,12 +99,16 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	if err := sa.kube.CreateService(ctx, nsID, req); err != nil {
+	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
+	if err != nil {
 		return nil, err
 	}
 
-	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
-	if err != nil {
+	if err := sa.kube.CreateService(ctx, nsID, req); err != nil {
+		sa.log.Debug("Kube-API error! Deleting service from DB.")
+		if err := sa.mongo.DeleteService(nsID, req.Name); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -119,6 +123,11 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		"service_name": req.Name,
 	}).Info("update service")
 
+	oldService, err := sa.mongo.GetService(nsID, req.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
 	if serviceType == service.ServiceExternal {
@@ -130,20 +139,29 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		req.Domain = domain.Domain
 		req.IPs = domain.IP
 		for i, port := range req.Ports {
-			externalPort, err := sa.mongo.GetFreePort(domain.Domain, port.Protocol)
-			if err != nil {
-				return nil, err
+			var externalPort int
+			if oldService.Ports[i].Port != nil {
+				externalPort = *oldService.Ports[i].Port
+			} else {
+				externalPort, err = sa.mongo.GetFreePort(domain.Domain, port.Protocol)
+				if err != nil {
+					return nil, err
+				}
 			}
 			req.Ports[i].Port = &externalPort
 		}
 	}
 
-	if err := sa.kube.UpdateService(ctx, nsID, req); err != nil {
+	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, req))
+	if err != nil {
 		return nil, err
 	}
 
-	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, req))
-	if err != nil {
+	if err := sa.kube.UpdateService(ctx, nsID, req); err != nil {
+		sa.log.Debug("Kube-API error! Reverting changes.")
+		if _, err := sa.mongo.UpdateService(oldService); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -168,11 +186,15 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 		return err
 	}
 
-	if err := sa.kube.DeleteService(ctx, nsID, serviceName); err != nil {
+	if err := sa.mongo.DeleteService(nsID, serviceName); err != nil {
 		return err
 	}
 
-	if err := sa.mongo.DeleteService(nsID, serviceName); err != nil {
+	if err := sa.kube.DeleteService(ctx, nsID, serviceName); err != nil {
+		sa.log.Debug("Kube-API error! Reverting changes.")
+		if err := sa.mongo.RestoreService(nsID, serviceName); err != nil {
+			return err
+		}
 		return err
 	}
 

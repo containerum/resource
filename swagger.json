@@ -2067,25 +2067,17 @@
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "Service": {
-      "description": "Service --  model for service for resource-service db",
+      "description": "represents service",
       "type": "object",
       "required": [
         "name",
         "ports"
       ],
       "properties": {
-        "_id": {
-          "type": "string",
-          "x-go-name": "ID"
-        },
         "created_at": {
           "description": "creation date in RFC3339 format",
           "type": "string",
           "x-go-name": "CreatedAt"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
         },
         "deploy": {
           "type": "string",
@@ -2106,14 +2098,6 @@
           "type": "string",
           "x-go-name": "Name"
         },
-        "namespaceid": {
-          "type": "string",
-          "x-go-name": "NamespaceID"
-        },
-        "owner": {
-          "type": "string",
-          "x-go-name": "Owner"
-        },
         "ports": {
           "type": "array",
           "items": {
@@ -2122,7 +2106,7 @@
           "x-go-name": "Ports"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "ServiceList": {
       "description": "ServiceList -- services list",
@@ -2164,7 +2148,7 @@
     "ServiceType": {
       "description": "represents service type",
       "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "SetResourceAccessRequest": {
       "description": "SetUserAccessRequest is a request object for setting access to resource for user",
@@ -2383,7 +2367,7 @@
           "x-go-name": "Label"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/headers"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "UserSolution": {
       "description": "UserSolution -- running solution",

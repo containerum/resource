@@ -50,6 +50,14 @@ func (ingr Ingress) OneSelectQuery() interface{} {
 	}
 }
 
+func (ingr Ingress) OneSelectDeletedQuery() interface{} {
+	return bson.M{
+		"namespaceid":  ingr.NamespaceID,
+		"deleted":      true,
+		"ingress.name": ingr.Name,
+	}
+}
+
 func (ingr Ingress) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": ingr.NamespaceID,

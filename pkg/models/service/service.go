@@ -53,6 +53,14 @@ func (serv Service) OneSelectQuery() interface{} {
 	}
 }
 
+func (serv Service) OneSelectDeletedQuery() interface{} {
+	return bson.M{
+		"namespaceid":  serv.NamespaceID,
+		"deleted":      true,
+		"service.name": serv.Name,
+	}
+}
+
 func (serv Service) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": serv.NamespaceID,
