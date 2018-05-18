@@ -13,19 +13,21 @@ type ResourceHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /resources Resources
-// Delete all ingresses.
+// swagger:operation GET /resources Resources GetResourcesCountHandler
+// Get resources count.
 //
 // ---
-// x-method-visibility: private
+// x-method-visibility: public
 // parameters:
 //  - name: namespace
 //    in: path
 //    type: string
 //    required: true
 // responses:
-//  '202':
-//    description: all resources in namespace deleted
+//  '200':
+//    description: resources count
+//    schema:
+//      $ref: '#/definitions/GetResourcesCountResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {

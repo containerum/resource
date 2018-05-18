@@ -137,6 +137,32 @@
         "x-method-visibility": "public"
       }
     },
+    "/namespaces/{namespace}": {
+      "delete": {
+        "tags": [
+          "Resources"
+        ],
+        "summary": "Delete all ingresses.",
+        "operationId": "DeleteAllIngressesHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "all resources in namespace deleted"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
     "/namespaces/{namespace}/deployments": {
       "get": {
         "tags": [
@@ -993,6 +1019,35 @@
         "responses": {
           "202": {
             "description": "service deleted"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
+    "/resources": {
+      "get": {
+        "tags": [
+          "Resources"
+        ],
+        "summary": "Get resources count.",
+        "operationId": "GetResourcesCountHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "resources count",
+            "schema": {
+              "$ref": "#/definitions/GetResourcesCountResponse"
+            }
           },
           "default": {
             "$ref": "#/responses/error"
