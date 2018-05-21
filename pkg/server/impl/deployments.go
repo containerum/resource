@@ -171,6 +171,8 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
+	server.CalculateDeployResources(&newDeploy.Deployment)
+
 	if err := da.mongo.UpdateDeployment(newDeploy); err != nil {
 		return nil, err
 	}
