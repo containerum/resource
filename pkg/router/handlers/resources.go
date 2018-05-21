@@ -40,7 +40,7 @@ func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 }
 
 // swagger:operation DELETE /namespaces/{namespace} Resources DeleteAllResourcesInNamespaceHandler
-// Delete all ingresses.
+// Delete all resources in namespace.
 //
 // ---
 // x-method-visibility: private
@@ -64,7 +64,7 @@ func (h *ResourceHandlers) DeleteAllResourcesInNamespaceHandler(ctx *gin.Context
 }
 
 // swagger:operation DELETE /namespaces Resources DeleteAllResourcesHandler
-// Delete all ingresses.
+// Delete all user resources.
 //
 // ---
 // x-method-visibility: private
