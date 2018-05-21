@@ -39,8 +39,8 @@ func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation DELETE /namespaces/{namespace} Resources DeleteAllIngressesHandler
-// Delete all ingresses.
+// swagger:operation DELETE /namespaces/{namespace} Resources DeleteAllResourcesInNamespaceHandler
+// Delete all resources in namespace.
 //
 // ---
 // x-method-visibility: private
@@ -54,8 +54,30 @@ func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 //    description: all resources in namespace deleted
 //  default:
 //    $ref: '#/responses/error'
+func (h *ResourceHandlers) DeleteAllResourcesInNamespaceHandler(ctx *gin.Context) {
+	if err := h.DeleteAllResourcesInNamespace(ctx.Request.Context(), ctx.Param("namespace")); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
+// swagger:operation DELETE /namespaces Resources DeleteAllResourcesHandler
+// Delete all user resources.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+// responses:
+//  '202':
+//    description: all user resources deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *ResourceHandlers) DeleteAllResourcesHandler(ctx *gin.Context) {
-	if err := h.DeleteAllResources(ctx.Request.Context(), ctx.Param("namespace")); err != nil {
+	if err := h.DeleteAllUserResources(ctx.Request.Context()); err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}

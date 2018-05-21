@@ -156,7 +156,7 @@ func (ia *IngressActionsImpl) DeleteAllIngresses(ctx context.Context, nsID strin
 		"ns_id": nsID,
 	}).Info("delete all ingresses")
 
-	if err := ia.mongo.DeleteAllIngresses(nsID); err != nil {
+	if err := ia.mongo.DeleteAllIngressesInNamespace(nsID); err != nil {
 		return err
 	}
 

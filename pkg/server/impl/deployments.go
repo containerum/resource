@@ -267,7 +267,7 @@ func (da *DeployActionsImpl) DeleteAllDeployments(ctx context.Context, nsID stri
 		"ns_id": nsID,
 	}).Info("delete all deployments")
 
-	if err := da.mongo.DeleteAllDeployments(nsID); err != nil {
+	if err := da.mongo.DeleteAllDeploymentsInNamespace(nsID); err != nil {
 		return err
 	}
 	return nil

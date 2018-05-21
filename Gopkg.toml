@@ -76,3 +76,7 @@ required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
 [[constraint]]
   name = "github.com/globalsign/mgo"
   version = "r2018.04.23"
+
+[[constraint]]
+  name = "github.com/blang/semver"
+  version = "3.5.1"

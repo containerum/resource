@@ -104,7 +104,7 @@ func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) DeleteAllIngresses(namespace string) error {
+func (mongo *MongoStorage) DeleteAllIngressesInNamespace(namespace string) error {
 	mongo.logger.Debugf("deleting all ingresses in namespace")
 	var collection = mongo.db.C(CollectionIngress)
 	_, err := collection.UpdateAll(ingress.Ingress{
@@ -115,6 +115,21 @@ func (mongo *MongoStorage) DeleteAllIngresses(namespace string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
+	}
+	return PipErr{err}.ToMongerr().Extract()
+}
+
+func (mongo *MongoStorage) DeleteAllIngressesByOwner(owner string) error {
+	mongo.logger.Debugf("deleting all user ingresses")
+	var collection = mongo.db.C(CollectionIngress)
+	_, err := collection.UpdateAll(ingress.Ingress{
+		Owner: owner,
+	}.AllSelectOwnerQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete deployments")
 	}
 	return PipErr{err}.ToMongerr().Extract()
 }

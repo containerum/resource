@@ -65,6 +65,13 @@ func (ingr Ingress) AllSelectQuery() interface{} {
 	}
 }
 
+func (ingr Ingress) AllSelectOwnerQuery() interface{} {
+	return bson.M{
+		"owner":   ingr.Owner,
+		"deleted": false,
+	}
+}
+
 func IngressFromKube(nsID, owner string, ingress model.Ingress) Ingress {
 	return Ingress{
 		Ingress:     ingress,

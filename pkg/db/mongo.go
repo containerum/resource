@@ -18,6 +18,7 @@ const (
 	CollectionService    = "service"
 	CollectionDomain     = "domain"
 	CollectionIngress    = "ingress"
+	CollectionDB         = "db"
 )
 
 func CollectionsNames() []string {
@@ -26,6 +27,7 @@ func CollectionsNames() []string {
 		CollectionService,
 		CollectionDomain,
 		CollectionIngress,
+		CollectionDB,
 	}
 }
 
@@ -61,7 +63,7 @@ func (mongo *MongoStorage) IsClosed() bool {
 	return mongo.closed
 }
 
-func (mongo *MongoStorage) Init() error {
+func (mongo *MongoStorage) Init(dbversion string, forceupdate bool) error {
 	dbCollections, err := mongo.db.CollectionNames()
 	if err != nil {
 		return err
@@ -73,7 +75,7 @@ func (mongo *MongoStorage) Init() error {
 			return err
 		}
 	}
-	if err := mongo.InitIndexes(); err != nil {
+	if err := mongo.InitIndexes(dbversion, forceupdate); err != nil {
 		return err
 	}
 	return nil

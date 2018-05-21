@@ -131,6 +131,7 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {
 	resourceHandlers := h.ResourceHandlers{ResourcesActions: backend, TranslateValidate: tv}
-	router.DELETE("/namespaces/:namespace", resourceHandlers.DeleteAllResourcesHandler)
+	router.DELETE("/namespaces/:namespace", resourceHandlers.DeleteAllResourcesInNamespaceHandler)
+	router.DELETE("/namespaces", resourceHandlers.DeleteAllResourcesHandler)
 	router.GET("/resources", resourceHandlers.GetResourcesCountHandler)
 }
