@@ -59,15 +59,30 @@ func (rs *ResourcesActionsImpl) GetResourcesCount(ctx context.Context) (*resourc
 	return &ret, nil
 }
 
-func (rs *ResourcesActionsImpl) DeleteAllResources(ctx context.Context, nsID string) error {
+func (rs *ResourcesActionsImpl) DeleteAllResourcesInNamespace(ctx context.Context, nsID string) error {
 	rs.log.WithField("namespace_id", nsID).Info("deleting all resources")
-	if err := rs.mongo.DeleteAllIngresses(nsID); err != nil {
+	if err := rs.mongo.DeleteAllIngressesInNamespace(nsID); err != nil {
 		return err
 	}
-	if err := rs.mongo.DeleteAllServices(nsID); err != nil {
+	if err := rs.mongo.DeleteAllServicesInNamespace(nsID); err != nil {
 		return err
 	}
-	if err := rs.mongo.DeleteAllDeployments(nsID); err != nil {
+	if err := rs.mongo.DeleteAllDeploymentsInNamespace(nsID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rs *ResourcesActionsImpl) DeleteAllUserResources(ctx context.Context) error {
+	userID := httputil.MustGetUserID(ctx)
+	rs.log.WithField("user_id", userID).Info("deleting all user resources")
+	if err := rs.mongo.DeleteAllIngressesByOwner(userID); err != nil {
+		return err
+	}
+	if err := rs.mongo.DeleteAllServicesByOwner(userID); err != nil {
+		return err
+	}
+	if err := rs.mongo.DeleteAllDeploymentsByOwner(userID); err != nil {
 		return err
 	}
 	return nil

@@ -68,6 +68,13 @@ func (serv Service) AllSelectQuery() interface{} {
 	}
 }
 
+func (serv Service) AllSelectOwnerQuery() interface{} {
+	return bson.M{
+		"owner":   serv.Owner,
+		"deleted": false,
+	}
+}
+
 func (serv Service) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{

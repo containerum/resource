@@ -110,7 +110,7 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) DeleteAllServices(namespaceID string) error {
+func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
 	_, err := collection.UpdateAll(service.Service{
@@ -121,6 +121,22 @@ func (mongo *MongoStorage) DeleteAllServices(namespaceID string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
+	mongo.logger.Debugf("deleting all services in namespace")
+	var collection = mongo.db.C(CollectionService)
+	_, err := collection.UpdateAll(service.Service{
+		Owner: owner,
+	}.AllSelectOwnerQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete services")
 		return PipErr{err}.ToMongerr().Extract()
 	}
 	return nil

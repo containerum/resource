@@ -207,7 +207,7 @@ func (sa *ServiceActionsImpl) DeleteAllServices(ctx context.Context, nsID string
 		"ns_id": nsID,
 	}).Info("delete all services")
 
-	if err := sa.mongo.DeleteAllServices(nsID); err != nil {
+	if err := sa.mongo.DeleteAllServicesInNamespace(nsID); err != nil {
 		return err
 	}
 

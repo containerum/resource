@@ -123,7 +123,7 @@ func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) DeleteAllDeployments(namespace string) error {
+func (mongo *MongoStorage) DeleteAllDeploymentsInNamespace(namespace string) error {
 	mongo.logger.Debugf("deleting all deployments in namespace")
 	var collection = mongo.db.C(CollectionDeployment)
 	_, err := collection.UpdateAll(deployment.Deployment{
@@ -133,7 +133,22 @@ func (mongo *MongoStorage) DeleteAllDeployments(namespace string) error {
 			"$set": bson.M{"deleted": true},
 		})
 	if err != nil {
-		mongo.logger.WithError(err).Errorf("unable to delete deployment")
+		mongo.logger.WithError(err).Errorf("unable to delete deployments")
+	}
+	return PipErr{err}.ToMongerr().Extract()
+}
+
+func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
+	mongo.logger.Debugf("deleting all user deployments")
+	var collection = mongo.db.C(CollectionDeployment)
+	_, err := collection.UpdateAll(deployment.Deployment{
+		Owner: owner,
+	}.AllSelectOwnerQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete deployments")
 	}
 	return PipErr{err}.ToMongerr().Extract()
 }

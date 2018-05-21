@@ -53,6 +53,13 @@ func (depl Deployment) AllSelectQuery() interface{} {
 	}
 }
 
+func (depl Deployment) AllSelectOwnerQuery() interface{} {
+	return bson.M{
+		"owner":   depl.Owner,
+		"deleted": false,
+	}
+}
+
 func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deployment {
 	return Deployment{
 		Deployment:  deployment,
