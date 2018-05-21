@@ -137,13 +137,39 @@
         "x-method-visibility": "public"
       }
     },
+    "/namespaces": {
+      "delete": {
+        "tags": [
+          "Resources"
+        ],
+        "summary": "Delete all ingresses.",
+        "operationId": "DeleteAllResourcesHandler",
+        "parameters": [
+          {
+            "$ref": "#/parameters/UserIDHeader"
+          },
+          {
+            "$ref": "#/parameters/UserRoleHeader"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "all user resources deleted"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
     "/namespaces/{namespace}": {
       "delete": {
         "tags": [
           "Resources"
         ],
         "summary": "Delete all ingresses.",
-        "operationId": "DeleteAllIngressesHandler",
+        "operationId": "DeleteAllResourcesInNamespaceHandler",
         "parameters": [
           {
             "type": "string",
@@ -1555,80 +1581,53 @@
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
     },
     "Namespace": {
-      "description": "Namespace describes namespace",
+      "description": "Namespace -- namespace representation provided by resource-service\nhttps://ch.pages.containerum.net/api-docs/modules/resource-service/index.html#get-namespace",
       "type": "object",
       "required": [
         "resources"
       ],
       "properties": {
-        "cpu": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "CPU"
-        },
-        "create_time": {
+        "access": {
           "type": "string",
-          "format": "date-time",
-          "x-go-name": "CreateTime"
+          "x-go-name": "Access"
         },
-        "delete_time": {
+        "created_at": {
+          "description": "creation date in RFC3339 format",
           "type": "string",
-          "format": "date-time",
-          "x-go-name": "DeleteTime"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "ID"
+          "x-go-name": "CreatedAt"
         },
         "label": {
           "description": "user-visible label for the namespace",
           "type": "string",
           "x-go-name": "Label"
         },
-        "max_external_services": {
+        "max_ext_service": {
           "type": "integer",
-          "format": "int64",
-          "x-go-name": "MaxExtServices"
+          "format": "uint64",
+          "x-go-name": "MaxExtService"
         },
-        "max_internal_services": {
+        "max_int_service": {
           "type": "integer",
-          "format": "int64",
-          "x-go-name": "MaxIntServices"
+          "format": "uint64",
+          "x-go-name": "MaxIntService"
         },
         "max_traffic": {
           "type": "integer",
-          "format": "int64",
+          "format": "uint64",
           "x-go-name": "MaxTraffic"
         },
-        "owner_user_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "OwnerUserID"
-        },
-        "ram": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "RAM"
-        },
-        "tariff_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "TariffID"
+        "resources": {
+          "$ref": "#/definitions/Resources"
         },
         "volumes": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/VolumeWithPermissions"
+            "$ref": "#/definitions/Volume"
           },
           "x-go-name": "Volumes"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/git.containerum.net/ch/permissions/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "NamespaceAdminCreateRequest": {
       "description": "NamespaceAdminCreateRequest contains parameters for creating namespace without billing",
@@ -2478,72 +2477,39 @@
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "Volume": {
-      "description": "Volume describes volume",
+      "description": "Volume -- volume representation\nprovided by resource-service\nhttps://ch.pages.containerum.net/api-docs/modules/resource-service/index.html#get-namespace",
       "type": "object",
       "properties": {
-        "active": {
-          "type": "boolean",
-          "x-go-name": "Active"
+        "access": {
+          "type": "string",
+          "x-go-name": "Access"
         },
-        "capacity": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Capacity"
+        "access_change_time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "AccessChangeTime"
         },
         "create_time": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "CreateTime"
         },
-        "delete_time": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "DeleteTime"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "gluster_name": {
-          "type": "string",
-          "x-go-name": "GlusterName"
-        },
-        "id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "ID"
-        },
         "label": {
           "type": "string",
           "x-go-name": "Label"
-        },
-        "namespace_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "NamespaceID"
-        },
-        "owner_user_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "OwnerUserID"
         },
         "replicas": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "Replicas"
         },
-        "storage_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "StorageID"
-        },
-        "tariff_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "TariffID"
+        "storage": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Storage"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/git.containerum.net/ch/permissions/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "VolumeCreateRequest": {
       "description": "VolumeCreateRequest is a request object for creating volume",

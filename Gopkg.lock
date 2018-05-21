@@ -23,6 +23,12 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  name = "github.com/blang/semver"
+  packages = ["."]
+  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
+  version = "v3.5.1"
+
+[[projects]]
   name = "github.com/containerum/cherry"
   packages = [
     ".",
@@ -363,6 +369,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6c08ede3ed6afa641456b053082f80cd0fcb2b2dd119c0b88747fef2c60b9c1d"
+  inputs-digest = "a631080fd01c4dc11bf56900b32710e90528d93d9628a83c97553ab741bf315d"
   solver-name = "gps-cdcl"
   solver-version = 1
