@@ -73,6 +73,11 @@ var flags = []cli.Flag{
 		Name:   "mongo_addr",
 		Usage:  "MongoDB address",
 	},
+	cli.BoolFlag{
+		EnvVar: "CH_RESOURCE_MONGO_FORCE_UPDATE",
+		Name:   "force",
+		Usage:  "Force update db version",
+	},
 }
 
 func setupLogs(c *cli.Context) {

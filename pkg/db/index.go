@@ -1,111 +1,166 @@
 package db
 
 import (
-	"strings"
-
 	"fmt"
+
+	"strings"
 
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
+	"github.com/blang/semver"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
 
-func (mongo *MongoStorage) InitIndexes() error {
-	var errs []error
-	for _, collectionName := range CollectionsNames() {
-		mongo.db.C(collectionName).DropAllIndexes()
-	}
-	for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
-		var collection = mongo.db.C(collectionName)
-		if err := collection.EnsureIndex(mgo.Index{
-			Key: []string{"owner"},
-		}); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndexKey(collectionName + "." + "name"); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndexKey("namespaceid"); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndex(mgo.Index{
-			Name: "alive_" + collectionName,
-			Key:  []string{collectionName + "." + "name", "namespaceid"},
-			PartialFilter: bson.M{
-				"deleted": false,
-			},
-			Unique: true,
-		}); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndexKey("deleted"); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	{
-		var collection = mongo.db.C(CollectionService)
-		if err := collection.EnsureIndexKey(CollectionService + "_" + "deployment"); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndexKey(CollectionService + "_" + "domain"); err != nil {
-			errs = append(errs, err)
-		}
+const (
+	errDBVersion    = "db version (%v) is newer that application version (%v). Run application with '--force' to forcefully update db to application version"
+	errOldDBVersion = "unable to parse db version. Run application with '--force' to forcefully update db to application version"
+)
 
-		if err := collection.EnsureIndex(mgo.Index{
-			Name: "alive_" + CollectionService + "_with_ports",
-			Key: []string{
-				CollectionService + "." + "domain",
-				CollectionService + "." + "ports.port",
-				CollectionService + "." + "ports.protocol",
-			},
-			PartialFilter: bson.M{
-				"deleted": false,
-			},
-			Unique: true,
-		}); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	{
-		var collection = mongo.db.C(CollectionDomain)
-		if err := collection.EnsureIndexKey("domain"); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndexKey("domain_group"); err != nil {
-			errs = append(errs, err)
-		}
-		if err := collection.EnsureIndexKey("domain_group", "domain"); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	for _, collectionName := range CollectionsNames() {
-		var collection = mongo.db.C(collectionName)
-		var indexes, err = collection.Indexes()
-		if err != nil {
-			errs = append(errs, err)
+func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error {
+	var errs []error
+
+	var collection = mongo.db.C(CollectionDB)
+	var dbinfo map[string]string
+	var err error
+	if err = collection.Find(nil).One(&dbinfo); err != nil {
+		mongo.logger.WithError(err).Infoln("no db version set")
+		if err == mgo.ErrNotFound {
+			vererr := collection.Insert(map[string]string{"version": dbversion})
+			if vererr != nil {
+				return vererr
+			}
 		} else {
-			var names []string
-			var width int
-			for _, index := range indexes {
-				names = append(names, index.Name)
-				if width < len(index.Name) {
-					width = len(index.Name)
+			return err
+		}
+	}
+
+	newversion, err := semver.ParseTolerant(dbversion)
+	if err != nil {
+		return err
+	}
+
+	if forceupdate {
+		dbinfo["version"] = "0"
+	}
+
+	oldversion, err := semver.ParseTolerant(dbinfo["version"])
+	if err != nil {
+		return fmt.Errorf(errOldDBVersion)
+	}
+
+	switch newversion.Compare(oldversion) {
+	case 0:
+		mongo.logger.Infoln("no need to update db indexes")
+	case -1:
+		return fmt.Errorf(errDBVersion, dbinfo["version"], dbversion)
+	default:
+		mongo.logger.Infof("updating db version from %v to %v", dbinfo["version"], dbversion)
+
+		mongo.logger.Infoln("updating db indexes")
+		for _, collectionName := range CollectionsNames() {
+			mongo.db.C(collectionName).DropAllIndexes()
+		}
+		for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
+			var collection = mongo.db.C(collectionName)
+			if err := collection.EnsureIndex(mgo.Index{
+				Key: []string{"owner"},
+			}); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey(collectionName + "." + "name"); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey("namespaceid"); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndex(mgo.Index{
+				Name: "alive_" + collectionName,
+				Key:  []string{collectionName + "." + "name", "namespaceid"},
+				PartialFilter: bson.M{
+					"deleted": false,
+				},
+				Unique: true,
+			}); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey("deleted"); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		{
+			var collection = mongo.db.C(CollectionService)
+			if err := collection.EnsureIndexKey(CollectionService + "_" + "deployment"); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey(CollectionService + "_" + "domain"); err != nil {
+				errs = append(errs, err)
+			}
+
+			if err := collection.EnsureIndex(mgo.Index{
+				Name: "alive_" + CollectionService + "_with_ports",
+				Key: []string{
+					CollectionService + "." + "domain",
+					CollectionService + "." + "ports.port",
+					CollectionService + "." + "ports.protocol",
+				},
+				PartialFilter: bson.M{
+					"deleted": false,
+				},
+				Unique: true,
+			}); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		{
+			var collection = mongo.db.C(CollectionDomain)
+			if err := collection.EnsureIndexKey("domain"); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey("domain_group"); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey("domain_group", "domain"); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		for _, collectionName := range CollectionsNames() {
+			var collection = mongo.db.C(collectionName)
+			var indexes, err = collection.Indexes()
+			if err != nil {
+				errs = append(errs, err)
+			} else {
+				var names []string
+				var width int
+				for _, index := range indexes {
+					names = append(names, index.Name)
+					if width < len(index.Name) {
+						width = len(index.Name)
+					}
+				}
+				for _, index := range indexes {
+					// TODO: clean logging
+					fmt.Printf("Index in %s: %s%s| Keys: %v\n",
+						collectionName,
+						index.Name,
+						strings.Repeat(" ", width-len(index.Name)+1),
+						index.Key)
 				}
 			}
-			for _, index := range indexes {
-				// TODO: clean logging
-				fmt.Printf("Index in %s: %s%s| Keys: %v\n",
-					collectionName,
-					index.Name,
-					strings.Repeat(" ", width-len(index.Name)+1),
-					index.Key)
-			}
+		}
+		if len(errs) > 0 {
+			return rserrors.ErrDatabase().AddDetailsErr(errs...)
+		}
+
+		mongo.logger.Infoln("updating db version")
+		_, err := collection.UpdateAll(nil, bson.M{
+			"$set": bson.M{"version": dbversion},
+		})
+		if err != nil {
+			return err
 		}
 	}
-	if len(errs) > 0 {
-		return rserrors.ErrDatabase().AddDetailsErr(errs...)
-	}
+
 	return nil
 }
 
