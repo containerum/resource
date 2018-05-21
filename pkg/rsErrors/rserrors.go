@@ -117,18 +117,6 @@ func ErrPortsExhausted(params ...func(*cherry.Err)) *cherry.Err {
 	return err
 }
 
-func ErrDownResizeNotAllowed(params ...func(*cherry.Err)) *cherry.Err {
-	err := &cherry.Err{Message: "Resize with decreasing quota not allowed", StatusHTTP: 400, ID: cherry.ErrID{SID: "resource-service", Kind: 0xa}, Details: []string(nil), Fields: cherry.Fields(nil)}
-	for _, param := range params {
-		param(err)
-	}
-	for i, detail := range err.Details {
-		det := renderTemplate(detail)
-		err.Details[i] = det
-	}
-	return err
-}
-
 func ErrServiceHasIngresses(params ...func(*cherry.Err)) *cherry.Err {
 	err := &cherry.Err{Message: "Can`t delete service with linked ingresses", StatusHTTP: 400, ID: cherry.ErrID{SID: "resource-service", Kind: 0xb}, Details: []string(nil), Fields: cherry.Fields(nil)}
 	for _, param := range params {

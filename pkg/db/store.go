@@ -13,8 +13,8 @@ type Store interface {
 }
 
 type DeploymentStorage interface {
-	Create(deployment deployment.Deployment) (model.Deployment, error)
-	Update(deployment deployment.Deployment) (model.Deployment, error)
+	Create(deployment deployment.DeploymentResource) (model.Deployment, error)
+	Update(deployment deployment.DeploymentResource) (model.Deployment, error)
 	Delete(ID string) error
 }
 

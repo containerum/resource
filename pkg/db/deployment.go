@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 )
 
-func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (deployment.Deployment, error) {
+func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (deployment.DeploymentResource, error) {
 	mongo.logger.Debugf("getting deployment by name")
 	var collection = mongo.db.C(CollectionDeployment)
-	var depl deployment.Deployment
+	var depl deployment.DeploymentResource
 	var err error
 	if err = collection.Find(deployment.OneSelectQuery(namespaceID, deploymentName)).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
@@ -25,10 +25,10 @@ func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (de
 }
 
 //TODO Unused method
-func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.Deployment, error) {
+func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.DeploymentResource, error) {
 	mongo.logger.Debugf("getting deployment by ID")
 	var collection = mongo.db.C(CollectionDeployment)
-	var depl deployment.Deployment
+	var depl deployment.DeploymentResource
 	var err error
 	if err = collection.FindId(ID).Select(bson.M{
 		"deleted": false,
@@ -53,7 +53,7 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 }
 
 // If ID is empty when use UUID4 to generate one
-func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (deployment.Deployment, error) {
+func (mongo *MongoStorage) CreateDeployment(deployment deployment.DeploymentResource) (deployment.DeploymentResource, error) {
 	mongo.logger.Debugf("creating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if deployment.ID == "" {
@@ -69,7 +69,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.Deployment) (d
 	return deployment, nil
 }
 
-func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
+func (mongo *MongoStorage) UpdateDeployment(upd deployment.DeploymentResource) error {
 	mongo.logger.Debugf("updating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery())
@@ -82,7 +82,7 @@ func (mongo *MongoStorage) UpdateDeployment(upd deployment.Deployment) error {
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	mongo.logger.Debugf("deleting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(deployment.Deployment{
+	err := collection.Update(deployment.DeploymentResource{
 		Deployment: model.Deployment{
 			Name: name,
 		},
@@ -104,7 +104,7 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 	mongo.logger.Debugf("restoring deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(deployment.Deployment{
+	err := collection.Update(deployment.DeploymentResource{
 		Deployment: model.Deployment{
 			Name: name,
 		},
@@ -126,7 +126,7 @@ func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 func (mongo *MongoStorage) DeleteAllDeploymentsInNamespace(namespace string) error {
 	mongo.logger.Debugf("deleting all deployments in namespace")
 	var collection = mongo.db.C(CollectionDeployment)
-	_, err := collection.UpdateAll(deployment.Deployment{
+	_, err := collection.UpdateAll(deployment.DeploymentResource{
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{
@@ -141,7 +141,7 @@ func (mongo *MongoStorage) DeleteAllDeploymentsInNamespace(namespace string) err
 func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all user deployments")
 	var collection = mongo.db.C(CollectionDeployment)
-	_, err := collection.UpdateAll(deployment.Deployment{
+	_, err := collection.UpdateAll(deployment.DeploymentResource{
 		Owner: owner,
 	}.AllSelectOwnerQuery(),
 		bson.M{

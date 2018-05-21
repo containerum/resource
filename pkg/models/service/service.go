@@ -6,10 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Service --  model for service for resource-service db
+// ServiceResource --  model for service for resource-service db
 //
 // swagger:model
-type Service struct {
+type ServiceResource struct {
 	model.Service
 	Owner       string `json:"owner"`
 	ID          string `json:"_id" bson:"_id,omitempty"`
@@ -20,7 +20,7 @@ type Service struct {
 // ServiceList -- services list
 //
 // swagger:model
-type ServiceList []Service
+type ServiceList []ServiceResource
 
 type ServiceType string
 
@@ -29,8 +29,8 @@ const (
 	ServiceExternal ServiceType = "external"
 )
 
-func ServiceFromKube(nsID, owner string, service model.Service) Service {
-	return Service{
+func ServiceFromKube(nsID, owner string, service model.Service) ServiceResource {
+	return ServiceResource{
 		Service:     service,
 		Owner:       owner,
 		NamespaceID: nsID,
@@ -38,14 +38,14 @@ func ServiceFromKube(nsID, owner string, service model.Service) Service {
 	}
 }
 
-func (serv Service) Copy() Service {
+func (serv ServiceResource) Copy() ServiceResource {
 	var cp = serv
 	cp.IPs = append(make([]string, 0, len(cp.IPs)), cp.IPs...)
 	cp.Ports = append(make([]model.ServicePort, 0, len(cp.Ports)), cp.Ports...)
 	return cp
 }
 
-func (serv Service) OneSelectQuery() interface{} {
+func (serv ServiceResource) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":  serv.NamespaceID,
 		"deleted":      false,
@@ -53,7 +53,7 @@ func (serv Service) OneSelectQuery() interface{} {
 	}
 }
 
-func (serv Service) OneSelectDeletedQuery() interface{} {
+func (serv ServiceResource) OneSelectDeletedQuery() interface{} {
 	return bson.M{
 		"namespaceid":  serv.NamespaceID,
 		"deleted":      true,
@@ -61,21 +61,21 @@ func (serv Service) OneSelectDeletedQuery() interface{} {
 	}
 }
 
-func (serv Service) AllSelectQuery() interface{} {
+func (serv ServiceResource) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": serv.NamespaceID,
 		"deleted":     false,
 	}
 }
 
-func (serv Service) AllSelectOwnerQuery() interface{} {
+func (serv ServiceResource) AllSelectOwnerQuery() interface{} {
 	return bson.M{
 		"owner":   serv.Owner,
 		"deleted": false,
 	}
 }
 
-func (serv Service) UpdateQuery() interface{} {
+func (serv ServiceResource) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
 			"service": serv.Service,
@@ -84,7 +84,7 @@ func (serv Service) UpdateQuery() interface{} {
 }
 
 func OneSelectQuery(namespaceID, name string) interface{} {
-	return Service{
+	return ServiceResource{
 		NamespaceID: namespaceID,
 		Service: model.Service{
 			Name: name,
@@ -122,7 +122,7 @@ func (list ServiceList) Copy() ServiceList {
 	return cp
 }
 
-func (list ServiceList) Filter(pred func(Service) bool) ServiceList {
+func (list ServiceList) Filter(pred func(ServiceResource) bool) ServiceList {
 	var filtered = make(ServiceList, 0, list.Len())
 	for _, serv := range list {
 		if pred(serv.Copy()) {
