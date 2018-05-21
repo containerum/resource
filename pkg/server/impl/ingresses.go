@@ -76,7 +76,12 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	svc, err := ia.mongo.GetService(nsID, req.Rules[0].Path[0].ServiceName)
 	if err != nil {
 		ia.log.Error(err)
-		return nil, rserrors.ErrResourceNotExists().AddDetails("service not exists")
+		return nil, rserrors.ErrResourceNotExists().AddDetailF("service '%v' not exists", req.Rules[0].Path[0].ServiceName)
+	}
+
+	req.Rules[0].Path, err = server.IngressPaths(svc.Service, req.Rules[0].Path[0].Path, req.Rules[0].Path[0].ServicePort)
+	if err != nil {
+		return nil, err
 	}
 
 	if server.DetermineServiceType(svc.Service) != service.ServiceExternal {
@@ -108,6 +113,26 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 	}).Info("update ingress")
 
 	oldIngress, err := ia.mongo.GetIngress(nsID, req.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Rules[0].Path[0].ServiceName = oldIngress.Rules[0].Path[0].ServiceName
+
+	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
+	req.Name = req.Rules[0].Host
+
+	if req.Rules[0].Path[0].Path == "" {
+		req.Rules[0].Path[0].Path = "/"
+	}
+
+	svc, err := ia.mongo.GetService(nsID, req.Rules[0].Path[0].ServiceName)
+	if err != nil {
+		ia.log.Error(err)
+		return nil, rserrors.ErrResourceNotExists().AddDetails("service '%v' not exists", req.Rules[0].Path[0].ServiceName)
+	}
+
+	req.Rules[0].Path, err = server.IngressPaths(svc.Service, req.Rules[0].Path[0].Path, req.Rules[0].Path[0].ServicePort)
 	if err != nil {
 		return nil, err
 	}

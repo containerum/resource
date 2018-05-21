@@ -1,32 +1,11 @@
 package server
 
 import (
-	"sync"
-
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 )
-
-// Parallel runs functions in dedicated goroutines and waits for ending
-func Parallel(funcs ...func() error) (ret []error) {
-	wg := &sync.WaitGroup{}
-	wg.Add(len(funcs))
-	retmu := &sync.Mutex{}
-	for _, f := range funcs {
-		go func(inf func() error) {
-			if err := inf(); err != nil {
-				retmu.Lock()
-				defer retmu.Unlock()
-				ret = append(ret, err)
-			}
-			wg.Done()
-		}(f)
-	}
-	wg.Wait()
-	return
-}
 
 // DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
 func DetermineServiceType(svc kubtypes.Service) service.ServiceType {
