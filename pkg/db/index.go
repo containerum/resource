@@ -26,36 +26,38 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 	if err = collection.Find(nil).One(&dbinfo); err != nil {
 		mongo.logger.WithError(err).Infoln("no db version set")
 		if err == mgo.ErrNotFound {
-			vererr := collection.Insert(map[string]string{"version": dbversion})
-			if vererr != nil {
-				return vererr
+			err := collection.Insert(map[string]string{"version": dbversion})
+			if err != nil {
+				return err
 			}
 		} else {
 			return err
 		}
 	}
 
-	newversion, err := semver.ParseTolerant(dbversion)
+	newversionsv, err := semver.ParseTolerant(dbversion)
 	if err != nil {
 		return err
 	}
 
-	if forceupdate {
-		dbinfo["version"] = "0"
+	olddbversion := dbinfo["version"]
+
+	if forceupdate || olddbversion == "" {
+		olddbversion = "0"
 	}
 
-	oldversion, err := semver.ParseTolerant(dbinfo["version"])
+	oldversionsv, err := semver.ParseTolerant(olddbversion)
 	if err != nil {
 		return fmt.Errorf(errOldDBVersion)
 	}
 
-	switch newversion.Compare(oldversion) {
+	switch newversionsv.Compare(oldversionsv) {
 	case 0:
 		mongo.logger.Infoln("no need to update db indexes")
 	case -1:
-		return fmt.Errorf(errDBVersion, dbinfo["version"], dbversion)
+		return fmt.Errorf(errDBVersion, olddbversion, dbversion)
 	default:
-		mongo.logger.Infof("updating db version from %v to %v", dbinfo["version"], dbversion)
+		mongo.logger.Infof("updating db version from %v to %v", olddbversion, dbversion)
 
 		mongo.logger.Infoln("updating db indexes")
 		for _, collectionName := range CollectionsNames() {
