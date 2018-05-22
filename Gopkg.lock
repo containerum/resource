@@ -8,7 +8,7 @@
     "pkg/errors",
     "pkg/model"
   ]
-  revision = "942d7b269f8ddc24e89d8cba6c0059942efdaafa"
+  revision = "55c8bda71b2b364784e1b735c34ad05148c8e364"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -35,8 +35,8 @@
     "adaptors/cherrylog",
     "adaptors/gonic"
   ]
-  revision = "3076e36aee79538b125d060e5b671649cbb2db4e"
-  version = "v1.0.1-rc2"
+  revision = "34f7a2a139b36c20a34b93738dda33476efad47d"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/containerum/kube-client"
@@ -288,7 +288,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "2491c5de3490fced2f6cff376127c667efeed857"
+  revision = "57065200b4b034a1c8ad54ff77069408c2218ae6"
 
 [[projects]]
   branch = "master"
@@ -369,6 +369,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a631080fd01c4dc11bf56900b32710e90528d93d9628a83c97553ab741bf315d"
+  inputs-digest = "0d754e313885521ca10dc42fe13a60a46c8cf0e290d2b85dd3719e8b412b0710"
   solver-name = "gps-cdcl"
   solver-version = 1

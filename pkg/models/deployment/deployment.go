@@ -6,10 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Deployment -- model for deployments for resource-service db
+// DeploymentResource -- model for deployments for resource-service db
 //
 // swagger:model
-type Deployment struct {
+type DeploymentResource struct {
 	model.Deployment
 	Owner       string `json:"owner"`
 	ID          string `json:"_id,omitempty" bson:"_id,omitempty"`
@@ -20,9 +20,9 @@ type Deployment struct {
 // Deployment -- deployments list
 //
 // swagger:model
-type DeploymentList []Deployment
+type DeploymentList []DeploymentResource
 
-func (depl Deployment) UpdateQuery() interface{} {
+func (depl DeploymentResource) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
 			"deployment": depl.Deployment,
@@ -30,7 +30,7 @@ func (depl Deployment) UpdateQuery() interface{} {
 	}
 }
 
-func (depl Deployment) OneSelectQuery() interface{} {
+func (depl DeploymentResource) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":     depl.NamespaceID,
 		"deleted":         false,
@@ -38,7 +38,7 @@ func (depl Deployment) OneSelectQuery() interface{} {
 	}
 }
 
-func (depl Deployment) OneSelectDeletedQuery() interface{} {
+func (depl DeploymentResource) OneSelectDeletedQuery() interface{} {
 	return bson.M{
 		"namespaceid":     depl.NamespaceID,
 		"deleted":         true,
@@ -46,22 +46,22 @@ func (depl Deployment) OneSelectDeletedQuery() interface{} {
 	}
 }
 
-func (depl Deployment) AllSelectQuery() interface{} {
+func (depl DeploymentResource) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": depl.NamespaceID,
 		"deleted":     false,
 	}
 }
 
-func (depl Deployment) AllSelectOwnerQuery() interface{} {
+func (depl DeploymentResource) AllSelectOwnerQuery() interface{} {
 	return bson.M{
 		"owner":   depl.Owner,
 		"deleted": false,
 	}
 }
 
-func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deployment {
-	return Deployment{
+func DeploymentFromKube(nsID, owner string, deployment model.Deployment) DeploymentResource {
+	return DeploymentResource{
 		Deployment:  deployment,
 		Owner:       owner,
 		NamespaceID: nsID,
@@ -69,7 +69,7 @@ func DeploymentFromKube(nsID, owner string, deployment model.Deployment) Deploym
 	}
 }
 
-func (depl Deployment) Copy() Deployment {
+func (depl DeploymentResource) Copy() DeploymentResource {
 	var cp = depl
 	if cp.Status != nil {
 		var status = *cp.Status
@@ -82,7 +82,7 @@ func (depl Deployment) Copy() Deployment {
 }
 
 func OneSelectQuery(namespaceID, name string) interface{} {
-	return Deployment{
+	return DeploymentResource{
 		NamespaceID: namespaceID,
 		Deployment: model.Deployment{
 			Name: name,
@@ -118,7 +118,7 @@ func (list DeploymentList) IDs() []string {
 	return IDs
 }
 
-func (list DeploymentList) Filter(pred func(deployment Deployment) bool) DeploymentList {
+func (list DeploymentList) Filter(pred func(deployment DeploymentResource) bool) DeploymentList {
 	var filtered = make(DeploymentList, 0, list.Len())
 	for _, depl := range list {
 		if pred(depl.Copy()) {

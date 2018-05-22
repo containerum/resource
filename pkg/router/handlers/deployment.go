@@ -68,7 +68,7 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 //  '200':
 //    description: deployment
 //    schema:
-//      $ref: '#/definitions/Deployment'
+//      $ref: '#/definitions/DeploymentResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
@@ -103,7 +103,7 @@ func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
 //  '201':
 //    description: deployment created
 //    schema:
-//      $ref: '#/definitions/Deployment'
+//      $ref: '#/definitions/DeploymentResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
@@ -148,7 +148,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/Deployment'
+//      $ref: '#/definitions/DeploymentResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
@@ -194,7 +194,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/Deployment'
+//      $ref: '#/definitions/DeploymentResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
@@ -239,7 +239,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/Deployment'
+//      $ref: '#/definitions/DeploymentResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {

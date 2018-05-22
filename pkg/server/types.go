@@ -13,11 +13,11 @@ import (
 
 type DeployActions interface {
 	GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error)
-	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.Deployment, error)
-	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
-	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Deployment, error)
-	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.Deployment, error)
-	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Deployment, error)
+	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.DeploymentResource, error)
+	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
+	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
+	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.DeploymentResource, error)
+	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.DeploymentResource, error)
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 	DeleteAllDeployments(ctx context.Context, nsID string) error
 }
@@ -30,19 +30,19 @@ type DomainActions interface {
 }
 
 type IngressActions interface {
-	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
+	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.IngressResource, error)
 	GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error)
-	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Ingress, error)
-	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Ingress, error)
+	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.IngressResource, error)
+	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.IngressResource, error)
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 	DeleteAllIngresses(ctx context.Context, nsID string) error
 }
 
 type ServiceActions interface {
-	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
+	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error)
 	GetServices(ctx context.Context, nsID string) (service.ServiceList, error)
-	GetService(ctx context.Context, nsID, serviceName string) (*service.Service, error)
-	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Service, error)
+	GetService(ctx context.Context, nsID, serviceName string) (*service.ServiceResource, error)
+	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 	DeleteAllServices(ctx context.Context, nsID string) error
 }

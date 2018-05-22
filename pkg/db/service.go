@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.Service, error) {
+func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.ServiceResource, error) {
 	mongo.logger.Debugf("getting service")
 	var collection = mongo.db.C(CollectionService)
-	var result service.Service
+	var result service.ServiceResource
 	var err error
 	if err = collection.Find(service.OneSelectQuery(namespaceID, serviceName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
@@ -40,7 +40,7 @@ func (mongo *MongoStorage) GetServiceList(namespaceID string) (service.ServiceLi
 }
 
 // If ID is empty, then generates UUID4 and uses it
-func (mongo *MongoStorage) CreateService(service service.Service) (service.Service, error) {
+func (mongo *MongoStorage) CreateService(service service.ServiceResource) (service.ServiceResource, error) {
 	mongo.logger.Debugf("creating service")
 	var collection = mongo.db.C(CollectionService)
 	if service.ID == "" {
@@ -56,7 +56,7 @@ func (mongo *MongoStorage) CreateService(service service.Service) (service.Servi
 	return service, nil
 }
 
-func (mongo *MongoStorage) UpdateService(upd service.Service) (service.Service, error) {
+func (mongo *MongoStorage) UpdateService(upd service.ServiceResource) (service.ServiceResource, error) {
 	mongo.logger.Debugf("updating service")
 	var collection = mongo.db.C(CollectionService)
 	if err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery()); err != nil {
@@ -69,7 +69,7 @@ func (mongo *MongoStorage) UpdateService(upd service.Service) (service.Service, 
 func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	mongo.logger.Debugf("deleting service")
 	var collection = mongo.db.C(CollectionService)
-	err := collection.Update(service.Service{
+	err := collection.Update(service.ServiceResource{
 		Service: model.Service{
 			Name: name,
 		},
@@ -91,7 +91,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 	mongo.logger.Debugf("restoring service")
 	var collection = mongo.db.C(CollectionService)
-	err := collection.Update(service.Service{
+	err := collection.Update(service.ServiceResource{
 		Service: model.Service{
 			Name: name,
 		},
@@ -113,7 +113,7 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
-	_, err := collection.UpdateAll(service.Service{
+	_, err := collection.UpdateAll(service.ServiceResource{
 		NamespaceID: namespaceID,
 	}.AllSelectQuery(),
 		bson.M{
@@ -129,7 +129,7 @@ func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) erro
 func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
-	_, err := collection.UpdateAll(service.Service{
+	_, err := collection.UpdateAll(service.ServiceResource{
 		Owner: owner,
 	}.AllSelectOwnerQuery(),
 		bson.M{

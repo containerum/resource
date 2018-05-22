@@ -266,7 +266,7 @@
           "201": {
             "description": "deployment created",
             "schema": {
-              "$ref": "#/definitions/Deployment"
+              "$ref": "#/definitions/DeploymentResource"
             }
           },
           "default": {
@@ -337,7 +337,7 @@
           "200": {
             "description": "deployment",
             "schema": {
-              "$ref": "#/definitions/Deployment"
+              "$ref": "#/definitions/DeploymentResource"
             }
           },
           "default": {
@@ -389,7 +389,7 @@
           "202": {
             "description": "deployment updated",
             "schema": {
-              "$ref": "#/definitions/Deployment"
+              "$ref": "#/definitions/DeploymentResource"
             }
           },
           "default": {
@@ -485,7 +485,7 @@
           "202": {
             "description": "deployment updated",
             "schema": {
-              "$ref": "#/definitions/Deployment"
+              "$ref": "#/definitions/DeploymentResource"
             }
           },
           "default": {
@@ -539,7 +539,7 @@
           "202": {
             "description": "deployment updated",
             "schema": {
-              "$ref": "#/definitions/Deployment"
+              "$ref": "#/definitions/DeploymentResource"
             }
           },
           "default": {
@@ -626,7 +626,7 @@
           "201": {
             "description": "ingress created",
             "schema": {
-              "$ref": "#/definitions/Ingress"
+              "$ref": "#/definitions/IngressResource"
             }
           },
           "default": {
@@ -697,7 +697,7 @@
           "200": {
             "description": "ingresses",
             "schema": {
-              "$ref": "#/definitions/Ingress"
+              "$ref": "#/definitions/IngressResource"
             }
           },
           "default": {
@@ -749,7 +749,7 @@
           "202": {
             "description": "ingress updated",
             "schema": {
-              "$ref": "#/definitions/Ingress"
+              "$ref": "#/definitions/IngressResource"
             }
           },
           "default": {
@@ -878,7 +878,7 @@
           "201": {
             "description": "service created",
             "schema": {
-              "$ref": "#/definitions/Service"
+              "$ref": "#/definitions/ServiceResource"
             }
           },
           "default": {
@@ -949,7 +949,7 @@
           "200": {
             "description": "service",
             "schema": {
-              "$ref": "#/definitions/Service"
+              "$ref": "#/definitions/ServiceResource"
             }
           },
           "default": {
@@ -1001,7 +1001,7 @@
           "202": {
             "description": "service updated",
             "schema": {
-              "$ref": "#/definitions/Service"
+              "$ref": "#/definitions/ServiceResource"
             }
           },
           "default": {
@@ -1299,7 +1299,58 @@
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/git.containerum.net/ch/permissions/pkg/model"
     },
     "Deployment": {
-      "description": "Deployment -- model for deployments for resource-service db",
+      "description": "Deployment -- model for deployments",
+      "type": "object",
+      "required": [
+        "containers",
+        "name",
+        "replicas"
+      ],
+      "properties": {
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Container"
+          },
+          "x-go-name": "Containers"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "replicas": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Replicas"
+        },
+        "status": {
+          "$ref": "#/definitions/DeploymentStatus"
+        },
+        "total_cpu": {
+          "description": "total CPU usage by all containers in this deployment",
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "TotalCPU"
+        },
+        "total_memory": {
+          "description": "total RAM usage by all containers in this deployment",
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "TotalMemory"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "DeploymentList": {
+      "description": "Deployment -- deployments list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DeploymentResource"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
+    },
+    "DeploymentResource": {
+      "description": "DeploymentResource -- model for deployments for resource-service db",
       "type": "object",
       "required": [
         "containers",
@@ -1354,14 +1405,6 @@
           "format": "uint64",
           "x-go-name": "TotalMemory"
         }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
-    },
-    "DeploymentList": {
-      "description": "Deployment -- deployments list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Deployment"
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
     },
@@ -1562,7 +1605,42 @@
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/resources"
     },
     "Ingress": {
-      "description": "Ingress --  model for ingress for resource-service db",
+      "description": "Ingress -- model for ingress",
+      "type": "object",
+      "required": [
+        "name",
+        "rules"
+      ],
+      "properties": {
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Rule"
+          },
+          "x-go-name": "Rules"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "IngressList": {
+      "description": "IngressList -- ingresses list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/IngressResource"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
+    },
+    "IngressResource": {
+      "description": "IngressResource --  model for ingress for resource-service db",
       "type": "object",
       "required": [
         "name",
@@ -1604,89 +1682,54 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
     },
-    "IngressList": {
-      "description": "IngressList -- ingresses list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Ingress"
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
-    },
     "Namespace": {
-      "description": "Namespace describes namespace",
+      "description": "Namespace -- namespace representation provided by resource-service\nhttps://ch.pages.containerum.net/api-docs/modules/resource-service/index.html#get-namespace",
       "type": "object",
       "required": [
         "resources"
       ],
       "properties": {
-        "cpu": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "CPU"
-        },
-        "create_time": {
+        "access": {
           "type": "string",
-          "format": "date-time",
-          "x-go-name": "CreateTime"
+          "x-go-name": "Access"
         },
-        "delete_time": {
+        "created_at": {
+          "description": "creation date in RFC3339 format",
           "type": "string",
-          "format": "date-time",
-          "x-go-name": "DeleteTime"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "ID"
+          "x-go-name": "CreatedAt"
         },
         "label": {
           "description": "user-visible label for the namespace",
           "type": "string",
           "x-go-name": "Label"
         },
-        "max_external_services": {
+        "max_ext_service": {
           "type": "integer",
-          "format": "int64",
-          "x-go-name": "MaxExtServices"
+          "format": "uint64",
+          "x-go-name": "MaxExtService"
         },
-        "max_internal_services": {
+        "max_int_service": {
           "type": "integer",
-          "format": "int64",
-          "x-go-name": "MaxIntServices"
+          "format": "uint64",
+          "x-go-name": "MaxIntService"
         },
         "max_traffic": {
           "type": "integer",
-          "format": "int64",
+          "format": "uint64",
           "x-go-name": "MaxTraffic"
         },
-        "owner_user_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "OwnerUserID"
-        },
-        "ram": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "RAM"
-        },
-        "tariff_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "TariffID"
+        "resources": {
+          "$ref": "#/definitions/Resources"
         },
         "volumes": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/VolumeWithPermissions"
+            "$ref": "#/definitions/Volume"
           },
           "x-go-name": "Volumes"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/git.containerum.net/ch/permissions/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "NamespaceAdminCreateRequest": {
       "description": "NamespaceAdminCreateRequest contains parameters for creating namespace without billing",
@@ -2180,7 +2223,86 @@
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "Service": {
-      "description": "Service --  model for service for resource-service db",
+      "description": "represents service",
+      "type": "object",
+      "required": [
+        "name",
+        "ports"
+      ],
+      "properties": {
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "deploy": {
+          "type": "string",
+          "x-go-name": "Deploy"
+        },
+        "domain": {
+          "type": "string",
+          "x-go-name": "Domain"
+        },
+        "ips": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "IPs"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServicePort"
+          },
+          "x-go-name": "Ports"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ServiceList": {
+      "description": "ServiceList -- services list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ServiceResource"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
+    },
+    "ServicePort": {
+      "description": "represent service port",
+      "type": "object",
+      "required": [
+        "name",
+        "target_port",
+        "protocol"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Port"
+        },
+        "protocol": {
+          "$ref": "#/definitions/Protocol"
+        },
+        "target_port": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TargetPort"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ServiceResource": {
+      "description": "ServiceResource --  model for service for resource-service db",
       "type": "object",
       "required": [
         "name",
@@ -2237,47 +2359,10 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
-    "ServiceList": {
-      "description": "ServiceList -- services list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Service"
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
-    },
-    "ServicePort": {
-      "description": "represent service port",
-      "type": "object",
-      "required": [
-        "name",
-        "target_port",
-        "protocol"
-      ],
-      "properties": {
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "port": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Port"
-        },
-        "protocol": {
-          "$ref": "#/definitions/Protocol"
-        },
-        "target_port": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "TargetPort"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
     "ServiceType": {
       "description": "represents service type",
       "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "SetResourceAccessRequest": {
       "description": "SetUserAccessRequest is a request object for setting access to resource for user",
@@ -2496,7 +2581,7 @@
           "x-go-name": "Label"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/headers"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "UserSolution": {
       "description": "UserSolution -- running solution",
@@ -2552,72 +2637,39 @@
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "Volume": {
-      "description": "Volume describes volume",
+      "description": "Volume -- volume representation\nprovided by resource-service\nhttps://ch.pages.containerum.net/api-docs/modules/resource-service/index.html#get-namespace",
       "type": "object",
       "properties": {
-        "active": {
-          "type": "boolean",
-          "x-go-name": "Active"
+        "access": {
+          "type": "string",
+          "x-go-name": "Access"
         },
-        "capacity": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Capacity"
+        "access_change_time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "AccessChangeTime"
         },
         "create_time": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "CreateTime"
         },
-        "delete_time": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "DeleteTime"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "gluster_name": {
-          "type": "string",
-          "x-go-name": "GlusterName"
-        },
-        "id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "ID"
-        },
         "label": {
           "type": "string",
           "x-go-name": "Label"
-        },
-        "namespace_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "NamespaceID"
-        },
-        "owner_user_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "OwnerUserID"
         },
         "replicas": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "Replicas"
         },
-        "storage_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "StorageID"
-        },
-        "tariff_id": {
-          "type": "string",
-          "format": "uuid",
-          "x-go-name": "TariffID"
+        "storage": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Storage"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/git.containerum.net/ch/permissions/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "VolumeCreateRequest": {
       "description": "VolumeCreateRequest is a request object for creating volume",

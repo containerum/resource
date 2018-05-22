@@ -69,7 +69,7 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 //  '200':
 //    description: ingresses
 //    schema:
-//      $ref: '#/definitions/Ingress'
+//      $ref: '#/definitions/IngressResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
@@ -104,7 +104,7 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 //  '201':
 //    description: ingress created
 //    schema:
-//      $ref: '#/definitions/Ingress'
+//      $ref: '#/definitions/IngressResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
@@ -149,7 +149,7 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 //  '202':
 //    description: ingress updated
 //    schema:
-//      $ref: '#/definitions/Ingress'
+//      $ref: '#/definitions/IngressResource'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {

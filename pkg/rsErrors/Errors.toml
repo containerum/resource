@@ -56,12 +56,6 @@ SID = "resource-service"
     Kind = 9
 
 [[error]]
-    Name = "ErrDownResizeNotAllowed"
-    StatusHTTP = 400
-    Message = "Resize with decreasing quota not allowed"
-    Kind = 10
-
-[[error]]
     Name = "ErrServiceHasIngresses"
     StatusHTTP = 400
     Message = "Can`t delete service with linked ingresses"
