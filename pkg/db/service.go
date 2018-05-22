@@ -146,8 +146,8 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	mongo.logger.Debugf("counting services")
 	var collection = mongo.db.C(CollectionService)
 	var statData []struct {
-		HasDomain bool `bson:"_id"`
-		Count     int  `bson:"count"`
+		NoDomain bool `bson:"_id"`
+		Count    int  `bson:"count"`
 	}
 	if err := collection.Pipe([]bson.M{
 		{"$match": bson.M{
@@ -166,7 +166,7 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	}
 	var serviceStats stats.Service
 	for _, serv := range statData {
-		if serv.HasDomain {
+		if serv.NoDomain {
 			serviceStats.External += serv.Count
 		} else {
 			serviceStats.Internal += serv.Count
