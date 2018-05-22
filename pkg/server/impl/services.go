@@ -177,7 +177,7 @@ func (sa *ServiceActionsImpl) DeleteService(ctx context.Context, nsID, serviceNa
 		"service_name": serviceName,
 	}).Info("delete service")
 
-	_, err := sa.mongo.GetIngress(nsID, serviceName)
+	_, err := sa.mongo.GetIngressByService(nsID, serviceName)
 	switch {
 	case err == nil:
 		return rserrors.ErrServiceHasIngresses()
