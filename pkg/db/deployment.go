@@ -156,7 +156,10 @@ func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	if n, err := collection.Find(bson.M{"owner": owner}).Count(); err != nil {
+	if n, err := collection.Find(bson.M{
+		"owner":   owner,
+		"deleted": false,
+	}).Count(); err != nil {
 		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
 	} else {
 		return n, nil
