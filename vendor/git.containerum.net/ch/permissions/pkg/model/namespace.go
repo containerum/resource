@@ -75,7 +75,7 @@ type NamespaceWithPermissions struct {
 
 	Permission Permission `pg:"fk:resource_id" sql:"-" json:",inline"`
 
-	Permissions []Permission `pg:"polymorphic:resource_" sql:"-" json:"users,omitempty"`
+	Permissions []Permission `pg:"polymorphic:resource_" sql:"-" json:"users"`
 }
 
 // NamespaceWithPermissions is a response object for get requests
@@ -84,7 +84,7 @@ type NamespaceWithPermissions struct {
 type NamespaceWithPermissionsJSON struct {
 	Namespace
 	Permission
-	Permissions []Permission `json:"users,omitempty"`
+	Permissions []Permission `json:"users"`
 }
 
 // Workaround while json "inline" tag not inlines fields on marshal
@@ -98,11 +98,26 @@ func (np NamespaceWithPermissions) MarshalJSON() ([]byte, error) {
 	return json.Marshal(npJSON)
 }
 
+func (np *NamespaceWithPermissions) UnmarshalJSON(b []byte) error {
+	var npJSON NamespaceWithPermissionsJSON
+	err := json.Unmarshal(b, &npJSON)
+	if err != nil {
+		return err
+	}
+	np.Namespace = npJSON.Namespace
+	np.Permission = npJSON.Permission
+	np.Permissions = npJSON.Permissions
+	return nil
+}
+
 func (np *NamespaceWithPermissions) Mask() {
 	np.Namespace.Mask()
 	np.Permission.Mask()
 	if np.Namespace.OwnerUserID != np.Permission.UserID {
 		np.Permissions = nil
+	}
+	for i := range np.Permissions {
+		np.Permissions[i].Mask()
 	}
 }
 

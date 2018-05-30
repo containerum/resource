@@ -98,7 +98,7 @@ type VolumeWithPermissions struct {
 
 	Permission Permission `pg:"fk:resource_id" sql:"-" json:",inline"`
 
-	Permissions []Permission `pg:"polymorphic:resource_" sql:"-" json:"users,omitempty"`
+	Permissions []Permission `pg:"polymorphic:resource_" sql:"-" json:"users"`
 }
 
 // VolumeWithPermissions is a response object for get requests
@@ -107,7 +107,7 @@ type VolumeWithPermissions struct {
 type VolumeWithPermissionsJSON struct {
 	Volume
 	Permission
-	Permissions []Permission `json:"users,omitempty"`
+	Permissions []Permission `json:"users"`
 }
 
 // Workaround while json "inline" tag not inlines fields on marshal
@@ -121,11 +121,25 @@ func (vp VolumeWithPermissions) MarshalJSON() ([]byte, error) {
 	return json.Marshal(npJSON)
 }
 
+func (vp *VolumeWithPermissions) UnmarshalJSON(b []byte) error {
+	var vpJSON VolumeWithPermissionsJSON
+	if err := json.Unmarshal(b, &vpJSON); err != nil {
+		return err
+	}
+	vp.Volume = vpJSON.Volume
+	vp.Permissions = vpJSON.Permissions
+	vp.Permission = vpJSON.Permission
+	return nil
+}
+
 func (vp *VolumeWithPermissions) Mask() {
 	vp.Volume.Mask()
 	vp.Permission.Mask()
 	if vp.OwnerUserID != vp.Permission.UserID {
 		vp.Permissions = nil
+	}
+	for i := range vp.Permissions {
+		vp.Permissions[i].Mask()
 	}
 }
 

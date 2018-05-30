@@ -38,5 +38,7 @@ spec:
           value: "${CH_RESOURCE_MONGO_LOGIN}"
         - name: CH_RESOURCE_MONGO_PASSWORD
           value: "${CH_RESOURCE_MONGO_PASSWORD}"
+        - name: CH_RESOURCE_KUBE_API_ADDR
+          value: "${CH_RESOURCE_KUBE_API_ADDR}"
       imagePullSecrets:
       - name: gitlab-registry
