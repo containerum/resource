@@ -2,15 +2,6 @@
 
 
 [[projects]]
-  branch = "develop"
-  name = "git.containerum.net/ch/permissions"
-  packages = [
-    "pkg/errors",
-    "pkg/model"
-  ]
-  revision = "c2198e1811c7f6b28a8ef1adf8e4d949799a145e"
-
-[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -133,17 +124,6 @@
   revision = "811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5"
 
 [[projects]]
-  name = "github.com/go-pg/pg"
-  packages = [
-    "internal",
-    "internal/parser",
-    "orm",
-    "types"
-  ]
-  revision = "5b73ce88484575f3480edf393237f6bf79d5f166"
-  version = "v6.11.2"
-
-[[projects]]
   name = "github.com/go-playground/locales"
   packages = [
     ".",
@@ -189,12 +169,6 @@
   packages = ["."]
   revision = "064e2069ce9c359c118179501254f67d7d37ba24"
   version = "0.2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/jinzhu/inflection"
-  packages = ["."]
-  revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
   name = "github.com/json-iterator/go"
@@ -375,6 +349,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d5070bebbba843f3a4d5108b06a8fa901c341dc49cb155bf4dc4756b0b29e718"
+  inputs-digest = "64aa1d6cdf7ca759eeadbd91b6166309f12866461380db880501f087eb673785"
   solver-name = "gps-cdcl"
   solver-version = 1
