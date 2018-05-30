@@ -1,0 +1,29 @@
+tags:
+  db: true
+
+replicaCount: 1
+
+image:
+  repository: containerum/resource
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
+  secret:
+
+service:
+  port: 1213
+  targetPort: 1213
+  externalIP:
+
+env:
+  CH_RESOURCE_DEBUG: "true"
+  CH_RESOURCE_TEXTLOG: "true"
+  CH_RESOURCE_MONGO_ADDR: "mongo:27017"
+  CH_RESOURCE_MONGO_PASSWORD:
+  CH_RESOURCE_MONGO_LOGIN:
+  CH_RESOURCE_KUBE_API_ADDR: "kube-api:1214"
+
+mongodb:
+  image:
+    pullPolicy: IfNotPresent
+  mongodbPassword: password
+  mongodbUsername: user
