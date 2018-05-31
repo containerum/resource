@@ -24,7 +24,6 @@ type DeployHandlers struct {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
 //  - name: namespace
 //    in: path
 //    type: string
@@ -55,7 +54,6 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
 //  - name: namespace
 //    in: path
 //    type: string
@@ -90,7 +88,6 @@ func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
 //  - name: namespace
 //    in: path
 //    type: string
@@ -131,7 +128,6 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
 //  - name: namespace
 //    in: path
 //    type: string
@@ -176,8 +172,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
+//
 //  - name: namespace
 //    in: path
 //    type: string
@@ -222,7 +217,6 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
 //  - name: namespace
 //    in: path
 //    type: string
@@ -266,7 +260,6 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
-//  - $ref: '#/parameters/UserVolumeHeader'
 //  - name: namespace
 //    in: path
 //    type: string

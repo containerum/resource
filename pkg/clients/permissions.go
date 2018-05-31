@@ -9,7 +9,7 @@ import (
 	"github.com/containerum/cherry"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
-	"github.com/go-resty/resty"
+	"gopkg.in/resty.v1"
 )
 
 type Permissions interface {
