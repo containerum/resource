@@ -35,8 +35,8 @@
     ".",
     "pkg/model"
   ]
-  revision = "262983343732e6686e3b4e06d61f95269127686e"
-  version = "v0.17.4"
+  revision = "ea99fc8e4b53d482604ae1ea8ba7ff4a481a7bcb"
+  version = "v0.19.2"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -56,8 +56,8 @@
     ".",
     "log"
   ]
-  revision = "2810ccc68e0ca445fa81ebfa03fbf70aca5c41ae"
-  version = "v2.7.0"
+  revision = "3658237ded108b4134956c1b3050349d93e7b895"
+  version = "v2.7.1"
 
 [[projects]]
   name = "github.com/gin-contrib/cors"
@@ -141,18 +141,6 @@
   version = "v0.16.0"
 
 [[projects]]
-  name = "github.com/go-resty/resty"
-  packages = ["."]
-  revision = "fc3ad735b5565cada42d34bc298573fd3fe5adc6"
-  version = "v1.6"
-
-[[projects]]
-  name = "github.com/go-siris/siris"
-  packages = ["core/errors"]
-  revision = "bf3b6eec68567b4a1c7b4a26c9dd87815abb363c"
-  version = "v7.3.4"
-
-[[projects]]
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
@@ -184,7 +172,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "8b799c424f57fa123fc63a99d6383bc6e4c02578"
+  revision = "9825584555aa620c53c265d4a09ace0df1346fd9"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -268,7 +256,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "89e543239a64caf31d3a6865872ea120b41446df"
+  revision = "1e491301e022f8f977054da4c2d852decd59571f"
 
 [[projects]]
   branch = "master"
@@ -349,6 +337,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "64aa1d6cdf7ca759eeadbd91b6166309f12866461380db880501f087eb673785"
+  inputs-digest = "abff0e89dc9b7274b41d08722eadf11f8465a1c06bf0d0e71b248ecbc8f5bcf0"
   solver-name = "gps-cdcl"
   solver-version = 1
