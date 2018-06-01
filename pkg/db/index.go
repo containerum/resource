@@ -76,9 +76,15 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			if err := collection.EnsureIndexKey("namespaceid"); err != nil {
 				errs = append(errs, err)
 			}
+			if err := collection.EnsureIndexKey("deleted"); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		{
+			var collection = mongo.db.C(CollectionDeployment)
 			if err := collection.EnsureIndex(mgo.Index{
-				Name: "alive_" + collectionName,
-				Key:  []string{collectionName + "." + "name", "namespaceid"},
+				Name: "alive_" + CollectionDeployment,
+				Key:  []string{CollectionDeployment + "." + "name", "namespaceid", "version"},
 				PartialFilter: bson.M{
 					"deleted": false,
 				},
@@ -86,7 +92,17 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			}); err != nil {
 				errs = append(errs, err)
 			}
-			if err := collection.EnsureIndexKey("deleted"); err != nil {
+		}
+		{
+			var collection = mongo.db.C(CollectionIngress)
+			if err := collection.EnsureIndex(mgo.Index{
+				Name: "alive_" + CollectionIngress,
+				Key:  []string{CollectionIngress + "." + "name", "namespaceid"},
+				PartialFilter: bson.M{
+					"deleted": false,
+				},
+				Unique: true,
+			}); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -98,7 +114,16 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			if err := collection.EnsureIndexKey(CollectionService + "_" + "domain"); err != nil {
 				errs = append(errs, err)
 			}
-
+			if err := collection.EnsureIndex(mgo.Index{
+				Name: "alive_" + CollectionService,
+				Key:  []string{CollectionService + "." + "name", "namespaceid"},
+				PartialFilter: bson.M{
+					"deleted": false,
+				},
+				Unique: true,
+			}); err != nil {
+				errs = append(errs, err)
+			}
 			if err := collection.EnsureIndex(mgo.Index{
 				Name: "alive_" + CollectionService + "_with_ports",
 				Key: []string{

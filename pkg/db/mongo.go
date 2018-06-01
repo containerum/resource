@@ -115,9 +115,6 @@ func NewMongo(config MongoConfig) (*MongoStorage, error) {
 		return nil, err
 	}
 	mgo.SetDebug(config.Debug)
-	if config.Debug {
-
-	}
 	var db = session.DB(DBname)
 	if config.Username != "" || config.Password != "" {
 		if err := db.Login(config.Username, config.Password); err != nil {

@@ -1,5 +1,12 @@
 package model
 
+import (
+	"fmt"
+
+	"github.com/blang/semver"
+	"github.com/docker/distribution/reference"
+)
+
 // DeploymentStatus -- kubernetes status of deployment
 //
 // swagger:model
@@ -44,8 +51,45 @@ type Deployment struct {
 	//total CPU usage by all containers in this deployment
 	TotalCPU uint `json:"total_cpu,omitempty"`
 	//total RAM usage by all containers in this deployment
-	TotalMemory uint   `json:"total_memory,omitempty"`
-	Owner       string `json:"owner,omitempty"`
+	TotalMemory uint           `json:"total_memory,omitempty"`
+	Owner       string         `json:"owner,omitempty"`
+	Active      bool           `json:"active"`
+	Version     semver.Version `json:"version"`
+}
+
+func (deployment Deployment) ImagesNames() []string {
+	var images = make([]string, 0, len(deployment.Containers))
+	for _, container := range deployment.Containers {
+		images = append(images, container.Image)
+	}
+	return images
+}
+
+func (deployment Deployment) Images() []Image {
+	var images = make([]Image, 0, len(deployment.Containers))
+	for _, container := range deployment.Containers {
+		var img, err = ImageFromString(container.Image)
+		if err == nil {
+			images = append(images, img)
+		}
+	}
+	return images
+}
+
+func (deployment Deployment) ContainersNames() []string {
+	var names = make([]string, 0, len(deployment.Containers))
+	for _, container := range deployment.Containers {
+		names = append(names, container.Name)
+	}
+	return names
+}
+
+func (deployment Deployment) ContainersAndImages() []string {
+	var items = make([]string, 0, len(deployment.Containers))
+	for _, container := range deployment.Containers {
+		items = append(items, fmt.Sprintf("%s [%s]", container.Name, container.Image))
+	}
+	return items
 }
 
 // Container -- model for container in deployment
@@ -63,6 +107,42 @@ type Container struct {
 	Ports        []ContainerPort   `json:"ports,omitempty"`
 	VolumeMounts []ContainerVolume `json:"volume_mounts,omitempty"`
 	ConfigMaps   []ContainerVolume `json:"config_maps,omitempty"`
+}
+
+func (container Container) Version() string {
+	var ref, err = reference.Parse(container.Image)
+	if err != nil {
+		return ""
+	}
+	if tagged, ok := ref.(reference.Tagged); ok && tagged != nil {
+		return tagged.Tag()
+	}
+	return ""
+}
+
+type Image struct {
+	Name string
+	Tag  string
+}
+
+func ImageFromString(str string) (Image, error) {
+	var img, err = reference.ParseNamed(str)
+	if err != nil {
+		return Image{}, err
+	}
+	if tagged, ok := img.(reference.NamedTagged); tagged != nil && ok {
+		return Image{
+			Name: tagged.Name(),
+			Tag:  tagged.Tag(),
+		}, nil
+	}
+	return Image{
+		Name: img.Name(),
+	}, nil
+}
+
+func (image Image) String() string {
+	return image.Name + ":" + image.Tag
 }
 
 // Env -- key-value pair of environment variables

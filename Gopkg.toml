@@ -31,7 +31,9 @@ required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
 
 [[constraint]]
   name = "github.com/containerum/kube-client"
-  version = "~0.19.1"
+#  version = "~0.19.4"
+# TODO: CHANGE THIS WHEN MERGING
+  branch = "add-deployment-diff"
 
 [[constraint]]
   name = "gopkg.in/go-playground/validator.v9"

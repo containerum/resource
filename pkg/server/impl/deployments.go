@@ -8,7 +8,9 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/blang/semver"
 	"github.com/containerum/cherry/adaptors/cherrylog"
+	"github.com/containerum/kube-client/pkg/diff"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"
@@ -76,6 +78,7 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 
 	server.CalculateDeployResources(&deploy)
 
+	deploy.Version = semver.MustParse("1.0.0")
 	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
 	if err != nil {
 		return nil, err
@@ -124,6 +127,8 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 	if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
 		return nil, err
 	}
+
+	deploy.Version = diff.NewVersion(oldDeploy.Deployment, deploy)
 
 	if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
 		da.log.Debug("Kube-API error! Reverting changes.")
@@ -220,8 +225,9 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, rserrors.ErrNoContainer()
 	}
 
-	err = da.mongo.UpdateDeployment(oldDeploy)
-	if err != nil {
+	newDeploy.Version = diff.NewVersion(oldDeploy.Deployment, newDeploy.Deployment)
+
+	if err = da.mongo.UpdateDeployment(newDeploy); err != nil {
 		return nil, err
 	}
 
