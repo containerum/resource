@@ -11,7 +11,6 @@ import (
 // swagger:model
 type DeploymentResource struct {
 	model.Deployment
-	Owner       string `json:"owner"`
 	ID          string `json:"_id,omitempty" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
@@ -32,9 +31,19 @@ func (depl DeploymentResource) UpdateQuery() interface{} {
 
 func (depl DeploymentResource) OneSelectQuery() interface{} {
 	return bson.M{
-		"namespaceid":     depl.NamespaceID,
-		"deleted":         false,
-		"deployment.name": depl.Name,
+		"namespaceid":       depl.NamespaceID,
+		"deleted":           false,
+		"deployment.active": true,
+		"deployment.name":   depl.Name,
+	}
+}
+
+func (depl DeploymentResource) OneInactiveVersionSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid":        depl.NamespaceID,
+		"deleted":            false,
+		"deployment.name":    depl.Name,
+		"deployment.version": depl.Version,
 	}
 }
 
@@ -55,15 +64,15 @@ func (depl DeploymentResource) AllSelectQuery() interface{} {
 
 func (depl DeploymentResource) AllSelectOwnerQuery() interface{} {
 	return bson.M{
-		"owner":   depl.Owner,
-		"deleted": false,
+		"deployment.owner": depl.Owner,
+		"deleted":          false,
 	}
 }
 
 func DeploymentFromKube(nsID, owner string, deployment model.Deployment) DeploymentResource {
+	deployment.Owner = owner
 	return DeploymentResource{
 		Deployment:  deployment,
-		Owner:       owner,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
 	}

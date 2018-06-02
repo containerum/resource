@@ -84,12 +84,16 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			var collection = mongo.db.C(CollectionDeployment)
 			if err := collection.EnsureIndex(mgo.Index{
 				Name: "alive_" + CollectionDeployment,
-				Key:  []string{CollectionDeployment + "." + "name", "namespaceid", "version"},
+				Key:  []string{CollectionDeployment + "." + "name", "namespaceid"},
 				PartialFilter: bson.M{
 					"deleted": false,
+					"active":  false,
 				},
 				Unique: true,
 			}); err != nil {
+				errs = append(errs, err)
+			}
+			if err := collection.EnsureIndexKey("active"); err != nil {
 				errs = append(errs, err)
 			}
 		}

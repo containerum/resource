@@ -130,7 +130,7 @@ func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
 	_, err := collection.UpdateAll(service.ServiceResource{
-		Owner: owner,
+		Service: model.Service{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},

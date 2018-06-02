@@ -79,6 +79,8 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 	server.CalculateDeployResources(&deploy)
 
 	deploy.Version = semver.MustParse("1.0.0")
+	deploy.Active = true
+
 	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
 	if err != nil {
 		return nil, err
@@ -124,23 +126,50 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
-		return nil, err
-	}
+	oldversion := oldDeploy.Deployment.Version
 
 	deploy.Version = diff.NewVersion(oldDeploy.Deployment, deploy)
+	deploy.Active = true
 
-	if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
-		da.log.Debug("Kube-API error! Reverting changes.")
-		if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+	newversion := deploy.Version
+
+	var updatedDeploy deployment.DeploymentResource
+	if !newversion.Equals(oldversion) {
+		if err := da.mongo.DeactivateDeployment(nsID, deploy.Name); err != nil {
 			return nil, err
 		}
-		return nil, err
-	}
 
-	updatedDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
-	if err != nil {
-		return nil, err
+		updatedDeploy, err = da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
+		if err != nil {
+			return nil, err
+		}
+
+		if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
+			da.log.Debug("Kube-API error! Reverting changes.")
+			if err := da.mongo.DeactivateDeployment(nsID, deploy.Name); err != nil {
+				return nil, err
+			}
+			if err := da.mongo.ActivateDeployment(nsID, deploy.Name, oldDeploy.Version); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	} else {
+		if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
+			return nil, err
+		}
+		updatedDeploy, err = da.mongo.GetDeployment(nsID, deploy.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
+			da.log.Debug("Kube-API error! Reverting changes.")
+			if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
 	}
 
 	return &updatedDeploy, nil
@@ -171,7 +200,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 
 	newDeploy := oldDeploy
 	newDeploy.Replicas = req.Replicas
-
+	newDeploy.Active = true
 	if err := server.CheckDeploymentReplicasChangeQuotas(nsLimits, nsUsage, oldDeploy.Deployment, req.Replicas); err != nil {
 		return nil, err
 	}

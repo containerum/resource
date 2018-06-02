@@ -11,7 +11,6 @@ import (
 // swagger:model
 type ServiceResource struct {
 	model.Service
-	Owner       string `json:"owner"`
 	ID          string `json:"_id" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
@@ -30,9 +29,9 @@ const (
 )
 
 func ServiceFromKube(nsID, owner string, service model.Service) ServiceResource {
+	service.Owner = owner
 	return ServiceResource{
 		Service:     service,
-		Owner:       owner,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
 	}
@@ -70,8 +69,8 @@ func (serv ServiceResource) AllSelectQuery() interface{} {
 
 func (serv ServiceResource) AllSelectOwnerQuery() interface{} {
 	return bson.M{
-		"owner":   serv.Owner,
-		"deleted": false,
+		"service.owner": serv.Owner,
+		"deleted":       false,
 	}
 }
 

@@ -97,7 +97,7 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) err
 func (kub kube) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
-	}).Debug("update deployment %+v", deploy)
+	}).Debugf("update deployment %+v", deploy)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -339,7 +339,7 @@ func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kub
 func (kub kubeDummy) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
-	}).Debug("update deployment %+v", deploy)
+	}).Debugf("update deployment %+v", deploy)
 
 	return nil
 }
@@ -357,7 +357,7 @@ func (kub kubeDummy) ReplaceDeployment(ctx context.Context, nsID string, deploy 
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":       nsID,
 		"deploy_name": deploy.Name,
-	}).Debug("replace deployment %+v", deploy)
+	}).Debugf("replace deployment %+v", deploy)
 
 	return nil
 }

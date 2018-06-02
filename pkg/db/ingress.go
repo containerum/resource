@@ -141,7 +141,7 @@ func (mongo *MongoStorage) DeleteAllIngressesByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all user ingresses")
 	var collection = mongo.db.C(CollectionIngress)
 	_, err := collection.UpdateAll(ingress.IngressResource{
-		Owner: owner,
+		Ingress: model.Ingress{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},

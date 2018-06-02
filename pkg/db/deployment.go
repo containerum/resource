@@ -3,6 +3,7 @@ package db
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"github.com/blang/semver"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -24,16 +25,22 @@ func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (de
 	return depl, err
 }
 
-//TODO Unused method
-func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.DeploymentResource, error) {
-	mongo.logger.Debugf("getting deployment by ID")
+func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName, version string) (deployment.DeploymentResource, error) {
+	mongo.logger.Debugf("getting deployment by name")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentResource
 	var err error
-	if err = collection.FindId(ID).Select(bson.M{
-		"deleted": false,
+	if err = collection.Find(bson.M{
+		"namespaceid":     namespaceID,
+		"deleted":         false,
+		"deployment.name": deploymentName,
+		"version":         version,
 	}).One(&depl); err != nil {
-		mongo.logger.WithError(err).Errorf("unable to get deployment by id")
+		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+		if err == mgo.ErrNotFound {
+			return depl, rserrors.ErrResourceNotExists()
+		}
+		return depl, PipErr{err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
@@ -101,6 +108,80 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	return nil
 }
 
+func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version semver.Version) error {
+	mongo.logger.Debugf("activating deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(deployment.DeploymentResource{
+		Deployment: model.Deployment{
+			Name:    name,
+			Version: version,
+		},
+		NamespaceID: namespace,
+	}.OneInactiveVersionSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deployment.active": true},
+		})
+
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) DeactivateDeployment(namespace, name string) error {
+	mongo.logger.Debugf("deactivating deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	_, err := collection.UpdateAll(deployment.DeploymentResource{
+		Deployment: model.Deployment{
+			Name: name,
+		},
+		NamespaceID: namespace,
+	}.OneSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deployment.active": false},
+		})
+
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name, version string) error {
+	mongo.logger.Debugf("deleting deployment version")
+	var collection = mongo.db.C(CollectionDeployment)
+	semVer, err := semver.Parse(version)
+	if err != nil {
+		return err
+	}
+	err = collection.Update(deployment.DeploymentResource{
+		Deployment: model.Deployment{
+			Name:    name,
+			Version: semVer,
+		},
+		NamespaceID: namespace,
+	}.OneSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete deployment version")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists()
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
 func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 	mongo.logger.Debugf("restoring deployment")
 	var collection = mongo.db.C(CollectionDeployment)
@@ -142,7 +223,7 @@ func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all user deployments")
 	var collection = mongo.db.C(CollectionDeployment)
 	_, err := collection.UpdateAll(deployment.DeploymentResource{
-		Owner: owner,
+		Deployment: model.Deployment{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},
