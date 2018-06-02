@@ -256,20 +256,23 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 
 	newDeploy.Version = diff.NewVersion(oldDeploy.Deployment, newDeploy.Deployment)
 
-	if err = da.mongo.UpdateDeployment(newDeploy); err != nil {
+	if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
 		return nil, err
 	}
 
-	if err := da.kube.SetContainerImage(ctx, nsID, newDeploy.Name, req); err != nil {
+	updatedDeploy, err := da.mongo.CreateDeployment(newDeploy)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := da.kube.UpdateDeployment(ctx, nsID, newDeploy.Deployment); err != nil {
 		da.log.Debug("Kube-API error! Reverting changes.")
-		if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+		if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
 			return nil, err
 		}
-		return nil, err
-	}
-
-	updatedDeploy, err := da.mongo.GetDeployment(nsID, deplName)
-	if err != nil {
+		if err := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 

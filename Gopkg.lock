@@ -37,7 +37,7 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "2a9113cd40c16b9ab995f97223631edcece860ad"
+  revision = "38e03d1701fb7a8fd79ad8491c6cda0a91d4a53e"
 
 [[projects]]
   name = "github.com/containerum/utils"
