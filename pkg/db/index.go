@@ -86,8 +86,8 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 				Name: "alive_" + CollectionDeployment,
 				Key:  []string{CollectionDeployment + "." + "name", "namespaceid"},
 				PartialFilter: bson.M{
-					"deleted": false,
-					"active":  false,
+					"deleted":           false,
+					"deployment.active": true,
 				},
 				Unique: true,
 			}); err != nil {
