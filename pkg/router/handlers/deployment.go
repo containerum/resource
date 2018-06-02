@@ -79,6 +79,16 @@ func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
+	resp, err := h.GetDeploymentVersion(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
 // swagger:operation POST /namespaces/{namespace}/deployments Deployment CreateDeploymentHandler
 // Create deployment.
 //
@@ -275,6 +285,16 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	err := h.DeleteDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
+func (h *DeployHandlers) DeleteDeploymentVersionHandler(ctx *gin.Context) {
+	err := h.DeleteDeploymentVersion(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

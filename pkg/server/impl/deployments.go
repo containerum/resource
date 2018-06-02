@@ -55,6 +55,23 @@ func (da *DeployActionsImpl) GetDeployment(ctx context.Context, nsID, deplName s
 	return &ret, err
 }
 
+func (da *DeployActionsImpl) GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error) {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+	}).Info("get deployment by label")
+
+	deplVersion, err := semver.Parse(version)
+	if err != nil {
+		return nil, err
+	}
+	ret, err := da.mongo.GetDeploymentVersion(nsID, deplName, deplVersion)
+
+	return &ret, err
+}
+
 func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
@@ -146,7 +163,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 
 		if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
 			da.log.Debug("Kube-API error! Reverting changes.")
-			if err := da.mongo.DeactivateDeployment(nsID, deploy.Name); err != nil {
+			if err := da.mongo.DeleteDeploymentVersion(nsID, deploy.Name, newversion); err != nil {
 				return nil, err
 			}
 			if err := da.mongo.ActivateDeployment(nsID, deploy.Name, oldDeploy.Version); err != nil {
@@ -155,7 +172,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 			return nil, err
 		}
 	} else {
-		if err := da.mongo.UpdateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
+		if err := da.mongo.UpdateActiveDeployment(deployment.DeploymentFromKube(nsID, userID, deploy)); err != nil {
 			return nil, err
 		}
 		updatedDeploy, err = da.mongo.GetDeployment(nsID, deploy.Name)
@@ -165,7 +182,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 
 		if err := da.kube.UpdateDeployment(ctx, nsID, deploy); err != nil {
 			da.log.Debug("Kube-API error! Reverting changes.")
-			if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+			if err := da.mongo.UpdateActiveDeployment(oldDeploy); err != nil {
 				return nil, err
 			}
 			return nil, err
@@ -207,13 +224,13 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 
 	server.CalculateDeployResources(&newDeploy.Deployment)
 
-	if err := da.mongo.UpdateDeployment(newDeploy); err != nil {
+	if err := da.mongo.UpdateActiveDeployment(newDeploy); err != nil {
 		return nil, err
 	}
 
 	if err := da.kube.SetDeploymentReplicas(ctx, nsID, newDeploy.Name, req.Replicas); err != nil {
 		da.log.Debug("Kube-API error! Reverting changes.")
-		if err := da.mongo.UpdateDeployment(oldDeploy); err != nil {
+		if err := da.mongo.UpdateActiveDeployment(oldDeploy); err != nil {
 			return nil, err
 		}
 		return nil, err
@@ -300,6 +317,21 @@ func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplNam
 	}
 
 	return nil
+}
+
+func (da *DeployActionsImpl) DeleteDeploymentVersion(ctx context.Context, nsID, deplName, version string) error {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+	}).Info("get deployment by label")
+
+	deplVersion, err := semver.Parse(version)
+	if err != nil {
+		return err
+	}
+	return da.mongo.DeleteDeploymentVersion(nsID, deplName, deplVersion)
 }
 
 func (da *DeployActionsImpl) DeleteAllDeployments(ctx context.Context, nsID string) error {

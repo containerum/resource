@@ -25,16 +25,16 @@ func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (de
 	return depl, err
 }
 
-func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName, version string) (deployment.DeploymentResource, error) {
+func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName string, version semver.Version) (deployment.DeploymentResource, error) {
 	mongo.logger.Debugf("getting deployment by name")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentResource
 	var err error
 	if err = collection.Find(bson.M{
-		"namespaceid":     namespaceID,
-		"deleted":         false,
-		"deployment.name": deploymentName,
-		"version":         version,
+		"namespaceid":        namespaceID,
+		"deleted":            false,
+		"deployment.name":    deploymentName,
+		"deployment.version": version,
 	}).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
 		if err == mgo.ErrNotFound {
@@ -51,8 +51,9 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	var depl deployment.DeploymentList
 	var err error
 	if err = collection.Find(bson.M{
-		"namespaceid": namespaceID,
-		"deleted":     false,
+		"namespaceid":       namespaceID,
+		"deleted":           false,
+		"deployment.active": true,
 	}).All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment")
 	}
@@ -76,7 +77,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.DeploymentReso
 	return deployment, nil
 }
 
-func (mongo *MongoStorage) UpdateDeployment(upd deployment.DeploymentResource) error {
+func (mongo *MongoStorage) UpdateActiveDeployment(upd deployment.DeploymentResource) error {
 	mongo.logger.Debugf("updating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery())
@@ -89,7 +90,7 @@ func (mongo *MongoStorage) UpdateDeployment(upd deployment.DeploymentResource) e
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	mongo.logger.Debugf("deleting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(deployment.DeploymentResource{
+	_, err := collection.UpdateAll(deployment.DeploymentResource{
 		Deployment: model.Deployment{
 			Name: name,
 		},
@@ -117,7 +118,7 @@ func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version se
 			Version: version,
 		},
 		NamespaceID: namespace,
-	}.OneInactiveVersionSelectQuery(),
+	}.OneAnyVersionSelectQuery(),
 		bson.M{
 			"$set": bson.M{"deployment.active": true},
 		})
@@ -155,20 +156,17 @@ func (mongo *MongoStorage) DeactivateDeployment(namespace, name string) error {
 	return nil
 }
 
-func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name, version string) error {
+func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name string, version semver.Version) error {
 	mongo.logger.Debugf("deleting deployment version")
 	var collection = mongo.db.C(CollectionDeployment)
-	semVer, err := semver.Parse(version)
-	if err != nil {
-		return err
-	}
-	err = collection.Update(deployment.DeploymentResource{
+	err := collection.Update(deployment.DeploymentResource{
 		Deployment: model.Deployment{
 			Name:    name,
-			Version: semVer,
+			Version: version,
+			Active:  false,
 		},
 		NamespaceID: namespace,
-	}.OneSelectQuery(),
+	}.OneInactiveSelectQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},
 		})

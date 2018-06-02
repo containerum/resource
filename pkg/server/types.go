@@ -14,11 +14,13 @@ import (
 type DeployActions interface {
 	GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error)
 	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.DeploymentResource, error)
+	GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error)
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.DeploymentResource, error)
 	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.DeploymentResource, error)
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
+	DeleteDeploymentVersion(ctx context.Context, nsID, deplName, version string) error
 	DeleteAllDeployments(ctx context.Context, nsID string) error
 }
 

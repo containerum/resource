@@ -69,6 +69,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 	{
 		deployment.GET("", m.ReadAccess, deployHandlers.GetDeploymentsListHandler)
 		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetDeploymentHandler)
+		deployment.GET("/:deployment/version/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
 
 		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
 
@@ -78,6 +79,8 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 
 		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
+		deployment.DELETE("/:deployment/version/:version", m.ReadAccess, deployHandlers.DeleteDeploymentVersionHandler)
+
 	}
 }
 

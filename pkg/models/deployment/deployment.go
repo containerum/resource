@@ -38,7 +38,16 @@ func (depl DeploymentResource) OneSelectQuery() interface{} {
 	}
 }
 
-func (depl DeploymentResource) OneInactiveVersionSelectQuery() interface{} {
+func (depl DeploymentResource) OneInactiveSelectQuery() interface{} {
+	return bson.M{
+		"namespaceid":       depl.NamespaceID,
+		"deleted":           false,
+		"deployment.active": false,
+		"deployment.name":   depl.Name,
+	}
+}
+
+func (depl DeploymentResource) OneAnyVersionSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":        depl.NamespaceID,
 		"deleted":            false,
