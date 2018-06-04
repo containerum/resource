@@ -3,8 +3,6 @@ package impl
 import (
 	"context"
 
-	"errors"
-
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
@@ -432,6 +430,14 @@ func (da *DeployActionsImpl) DeleteDeploymentVersion(ctx context.Context, nsID, 
 	if err != nil {
 		return err
 	}
+
+	activeDeploy, err := da.mongo.GetDeployment(nsID, deplName)
+	if err == nil {
+		if activeDeploy.Version.Equals(deplVersion) {
+			return rserrors.ErrUnableDeleteActiveDeploymentVersion()
+		}
+	}
+
 	return da.mongo.DeleteDeploymentVersion(nsID, deplName, deplVersion)
 }
 
@@ -500,19 +506,25 @@ func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, 
 	}
 
 	if len(deplList) < 2 {
-		return nil, errors.New("only 1 deployment version exists")
+		return nil, rserrors.ErrOnlyOneDeploymentVersion()
 	}
 
 	var oldFound bool
+	var prevFound bool
 	var v2 semver.Version
 	for _, d := range deplList {
 		if oldFound {
 			v2 = d.Version
+			prevFound = true
 			break
 		}
 		if d.Version.Equals(v1) {
 			oldFound = true
 		}
+	}
+
+	if !prevFound {
+		return nil, rserrors.ErrResourceNotExists().AddDetails("no previous version found")
 	}
 
 	depl1, err := da.mongo.GetDeploymentVersion(nsID, deplName, v1)

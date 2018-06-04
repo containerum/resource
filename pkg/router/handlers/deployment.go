@@ -57,7 +57,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 }
 
 // swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetDeploymentHandler
-// Get deployment.
+// Get deployment active version.
 //
 // ---
 // x-method-visibility: public
@@ -90,6 +90,34 @@ func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersionHandler
+// Get deployment version.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+//  - name: version
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: deployment
+//    schema:
+//      $ref: '#/definitions/DeploymentResource'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 	resp, err := h.GetDeploymentVersion(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
 	if err != nil {
@@ -140,6 +168,34 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, deploy)
 }
 
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeploymentHandler
+// Create active deployment version.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployments
+//    in: path
+//    type: string
+//    required: true
+//  - name: version
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: active deployment version changed
+//    schema:
+//      $ref: '#/definitions/DeploymentResource'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 	resp, err := h.ChangeActiveDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
 	if err != nil {
@@ -150,6 +206,38 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, resp)
 }
 
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersionHandler
+// Rename deployment version.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployments
+//    in: path
+//    type: string
+//    required: true
+//  - name: version
+//    in: path
+//    type: string
+//    required: true
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/DeploymentVersion'
+// responses:
+//  '202':
+//    description: deployment version renamed
+//    schema:
+//      $ref: '#/definitions/DeploymentResource'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
 	var req kubtypes.DeploymentVersion
 
@@ -336,6 +424,32 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
+// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersionHandler
+// Delete deployment version (not active).
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+//  - name: version
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: deployment deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) DeleteDeploymentVersionHandler(ctx *gin.Context) {
 	err := h.DeleteDeploymentVersion(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
 	if err != nil {
@@ -371,7 +485,34 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-func (h *DeployHandlers) DiffDeplooymentVersionsHandler(ctx *gin.Context) {
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
+// Compare two deployment versions.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+//  - name: version
+//    in: path
+//    type: string
+//    required: true
+//  - name: version2
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: diff
+//  default:
+//    $ref: '#/responses/error'
+func (h *DeployHandlers) DiffDeploymentVersionsHandler(ctx *gin.Context) {
 	resp, err := h.DiffDeployments(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"), ctx.Param("version2"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
@@ -381,12 +522,34 @@ func (h *DeployHandlers) DiffDeplooymentVersionsHandler(ctx *gin.Context) {
 	ctx.String(http.StatusOK, *resp)
 }
 
-func (h *DeployHandlers) DiffDeplooymentPreviousVersionsHandler(ctx *gin.Context) {
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersionsHandler
+// Compare deployment versions with previous version.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployment
+//    in: path
+//    type: string
+//    required: true
+//  - name: version
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: diff
+//  default:
+//    $ref: '#/responses/error'
+func (h *DeployHandlers) DiffDeploymentPreviousVersionsHandler(ctx *gin.Context) {
 	resp, err := h.DiffDeploymentsPrevious(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
-
 	ctx.String(http.StatusOK, *resp)
 }

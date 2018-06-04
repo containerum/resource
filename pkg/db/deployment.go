@@ -221,6 +221,7 @@ func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name string, versi
 		bson.M{
 			"$set": bson.M{"deleted": true},
 		})
+
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment version")
 		if err == mgo.ErrNotFound {
@@ -287,8 +288,9 @@ func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if n, err := collection.Find(bson.M{
-		"owner":   owner,
-		"deleted": false,
+		"deployment.owner":  owner,
+		"deployment.active": true,
+		"deleted":           false,
 	}).Count(); err != nil {
 		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
 	} else {
@@ -305,8 +307,9 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 	if err := collection.Pipe([]bson.M{
 		{
 			"$match": bson.M{
-				"owner":   owner,
-				"deleted": false,
+				"deployment.owner":  owner,
+				"deleted":           false,
+				"deployment.active": true,
 			},
 		},
 		{

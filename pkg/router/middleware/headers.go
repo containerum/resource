@@ -35,14 +35,14 @@ func RequiredUserHeaders() gin.HandlerFunc {
 			gonic.Gonic(rserrors.ErrRequiredHeadersNotProvided().AddDetails(notFoundHeaders...), ctx)
 			return
 		}
-		/* Check User-Role and User-Namespace, X-User-Volume */
+		// Check User-Role and User-Namespace
 		if isUser, err := checkIsUserRole(GetHeader(ctx, httputil.UserRoleXHeader)); err != nil {
 			logrus.WithField("Value", GetHeader(ctx, httputil.UserRoleXHeader)).WithError(err).Warn("check User-Role Error")
 			gonic.Gonic(rserrors.ErrInvalidRole(), ctx)
 		} else {
-			//User-Role: user, check User-Namespace, X-User-Volume
+			//User-Role: user, check User-Namespace
 			if isUser {
-				notFoundHeaders := requireHeaders(ctx, httputil.UserRoleXHeader, httputil.UserNamespacesXHeader, httputil.UserIDXHeader)
+				notFoundHeaders := requireHeaders(ctx, httputil.UserNamespacesXHeader, httputil.UserIDXHeader)
 				if len(notFoundHeaders) > 0 {
 					gonic.Gonic(rserrors.ErrRequiredHeadersNotProvided().AddDetails(notFoundHeaders...), ctx)
 					return

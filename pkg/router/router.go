@@ -72,8 +72,8 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.GET("/:deployment/versions", m.ReadAccess, deployHandlers.GetDeploymentVersionsListHandler)
 		deployment.GET("/:deployment/versions/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
 
-		deployment.GET("/:deployment/versions/:version/diff", m.ReadAccess, deployHandlers.DiffDeplooymentPreviousVersionsHandler)
-		deployment.GET("/:deployment/versions/:version/diff/:version2", m.ReadAccess, deployHandlers.DiffDeplooymentVersionsHandler)
+		deployment.GET("/:deployment/versions/:version/diff", m.ReadAccess, deployHandlers.DiffDeploymentPreviousVersionsHandler)
+		deployment.GET("/:deployment/versions/:version/diff/:version2", m.ReadAccess, deployHandlers.DiffDeploymentVersionsHandler)
 
 		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
 		deployment.POST("/:deployment/versions/:version", m.WriteAccess, deployHandlers.ChangeActiveDeploymentHandler)
@@ -84,7 +84,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.PUT("/:deployment/versions/:version", m.WriteAccess, deployHandlers.RenameVersionHandler)
 
 		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
-		deployment.DELETE("/:deployment/version/:version", m.WriteAccess, deployHandlers.DeleteDeploymentVersionHandler)
+		deployment.DELETE("/:deployment/versions/:version", m.WriteAccess, deployHandlers.DeleteDeploymentVersionHandler)
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 	}
 }
