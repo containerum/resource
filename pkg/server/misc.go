@@ -47,7 +47,7 @@ func CheckDeploymentCreateQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resourc
 
 	var deployCPU, deployRAM int
 	deployCPU = int(deploy.TotalCPU)
-	deployRAM = int(deploy.TotalCPU)
+	deployRAM = int(deploy.TotalMemory)
 
 	if exceededCPU := int(ns.Resources.Hard.CPU) - deployCPU - int(nsUsage.CPU); exceededCPU < 0 {
 		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)
@@ -104,11 +104,11 @@ func CheckDeploymentReplicasChangeQuotas(ns kubtypes.Namespace, nsUsage kubtypes
 func CheckServiceCreateQuotas(ns kubtypes.Namespace, nsUsage stats.Service, serviceType service.ServiceType) error {
 	switch serviceType {
 	case service.ServiceExternal:
-		if int(*ns.MaxExtService) <= nsUsage.External {
+		if int(ns.MaxExtService) <= nsUsage.External {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
 		}
 	case service.ServiceInternal:
-		if int(*ns.MaxIntService) <= nsUsage.Internal {
+		if int(ns.MaxIntService) <= nsUsage.Internal {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
 		}
 	default:

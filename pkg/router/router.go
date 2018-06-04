@@ -42,7 +42,7 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		cfg := cors.DefaultConfig()
 		cfg.AllowAllOrigins = true
 		cfg.AddAllowMethods(http.MethodDelete)
-		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader, httputil.UserVolumesXHeader)
+		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader)
 		e.Use(cors.New(cfg))
 	}
 	e.Group("/static").

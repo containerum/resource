@@ -2,15 +2,6 @@
 
 
 [[projects]]
-  branch = "develop"
-  name = "git.containerum.net/ch/permissions"
-  packages = [
-    "pkg/errors",
-    "pkg/model"
-  ]
-  revision = "55c8bda71b2b364784e1b735c34ad05148c8e364"
-
-[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -44,8 +35,8 @@
     ".",
     "pkg/model"
   ]
-  revision = "2da1273465508146137a2a0312889ebbfb1b3346"
-  version = "v0.13.1"
+  revision = "ea99fc8e4b53d482604ae1ea8ba7ff4a481a7bcb"
+  version = "v0.19.2"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -65,8 +56,8 @@
     ".",
     "log"
   ]
-  revision = "2810ccc68e0ca445fa81ebfa03fbf70aca5c41ae"
-  version = "v2.7.0"
+  revision = "3658237ded108b4134956c1b3050349d93e7b895"
+  version = "v2.7.1"
 
 [[projects]]
   name = "github.com/gin-contrib/cors"
@@ -84,7 +75,7 @@
   branch = "master"
   name = "github.com/gin-gonic/contrib"
   packages = ["ginrus"]
-  revision = "33543d11593dd66df698cae8b4c776faa0827359"
+  revision = "6ea35d32286ce194572a0dc2a3398aac0091228d"
 
 [[projects]]
   name = "github.com/gin-gonic/gin"
@@ -133,17 +124,6 @@
   revision = "811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5"
 
 [[projects]]
-  name = "github.com/go-pg/pg"
-  packages = [
-    "internal",
-    "internal/parser",
-    "orm",
-    "types"
-  ]
-  revision = "5b73ce88484575f3480edf393237f6bf79d5f166"
-  version = "v6.11.2"
-
-[[projects]]
   name = "github.com/go-playground/locales"
   packages = [
     ".",
@@ -159,18 +139,6 @@
   packages = ["."]
   revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
   version = "v0.16.0"
-
-[[projects]]
-  name = "github.com/go-resty/resty"
-  packages = ["."]
-  revision = "f0976a825c7520308909ce5a9e8b4f8675fdd6de"
-  version = "v1.5"
-
-[[projects]]
-  name = "github.com/go-siris/siris"
-  packages = ["core/errors"]
-  revision = "bf3b6eec68567b4a1c7b4a26c9dd87815abb363c"
-  version = "v7.3.4"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -191,12 +159,6 @@
   version = "0.2"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/jinzhu/inflection"
-  packages = ["."]
-  revision = "04140366298a54a039076d798123ffa108fff46c"
-
-[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
@@ -210,7 +172,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "8b799c424f57fa123fc63a99d6383bc6e4c02578"
+  revision = "9825584555aa620c53c265d4a09ace0df1346fd9"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -229,6 +191,12 @@
   packages = ["."]
   revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
   version = "1.0.0"
+
+[[projects]]
+  name = "github.com/ninedraft/boxofstuff"
+  packages = ["strset"]
+  revision = "a75053006032b83ac7c7c9d5ed2af949e954b372"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -276,7 +244,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
+  revision = "ab813273cd59e1333f7ae7bff5d027d4aadf528c"
 
 [[projects]]
   branch = "master"
@@ -288,7 +256,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "57065200b4b034a1c8ad54ff77069408c2218ae6"
+  revision = "1e491301e022f8f977054da4c2d852decd59571f"
 
 [[projects]]
   branch = "master"
@@ -297,7 +265,7 @@
     "unix",
     "windows"
   ]
-  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
+  revision = "c11f84a56e43e20a78cee75a7c034031ecf57d1f"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -345,8 +313,8 @@
 [[projects]]
   name = "gopkg.in/resty.v1"
   packages = ["."]
-  revision = "f0976a825c7520308909ce5a9e8b4f8675fdd6de"
-  version = "v1.5"
+  revision = "fc3ad735b5565cada42d34bc298573fd3fe5adc6"
+  version = "v1.6"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -364,11 +332,11 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "86e28c192d2743f0232b9bc5f0a531568ef9f2a5"
+  revision = "98b5c3f6a62e3f879d7017752989c925732b6c7d"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0d754e313885521ca10dc42fe13a60a46c8cf0e290d2b85dd3719e8b412b0710"
+  inputs-digest = "abff0e89dc9b7274b41d08722eadf11f8465a1c06bf0d0e71b248ecbc8f5bcf0"
   solver-name = "gps-cdcl"
   solver-version = 1

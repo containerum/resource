@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"errors"
+
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
 	"github.com/globalsign/mgo"
-	"github.com/go-siris/siris/core/errors"
 	"github.com/sirupsen/logrus"
 )
 

@@ -22,7 +22,6 @@ type UserHeaderDataMap map[string]headers.UserHeaderData
 
 const (
 	UserNamespaces = "user-namespaces"
-	UserVolumes    = "user-volumes"
 
 	RoleUser  = "user"
 	RoleAdmin = "admin"
@@ -43,25 +42,18 @@ func RequiredUserHeaders() gin.HandlerFunc {
 		} else {
 			//User-Role: user, check User-Namespace, X-User-Volume
 			if isUser {
-				notFoundHeaders := requireHeaders(ctx, httputil.UserRoleXHeader, httputil.UserNamespacesXHeader, httputil.UserVolumesXHeader, httputil.UserIDXHeader)
+				notFoundHeaders := requireHeaders(ctx, httputil.UserRoleXHeader, httputil.UserNamespacesXHeader, httputil.UserIDXHeader)
 				if len(notFoundHeaders) > 0 {
 					gonic.Gonic(rserrors.ErrRequiredHeadersNotProvided().AddDetails(notFoundHeaders...), ctx)
 					return
 				}
 				userNs, errNs := checkUserNamespace(GetHeader(ctx, httputil.UserNamespacesXHeader))
-				userVol, errVol := checkUserVolume(GetHeader(ctx, httputil.UserVolumesXHeader))
 				if errNs != nil {
 					logrus.WithField("Value", GetHeader(ctx, httputil.UserNamespacesXHeader)).WithError(errNs).Warn("Check User-Namespace header Error")
 					gonic.Gonic(rserrors.ErrValidation().AddDetails(fmt.Sprintf("%v: %v", httputil.UserNamespacesXHeader, errNs)), ctx)
 					return
 				}
-				if errVol != nil {
-					logrus.WithField("Value", GetHeader(ctx, httputil.UserVolumesXHeader)).WithError(errVol).Warn("Check User-Volume header Error")
-					gonic.Gonic(rserrors.ErrValidation().AddDetails(fmt.Sprintf("%v: %v", httputil.UserVolumesXHeader, errVol)), ctx)
-					return
-				}
 				ctx.Set(UserNamespaces, userNs)
-				ctx.Set(UserVolumes, userVol)
 			}
 		}
 	}
@@ -92,10 +84,6 @@ func GetHeader(ctx *gin.Context, header string) string {
 
 func checkUserNamespace(userNamespace string) (*UserHeaderDataMap, error) {
 	return ParseUserHeaderData(userNamespace)
-}
-
-func checkUserVolume(userVolume string) (*UserHeaderDataMap, error) {
-	return ParseUserHeaderData(userVolume)
 }
 
 //ParseUserHeaderData decodes headers for substitutions
