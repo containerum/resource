@@ -73,7 +73,7 @@ func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploym
 		"namespaceid":     namespaceID,
 		"deleted":         false,
 		"deployment.name": deploymentName,
-	}).All(&depl); err != nil {
+	}).Sort("-deployment.version").All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment")
 	}
 	return depl, PipErr{err}.ToMongerr().Extract()

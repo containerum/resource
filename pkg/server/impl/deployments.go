@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 
+	"errors"
+
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
@@ -442,4 +444,87 @@ func (da *DeployActionsImpl) DeleteAllDeployments(ctx context.Context, nsID stri
 		return err
 	}
 	return nil
+}
+
+func (da *DeployActionsImpl) DiffDeployments(ctx context.Context, nsID, deplName, version1, version2 string) (*string, error) {
+	da.log.WithFields(logrus.Fields{
+		"ns_id":      nsID,
+		"deployment": deplName,
+		"version1":   version1,
+		"version2":   version2,
+	}).Info("diff deployment versions")
+
+	v1, err := semver.Parse(version1)
+	if err != nil {
+		return nil, err
+	}
+
+	v2, err := semver.Parse(version2)
+	if err != nil {
+		return nil, err
+	}
+
+	depl1, err := da.mongo.GetDeploymentVersion(nsID, deplName, v1)
+	if err != nil {
+		return nil, err
+	}
+
+	depl2, err := da.mongo.GetDeploymentVersion(nsID, deplName, v2)
+	if err != nil {
+		return nil, err
+	}
+
+	deplDiff := diff.Diff(depl1.Deployment, depl2.Deployment)
+	return &deplDiff, nil
+}
+
+func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, deplName, version string) (*string, error) {
+	da.log.WithFields(logrus.Fields{
+		"ns_id":      nsID,
+		"deployment": deplName,
+		"version":    version,
+	}).Info("diff deployment versions")
+
+	v1, err := semver.Parse(version)
+	if err != nil {
+		return nil, err
+	}
+
+	deplList, err := da.mongo.GetDeploymentVersionsList(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(deplList) == 0 {
+		return nil, rserrors.ErrResourceNotExists()
+	}
+
+	if len(deplList) < 2 {
+		return nil, errors.New("only 1 deployment version exists")
+	}
+
+	var oldFound bool
+	var v2 semver.Version
+	for _, d := range deplList {
+		if oldFound {
+			v2 = d.Version
+			break
+		}
+		if d.Version.Equals(v1) {
+			oldFound = true
+		}
+	}
+
+	depl1, err := da.mongo.GetDeploymentVersion(nsID, deplName, v1)
+	if err != nil {
+		return nil, err
+	}
+
+	depl2, err := da.mongo.GetDeploymentVersion(nsID, deplName, v2)
+	if err != nil {
+		return nil, err
+	}
+
+	deplDiff := diff.Diff(depl1.Deployment, depl2.Deployment)
+	return &deplDiff, nil
 }

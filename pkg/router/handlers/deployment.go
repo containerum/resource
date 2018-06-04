@@ -370,3 +370,23 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusAccepted)
 }
+
+func (h *DeployHandlers) DiffDeplooymentVersionsHandler(ctx *gin.Context) {
+	resp, err := h.DiffDeployments(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"), ctx.Param("version2"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.String(http.StatusOK, *resp)
+}
+
+func (h *DeployHandlers) DiffDeplooymentPreviousVersionsHandler(ctx *gin.Context) {
+	resp, err := h.DiffDeploymentsPrevious(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.String(http.StatusOK, *resp)
+}
