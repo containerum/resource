@@ -73,18 +73,16 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.GET("/:deployment/versions/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
 
 		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
-		//TODO:
-		// START SPECIFIC VERSION
+		deployment.POST("/:deployment/versions/:version", m.WriteAccess, deployHandlers.ChangeActiveDeploymentHandler)
 
 		deployment.PUT("/:deployment", m.WriteAccess, deployHandlers.UpdateDeploymentHandler)
 		deployment.PUT("/:deployment/image", m.WriteAccess, deployHandlers.SetContainerImageHandler)
 		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
-		//TODO:
-		// RENAME VERSION
+		deployment.PUT("/:deployment/versions/:version", m.WriteAccess, deployHandlers.RenameVersionHandler)
 
 		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
+		deployment.DELETE("/:deployment/version/:version", m.WriteAccess, deployHandlers.DeleteDeploymentVersionHandler)
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
-		deployment.DELETE("/:deployment/version/:version", m.ReadAccess, deployHandlers.DeleteDeploymentVersionHandler)
 	}
 }
 

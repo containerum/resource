@@ -47,7 +47,7 @@ func CheckDeploymentCreateQuotas(ns kubtypes.Namespace, nsUsage kubtypes.Resourc
 
 	var deployCPU, deployRAM int
 	deployCPU = int(deploy.TotalCPU)
-	deployRAM = int(deploy.TotalCPU)
+	deployRAM = int(deploy.TotalMemory)
 
 	if exceededCPU := int(ns.Resources.Hard.CPU) - deployCPU - int(nsUsage.CPU); exceededCPU < 0 {
 		return rserrors.ErrQuotaExceeded().AddDetailF("Exceeded %d CPU", -exceededCPU)

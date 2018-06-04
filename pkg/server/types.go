@@ -17,9 +17,11 @@ type DeployActions interface {
 	GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (deployment.DeploymentList, error)
 	GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error)
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
+	ChangeActiveDeployment(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error)
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.DeploymentResource, error)
 	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.DeploymentResource, error)
+	RenameDeploymentVersion(ctx context.Context, nsID, deplName, oldversion, newversion string) (*deployment.DeploymentResource, error)
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 	DeleteDeploymentVersion(ctx context.Context, nsID, deplName, version string) error
 	DeleteAllDeployments(ctx context.Context, nsID string) error

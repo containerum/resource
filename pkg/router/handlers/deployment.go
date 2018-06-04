@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
+	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
@@ -137,6 +138,38 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, deploy)
+}
+
+func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
+	resp, err := h.ChangeActiveDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, resp)
+}
+
+func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
+	var req kubtypes.DeploymentVersion
+
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	if req.Version == "" {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, rserrors.ErrValidation().AddDetails("no version in request"))
+		return
+	}
+
+	resp, err := h.RenameDeploymentVersion(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"), req.Version)
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, resp)
 }
 
 // swagger:operation PUT /namespaces/{namespace}/deployments/{deployment} Deployment UpdateDeployment

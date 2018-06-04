@@ -260,6 +260,38 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 	return &updatedDeploy, nil
 }
 
+func (da *DeployActionsImpl) RenameDeploymentVersion(ctx context.Context, nsID, deplName, oldversion, newversion string) (*deployment.DeploymentResource, error) {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+		"old_version": oldversion,
+		"new_version": newversion,
+	}).Info("rename deployment version")
+
+	oldDeplVersion, err := semver.Parse(oldversion)
+	if err != nil {
+		return nil, err
+	}
+
+	newDeplVersion, err := semver.Parse(newversion)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := da.mongo.UpdateDeploymentVersion(nsID, deplName, oldDeplVersion, newDeplVersion); err != nil {
+		return nil, err
+	}
+
+	updatedDeploy, err := da.mongo.GetDeploymentVersion(nsID, deplName, newDeplVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedDeploy, nil
+}
+
 func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
@@ -315,6 +347,52 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	}
 
 	return &updatedDeploy, nil
+}
+
+func (da *DeployActionsImpl) ChangeActiveDeployment(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error) {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"ns_id":       nsID,
+		"deploy_name": deplName,
+	}).Infof("change active version %v", version)
+
+	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	deplVersion, err := semver.Parse(version)
+	if err != nil {
+		return nil, err
+	}
+
+	newDeploy, err := da.mongo.GetDeploymentVersion(nsID, deplName, deplVersion)
+	if err != nil {
+		return nil, err
+	}
+	newDeploy.Active = true
+
+	if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
+		return nil, err
+	}
+
+	if err := da.kube.UpdateDeployment(ctx, nsID, newDeploy.Deployment); err != nil {
+		da.log.Debug("Kube-API error! Reverting changes.")
+		if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
+			return nil, err
+		}
+		if err := da.mongo.ActivateDeployment(nsID, oldDeploy.Name, oldDeploy.Version); err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	if err := da.mongo.ActivateDeployment(nsID, newDeploy.Name, newDeploy.Version); err != nil {
+		return nil, err
+	}
+
+	return &newDeploy, nil
 }
 
 func (da *DeployActionsImpl) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
