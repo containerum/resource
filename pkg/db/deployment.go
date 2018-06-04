@@ -45,6 +45,40 @@ func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName stri
 	return depl, err
 }
 
+func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentName string) (deployment.DeploymentResource, error) {
+	mongo.logger.Debugf("getting deployment latest version by name")
+	var collection = mongo.db.C(CollectionDeployment)
+	var depl deployment.DeploymentResource
+	var err error
+	if err = collection.Find(bson.M{
+		"namespaceid":     namespaceID,
+		"deleted":         false,
+		"deployment.name": deploymentName,
+	}).Sort("-deployment.version").One(&depl); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+		if err == mgo.ErrNotFound {
+			return depl, rserrors.ErrResourceNotExists()
+		}
+		return depl, PipErr{err}.ToMongerr().Extract()
+	}
+	return depl, err
+}
+
+func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploymentName string) (deployment.DeploymentList, error) {
+	mongo.logger.Debugf("getting deployment versions list")
+	var collection = mongo.db.C(CollectionDeployment)
+	var depl deployment.DeploymentList
+	var err error
+	if err = collection.Find(bson.M{
+		"namespaceid":     namespaceID,
+		"deleted":         false,
+		"deployment.name": deploymentName,
+	}).All(&depl); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get deployment")
+	}
+	return depl, PipErr{err}.ToMongerr().Extract()
+}
+
 func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
 	mongo.logger.Debugf("getting deployment list")
 	var collection = mongo.db.C(CollectionDeployment)

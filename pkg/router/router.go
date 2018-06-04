@@ -69,18 +69,22 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 	{
 		deployment.GET("", m.ReadAccess, deployHandlers.GetDeploymentsListHandler)
 		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetDeploymentHandler)
-		deployment.GET("/:deployment/version/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
+		deployment.GET("/:deployment/versions", m.ReadAccess, deployHandlers.GetDeploymentVersionsListHandler)
+		deployment.GET("/:deployment/versions/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
 
 		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
+		//TODO:
+		// START SPECIFIC VERSION
 
 		deployment.PUT("/:deployment", m.WriteAccess, deployHandlers.UpdateDeploymentHandler)
 		deployment.PUT("/:deployment/image", m.WriteAccess, deployHandlers.SetContainerImageHandler)
 		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
+		//TODO:
+		// RENAME VERSION
 
 		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 		deployment.DELETE("/:deployment/version/:version", m.ReadAccess, deployHandlers.DeleteDeploymentVersionHandler)
-
 	}
 }
 

@@ -72,6 +72,17 @@ func (da *DeployActionsImpl) GetDeploymentVersion(ctx context.Context, nsID, dep
 	return &ret, err
 }
 
+func (da *DeployActionsImpl) GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (deployment.DeploymentList, error) {
+	userID := httputil.MustGetUserID(ctx)
+	da.log.WithFields(logrus.Fields{
+		"user_id":    userID,
+		"namespace":  nsID,
+		"deployment": deployName,
+	}).Info("get deployments")
+
+	return da.mongo.GetDeploymentVersionsList(nsID, deployName)
+}
+
 func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
@@ -143,9 +154,14 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	oldversion := oldDeploy.Deployment.Version
+	oldLatestDeploy, err := da.mongo.GetDeploymentLatestVersion(nsID, deploy.Name)
+	if err != nil {
+		return nil, err
+	}
 
-	deploy.Version = diff.NewVersion(oldDeploy.Deployment, deploy)
+	oldversion := oldLatestDeploy.Deployment.Version
+
+	deploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, deploy)
 	deploy.Active = true
 
 	newversion := deploy.Version
@@ -271,7 +287,12 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, rserrors.ErrNoContainer()
 	}
 
-	newDeploy.Version = diff.NewVersion(oldDeploy.Deployment, newDeploy.Deployment)
+	oldLatestDeploy, err := da.mongo.GetDeploymentLatestVersion(nsID, deplName)
+	if err != nil {
+		return nil, err
+	}
+
+	newDeploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, newDeploy.Deployment)
 
 	if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
 		return nil, err

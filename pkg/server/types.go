@@ -14,6 +14,7 @@ import (
 type DeployActions interface {
 	GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error)
 	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.DeploymentResource, error)
+	GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (deployment.DeploymentList, error)
 	GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error)
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error)

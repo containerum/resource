@@ -45,6 +45,16 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
+	resp, err := h.GetDeploymentVersionsList(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
 // swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetDeploymentHandler
 // Get deployment.
 //
