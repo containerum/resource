@@ -7,7 +7,7 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 )
 
-func Diff(newDepl, oldDepl model.Deployment) string {
+func Diff(oldDepl, newDepl model.Deployment) string {
 	var newImages = newDepl.ContainersAndImages()
 	var oldImages = oldDepl.ContainersAndImages()
 	sort.Strings(newImages)
@@ -28,10 +28,10 @@ func Diff(newDepl, oldDepl model.Deployment) string {
 	var diff = difflib.UnifiedDiff{
 		A:        oldImages,
 		B:        newImages,
-		FromFile: oldDepl.Name,
+		FromFile: oldDepl.Version.String(),
 		FromDate: oldTimestamp,
 		ToDate:   newTimestamp,
-		ToFile:   newDepl.Name,
+		ToFile:   newDepl.Version.String(),
 		Context:  3,
 	}
 	var diffString, err = difflib.GetUnifiedDiffString(diff)

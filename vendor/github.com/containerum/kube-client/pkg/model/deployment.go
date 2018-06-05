@@ -22,6 +22,13 @@ type DeploymentStatus struct {
 	UpdatedReplicas     int    `json:"updated_replicas"`
 }
 
+// DeploymentVersion -- model for deployment version update
+//
+// swagger:model
+type DeploymentVersion struct {
+	Version string `json:"version"`
+}
+
 // UpdateReplicas -- contains new number of replicas
 //
 // swagger:model

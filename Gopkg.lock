@@ -37,7 +37,7 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "38e03d1701fb7a8fd79ad8491c6cda0a91d4a53e"
+  revision = "202e1f36d3f2283d01106fe7f922adc91ba9909f"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -254,7 +254,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "5ba7f63082460102a45837dbd1827e10f9479ac0"
+  revision = "df8d4716b3472e4a531c33cedbe537dae921a1a9"
 
 [[projects]]
   branch = "master"

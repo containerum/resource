@@ -45,7 +45,7 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 
 	var changedContainersWithSemvers = changedContainers.Sub(changedContainers.OnlyLatest())
 	if changedContainersWithSemvers.Filter(func(container ComparableContainer) bool {
-		return container.Version.Major() < oldContainersVersions[container.Name].Version.Major()
+		return container.Version.Major() != oldContainersVersions[container.Name].Version.Major()
 	}).Len() > 0 {
 		// some images have major updates, so
 		var newVersion = oldDepl.Version
@@ -54,7 +54,7 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 	}
 
 	if changedContainersWithSemvers.Filter(func(container ComparableContainer) bool {
-		return container.Version.Minor() < oldContainersVersions[container.Name].Version.Minor()
+		return container.Version.Minor() != oldContainersVersions[container.Name].Version.Minor()
 	}).Len() > 0 {
 		// some images have minor updates, so
 		var newVersion = oldDepl.Version
@@ -63,7 +63,7 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 	}
 
 	if changedContainersWithSemvers.Filter(func(container ComparableContainer) bool {
-		return container.Version.Patch() < oldContainersVersions[container.Name].Version.Patch()
+		return container.Version.Patch() != oldContainersVersions[container.Name].Version.Patch()
 	}).Len() > 0 {
 		// some images have minor updates, so
 		var newVersion = oldDepl.Version
@@ -74,7 +74,7 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 	if len(newContainersNames.Sub(oldContainersNames)) > 0 {
 		// only new containers have been added
 		var newVersion = oldDepl.Version
-		newVersion.Minor++
+		newVersion.Major++
 		return newVersion
 	}
 	// nothing ever changes
