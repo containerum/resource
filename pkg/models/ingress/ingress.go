@@ -11,7 +11,6 @@ import (
 // swagger:model
 type IngressResource struct {
 	model.Ingress
-	Owner       string `json:"owner"`
 	ID          string `json:"_id" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
@@ -67,15 +66,15 @@ func (ingr IngressResource) AllSelectQuery() interface{} {
 
 func (ingr IngressResource) AllSelectOwnerQuery() interface{} {
 	return bson.M{
-		"owner":   ingr.Owner,
-		"deleted": false,
+		"ingress.owner": ingr.Owner,
+		"deleted":       false,
 	}
 }
 
 func IngressFromKube(nsID, owner string, ingress model.Ingress) IngressResource {
+	ingress.Owner = owner
 	return IngressResource{
 		Ingress:     ingress,
-		Owner:       owner,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
 	}

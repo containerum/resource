@@ -18,7 +18,7 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 	if err = collection.Find(service.OneSelectQuery(namespaceID, serviceName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
 		if err == mgo.ErrNotFound {
-			return result, rserrors.ErrResourceNotExists().AddDetailsErr(err)
+			return result, rserrors.ErrResourceNotExists().AddDetails(serviceName)
 		}
 		return result, PipErr{err}.ToMongerr().Extract()
 	}
@@ -49,7 +49,7 @@ func (mongo *MongoStorage) CreateService(service service.ServiceResource) (servi
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
 		if mgo.IsDup(err) {
-			return service, rserrors.ErrResourceAlreadyExists()
+			return service, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
 		}
 		return service, PipErr{err}.ToMongerr().Extract()
 	}
@@ -81,7 +81,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -103,7 +103,7 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore service")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -130,7 +130,7 @@ func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
 	_, err := collection.UpdateAll(service.ServiceResource{
-		Owner: owner,
+		Service: model.Service{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},
@@ -151,8 +151,8 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	}
 	if err := collection.Pipe([]bson.M{
 		{"$match": bson.M{
-			"owner":   owner,
-			"deleted": false,
+			"service.owner": owner,
+			"deleted":       false,
 		}},
 		{"$project": bson.M{
 			"domain": "$service.domain",

@@ -3,6 +3,7 @@ package db
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"github.com/blang/semver"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -17,25 +18,65 @@ func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (de
 	if err = collection.Find(deployment.OneSelectQuery(namespaceID, deploymentName)).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
 		if err == mgo.ErrNotFound {
-			return depl, rserrors.ErrResourceNotExists()
+			return depl, rserrors.ErrResourceNotExists().AddDetails(deploymentName)
 		}
 		return depl, PipErr{err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
 
-//TODO Unused method
-func (mongo *MongoStorage) GetDeploymentByID(ID string) (deployment.DeploymentResource, error) {
-	mongo.logger.Debugf("getting deployment by ID")
+func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName string, version semver.Version) (deployment.DeploymentResource, error) {
+	mongo.logger.Debugf("getting deployment version by name")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentResource
 	var err error
-	if err = collection.FindId(ID).Select(bson.M{
-		"deleted": false,
+	if err = collection.Find(bson.M{
+		"namespaceid":        namespaceID,
+		"deleted":            false,
+		"deployment.name":    deploymentName,
+		"deployment.version": version,
 	}).One(&depl); err != nil {
-		mongo.logger.WithError(err).Errorf("unable to get deployment by id")
+		mongo.logger.WithError(err).Errorf("unable to get deployment version by name")
+		if err == mgo.ErrNotFound {
+			return depl, rserrors.ErrResourceNotExists().AddDetailF("%v %v", deploymentName, version.String())
+		}
+		return depl, PipErr{err}.ToMongerr().Extract()
 	}
 	return depl, err
+}
+
+func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentName string) (deployment.DeploymentResource, error) {
+	mongo.logger.Debugf("getting deployment latest version by name")
+	var collection = mongo.db.C(CollectionDeployment)
+	var depl deployment.DeploymentResource
+	var err error
+	if err = collection.Find(bson.M{
+		"namespaceid":     namespaceID,
+		"deleted":         false,
+		"deployment.name": deploymentName,
+	}).Sort("-deployment.version").One(&depl); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+		if err == mgo.ErrNotFound {
+			return depl, rserrors.ErrResourceNotExists().AddDetails(deploymentName)
+		}
+		return depl, PipErr{err}.ToMongerr().Extract()
+	}
+	return depl, err
+}
+
+func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploymentName string) (deployment.DeploymentList, error) {
+	mongo.logger.Debugf("getting deployment versions list")
+	var collection = mongo.db.C(CollectionDeployment)
+	var depl deployment.DeploymentList
+	var err error
+	if err = collection.Find(bson.M{
+		"namespaceid":     namespaceID,
+		"deleted":         false,
+		"deployment.name": deploymentName,
+	}).Sort("-deployment.version").All(&depl); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get deployment %v", deploymentName)
+	}
+	return depl, PipErr{err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
@@ -44,8 +85,9 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	var depl deployment.DeploymentList
 	var err error
 	if err = collection.Find(bson.M{
-		"namespaceid": namespaceID,
-		"deleted":     false,
+		"namespaceid":       namespaceID,
+		"deleted":           false,
+		"deployment.active": true,
 	}).All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment")
 	}
@@ -69,7 +111,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.DeploymentReso
 	return deployment, nil
 }
 
-func (mongo *MongoStorage) UpdateDeployment(upd deployment.DeploymentResource) error {
+func (mongo *MongoStorage) UpdateActiveDeployment(upd deployment.DeploymentResource) error {
 	mongo.logger.Debugf("updating deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery())
@@ -79,10 +121,30 @@ func (mongo *MongoStorage) UpdateDeployment(upd deployment.DeploymentResource) e
 	return PipErr{err}.ToMongerr().Extract()
 }
 
+func (mongo *MongoStorage) UpdateDeploymentVersion(namespace, name string, oldversion, newversion semver.Version) error {
+	mongo.logger.Debugf("updating deployment version")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(bson.M{
+		"namespaceid":        namespace,
+		"deleted":            false,
+		"deployment.name":    name,
+		"deployment.version": oldversion,
+	}, bson.M{
+		"$set": bson.M{"deployment.version": newversion},
+	})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to update deployment version")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, oldversion.String())
+		}
+	}
+	return PipErr{err}.ToMongerr().Extract()
+}
+
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	mongo.logger.Debugf("deleting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	err := collection.Update(deployment.DeploymentResource{
+	_, err := collection.UpdateAll(deployment.DeploymentResource{
 		Deployment: model.Deployment{
 			Name: name,
 		},
@@ -94,7 +156,79 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version semver.Version) error {
+	mongo.logger.Debugf("activating deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(deployment.DeploymentResource{
+		Deployment: model.Deployment{
+			Name:    name,
+			Version: version,
+		},
+		NamespaceID: namespace,
+	}.OneAnyVersionSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deployment.active": true},
+		})
+
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) DeactivateDeployment(namespace, name string) error {
+	mongo.logger.Debugf("deactivating deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	_, err := collection.UpdateAll(deployment.DeploymentResource{
+		Deployment: model.Deployment{
+			Name: name,
+		},
+		NamespaceID: namespace,
+	}.OneSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deployment.active": false},
+		})
+
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists().AddDetails(name)
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name string, version semver.Version) error {
+	mongo.logger.Debugf("deleting deployment version")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(deployment.DeploymentResource{
+		Deployment: model.Deployment{
+			Name:    name,
+			Version: version,
+			Active:  false,
+		},
+		NamespaceID: namespace,
+	}.OneInactiveSelectQuery(),
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete deployment version")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -116,7 +250,7 @@ func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore deployment")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -142,7 +276,7 @@ func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all user deployments")
 	var collection = mongo.db.C(CollectionDeployment)
 	_, err := collection.UpdateAll(deployment.DeploymentResource{
-		Owner: owner,
+		Deployment: model.Deployment{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
 			"$set": bson.M{"deleted": true},
@@ -157,8 +291,9 @@ func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if n, err := collection.Find(bson.M{
-		"owner":   owner,
-		"deleted": false,
+		"deployment.owner":  owner,
+		"deployment.active": true,
+		"deleted":           false,
 	}).Count(); err != nil {
 		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
 	} else {
@@ -175,8 +310,9 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 	if err := collection.Pipe([]bson.M{
 		{
 			"$match": bson.M{
-				"owner":   owner,
-				"deleted": false,
+				"deployment.owner":  owner,
+				"deleted":           false,
+				"deployment.active": true,
 			},
 		},
 		{

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDBConnetion(t *testing.T) {
+func TestDBConnection(t *testing.T) {
 	dialInfo := mgo.DialInfo{Addrs: []string{"localhost:27017"}}
 	cfg := MongoConfig{DialInfo: dialInfo}
 

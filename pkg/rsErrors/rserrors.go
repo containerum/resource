@@ -214,6 +214,30 @@ func ErrUnableCountResources(params ...func(*cherry.Err)) *cherry.Err {
 	}
 	return err
 }
+
+func ErrUnableDeleteActiveDeploymentVersion(params ...func(*cherry.Err)) *cherry.Err {
+	err := &cherry.Err{Message: "Unable delete active deployment version", StatusHTTP: 400, ID: cherry.ErrID{SID: "resource-service", Kind: 0x13}, Details: []string(nil), Fields: cherry.Fields(nil)}
+	for _, param := range params {
+		param(err)
+	}
+	for i, detail := range err.Details {
+		det := renderTemplate(detail)
+		err.Details[i] = det
+	}
+	return err
+}
+
+func ErrOnlyOneDeploymentVersion(params ...func(*cherry.Err)) *cherry.Err {
+	err := &cherry.Err{Message: "Only 1 deployment version exists", StatusHTTP: 404, ID: cherry.ErrID{SID: "resource-service", Kind: 0x14}, Details: []string(nil), Fields: cherry.Fields(nil)}
+	for _, param := range params {
+		param(err)
+	}
+	for i, detail := range err.Details {
+		det := renderTemplate(detail)
+		err.Details[i] = det
+	}
+	return err
+}
 func renderTemplate(templText string) string {
 	buf := &bytes.Buffer{}
 	templ, err := template.New("").Parse(templText)
