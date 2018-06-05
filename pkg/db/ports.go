@@ -23,9 +23,10 @@ func (mongo *MongoStorage) GetFreePort(domain string, protocol model.Protocol) (
 		var port = rnd.Intn(maxPort-minPort) + minPort
 		// TODO: benchmark and optimize!
 		n, err := collection.Find(bson.M{
-			"service.domain":     domain,
-			"service.ports.port": port,
-			"deleted":            false,
+			"service.domain":         domain,
+			"service.ports.port":     port,
+			"deleted":                false,
+			"service.ports.protocol": protocol,
 		}).Count()
 		if err != nil {
 			return -1, err

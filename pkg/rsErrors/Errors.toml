@@ -103,3 +103,15 @@ SID = "resource-service"
     StatusHTTP = 500
     Message = "Unable to count resources"
     Kind = 18
+
+[[error]]
+    Name = "ErrUnableDeleteActiveDeploymentVersion"
+    StatusHTTP = 400
+    Message = "Unable delete active deployment version"
+    Kind = 19
+
+[[error]]
+    Name = "ErrOnlyOneDeploymentVersion"
+    StatusHTTP = 404
+    Message = "Only 1 deployment version exists"
+    Kind = 20
