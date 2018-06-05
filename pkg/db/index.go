@@ -3,7 +3,8 @@ package db
 import (
 	"fmt"
 
-	"strings"
+	"os"
+	"text/tabwriter"
 
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
@@ -165,6 +166,7 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 				errs = append(errs, err)
 			}
 		}
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent|tabwriter.Debug)
 		for _, collectionName := range CollectionsNames() {
 			var collection = mongo.db.C(collectionName)
 			var indexes, err = collection.Indexes()
@@ -180,15 +182,14 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 					}
 				}
 				for _, index := range indexes {
-					// TODO: clean logging
-					fmt.Printf("Index in %s: %s%s| Keys: %v\n",
+					fmt.Fprintf(w, "Index in %s: %s\t Keys: %v\n",
 						collectionName,
 						index.Name,
-						strings.Repeat(" ", width-len(index.Name)+1),
 						index.Key)
 				}
 			}
 		}
+		w.Flush()
 		if len(errs) > 0 {
 			return rserrors.ErrDatabase().AddDetailsErr(errs...)
 		}
