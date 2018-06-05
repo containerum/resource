@@ -61,5 +61,5 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-mongodb
-                  key: mongodb-root-password
+                  key: mongodb-password
             {{- end }}
