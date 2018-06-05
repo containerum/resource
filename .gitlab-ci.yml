@@ -9,6 +9,7 @@ variables:
   NAMESPACE: hosting
   SECRET: gitlab-registry
   REPOSITORY: ${CI_REGISTRY}/${CI_PROJECT_PATH}
+  SAND_MONGO_PASS: "ZAvOFxQBlB"
 
 .docker-login: &docker-login
   before_script:
@@ -58,7 +59,7 @@ dev-deploy:
   script:
     - cd charts/resource
     - helm dep up
-    - helm upgrade --install --debug --namespace=${NAMESPACE} ${CI_PROJECT_NAME} --set tags.db=false --set image.tag=${CI_COMMIT_SHA:0:8} --set image.secret=${SECRET} --set image.repository=${REPOSITORY} --set service.externalIP=192.168.88.210 --values values.yaml .
+    - helm upgrade --install --debug --namespace=${NAMESPACE} ${CI_PROJECT_NAME} --set tags.db=false --set image.tag=${CI_COMMIT_SHA:0:8} --set image.secret=${SECRET} --set image.repository=${REPOSITORY} --set service.externalIP=192.168.88.210 --set env.local.CH_RESOURCE_MONGO_PASSWORD=${SAND_MONGO_PASS} --values values.yaml .
   only:
     - develop
 
