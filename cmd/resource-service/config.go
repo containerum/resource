@@ -15,8 +15,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-var defaultMongoAddr = cli.StringSlice{"localhost:27017"}
-
 var flags = []cli.Flag{
 	cli.BoolFlag{
 		EnvVar: "CH_RESOURCE_DEBUG",
@@ -58,6 +56,11 @@ var flags = []cli.Flag{
 		Usage:  "enable CORS",
 	},
 	cli.StringFlag{
+		EnvVar: "CH_RESOURCE_MONGO_DB",
+		Name:   "mongo_db",
+		Usage:  "MongoDB database name",
+	},
+	cli.StringFlag{
 		EnvVar: "CH_RESOURCE_MONGO_LOGIN",
 		Name:   "mongo_login",
 		Usage:  "MongoDB login",
@@ -69,7 +72,6 @@ var flags = []cli.Flag{
 	},
 	cli.StringSliceFlag{
 		EnvVar: "CH_RESOURCE_MONGO_ADDR",
-		Value:  &defaultMongoAddr,
 		Name:   "mongo_addr",
 		Usage:  "MongoDB address",
 	},
@@ -102,9 +104,11 @@ func setupTranslator() *ut.UniversalTranslator {
 
 func setupMongo(c *cli.Context) (*db.MongoStorage, error) {
 	dialInfo := mgo.DialInfo{
-		Username: c.String("mongo_login"),
-		Password: c.String("mongo_password"),
-		Addrs:    c.StringSlice("mongo_addr"),
+		Username:  c.String("mongo_login"),
+		Password:  c.String("mongo_password"),
+		Addrs:     c.StringSlice("mongo_addr"),
+		Database:  c.String("mongo_db"),
+		Mechanism: "SCRAM-SHA-1",
 	}
 	cfg := db.MongoConfig{
 		Logger:   logrus.WithField("component", "mongo"),
