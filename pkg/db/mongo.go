@@ -14,7 +14,6 @@ import (
 const (
 	localURL = "localhost:27017"
 
-	DBname               = "resources"
 	CollectionDeployment = "deployment"
 	CollectionService    = "service"
 	CollectionDomain     = "domain"
@@ -118,7 +117,7 @@ func NewMongo(config MongoConfig) (*MongoStorage, error) {
 	if config.Debug {
 
 	}
-	var db = session.DB(DBname)
+	var db = session.DB(config.Database)
 	if config.Username != "" || config.Password != "" {
 		if err := db.Login(config.Username, config.Password); err != nil {
 			return nil, err
