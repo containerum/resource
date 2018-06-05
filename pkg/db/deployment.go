@@ -18,7 +18,7 @@ func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (de
 	if err = collection.Find(deployment.OneSelectQuery(namespaceID, deploymentName)).One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
 		if err == mgo.ErrNotFound {
-			return depl, rserrors.ErrResourceNotExists()
+			return depl, rserrors.ErrResourceNotExists().AddDetails(deploymentName)
 		}
 		return depl, PipErr{err}.ToMongerr().Extract()
 	}
@@ -36,9 +36,9 @@ func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName stri
 		"deployment.name":    deploymentName,
 		"deployment.version": version,
 	}).One(&depl); err != nil {
-		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
+		mongo.logger.WithError(err).Errorf("unable to get deployment version by name")
 		if err == mgo.ErrNotFound {
-			return depl, rserrors.ErrResourceNotExists()
+			return depl, rserrors.ErrResourceNotExists().AddDetailF("%v %v", deploymentName, version.String())
 		}
 		return depl, PipErr{err}.ToMongerr().Extract()
 	}
@@ -57,7 +57,7 @@ func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentNam
 	}).Sort("-deployment.version").One(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment by name")
 		if err == mgo.ErrNotFound {
-			return depl, rserrors.ErrResourceNotExists()
+			return depl, rserrors.ErrResourceNotExists().AddDetails(deploymentName)
 		}
 		return depl, PipErr{err}.ToMongerr().Extract()
 	}
@@ -74,7 +74,7 @@ func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploym
 		"deleted":         false,
 		"deployment.name": deploymentName,
 	}).Sort("-deployment.version").All(&depl); err != nil {
-		mongo.logger.WithError(err).Errorf("unable to get deployment")
+		mongo.logger.WithError(err).Errorf("unable to get deployment %v", deploymentName)
 	}
 	return depl, PipErr{err}.ToMongerr().Extract()
 }
@@ -134,6 +134,9 @@ func (mongo *MongoStorage) UpdateDeploymentVersion(namespace, name string, oldve
 	})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment version")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, oldversion.String())
+		}
 	}
 	return PipErr{err}.ToMongerr().Extract()
 }
@@ -153,7 +156,7 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -177,7 +180,7 @@ func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version se
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -200,7 +203,7 @@ func (mongo *MongoStorage) DeactivateDeployment(namespace, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -225,7 +228,7 @@ func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name string, versi
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment version")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -247,7 +250,7 @@ func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore deployment")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}

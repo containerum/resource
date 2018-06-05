@@ -30,14 +30,14 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "add-deployment-diff"
   name = "github.com/containerum/kube-client"
   packages = [
     ".",
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "202e1f36d3f2283d01106fe7f922adc91ba9909f"
+  revision = "af7d34d784a37943fef121f1cca3017468265696"
+  version = "v0.19.7"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -347,6 +347,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8df488e76c6345cfacb461d61075a94bf928ed2a430fd6be4b7415cee54df7fe"
+  inputs-digest = "735b2a8ac16dbf854a6c3c29f6d2c09ce15098651bb67138efbb664f1330f907"
   solver-name = "gps-cdcl"
   solver-version = 1

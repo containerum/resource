@@ -32,7 +32,7 @@ func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Ingress
 	if err := collection.Find(ingress.OneSelectQuery(namespaceID, name)).One(&ingr); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress")
 		if err == mgo.ErrNotFound {
-			return ingr, rserrors.ErrResourceNotExists()
+			return ingr, rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return ingr, PipErr{err}.ToMongerr().Extract()
 	}
@@ -50,7 +50,7 @@ func (mongo *MongoStorage) GetIngressByService(namespaceID, serviceName string) 
 	}).One(&ingr); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress")
 		if err == mgo.ErrNotFound {
-			return ingr, rserrors.ErrResourceNotExists()
+			return ingr, rserrors.ErrResourceNotExists().AddDetails(serviceName)
 		}
 		return ingr, PipErr{err}.ToMongerr().Extract()
 	}
@@ -93,7 +93,7 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete ingress")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
@@ -115,7 +115,7 @@ func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore ingress")
 		if err == mgo.ErrNotFound {
-			return rserrors.ErrResourceNotExists()
+			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
