@@ -92,6 +92,7 @@ func NewMongo(config MongoConfig) (*MongoStorage, error) {
 	if config.AppName == "" {
 		config.AppName = "resource-service"
 	}
+	config.FailFast = true
 	config.Logger = config.Logger.WithField("app", config.AppName)
 	if config.Debug {
 		config.Logger.Debugf("running in debug mode")
@@ -99,7 +100,7 @@ func NewMongo(config MongoConfig) (*MongoStorage, error) {
 	config.Logger.Debugf("running mongo init")
 
 	if config.Timeout <= 0 {
-		config.Timeout = 120 * time.Second
+		config.Timeout = 10 * time.Second
 	}
 	config.Logger.Debugf("config timeout %v", config.Timeout)
 
