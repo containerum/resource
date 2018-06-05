@@ -1,5 +1,6 @@
 tags:
   db: true
+  platformdb: false
 
 replicaCount: 1
 
@@ -15,15 +16,19 @@ service:
   externalIP:
 
 env:
-  CH_RESOURCE_DEBUG: "true"
-  CH_RESOURCE_TEXTLOG: "true"
-  CH_RESOURCE_MONGO_ADDR: "mongo:27017"
-  CH_RESOURCE_MONGO_PASSWORD:
-  CH_RESOURCE_MONGO_LOGIN:
-  CH_RESOURCE_KUBE_API_ADDR: "kube-api:1214"
+  global:
+    CH_RESOURCE_DEBUG: "true"
+    CH_RESOURCE_TEXTLOG: "true"
+    CH_RESOURCE_MONGO_LOGIN:
+  local:
+    CH_RESOURCE_MONGO_ADDR: "mongo:27017"
+    CH_RESOURCE_KUBE_API_ADDR: "kube-api:1214"
+    CH_RESOURCE_MONGO_PASSWORD:
 
 mongodb:
+  persistence:
+    enabled: false
   image:
     pullPolicy: IfNotPresent
-  mongodbPassword: password
-  mongodbUsername: user
+  # mongodbPassword: password
+  # mongodbUsername: mongo

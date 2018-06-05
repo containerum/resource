@@ -64,10 +64,6 @@ required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
   version = "1.2.0"
 
 [[constraint]]
-  name = "github.com/dghubble/sling"
-  version = "1.1.0"
-
-[[constraint]]
   name = "github.com/globalsign/mgo"
   version = "r2018.04.23"
 

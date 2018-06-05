@@ -14,7 +14,6 @@ import (
 const (
 	localURL = "localhost:27017"
 
-	DBname               = "resources"
 	CollectionDeployment = "deployment"
 	CollectionService    = "service"
 	CollectionDomain     = "domain"

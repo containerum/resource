@@ -28,7 +28,38 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            {{- range $key, $val := .Values.env }}
+            {{- range $key, $val := .Values.env.global }}
             - name: {{ $key  }}
               value: {{ $val | quote }}
+            {{- end }}
+
+            {{- if .Values.env.local.CH_RESOURCE_MONGO_ADDR }}
+            - name: CH_RESOURCE_MONGO_ADDR
+              value: "{{ .Values.env.local.CH_RESOURCE_MONGO_ADDR }}"
+            {{- else }}
+            - name: CH_RESOURCE_MONGO_ADDR
+              value: "{{ .Release.Name }}-mongodb:27017"
+            {{- end }}
+
+            {{- if .Values.env.local.CH_RESOURCE_KUBE_API_ADDR }}
+            - name: CH_RESOURCE_KUBE_API_ADDR
+              value: "{{ .Values.env.local.CH_RESOURCE_KUBE_API_ADDR }}"
+            {{- else }}
+            - name: CH_RESOURCE_KUBE_API_ADDR
+              value: "{{ .Release.Name }}-kube:1214"
+            {{- end }}
+
+
+            {{- if .Values.env.local.CH_RESOURCE_MONGO_PASSWORD }}
+            - name: CH_RESOURCE_MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "fullname" . }}
+                  key: mongo-password
+            {{- else if .Values.tags.platformdb }}
+            - name: CH_RESOURCE_MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mongodb
+                  key: mongodb-root-password
             {{- end }}
