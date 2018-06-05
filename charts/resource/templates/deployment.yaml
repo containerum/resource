@@ -55,7 +55,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ template "fullname" . }}
-                  key: mongo-password
+                  key: mongodb-password
             {{- else if .Values.tags.platformdb }}
             - name: CH_RESOURCE_MONGO_PASSWORD
               valueFrom:
