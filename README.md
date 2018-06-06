@@ -1,5 +1,8 @@
 # Resource
-Resource is a service that manages Kubernetes namespace objects: deployments, ingresses, etc. in [Containerum](https://github.com/containerum/containerum).
+Resource is a service that manages Kubernetes namespace objects (deployments, ingresses, etc.) in [Containerum](https://github.com/containerum/containerum).
+
+## Prerequisites
+* Kubernetes
 
 ## Installation
 
