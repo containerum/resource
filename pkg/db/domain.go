@@ -9,10 +9,8 @@ import (
 func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.Domain, error) {
 	mongo.logger.Debugf("getting domain")
 	var collection = mongo.db.C(CollectionDomain)
-	var colQuerier = bson.M{"domain": domainName}
 	var result = domain.Domain{}
-	var query = collection.Find(colQuerier)
-	if err := query.One(&result); err != nil {
+	if err := collection.Find(bson.M{"domain": domainName}).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain")
 		return nil, PipErr{err}.ToMongerr().Extract()
 	}
@@ -22,9 +20,8 @@ func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.
 func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 	mongo.logger.Debugf("getting random domain")
 	var collection = mongo.db.C(CollectionDomain)
-	colQuerier := []bson.M{{"$sample": bson.M{"size": 1}}}
 	result := domain.Domain{}
-	if err := collection.Pipe(colQuerier).One(&result); err != nil {
+	if err := collection.Pipe([]bson.M{{"$sample": bson.M{"size": 1}}}).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get random domain")
 		return nil, PipErr{err}.ToMongerr().Extract()
 	}

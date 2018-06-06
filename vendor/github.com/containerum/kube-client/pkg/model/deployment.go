@@ -57,6 +57,8 @@ type Deployment struct {
 	Replicas int `json:"replicas"`
 	//total CPU usage by all containers in this deployment
 	TotalCPU uint `json:"total_cpu,omitempty"`
+	//Solution ID (only if deployment is part of solution)
+	SolutionID string `json:"solution_id,omitempty"`
 	//total RAM usage by all containers in this deployment
 	TotalMemory uint           `json:"total_memory,omitempty"`
 	Owner       string         `json:"owner,omitempty"`
@@ -125,6 +127,42 @@ func (container Container) Version() string {
 		return tagged.Tag()
 	}
 	return ""
+}
+
+func (container *Container) AddEnv(env Env) {
+	for i, cont := range container.Env {
+		if cont.Name == env.Name {
+			container.Env[i].Value = env.Value
+			return
+		}
+	}
+	container.Env = append(container.Env, env)
+}
+
+func (container *Container) GetEnv(name string) (Env, bool) {
+	for _, env := range container.Env {
+		if env.Name == name {
+			return env, true
+		}
+	}
+	return Env{}, false
+}
+
+func (container *Container) GetEnvMap() map[string]string {
+	var envs = make(map[string]string, len(container.Env))
+	for _, env := range container.Env {
+		envs[env.Name] = env.Value
+	}
+	return envs
+}
+
+func (container *Container) PutEnvMap(envs map[string]string) {
+	for k, v := range envs {
+		container.AddEnv(Env{
+			Name:  k,
+			Value: v,
+		})
+	}
 }
 
 type Image struct {
