@@ -100,7 +100,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, req))
+	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, serviceType, req))
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, req))
+	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, serviceType, req))
 	if err != nil {
 		return nil, err
 	}
@@ -211,5 +211,21 @@ func (sa *ServiceActionsImpl) DeleteAllServices(ctx context.Context, nsID string
 		return err
 	}
 
+	return nil
+}
+
+func (da *ServiceActionsImpl) DeleteAllSolutionServices(ctx context.Context, nsID, solutionName string) error {
+	da.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Info("delete all solution services")
+
+	if err := da.kube.DeleteSolutionServices(ctx, nsID, solutionName); err != nil {
+		return err
+	}
+
+	if err := da.mongo.DeleteAllServicesBySolutionName(nsID, solutionName); err != nil {
+		return err
+	}
 	return nil
 }

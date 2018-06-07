@@ -87,6 +87,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.DELETE("/:deployment/versions/:version", m.WriteAccess, deployHandlers.DeleteDeploymentVersionHandler)
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 	}
+	router.DELETE("/namespaces/:namespace/solutions/:solution/deployments", m.WriteAccess, deployHandlers.DeleteAllSolutionDeploymentsHandler)
 }
 
 func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DomainActions) {
@@ -135,6 +136,7 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		service.DELETE("/:service", m.WriteAccess, serviceHandlers.DeleteServiceHandler)
 		service.DELETE("", serviceHandlers.DeleteAllServicesHandler)
 	}
+	router.DELETE("/namespaces/:namespace/solutions/:solution/services", m.WriteAccess, serviceHandlers.DeleteAllSolutionServicesHandler)
 }
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {

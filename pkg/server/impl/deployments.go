@@ -452,6 +452,22 @@ func (da *DeployActionsImpl) DeleteAllDeployments(ctx context.Context, nsID stri
 	return nil
 }
 
+func (da *DeployActionsImpl) DeleteAllSolutionDeployments(ctx context.Context, nsID, solutionName string) error {
+	da.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Info("delete all solution deployments")
+
+	if err := da.kube.DeleteSolutionDeployments(ctx, nsID, solutionName); err != nil {
+		return err
+	}
+
+	if err := da.mongo.DeleteAllDeploymentsBySolutionName(nsID, solutionName); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (da *DeployActionsImpl) DiffDeployments(ctx context.Context, nsID, deplName, version1, version2 string) (*string, error) {
 	da.log.WithFields(logrus.Fields{
 		"ns_id":      nsID,
@@ -501,11 +517,11 @@ func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, 
 		return nil, err
 	}
 
-	if len(deplList) == 0 {
+	if deplList.Len() == 0 {
 		return nil, rserrors.ErrResourceNotExists()
 	}
 
-	if len(deplList) < 2 {
+	if deplList.Len() < 2 {
 		return nil, rserrors.ErrOnlyOneDeploymentVersion()
 	}
 

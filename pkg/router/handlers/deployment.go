@@ -485,6 +485,34 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
+// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeploymentsHandler
+// Delete all solution deployments.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: solution
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: all solution deployments deleted
+//  default:
+//    $ref: '#/responses/error'
+func (h *DeployHandlers) DeleteAllSolutionDeploymentsHandler(ctx *gin.Context) {
+	if err := h.DeleteAllSolutionDeployments(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("solution")); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
 // swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
 // Compare two deployment versions.
 //
