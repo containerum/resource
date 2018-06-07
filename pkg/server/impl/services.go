@@ -213,3 +213,19 @@ func (sa *ServiceActionsImpl) DeleteAllServices(ctx context.Context, nsID string
 
 	return nil
 }
+
+func (da *ServiceActionsImpl) DeleteAllSolutionServices(ctx context.Context, nsID, solutionName string) error {
+	da.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Info("delete all solution services")
+
+	if err := da.kube.DeleteSolutionServices(ctx, nsID, solutionName); err != nil {
+		return err
+	}
+
+	if err := da.mongo.DeleteAllServicesBySolutionName(nsID, solutionName); err != nil {
+		return err
+	}
+	return nil
+}

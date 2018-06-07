@@ -142,6 +142,22 @@ func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 	return nil
 }
 
+func (mongo *MongoStorage) DeleteAllServicesBySolutionName(nsID, solution string) error {
+	mongo.logger.Debugf("deleting all solutions services")
+	var collection = mongo.db.C(CollectionService)
+	_, err := collection.UpdateAll(bson.M{
+		"namespaceid":        nsID,
+		"service.solutionid": solution,
+	},
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete solution services")
+	}
+	return PipErr{err}.ToMongerr().Extract()
+}
+
 func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	mongo.logger.Debugf("counting services")
 	var collection = mongo.db.C(CollectionService)

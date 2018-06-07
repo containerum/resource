@@ -27,6 +27,7 @@ type DeployActions interface {
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 	DeleteDeploymentVersion(ctx context.Context, nsID, deplName, version string) error
 	DeleteAllDeployments(ctx context.Context, nsID string) error
+	DeleteAllSolutionDeployments(ctx context.Context, nsID, solutionName string) error
 }
 
 type DomainActions interface {
@@ -52,6 +53,7 @@ type ServiceActions interface {
 	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 	DeleteAllServices(ctx context.Context, nsID string) error
+	DeleteAllSolutionServices(ctx context.Context, nsID, solutionName string) error
 }
 
 type ResourcesActions interface {

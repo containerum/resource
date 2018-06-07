@@ -221,3 +221,12 @@ func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 
 	ctx.Status(http.StatusAccepted)
 }
+
+func (h *ServiceHandlers) DeleteAllSolutionServicesHandler(ctx *gin.Context) {
+	if err := h.DeleteAllSolutionServices(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("solution")); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}

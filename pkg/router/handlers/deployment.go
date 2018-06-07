@@ -485,6 +485,15 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
+func (h *DeployHandlers) DeleteAllSolutionDeploymentsHandler(ctx *gin.Context) {
+	if err := h.DeleteAllSolutionDeployments(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("solution")); err != nil {
+		ctx.AbortWithStatusJSON(h.HandleError(err))
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
 // swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
 // Compare two deployment versions.
 //

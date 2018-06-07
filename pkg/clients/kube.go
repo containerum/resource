@@ -18,10 +18,11 @@ import (
 // Kube is an interface to kube-api service
 type Kube interface {
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
-	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error
 	SetContainerImage(ctx context.Context, nsID, deplName string, container kubtypes.UpdateImage) error
+	DeleteSolutionDeployments(ctx context.Context, nsID, solutionName string) error
+	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 
 	CreateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error
 	UpdateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error
@@ -33,6 +34,7 @@ type Kube interface {
 	CreateService(ctx context.Context, nsID string, service kubtypes.Service) error
 	UpdateService(ctx context.Context, nsID string, service kubtypes.Service) error
 	DeleteService(ctx context.Context, nsID, serviceName string) error
+	DeleteSolutionServices(ctx context.Context, nsID, solutionName string) error
 }
 
 type kube struct {
@@ -85,6 +87,25 @@ func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) err
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplName))
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+	return nil
+}
+
+func (kub kube) DeleteSolutionDeployments(ctx context.Context, nsID, solutionName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Debug("delete solution deployments")
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		Delete(fmt.Sprintf("/namespaces/%s/solutions/%s/deployments", nsID, solutionName))
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -315,6 +336,25 @@ func (kub kube) DeleteService(ctx context.Context, nsID, serviceName string) err
 	return nil
 }
 
+func (kub kube) DeleteSolutionServices(ctx context.Context, nsID, solutionName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Debug("delete solution services")
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		Delete(fmt.Sprintf("/namespaces/%s/solutions/%s/services", nsID, solutionName))
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+	return nil
+}
+
 func (kub kube) String() string {
 	return fmt.Sprintf("kube api http client: url=%v", kub.client.HostURL)
 }
@@ -349,6 +389,15 @@ func (kub kubeDummy) DeleteDeployment(ctx context.Context, nsID, deplName string
 		"ns_id":       nsID,
 		"deploy_name": deplName,
 	}).Debug("delete deployment")
+
+	return nil
+}
+
+func (kub kubeDummy) DeleteSolutionDeployments(ctx context.Context, nsID, solutionName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Debug("delete solution deployments")
 
 	return nil
 }
@@ -446,6 +495,15 @@ func (kub kubeDummy) DeleteService(ctx context.Context, nsID, serviceName string
 		"ns_id":        nsID,
 		"service_name": serviceName,
 	}).Debug("delete service")
+
+	return nil
+}
+
+func (kub kubeDummy) DeleteSolutionServices(ctx context.Context, nsID, solutionName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":    nsID,
+		"solution": solutionName,
+	}).Debug("delete solution services")
 
 	return nil
 }

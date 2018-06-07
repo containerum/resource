@@ -287,6 +287,22 @@ func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 	return PipErr{err}.ToMongerr().Extract()
 }
 
+func (mongo *MongoStorage) DeleteAllDeploymentsBySolutionName(nsID, solution string) error {
+	mongo.logger.Debugf("deleting all solution deployments")
+	var collection = mongo.db.C(CollectionDeployment)
+	_, err := collection.UpdateAll(bson.M{
+		"namespaceid":           nsID,
+		"deployment.solutionid": solution,
+	},
+		bson.M{
+			"$set": bson.M{"deleted": true},
+		})
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to delete solution deployments")
+	}
+	return PipErr{err}.ToMongerr().Extract()
+}
+
 func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
