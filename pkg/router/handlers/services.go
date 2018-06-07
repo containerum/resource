@@ -222,6 +222,25 @@ func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
+// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServicesHandler
+// Delete all solution services.
+//
+// ---
+// x-method-visibility: private
+// parameters:
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: solution
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '202':
+//    description: all solution services deleted
+//  default:
+//    $ref: '#/responses/error'
 func (h *ServiceHandlers) DeleteAllSolutionServicesHandler(ctx *gin.Context) {
 	if err := h.DeleteAllSolutionServices(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("solution")); err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))

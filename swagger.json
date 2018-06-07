@@ -525,88 +525,6 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/version/{version}/diff": {
-      "post": {
-        "tags": [
-          "Deployment"
-        ],
-        "summary": "Compare deployment versions with previous version.",
-        "operationId": "DiffDeploymentPreviousVersionsHandler",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "namespace",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "deployment",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "version",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "diff"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        },
-        "x-method-visibility": "private"
-      }
-    },
-    "/namespaces/{namespace}/deployments/{deployment}/version/{version}/diff/{version2}": {
-      "post": {
-        "tags": [
-          "Deployment"
-        ],
-        "summary": "Compare two deployment versions.",
-        "operationId": "DiffDeploymentVersionsHandler",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "namespace",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "deployment",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "version",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "version2",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "diff"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        },
-        "x-method-visibility": "private"
-      }
-    },
     "/namespaces/{namespace}/deployments/{deployment}/versions/{version}": {
       "get": {
         "tags": [
@@ -803,6 +721,88 @@
           }
         },
         "x-method-visibility": "public"
+      }
+    },
+    "/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff": {
+      "post": {
+        "tags": [
+          "Deployment"
+        ],
+        "summary": "Compare deployment versions with previous version.",
+        "operationId": "DiffDeploymentPreviousVersionsHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "deployment",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "version",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "diff"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
+    "/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2}": {
+      "post": {
+        "tags": [
+          "Deployment"
+        ],
+        "summary": "Compare two deployment versions.",
+        "operationId": "DiffDeploymentVersionsHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "deployment",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "version",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "version2",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "diff"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "private"
       }
     },
     "/namespaces/{namespace}/ingresses": {
@@ -1279,6 +1279,70 @@
         "x-method-visibility": "public"
       }
     },
+    "/namespaces/{namespace}/solutions/{solution}/deployments": {
+      "delete": {
+        "tags": [
+          "Service"
+        ],
+        "summary": "Delete all solution deployments.",
+        "operationId": "DeleteAllSolutionDeploymentsHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "solution",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "all solution deployments deleted"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
+    "/namespaces/{namespace}/solutions/{solution}/services": {
+      "delete": {
+        "tags": [
+          "Service"
+        ],
+        "summary": "Delete all solution services.",
+        "operationId": "DeleteAllSolutionServicesHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "solution",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "all solution services deleted"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
     "/resources": {
       "get": {
         "tags": [
@@ -1537,6 +1601,21 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
+    "CreateVolume": {
+      "description": "CreateVolume --",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "x-go-name": "Label"
+        },
+        "tariff_id": {
+          "type": "string",
+          "x-go-name": "TariffID"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
     "Deployment": {
       "description": "Deployment -- model for deployments",
       "type": "object",
@@ -1569,6 +1648,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Replicas"
+        },
+        "solution_id": {
+          "description": "Solution ID (only if deployment is part of solution)",
+          "type": "string",
+          "x-go-name": "SolutionID"
         },
         "status": {
           "$ref": "#/definitions/DeploymentStatus"
@@ -1643,6 +1727,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Replicas"
+        },
+        "solution_id": {
+          "description": "Solution ID (only if deployment is part of solution)",
+          "type": "string",
+          "x-go-name": "SolutionID"
         },
         "status": {
           "$ref": "#/definitions/DeploymentStatus"
@@ -2238,6 +2327,17 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
+    "ResourceUpdateName": {
+      "description": "ResourceUpdateName -- contains new resource name",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "x-go-name": "Label"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
     "Resources": {
       "type": "object",
       "title": "Resources -- represents namespace limits and user resources.",
@@ -2407,6 +2507,11 @@
             "$ref": "#/definitions/ServicePort"
           },
           "x-go-name": "Ports"
+        },
+        "solution_id": {
+          "description": "Solution ID (only if service is part of solution)",
+          "type": "string",
+          "x-go-name": "SolutionID"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
@@ -2502,6 +2607,11 @@
             "$ref": "#/definitions/ServicePort"
           },
           "x-go-name": "Ports"
+        },
+        "solution_id": {
+          "description": "Solution ID (only if service is part of solution)",
+          "type": "string",
+          "x-go-name": "SolutionID"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
@@ -2509,7 +2619,7 @@
     "ServiceType": {
       "description": "represents service type",
       "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
     "ServicesList": {
       "description": "ServicesList -- model for services list",
@@ -2662,6 +2772,10 @@
           "format": "uint64",
           "x-go-name": "MembersCount"
         },
+        "owner_login": {
+          "type": "string",
+          "x-go-name": "OwnerLogin"
+        },
         "owner_user_id": {
           "type": "string",
           "x-go-name": "OwnerID"
@@ -2725,7 +2839,9 @@
       ],
       "properties": {
         "access": {
+          "description": "one of: \"owner\", \"read\", \"write\", \"read-delete\", \"none\"",
           "type": "string",
+          "x-go-name": "Access",
           "$ref": "#/definitions/AccessLevel"
         },
         "id": {
@@ -2739,7 +2855,7 @@
           "x-go-name": "Label"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/headers"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "UserSolution": {
       "description": "UserSolution -- running solution",
