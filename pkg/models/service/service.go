@@ -11,9 +11,10 @@ import (
 // swagger:model
 type ServiceResource struct {
 	model.Service
-	ID          string `json:"_id" bson:"_id,omitempty"`
-	Deleted     bool   `json:"deleted"`
-	NamespaceID string `json:"namespaceid"`
+	ID          string      `json:"_id" bson:"_id,omitempty"`
+	Deleted     bool        `json:"deleted"`
+	NamespaceID string      `json:"namespaceid"`
+	Type        ServiceType `json:"type" bson:"type"`
 }
 
 // ServiceList -- services list
@@ -28,12 +29,13 @@ const (
 	ServiceExternal ServiceType = "external"
 )
 
-func ServiceFromKube(nsID, owner string, service model.Service) ServiceResource {
+func ServiceFromKube(nsID, owner string, stype ServiceType, service model.Service) ServiceResource {
 	service.Owner = owner
 	return ServiceResource{
 		Service:     service,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
+		Type:        stype,
 	}
 }
 

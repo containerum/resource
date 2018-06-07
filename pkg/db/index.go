@@ -148,6 +148,7 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 				},
 				PartialFilter: bson.M{
 					"deleted": false,
+					"type":    "external",
 					CollectionService + ".ports.port": bson.M{
 						"$exists": true,
 					},

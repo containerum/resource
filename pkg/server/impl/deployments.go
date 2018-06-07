@@ -517,11 +517,11 @@ func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, 
 		return nil, err
 	}
 
-	if len(deplList) == 0 {
+	if deplList.Len() == 0 {
 		return nil, rserrors.ErrResourceNotExists()
 	}
 
-	if len(deplList) < 2 {
+	if deplList.Len() < 2 {
 		return nil, rserrors.ErrOnlyOneDeploymentVersion()
 	}
 
