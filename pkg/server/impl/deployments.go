@@ -136,7 +136,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 
 	server.CalculateDeployResources(&deploy)
 
-	/*nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,16 +144,16 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 	nsUsage, err := da.mongo.GetNamespaceResourcesLimits(nsID)
 	if err != nil {
 		return nil, err
-	}*/
+	}
 
 	oldDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	/*if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, deploy); err != nil {
+	if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, deploy); err != nil {
 		return nil, err
-	}*/
+	}
 
 	oldLatestDeploy, err := da.mongo.GetDeploymentLatestVersion(nsID, deploy.Name)
 	if err != nil {
