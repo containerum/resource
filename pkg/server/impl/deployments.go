@@ -13,6 +13,7 @@ import (
 	"github.com/containerum/kube-client/pkg/diff"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -135,7 +136,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 
 	server.CalculateDeployResources(&deploy)
 
-	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	/*nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -143,16 +144,16 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 	nsUsage, err := da.mongo.GetNamespaceResourcesLimits(nsID)
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
 	oldDeploy, err := da.mongo.GetDeployment(nsID, deploy.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, deploy); err != nil {
+	/*if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, deploy); err != nil {
 		return nil, err
-	}
+	}*/
 
 	oldLatestDeploy, err := da.mongo.GetDeploymentLatestVersion(nsID, deploy.Name)
 	if err != nil {
@@ -330,6 +331,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
+	newDeploy.ID = uuid.New().String()
 	updatedDeploy, err := da.mongo.CreateDeployment(newDeploy)
 	if err != nil {
 		return nil, err
