@@ -13,6 +13,7 @@ import (
 	"github.com/containerum/kube-client/pkg/diff"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -330,6 +331,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
+	newDeploy.ID = uuid.New().String()
 	updatedDeploy, err := da.mongo.CreateDeployment(newDeploy)
 	if err != nil {
 		return nil, err
