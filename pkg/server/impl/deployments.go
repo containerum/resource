@@ -332,6 +332,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	}
 
 	newDeploy.ID = uuid.New().String()
+	newDeploy.Active = true
 	updatedDeploy, err := da.mongo.CreateDeployment(newDeploy)
 	if err != nil {
 		return nil, err
