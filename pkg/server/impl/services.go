@@ -140,10 +140,13 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		req.Domain = domain.Domain
 		req.IPs = domain.IP
 		for i, port := range req.Ports {
-			var externalPort int
-			if oldService.Ports[i].Port != nil {
-				externalPort = *oldService.Ports[i].Port
-			} else {
+			externalPort := 0
+			for _, oldport := range oldService.Ports {
+				if port.Name == oldport.Name {
+					externalPort = *oldport.Port
+				}
+			}
+			if externalPort == 0 {
 				externalPort, err = sa.mongo.GetFreePort(domain.Domain, port.Protocol)
 				if err != nil {
 					return nil, err
