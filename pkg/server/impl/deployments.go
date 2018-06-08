@@ -311,8 +311,10 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	updated := false
 	for i, c := range newDeploy.Containers {
 		if c.Name == req.Container {
-			newDeploy.Containers[i].Image = req.Image
-			updated = true
+			if newDeploy.Containers[i].Image != req.Image {
+				newDeploy.Containers[i].Image = req.Image
+				updated = true
+			}
 			break
 		}
 	}
@@ -335,6 +337,9 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	newDeploy.Active = true
 	updatedDeploy, err := da.mongo.CreateDeployment(newDeploy)
 	if err != nil {
+		if err := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
