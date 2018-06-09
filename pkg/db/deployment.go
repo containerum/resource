@@ -178,9 +178,32 @@ func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version se
 		})
 
 	if err != nil {
-		mongo.logger.WithError(err).Errorf("unable to deactivate deployment")
+		mongo.logger.WithError(err).Errorf("unable to activate deployment")
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
+		}
+		return PipErr{err}.ToMongerr().Extract()
+	}
+	return nil
+}
+
+func (mongo *MongoStorage) ActivateDeploymentWOVersion(namespace, name string) error {
+	mongo.logger.Debugf("activating deploymen without version")
+	var collection = mongo.db.C(CollectionDeployment)
+	err := collection.Update(bson.M{
+		"namespaceid":        namespace,
+		"deleted":            false,
+		"deployment.version": nil,
+		"deployment.name":    name,
+	},
+		bson.M{
+			"$set": bson.M{"deployment.active": true},
+		})
+
+	if err != nil {
+		mongo.logger.WithError(err).Errorf("unable to activate deployment w/o version")
+		if err == mgo.ErrNotFound {
+			return rserrors.ErrResourceNotExists().AddDetailF("%v", name)
 		}
 		return PipErr{err}.ToMongerr().Extract()
 	}
