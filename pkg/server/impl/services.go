@@ -129,6 +129,14 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
+	if len(oldService.Ports) == 0 {
+		kubeSvc, err := sa.kube.GetService(ctx, nsID, oldService.Name)
+		if err != nil {
+			return nil, err
+		}
+		oldService.Ports = kubeSvc.Ports
+	}
+
 	serviceType := server.DetermineServiceType(kubtypes.Service(req))
 
 	if serviceType == service.ServiceExternal {

@@ -309,6 +309,15 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
+	if oldDeploy.Containers[0].Name == "" {
+		da.log.Debug("Deployment without container. Getting conatiners from kube-api")
+		kubeDepl, err := da.kube.GetDeployment(ctx, nsID, oldDeploy.Name)
+		if err != nil {
+			return nil, err
+		}
+		oldDeploy.Containers = kubeDepl.Containers
+	}
+
 	newDeploy := oldDeploy
 
 	updated := false
@@ -355,6 +364,8 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 			return nil, err
 		}
 		if acterr := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); acterr != nil {
+			//TODO
+			//Temporary solution for deployments w/o version
 			if acterr := da.mongo.ActivateDeploymentWOVersion(nsID, newDeploy.Name); acterr != nil {
 				return nil, acterr
 			} else {

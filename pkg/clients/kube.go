@@ -17,6 +17,7 @@ import (
 
 // Kube is an interface to kube-api service
 type Kube interface {
+	GetDeployment(ctx context.Context, nsID, deployName string) (*kubtypes.Deployment, error)
 	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error
 	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, replicas int) error
@@ -31,6 +32,7 @@ type Kube interface {
 	CreateSecret(ctx context.Context, nsID string, secret kubtypes.Secret) error
 	DeleteSecret(ctx context.Context, nsID, secretName string) error
 
+	GetService(ctx context.Context, nsID, svcName string) (*kubtypes.Service, error)
 	CreateService(ctx context.Context, nsID string, service kubtypes.Service) error
 	UpdateService(ctx context.Context, nsID string, service kubtypes.Service) error
 	DeleteService(ctx context.Context, nsID, serviceName string) error
@@ -58,6 +60,26 @@ func NewKubeHTTP(u *url.URL) Kube {
 		client: client,
 		log:    cherrylog.NewLogrusAdapter(log),
 	}
+}
+
+func (kub kube) GetDeployment(ctx context.Context, nsID, deployName string) (*kubtypes.Deployment, error) {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("get deployment %v", deployName)
+
+	var ret kubtypes.Deployment
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		SetResult(&ret).
+		Get(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deployName))
+	if err != nil {
+		return nil, rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return nil, resp.Error().(*cherry.Err)
+	}
+	return &ret, nil
 }
 
 func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
@@ -274,6 +296,26 @@ func (kub kube) DeleteSecret(ctx context.Context, nsID, secretName string) error
 	return nil
 }
 
+func (kub kube) GetService(ctx context.Context, nsID, svcName string) (*kubtypes.Service, error) {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("get service %v", svcName)
+
+	var ret kubtypes.Service
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		SetResult(&ret).
+		Get(fmt.Sprintf("/namespaces/%s/services/%s", nsID, svcName))
+	if err != nil {
+		return nil, rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return nil, resp.Error().(*cherry.Err)
+	}
+	return &ret, nil
+}
+
 func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
 	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
 
@@ -368,6 +410,14 @@ type kubeDummy struct {
 // NewDummyKube creates a dummy client to kube-api service. It does nothing but logs actions.
 func NewDummyKube() Kube {
 	return kubeDummy{log: logrus.WithField("component", "kube_stub")}
+}
+
+func (kub kubeDummy) GetDeployment(ctx context.Context, nsID, deployName string) (*kubtypes.Deployment, error) {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("get deployment %v", deployName)
+
+	return nil, nil
 }
 
 func (kub kubeDummy) CreateDeployment(_ context.Context, nsID string, deploy kubtypes.Deployment) error {
@@ -473,6 +523,14 @@ func (kub kubeDummy) DeleteSecret(ctx context.Context, nsID, secretName string) 
 	}).Debug("delete secret")
 
 	return nil
+}
+
+func (kub kubeDummy) GetService(ctx context.Context, nsID, svcName string) (*kubtypes.Service, error) {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("get service %v", svcName)
+
+	return nil, nil
 }
 
 func (kub kubeDummy) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
