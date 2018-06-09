@@ -151,6 +151,20 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
+	if len(oldDeploy.Containers) == 0 {
+		return nil, rserrors.ErrNoContainer()
+	}
+	if oldDeploy.Containers[0].Name == "" {
+		da.log.Debug("Deployment without container. Getting conatiners from kube-api")
+		kubeDepl, err := da.kube.GetDeployment(ctx, nsID, oldDeploy.Name)
+		if err != nil {
+			return nil, err
+		}
+		oldDeploy.Containers = kubeDepl.Containers
+	}
+
+	server.CalculateDeployResources(&oldDeploy.Deployment)
+
 	if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, deploy); err != nil {
 		return nil, err
 	}
@@ -235,6 +249,20 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		return nil, err
 	}
 
+	if len(oldDeploy.Containers) == 0 {
+		return nil, rserrors.ErrNoContainer()
+	}
+	if oldDeploy.Containers[0].Name == "" {
+		da.log.Debug("Deployment without container. Getting conatiners from kube-api")
+		kubeDepl, err := da.kube.GetDeployment(ctx, nsID, oldDeploy.Name)
+		if err != nil {
+			return nil, err
+		}
+		oldDeploy.Containers = kubeDepl.Containers
+	}
+
+	server.CalculateDeployResources(&oldDeploy.Deployment)
+
 	newDeploy := oldDeploy
 	newDeploy.Replicas = req.Replicas
 	newDeploy.Active = true
@@ -309,6 +337,20 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		return nil, err
 	}
 
+	//TODO
+	//Temporary solution for deployments w/o containers
+	if len(oldDeploy.Containers) == 0 {
+		return nil, rserrors.ErrNoContainer()
+	}
+	if oldDeploy.Containers[0].Name == "" {
+		da.log.Debug("Deployment without container. Getting conatiners from kube-api")
+		kubeDepl, err := da.kube.GetDeployment(ctx, nsID, oldDeploy.Name)
+		if err != nil {
+			return nil, err
+		}
+		oldDeploy.Containers = kubeDepl.Containers
+	}
+
 	newDeploy := oldDeploy
 
 	updated := false
@@ -355,6 +397,8 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 			return nil, err
 		}
 		if acterr := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); acterr != nil {
+			//TODO
+			//Temporary solution for deployments w/o version
 			if acterr := da.mongo.ActivateDeploymentWOVersion(nsID, newDeploy.Name); acterr != nil {
 				return nil, acterr
 			} else {
@@ -391,6 +435,34 @@ func (da *DeployActionsImpl) ChangeActiveDeployment(ctx context.Context, nsID, d
 		return nil, err
 	}
 	newDeploy.Active = true
+
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	nsUsage, err := da.mongo.GetNamespaceResourcesLimits(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(oldDeploy.Containers) == 0 {
+		return nil, rserrors.ErrNoContainer()
+	}
+	if oldDeploy.Containers[0].Name == "" {
+		da.log.Debug("Deployment without container. Getting conatiners from kube-api")
+		kubeDepl, err := da.kube.GetDeployment(ctx, nsID, oldDeploy.Name)
+		if err != nil {
+			return nil, err
+		}
+		oldDeploy.Containers = kubeDepl.Containers
+	}
+
+	server.CalculateDeployResources(&oldDeploy.Deployment)
+
+	if err := server.CheckDeploymentReplaceQuotas(nsLimits, nsUsage, oldDeploy.Deployment, newDeploy.Deployment); err != nil {
+		return nil, err
+	}
 
 	if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
 		return nil, err
