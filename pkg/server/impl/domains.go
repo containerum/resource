@@ -8,6 +8,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/sirupsen/logrus"
 )
@@ -52,8 +53,8 @@ func (da *DomainActionsImpl) GetDomain(ctx context.Context, domain string) (*dom
 }
 
 func (da *DomainActionsImpl) AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error) {
-	da.log.Infof("add domain %#v", req)
-
+	da.log.Info("add domain")
+	coblog.Std.Struct(req)
 	return da.mongo.CreateDomain(req)
 }
 

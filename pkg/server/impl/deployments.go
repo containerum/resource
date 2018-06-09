@@ -8,6 +8,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/blang/semver"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/kube-client/pkg/diff"
@@ -132,8 +133,9 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deploy.Name,
-	}).Infof("replacing deployment with %#v", deploy)
+	}).Infof("replacing deployment")
 
+	coblog.Std.Struct(deploy)
 	server.CalculateDeployResources(&deploy)
 
 	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
@@ -232,7 +234,8 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deplName,
-	}).Infof("set deployment replicas %#v", req)
+	}).Info("set deployment replicas")
+	coblog.Std.Struct(req)
 
 	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
 	if err != nil {
@@ -330,7 +333,8 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deplName,
-	}).Infof("set container image %#v", req)
+	}).Info("set container image")
+	coblog.Std.Struct(req)
 
 	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {

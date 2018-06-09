@@ -8,6 +8,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
@@ -59,7 +60,8 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	sa.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"ns_id":   nsID,
-	}).Infof("create service %#v", req)
+	}).Info("create service")
+	coblog.Std.Struct(req)
 
 	_, err := sa.mongo.GetDeployment(nsID, req.Deploy)
 	if err != nil {

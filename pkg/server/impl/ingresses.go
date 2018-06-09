@@ -9,6 +9,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
@@ -57,7 +58,8 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"ns_id":   nsID,
-	}).Infof("create ingress %#v", req)
+	}).Info("create ingress")
+	coblog.Std.Struct(req)
 
 	//Convert host to dns-label, validate it and append ".hub.containerum.io"
 	var err error
