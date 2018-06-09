@@ -163,6 +163,9 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 	oldversion := oldLatestDeploy.Deployment.Version
 
 	deploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, deploy)
+	if deploy.Version.EQ(oldLatestDeploy.Deployment.Version) {
+		deploy.Version.Patch++
+	}
 	deploy.Active = true
 
 	newversion := deploy.Version
@@ -328,6 +331,9 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	}
 
 	newDeploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, newDeploy.Deployment)
+	if newDeploy.Version.EQ(oldLatestDeploy.Deployment.Version) {
+		newDeploy.Version.Patch++
+	}
 
 	if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
 		return nil, err
@@ -348,8 +354,13 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		if err := da.mongo.DeactivateDeployment(nsID, newDeploy.Name); err != nil {
 			return nil, err
 		}
-		if err := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); err != nil {
-			return nil, err
+		if acterr := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); acterr != nil {
+			if acterr := da.mongo.ActivateDeploymentWOVersion(nsID, newDeploy.Name); acterr != nil {
+				return nil, acterr
+			} else {
+				return nil, err
+			}
+			return nil, acterr
 		}
 		return nil, err
 	}
