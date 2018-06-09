@@ -135,6 +135,8 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 			return nil, err
 		}
 		oldService.Ports = kubeSvc.Ports
+		oldService.Domain = kubeSvc.Domain
+		oldService.IPs = kubeSvc.IPs
 	}
 
 	serviceType := server.DetermineServiceType(kubtypes.Service(req))
