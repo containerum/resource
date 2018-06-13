@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
@@ -46,6 +48,7 @@ func (mongo *MongoStorage) CreateService(service service.ServiceResource) (servi
 	if service.ID == "" {
 		service.ID = uuid.New().String()
 	}
+	service.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
 		if mgo.IsDup(err) {
@@ -76,7 +79,8 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 		NamespaceID: namespaceID,
 	}.OneSelectQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"service.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
@@ -98,7 +102,8 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 		NamespaceID: namespaceID,
 	}.OneSelectDeletedQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"service.deletedat": ""},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore service")
@@ -117,7 +122,8 @@ func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) erro
 		NamespaceID: namespaceID,
 	}.AllSelectQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"service.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
@@ -133,7 +139,8 @@ func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 		Service: model.Service{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"service.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete services")
@@ -150,7 +157,8 @@ func (mongo *MongoStorage) DeleteAllServicesBySolutionName(nsID, solution string
 		"service.solutionid": solution,
 	},
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"service.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete solution services")

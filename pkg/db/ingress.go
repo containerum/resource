@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/kube-client/pkg/model"
@@ -15,6 +17,7 @@ func (mongo *MongoStorage) CreateIngress(ingress ingress.IngressResource) (ingre
 	if ingress.ID == "" {
 		ingress.ID = uuid.New().String()
 	}
+	ingress.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	if err := collection.Insert(ingress); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create ingress")
 		if mgo.IsDup(err) {
@@ -88,7 +91,8 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 		NamespaceID: namespaceID,
 	}.OneSelectQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"ingress.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete ingress")
@@ -110,7 +114,8 @@ func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
 		NamespaceID: namespaceID,
 	}.OneSelectDeletedQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": false},
+			"$set": bson.M{"deleted": false,
+				"ingress.deletedat": ""},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore ingress")
@@ -129,7 +134,8 @@ func (mongo *MongoStorage) DeleteAllIngressesInNamespace(namespace string) error
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"ingress.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
@@ -144,7 +150,8 @@ func (mongo *MongoStorage) DeleteAllIngressesByOwner(owner string) error {
 		Ingress: model.Ingress{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"ingress.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployments")

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/blang/semver"
@@ -101,6 +103,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.DeploymentReso
 	if deployment.ID == "" {
 		deployment.ID = uuid.New().String()
 	}
+	deployment.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	if err := collection.Insert(deployment); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create deployment")
 		if mgo.IsDup(err) {
@@ -150,7 +153,8 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 		"deployment.name": name,
 	},
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"deployment.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
@@ -244,7 +248,8 @@ func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name string, versi
 		NamespaceID: namespace,
 	}.OneInactiveSelectQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"deployment.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 
 	if err != nil {
@@ -267,7 +272,8 @@ func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 		NamespaceID: namespace,
 	}.OneSelectDeletedQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": false},
+			"$set": bson.M{"deleted": false,
+				"deployment.deletedat": ""},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to restore deployment")
@@ -286,7 +292,8 @@ func (mongo *MongoStorage) DeleteAllDeploymentsInNamespace(namespace string) err
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"deployment.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployments")
@@ -301,7 +308,8 @@ func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 		Deployment: model.Deployment{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"deployment.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployments")
@@ -317,7 +325,8 @@ func (mongo *MongoStorage) DeleteAllDeploymentsBySolutionName(nsID, solution str
 		"deployment.solutionid": solution,
 	},
 		bson.M{
-			"$set": bson.M{"deleted": true},
+			"$set": bson.M{"deleted": true,
+				"deployment.deletedat": time.Now().UTC().Format(time.RFC3339)},
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete solution deployments")

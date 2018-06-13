@@ -36,8 +36,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "43bc2706e4163e6d26d2be0d559591c3c9a81c6b"
-  version = "v0.19.9"
+  revision = "98e5397873b0e25dfa83fee83f28e7b7a7e10479"
+  version = "v0.21.1"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -241,8 +241,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -272,7 +272,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "1e491301e022f8f977054da4c2d852decd59571f"
+  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
 
 [[projects]]
   branch = "master"
@@ -281,7 +281,7 @@
     "unix",
     "windows"
   ]
-  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
+  revision = "8ee9f3e146b708d082f4bab861e5759d1edf8c00"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -348,11 +348,11 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "8a9b82f00b3a86eac24681da3f9fe6c34c01cea2"
+  revision = "bf40560368791a7dddfeea9b3cfcf89b34139f44"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1945a1076724e045fea8d3e29fdf4ffa2ccb437176c7e9ea419b2af448d03bd9"
+  inputs-digest = "82e70593a453ca00ac1e20de2f47bef95bfbf12dd717009f8dd96dbc3dfc9e15"
   solver-name = "gps-cdcl"
   solver-version = 1
