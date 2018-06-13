@@ -20,10 +20,10 @@ func Diff(oldDepl, newDepl model.Deployment) string {
 	}
 	var oldTimestamp, newTimestamp string
 	if oldDepl.Status != nil {
-		oldTimestamp = oldDepl.Status.CreatedAt
+		oldTimestamp = oldDepl.CreatedAt
 	}
 	if newDepl.Status != nil {
-		newTimestamp = oldDepl.Status.CreatedAt
+		newTimestamp = oldDepl.CreatedAt
 	}
 	var diff = difflib.UnifiedDiff{
 		A:        oldImages,
