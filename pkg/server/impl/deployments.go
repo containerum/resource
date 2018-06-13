@@ -8,6 +8,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/blang/semver"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/kube-client/pkg/diff"
@@ -62,11 +63,11 @@ func (da *DeployActionsImpl) GetDeploymentVersion(ctx context.Context, nsID, dep
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deplName,
-	}).Info("get deployment by label")
+	}).Info("get deployment version by label")
 
-	deplVersion, err := semver.Parse(version)
+	deplVersion, err := semver.ParseTolerant(version)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 	ret, err := da.mongo.GetDeploymentVersion(nsID, deplName, deplVersion)
 
@@ -132,8 +133,9 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deploy.Name,
-	}).Infof("replacing deployment with %#v", deploy)
+	}).Infof("replacing deployment")
 
+	coblog.Std.Struct(deploy)
 	server.CalculateDeployResources(&deploy)
 
 	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
@@ -232,7 +234,8 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deplName,
-	}).Infof("set deployment replicas %#v", req)
+	}).Info("set deployment replicas")
+	coblog.Std.Struct(req)
 
 	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
 	if err != nil {
@@ -302,14 +305,14 @@ func (da *DeployActionsImpl) RenameDeploymentVersion(ctx context.Context, nsID, 
 		"new_version": newversion,
 	}).Info("rename deployment version")
 
-	oldDeplVersion, err := semver.Parse(oldversion)
+	oldDeplVersion, err := semver.ParseTolerant(oldversion)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
-	newDeplVersion, err := semver.Parse(newversion)
+	newDeplVersion, err := semver.ParseTolerant(newversion)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
 	if err := da.mongo.UpdateDeploymentVersion(nsID, deplName, oldDeplVersion, newDeplVersion); err != nil {
@@ -330,7 +333,8 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deplName,
-	}).Infof("set container image %#v", req)
+	}).Info("set container image")
+	coblog.Std.Struct(req)
 
 	oldDeploy, err := da.mongo.GetDeployment(nsID, deplName)
 	if err != nil {
@@ -425,9 +429,9 @@ func (da *DeployActionsImpl) ChangeActiveDeployment(ctx context.Context, nsID, d
 		return nil, err
 	}
 
-	deplVersion, err := semver.Parse(version)
+	deplVersion, err := semver.ParseTolerant(version)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
 	newDeploy, err := da.mongo.GetDeploymentVersion(nsID, deplName, deplVersion)
@@ -515,7 +519,7 @@ func (da *DeployActionsImpl) DeleteDeploymentVersion(ctx context.Context, nsID, 
 		"user_id":     userID,
 		"ns_id":       nsID,
 		"deploy_name": deplName,
-	}).Info("get deployment by label")
+	}).Info("delete deployment version")
 
 	deplVersion, err := semver.Parse(version)
 	if err != nil {
@@ -567,14 +571,14 @@ func (da *DeployActionsImpl) DiffDeployments(ctx context.Context, nsID, deplName
 		"version2":   version2,
 	}).Info("diff deployment versions")
 
-	v1, err := semver.Parse(version1)
+	v1, err := semver.ParseTolerant(version1)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
-	v2, err := semver.Parse(version2)
+	v2, err := semver.ParseTolerant(version2)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
 	depl1, err := da.mongo.GetDeploymentVersion(nsID, deplName, v1)
@@ -598,9 +602,9 @@ func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, 
 		"version":    version,
 	}).Info("diff deployment versions")
 
-	v1, err := semver.Parse(version)
+	v1, err := semver.ParseTolerant(version)
 	if err != nil {
-		return nil, err
+		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
 	deplList, err := da.mongo.GetDeploymentVersionsList(nsID, deplName)

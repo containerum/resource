@@ -8,10 +8,12 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
+	"github.com/globalsign/mgo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,7 +61,8 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	sa.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"ns_id":   nsID,
-	}).Infof("create service %#v", req)
+	}).Info("create service")
+	coblog.Std.Struct(req)
 
 	_, err := sa.mongo.GetDeployment(nsID, req.Deploy)
 	if err != nil {
@@ -72,6 +75,9 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
+			if err == mgo.ErrNotFound {
+				return nil, rserrors.ErrNoDomainsAvailable()
+			}
 			return nil, err
 		}
 
@@ -144,6 +150,9 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
+			if err == mgo.ErrNotFound {
+				return nil, rserrors.ErrNoDomainsAvailable()
+			}
 			return nil, err
 		}
 

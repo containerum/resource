@@ -115,3 +115,9 @@ SID = "resource-service"
     StatusHTTP = 404
     Message = "Only 1 deployment version exists"
     Kind = 20
+
+[[error]]
+    Name = "ErrNoDomainsAvailable"
+    StatusHTTP = 404
+    Message = "No domains available"
+    Kind = 21

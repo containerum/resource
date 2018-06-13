@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
@@ -83,7 +84,8 @@ func (kub kube) GetDeployment(ctx context.Context, nsID, deployName string) (*ku
 }
 
 func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
-	kub.log.WithField("ns_id", nsID).Debugf("create deployment %+v", deploy)
+	kub.log.WithField("ns_id", nsID).Debugf("create deployment %v", deploy.Name)
+	coblog.Std.Struct(deploy)
 
 	resp, err := kub.client.R().
 		SetBody(deploy).
@@ -140,7 +142,8 @@ func (kub kube) DeleteSolutionDeployments(ctx context.Context, nsID, solutionNam
 func (kub kube) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
-	}).Debugf("update deployment %+v", deploy)
+	}).Debugf("update deployment %v", deploy.Name)
+	coblog.Std.Struct(deploy)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -202,7 +205,8 @@ func (kub kube) SetContainerImage(ctx context.Context, nsID, deplName string, co
 func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypes.Ingress) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
-	}).Debugf("create ingress %+v", ingress)
+	}).Debugf("create ingress %v", ingress.Name)
+	coblog.Std.Struct(ingress)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -222,7 +226,8 @@ func (kub kube) UpdateIngress(ctx context.Context, nsID string, ingress kubtypes
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"ingress_name": ingress.Name,
-	}).Debugf("update ingress to %+v", ingress)
+	}).Debugf("update ingress to %v", ingress.Name)
+	coblog.Std.Struct(ingress)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -260,7 +265,8 @@ func (kub kube) DeleteIngress(ctx context.Context, nsID, ingressName string) err
 func (kub kube) CreateSecret(ctx context.Context, nsID string, secret kubtypes.Secret) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id": nsID,
-	}).Debugf("create secret %+v", secret)
+	}).Debugf("create secret %v", secret.Name)
+	coblog.Std.Struct(secret)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -317,7 +323,8 @@ func (kub kube) GetService(ctx context.Context, nsID, svcName string) (*kubtypes
 }
 
 func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes.Service) error {
-	kub.log.WithField("ns_id", nsID).Debugf("create service %+v", service)
+	kub.log.WithField("ns_id", nsID).Debugf("create service %v", service)
+	coblog.Std.Struct(service)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
@@ -339,7 +346,8 @@ func (kub kube) UpdateService(ctx context.Context, nsID string, service kubtypes
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":        nsID,
 		"service_name": service.Name,
-	}).Debugf("update service to %+v", service)
+	}).Debugf("update service to %v", service.Name)
+	coblog.Std.Struct(service)
 
 	resp, err := kub.client.R().
 		SetContext(ctx).

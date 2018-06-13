@@ -182,7 +182,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "9825584555aa620c53c265d4a09ace0df1346fd9"
+  revision = "3fdea8d05856a0c8df22ed4bc71b3219245e4485"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -207,6 +207,12 @@
   packages = ["strset"]
   revision = "a57c6ea397e253eec08da7ff4305febfd0db5f7e"
   version = "v0.1.1"
+
+[[projects]]
+  name = "github.com/oleiade/reflections"
+  packages = ["."]
+  revision = "2b6ec3da648e3e834dc41bad8d9ed7f2dc6a9496"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -254,7 +260,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "df8d4716b3472e4a531c33cedbe537dae921a1a9"
+  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
 
 [[projects]]
   branch = "master"
@@ -275,7 +281,7 @@
     "unix",
     "windows"
   ]
-  revision = "c11f84a56e43e20a78cee75a7c034031ecf57d1f"
+  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -347,6 +353,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "56a7a8226015a76bcac462296ad20c6b7e53fa8f0ee722949f946e4ea1fb93a9"
+  inputs-digest = "1945a1076724e045fea8d3e29fdf4ffa2ccb437176c7e9ea419b2af448d03bd9"
   solver-name = "gps-cdcl"
   solver-version = 1
