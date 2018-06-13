@@ -26,8 +26,8 @@ type ServiceActionsImpl struct {
 
 func NewServiceActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube) *ServiceActionsImpl {
 	return &ServiceActionsImpl{
-		kube:        *kube,
 		mongo:       mongo,
+		kube:        *kube,
 		permissions: *permissions,
 		log:         cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
 	}

@@ -28,8 +28,8 @@ type DeployActionsImpl struct {
 func NewDeployActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube) *DeployActionsImpl {
 	return &DeployActionsImpl{
 		kube:        *kube,
-		mongo:       mongo,
 		permissions: *permissions,
+		mongo:       mongo,
 		log:         cherrylog.NewLogrusAdapter(logrus.WithField("component", "deploy_actions")),
 	}
 }
@@ -176,10 +176,10 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 		return nil, err
 	}
 
-	oldversion := oldLatestDeploy.Deployment.Version
+	oldversion := oldLatestDeploy.Version
 
 	deploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, deploy)
-	if deploy.Version.EQ(oldLatestDeploy.Deployment.Version) {
+	if deploy.Version.EQ(oldLatestDeploy.Version) && oldDeploy.Version.NE(oldLatestDeploy.Version) {
 		deploy.Version.Patch++
 	}
 	deploy.Active = true
@@ -377,7 +377,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	}
 
 	newDeploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, newDeploy.Deployment)
-	if newDeploy.Version.EQ(oldLatestDeploy.Deployment.Version) {
+	if newDeploy.Version.EQ(oldLatestDeploy.Deployment.Version) && oldDeploy.Version.NE(oldLatestDeploy.Version) {
 		newDeploy.Version.Patch++
 	}
 
