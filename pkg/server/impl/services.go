@@ -13,6 +13,7 @@ import (
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
+	"github.com/globalsign/mgo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -74,6 +75,9 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
+			if err == mgo.ErrNotFound {
+				return nil, rserrors.ErrNoDomainsAvailable()
+			}
 			return nil, err
 		}
 
@@ -146,6 +150,9 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
+			if err == mgo.ErrNotFound {
+				return nil, rserrors.ErrNoDomainsAvailable()
+			}
 			return nil, err
 		}
 
