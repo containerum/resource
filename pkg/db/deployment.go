@@ -46,7 +46,7 @@ func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName stri
 }
 
 func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentName string) (deployment.DeploymentResource, error) {
-	mongo.logger.Debugf("getting deployment latest version by name")
+	mongo.logger.Debugf("getting deployment latest version")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentResource
 	var err error
@@ -80,7 +80,7 @@ func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploym
 }
 
 func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
-	mongo.logger.Debugf("getting deployment list")
+	mongo.logger.Debugf("getting deployments list")
 	var collection = mongo.db.C(CollectionDeployment)
 	var depl deployment.DeploymentList
 	var err error
@@ -112,7 +112,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.DeploymentReso
 }
 
 func (mongo *MongoStorage) UpdateActiveDeployment(upd deployment.DeploymentResource) error {
-	mongo.logger.Debugf("updating deployment")
+	mongo.logger.Debugf("updating active deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery())
 	if err != nil {
@@ -188,7 +188,7 @@ func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version se
 }
 
 func (mongo *MongoStorage) ActivateDeploymentWOVersion(namespace, name string) error {
-	mongo.logger.Debugf("activating deploymen without version")
+	mongo.logger.Debugf("activating deployment without version")
 	var collection = mongo.db.C(CollectionDeployment)
 	err := collection.Update(bson.M{
 		"namespaceid":        namespace,
@@ -327,7 +327,7 @@ func (mongo *MongoStorage) DeleteAllDeploymentsBySolutionName(nsID, solution str
 }
 
 func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
-	mongo.logger.Debugf("counting deployment")
+	mongo.logger.Debugf("counting user deployment")
 	var collection = mongo.db.C(CollectionDeployment)
 	if n, err := collection.Find(bson.M{
 		"deployment.owner":  owner,
@@ -341,7 +341,7 @@ func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 }
 
 func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
-	mongo.logger.Debugf("counting deployment replicas")
+	mongo.logger.Debugf("counting deployments replicas")
 	var collection = mongo.db.C(CollectionDeployment)
 	var count struct {
 		Count int `json:"count"`
