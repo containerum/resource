@@ -144,12 +144,11 @@ func (mongo *MongoStorage) UpdateDeploymentVersion(namespace, name string, oldve
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 	mongo.logger.Debugf("deleting deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	_, err := collection.UpdateAll(deployment.DeploymentResource{
-		Deployment: model.Deployment{
-			Name: name,
-		},
-		NamespaceID: namespace,
-	}.OneSelectQuery(),
+	_, err := collection.UpdateAll(bson.M{
+		"namespaceid":     namespace,
+		"deleted":         false,
+		"deployment.name": name,
+	},
 		bson.M{
 			"$set": bson.M{"deleted": true},
 		})
