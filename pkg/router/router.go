@@ -68,7 +68,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 	deployment := router.Group("/namespaces/:namespace/deployments")
 	{
 		deployment.GET("", m.ReadAccess, deployHandlers.GetDeploymentsListHandler)
-		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetDeploymentHandler)
+		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetActiveDeploymentHandler)
 		deployment.GET("/:deployment/versions", m.ReadAccess, deployHandlers.GetDeploymentVersionsListHandler)
 		deployment.GET("/:deployment/versions/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
 		deployment.GET("/:deployment/versions/:version/diff", m.ReadAccess, deployHandlers.DiffDeploymentPreviousVersionsHandler)

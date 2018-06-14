@@ -89,7 +89,7 @@ SID = "resource-service"
 [[error]]
     Name = "ErrQuotaExceeded"
     StatusHTTP = 400
-    Message = "Namespace quota exceeded"
+    Message = "Project quota exceeded"
     Kind = 16
 
 [[error]]

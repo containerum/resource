@@ -180,7 +180,7 @@ func ErrAdminRequired(params ...func(*cherry.Err)) *cherry.Err {
 }
 
 func ErrQuotaExceeded(params ...func(*cherry.Err)) *cherry.Err {
-	err := &cherry.Err{Message: "Namespace quota exceeded", StatusHTTP: 400, ID: cherry.ErrID{SID: "resource-service", Kind: 0x10}, Details: []string(nil), Fields: cherry.Fields(nil)}
+	err := &cherry.Err{Message: "Project quota exceeded", StatusHTTP: 400, ID: cherry.ErrID{SID: "resource-service", Kind: 0x10}, Details: []string(nil), Fields: cherry.Fields(nil)}
 	for _, param := range params {
 		param(err)
 	}
