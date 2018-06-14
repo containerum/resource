@@ -32,7 +32,7 @@ type ServiceHandlers struct {
 //  '200':
 //    description: services list
 //    schema:
-//      $ref: '#/definitions/ServiceList'
+//      $ref: '#/definitions/ServicesResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {

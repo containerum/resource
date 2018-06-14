@@ -37,7 +37,7 @@
           "200": {
             "description": "domains list",
             "schema": {
-              "$ref": "#/definitions/DomainsList"
+              "$ref": "#/definitions/DomainsResponse"
             }
           },
           "default": {
@@ -217,7 +217,7 @@
           "200": {
             "description": "deployments list",
             "schema": {
-              "$ref": "#/definitions/DeploymentList"
+              "$ref": "#/definitions/DeploymentsResponse"
             }
           },
           "default": {
@@ -516,6 +516,50 @@
             "description": "deployment updated",
             "schema": {
               "$ref": "#/definitions/DeploymentResource"
+            }
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
+    "/namespaces/{namespace}/deployments/{deployment}/versions": {
+      "get": {
+        "tags": [
+          "Deployment"
+        ],
+        "summary": "Get deployments list.",
+        "operationId": "GetDeploymentVersionsListHandler",
+        "parameters": [
+          {
+            "$ref": "#/parameters/UserIDHeader"
+          },
+          {
+            "$ref": "#/parameters/UserRoleHeader"
+          },
+          {
+            "$ref": "#/parameters/UserNamespaceHeader"
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "deployments",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "deployment versions list",
+            "schema": {
+              "$ref": "#/definitions/DeploymentsResponse"
             }
           },
           "default": {
@@ -833,7 +877,7 @@
           "200": {
             "description": "ingresses list",
             "schema": {
-              "$ref": "#/definitions/IngressList"
+              "$ref": "#/definitions/IngressesResponse"
             }
           },
           "default": {
@@ -1070,7 +1114,7 @@
           "200": {
             "description": "services list",
             "schema": {
-              "$ref": "#/definitions/ServiceList"
+              "$ref": "#/definitions/ServicesResponse"
             }
           },
           "default": {
@@ -2692,7 +2736,7 @@
     "ServiceType": {
       "description": "represents service type",
       "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "ServicesList": {
       "description": "ServicesList -- model for services list",
@@ -2926,7 +2970,9 @@
       ],
       "properties": {
         "access": {
+          "description": "one of: \"owner\", \"read\", \"write\", \"read-delete\", \"none\"",
           "type": "string",
+          "x-go-name": "Access",
           "$ref": "#/definitions/AccessLevel"
         },
         "id": {
@@ -2940,7 +2986,7 @@
           "x-go-name": "Label"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/headers"
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "UserSolution": {
       "description": "UserSolution -- running solution",

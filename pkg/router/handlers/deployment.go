@@ -33,7 +33,7 @@ type DeployHandlers struct {
 //  '200':
 //    description: deployments list
 //    schema:
-//      $ref: '#/definitions/DeploymentList'
+//      $ref: '#/definitions/DeploymentsResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
@@ -46,6 +46,30 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsListHandler
+// Get deployments list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: namespace
+//    in: path
+//    type: string
+//    required: true
+//  - name: deployments
+//    in: path
+//    type: string
+//    required: true
+// responses:
+//  '200':
+//    description: deployment versions list
+//    schema:
+//      $ref: '#/definitions/DeploymentsResponse'
+//  default:
+//    $ref: '#/responses/error'
 func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 	resp, err := h.GetDeploymentVersionsList(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
 	if err != nil {
