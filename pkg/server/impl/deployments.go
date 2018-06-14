@@ -368,8 +368,10 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	newDeploy := oldDeploy
 
 	updated := false
+	containerFound := false
 	for i, c := range newDeploy.Containers {
 		if c.Name == req.Container {
+			containerFound = true
 			if newDeploy.Containers[i].Image != req.Image {
 				newDeploy.Containers[i].Image = req.Image
 				updated = true
@@ -377,8 +379,11 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 			break
 		}
 	}
-	if !updated {
+	if !containerFound {
 		return nil, rserrors.ErrNoContainer()
+	}
+	if !updated {
+		return &oldDeploy, nil
 	}
 
 	oldLatestDeploy, err := da.mongo.GetDeploymentLatestVersion(nsID, deplName)
