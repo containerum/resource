@@ -300,7 +300,7 @@
           "Deployment"
         ],
         "summary": "Get deployment active version.",
-        "operationId": "GetDeploymentHandler",
+        "operationId": "GetActiveDeploymentHandler",
         "parameters": [
           {
             "$ref": "#/parameters/UserIDHeader"
@@ -1455,6 +1455,11 @@
         "data": {
           "$ref": "#/definitions/ConfigMapData"
         },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -1636,6 +1641,16 @@
           },
           "x-go-name": "Containers"
         },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -1707,9 +1722,19 @@
           },
           "x-go-name": "Containers"
         },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
         "deleted": {
           "type": "boolean",
           "x-go-name": "Deleted"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
         },
         "name": {
           "type": "string",
@@ -1763,11 +1788,6 @@
           "format": "int64",
           "x-go-name": "AvailableReplicas"
         },
-        "created_at": {
-          "description": "creation date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "CreatedAt"
-        },
         "ready_replicas": {
           "type": "integer",
           "format": "int64",
@@ -1782,11 +1802,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "UnavailableReplicas"
-        },
-        "updated_at": {
-          "description": "update date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "UpdatedAt"
         },
         "updated_replicas": {
           "type": "integer",
@@ -1820,6 +1835,16 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "DeploymentsResponse": {
+      "description": "DeploymentsResponse -- deployments response",
+      "type": "object",
+      "properties": {
+        "deployments": {
+          "$ref": "#/definitions/DeploymentList"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
     },
     "Domain": {
       "description": "Domain -- model for available service domain for resource-service db",
@@ -1860,6 +1885,16 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/Domain"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/domain"
+    },
+    "DomainsResponse": {
+      "description": "DomainsList -- domains response",
+      "type": "object",
+      "properties": {
+        "domains": {
+          "$ref": "#/definitions/DomainList"
+        }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/domain"
     },
@@ -2000,6 +2035,11 @@
           "type": "string",
           "x-go-name": "CreatedAt"
         },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -2047,6 +2087,11 @@
           "type": "boolean",
           "x-go-name": "Deleted"
         },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -2082,6 +2127,16 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "IngressesResponse": {
+      "description": "IngressesResponse -- ingresses response",
+      "type": "object",
+      "properties": {
+        "ingresses": {
+          "$ref": "#/definitions/IngressList"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
     },
     "Namespace": {
       "description": "Namespace -- namespace representation",
@@ -2424,6 +2479,11 @@
           },
           "x-go-name": "Data"
         },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -2477,6 +2537,11 @@
           "description": "creation date in RFC3339 format",
           "type": "string",
           "x-go-name": "CreatedAt"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
         },
         "deploy": {
           "type": "string",
@@ -2574,6 +2639,11 @@
           "type": "boolean",
           "x-go-name": "Deleted"
         },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
         "deploy": {
           "type": "string",
           "x-go-name": "Deploy"
@@ -2612,6 +2682,9 @@
           "description": "Solution ID (only if service is part of solution)",
           "type": "string",
           "x-go-name": "SolutionID"
+        },
+        "type": {
+          "$ref": "#/definitions/ServiceType"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
@@ -2634,6 +2707,16 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ServicesResponse": {
+      "description": "ServicesResponse -- ingresses response",
+      "type": "object",
+      "properties": {
+        "services": {
+          "$ref": "#/definitions/ServiceList"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
     "SolutionEnv": {
       "description": "SolutionEnv -- solution environment variables",
@@ -2794,6 +2877,10 @@
         "access": {
           "$ref": "#/definitions/UserGroupAccess"
         },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
         "username": {
           "type": "string",
           "x-go-name": "Username"
@@ -2839,9 +2926,7 @@
       ],
       "properties": {
         "access": {
-          "description": "one of: \"owner\", \"read\", \"write\", \"read-delete\", \"none\"",
           "type": "string",
-          "x-go-name": "Access",
           "$ref": "#/definitions/AccessLevel"
         },
         "id": {
@@ -2855,7 +2940,7 @@
           "x-go-name": "Label"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/headers"
     },
     "UserSolution": {
       "description": "UserSolution -- running solution",
@@ -2957,8 +3042,13 @@
           "x-go-name": "Capacity"
         },
         "created_at": {
+          "description": "creation date in RFC3339 format",
           "type": "string",
           "x-go-name": "CreatedAt"
+        },
+        "deleted_at": {
+          "type": "string",
+          "x-go-name": "DeletedAt"
         },
         "name": {
           "type": "string",
@@ -2971,6 +3061,11 @@
         "owner_login": {
           "type": "string",
           "x-go-name": "OwnerLogin"
+        },
+        "status": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "Status"
         },
         "storage_name": {
           "type": "string",

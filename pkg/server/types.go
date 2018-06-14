@@ -12,9 +12,9 @@ import (
 )
 
 type DeployActions interface {
-	GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error)
+	GetDeploymentsList(ctx context.Context, nsID string) (*deployment.DeploymentsResponse, error)
 	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.DeploymentResource, error)
-	GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (deployment.DeploymentList, error)
+	GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (*deployment.DeploymentsResponse, error)
 	GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error)
 	DiffDeployments(ctx context.Context, nsID, deplName, version1, version2 string) (*string, error)
 	DiffDeploymentsPrevious(ctx context.Context, nsID, deplName, version string) (*string, error)
@@ -31,7 +31,7 @@ type DeployActions interface {
 }
 
 type DomainActions interface {
-	GetDomainsList(ctx context.Context, page, per_page string) (domain.DomainList, error)
+	GetDomainsList(ctx context.Context, page, per_page string) (*domain.DomainsResponse, error)
 	GetDomain(ctx context.Context, domain string) (*domain.Domain, error)
 	AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
@@ -39,7 +39,7 @@ type DomainActions interface {
 
 type IngressActions interface {
 	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.IngressResource, error)
-	GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error)
+	GetIngressesList(ctx context.Context, nsID string) (*ingress.IngressesResponse, error)
 	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.IngressResource, error)
 	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.IngressResource, error)
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
@@ -48,7 +48,7 @@ type IngressActions interface {
 
 type ServiceActions interface {
 	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error)
-	GetServices(ctx context.Context, nsID string) (service.ServiceList, error)
+	GetServicesList(ctx context.Context, nsID string) (*service.ServicesResponse, error)
 	GetService(ctx context.Context, nsID, serviceName string) (*service.ServiceResource, error)
 	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error

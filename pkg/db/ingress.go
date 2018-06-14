@@ -63,7 +63,7 @@ func (mongo *MongoStorage) GetIngressByService(namespaceID, serviceName string) 
 func (mongo *MongoStorage) GetIngressList(namespaceID string) (ingress.IngressList, error) {
 	mongo.logger.Debugf("getting ingress")
 	var collection = mongo.db.C(CollectionIngress)
-	var list ingress.IngressList
+	list := make(ingress.IngressList, 0)
 	if err := collection.Find(ingress.ListSelectQuery(namespaceID)).All(&list); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress list")
 		return list, PipErr{err}.ToMongerr().NotFoundToNil().Extract()

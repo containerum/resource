@@ -26,7 +26,7 @@ func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 	}
 }
 
-func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) (domain.DomainList, error) {
+func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) (*domain.DomainsResponse, error) {
 	da.log.Infof("get all domains page %q per_page %q", page, per_page)
 
 	pagei, pageerr := strconv.Atoi(page)
@@ -34,17 +34,24 @@ func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page 
 
 	if pageerr == nil && perpageerr == nil {
 		if pagei > 0 && perpagei > 0 {
-			return da.mongo.GetDomainsList(&db.PageInfo{
+			domains, err := da.mongo.GetDomainsList(&db.PageInfo{
 				Page:    pagei,
 				PerPage: perpagei,
 			})
+			if err != nil {
+				return nil, err
+			}
+			return &domain.DomainsResponse{Domains: domains}, nil
 		}
 	}
-
-	return da.mongo.GetDomainsList(&db.PageInfo{
+	domains, err := da.mongo.GetDomainsList(&db.PageInfo{
 		Page:    1,
 		PerPage: 100,
 	})
+	if err != nil {
+		return nil, err
+	}
+	return &domain.DomainsResponse{Domains: domains}, nil
 }
 
 func (da *DomainActionsImpl) GetDomain(ctx context.Context, domain string) (*domain.Domain, error) {

@@ -33,14 +33,19 @@ func NewServiceActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissi
 	}
 }
 
-func (sa *ServiceActionsImpl) GetServices(ctx context.Context, nsID string) (service.ServiceList, error) {
+func (sa *ServiceActionsImpl) GetServicesList(ctx context.Context, nsID string) (*service.ServicesResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"namespace": nsID,
 	}).Info("get services")
 
-	return sa.mongo.GetServiceList(nsID)
+	services, err := sa.mongo.GetServiceList(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &service.ServicesResponse{Services: services}, nil
 }
 
 func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.ServiceResource, error) {

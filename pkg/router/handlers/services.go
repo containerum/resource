@@ -36,7 +36,7 @@ type ServiceHandlers struct {
 //  default:
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
-	resp, err := h.GetServices(ctx.Request.Context(), ctx.Param("namespace"))
+	resp, err := h.GetServicesList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

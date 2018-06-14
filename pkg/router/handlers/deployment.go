@@ -56,7 +56,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetDeploymentHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeploymentHandler
 // Get deployment active version.
 //
 // ---
@@ -80,7 +80,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 //      $ref: '#/definitions/DeploymentResource'
 //  default:
 //    $ref: '#/responses/error'
-func (h *DeployHandlers) GetDeploymentHandler(ctx *gin.Context) {
+func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 	resp, err := h.GetDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))

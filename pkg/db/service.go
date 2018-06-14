@@ -28,9 +28,9 @@ func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.
 }
 
 func (mongo *MongoStorage) GetServiceList(namespaceID string) (service.ServiceList, error) {
-	mongo.logger.Debugf("getting service list")
+	mongo.logger.Debugf("getting services list")
 	var collection = mongo.db.C(CollectionService)
-	var result service.ServiceList
+	result := make(service.ServiceList, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": namespaceID,
 		"deleted":     false,

@@ -21,6 +21,13 @@ type IngressResource struct {
 // swagger:model
 type IngressList []IngressResource
 
+//  IngressesResponse -- ingresses response
+//
+// swagger:model
+type IngressesResponse struct {
+	Ingresses IngressList `json:"ingresses"`
+}
+
 func (ingr IngressResource) Copy() IngressResource {
 	var cp = ingr
 	cp.Rules = append(make([]model.Rule, 0, len(cp.Rules)), cp.Rules...)
