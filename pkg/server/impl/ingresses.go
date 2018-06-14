@@ -35,14 +35,19 @@ func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *IngressA
 	}
 }
 
-func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) (ingress.IngressList, error) {
+func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string) (*ingress.IngressesResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"namespace": nsID,
 	}).Info("get user ingresses")
 
-	return ia.mongo.GetIngressList(nsID)
+	ingresses, err := ia.mongo.GetIngressList(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ingress.IngressesResponse{Ingresses: ingresses}, nil
 }
 
 func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.IngressResource, error) {

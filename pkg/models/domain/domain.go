@@ -20,3 +20,10 @@ type Domain struct {
 //
 // swagger:model
 type DomainList []Domain
+
+// DomainsList -- domains response
+//
+// swagger:model
+type DomainsResponse struct {
+	Domains DomainList `json:"domains"`
+}

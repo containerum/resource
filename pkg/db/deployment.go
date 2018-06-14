@@ -69,7 +69,7 @@ func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentNam
 func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploymentName string) (deployment.DeploymentList, error) {
 	mongo.logger.Debugf("getting deployment versions list")
 	var collection = mongo.db.C(CollectionDeployment)
-	var depl deployment.DeploymentList
+	depl := make(deployment.DeploymentList, 0)
 	var err error
 	if err = collection.Find(bson.M{
 		"namespaceid":     namespaceID,
@@ -84,7 +84,7 @@ func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploym
 func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
 	mongo.logger.Debugf("getting deployments list")
 	var collection = mongo.db.C(CollectionDeployment)
-	var depl deployment.DeploymentList
+	depl := make(deployment.DeploymentList, 0)
 	var err error
 	if err = collection.Find(bson.M{
 		"namespaceid":       namespaceID,

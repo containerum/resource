@@ -21,6 +21,13 @@ type DeploymentResource struct {
 // swagger:model
 type DeploymentList []DeploymentResource
 
+// DeploymentsResponse -- deployments response
+//
+// swagger:model
+type DeploymentsResponse struct {
+	Deployments DeploymentList `json:"deployments"`
+}
+
 func (depl DeploymentResource) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{

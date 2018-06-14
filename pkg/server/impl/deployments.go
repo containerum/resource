@@ -34,14 +34,19 @@ func NewDeployActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissio
 	}
 }
 
-func (da *DeployActionsImpl) GetDeploymentsList(ctx context.Context, nsID string) (deployment.DeploymentList, error) {
+func (da *DeployActionsImpl) GetDeploymentsList(ctx context.Context, nsID string) (*deployment.DeploymentsResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":   userID,
 		"namespace": nsID,
 	}).Info("get deployments")
 
-	return da.mongo.GetDeploymentList(nsID)
+	deployments, err := da.mongo.GetDeploymentList(nsID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &deployment.DeploymentsResponse{Deployments: deployments}, nil
 }
 
 func (da *DeployActionsImpl) GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.DeploymentResource, error) {
@@ -74,7 +79,7 @@ func (da *DeployActionsImpl) GetDeploymentVersion(ctx context.Context, nsID, dep
 	return &ret, err
 }
 
-func (da *DeployActionsImpl) GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (deployment.DeploymentList, error) {
+func (da *DeployActionsImpl) GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (*deployment.DeploymentsResponse, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":    userID,
@@ -82,7 +87,12 @@ func (da *DeployActionsImpl) GetDeploymentVersionsList(ctx context.Context, nsID
 		"deployment": deployName,
 	}).Info("get deployments")
 
-	return da.mongo.GetDeploymentVersionsList(nsID, deployName)
+	deployments, err := da.mongo.GetDeploymentVersionsList(nsID, deployName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &deployment.DeploymentsResponse{Deployments: deployments}, nil
 }
 
 func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {

@@ -10,14 +10,13 @@ import (
 // DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
 func DetermineServiceType(svc kubtypes.Service) service.ServiceType {
 	serviceType := service.ServiceExternal
-	for _, port := range svc.Ports {
-		if port.Port != nil {
-			serviceType = service.ServiceInternal
-			break
+	if svc.Domain == "" || len(svc.IPs) == 0 {
+		for _, port := range svc.Ports {
+			if port.Port != nil {
+				serviceType = service.ServiceInternal
+				break
+			}
 		}
-	}
-	if svc.Domain != "" {
-		serviceType = service.ServiceExternal
 	}
 	return serviceType
 }

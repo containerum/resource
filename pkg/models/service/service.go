@@ -22,6 +22,13 @@ type ServiceResource struct {
 // swagger:model
 type ServiceList []ServiceResource
 
+//  ServicesResponse -- ingresses response
+//
+// swagger:model
+type ServicesResponse struct {
+	Services ServiceList `json:"services"`
+}
+
 type ServiceType string
 
 const (
