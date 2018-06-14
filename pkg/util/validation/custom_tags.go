@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"github.com/go-playground/universal-translator"
-	"gopkg.in/go-playground/validator.v9"
+	"github.com/go-playground/validator"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 

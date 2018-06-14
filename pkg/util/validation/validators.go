@@ -7,8 +7,8 @@ import (
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/en_US"
 	"github.com/go-playground/universal-translator"
-	"gopkg.in/go-playground/validator.v9"
-	enTranslations "gopkg.in/go-playground/validator.v9/translations/en"
+	"github.com/go-playground/validator"
+	enTranslations "github.com/go-playground/validator/translations/en"
 )
 
 func StandardResourceValidator(uni *ut.UniversalTranslator) (ret *validator.Validate) {

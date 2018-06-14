@@ -34,8 +34,8 @@ required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
   version = "~0.21.1"
 
 [[constraint]]
-  name = "gopkg.in/go-playground/validator.v9"
-  version = "~9.12.0"
+  name = "github.com/go-playground/validator"
+  version = "~9.17.1"
 
 [[constraint]]
   name = "github.com/go-playground/locales"
@@ -46,7 +46,7 @@ required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
   name = "k8s.io/apimachinery"
 
 [[constraint]]
-  name = "gopkg.in/resty.v1"
+  name = "github.com/go-resty/resty"
   version = "^1.6.0"
 
 [[constraint]]
