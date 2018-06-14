@@ -8,7 +8,7 @@ import (
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 type TranslateValidate struct {

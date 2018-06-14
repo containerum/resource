@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 type GinValidatorV9 struct {

@@ -34,7 +34,7 @@ required = ["github.com/containerum/kube-client", "github.com/satori/go.uuid"]
   version = "~0.21.1"
 
 [[constraint]]
-  name = "github.com/go-playground/validator"
+  name = "gopkg.in/go-playground/validator.v9"
   version = "~9.17.1"
 
 [[constraint]]
