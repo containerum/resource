@@ -11,9 +11,9 @@ import (
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
+	"github.com/go-resty/resty"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/resty.v1"
 )
 
 // Kube is an interface to kube-api service

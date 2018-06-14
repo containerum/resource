@@ -36,8 +36,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "98e5397873b0e25dfa83fee83f28e7b7a7e10479"
-  version = "v0.21.1"
+  revision = "64b358cf38b55d4a526a520a454aa69033e870d2"
+  version = "v0.21.2"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -85,7 +85,7 @@
   branch = "master"
   name = "github.com/gin-gonic/contrib"
   packages = ["ginrus"]
-  revision = "6ea35d32286ce194572a0dc2a3398aac0091228d"
+  revision = "39cfb9727134fef3120d2458fce5fab14265a46c"
 
 [[projects]]
   name = "github.com/gin-gonic/gin"
@@ -149,6 +149,12 @@
   packages = ["."]
   revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
   version = "v0.16.0"
+
+[[projects]]
+  name = "github.com/go-resty/resty"
+  packages = ["."]
+  revision = "fc3ad735b5565cada42d34bc298573fd3fe5adc6"
+  version = "v1.6"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -260,7 +266,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "37a17fe027db43f76fd88b056ddf588563fc8722"
 
 [[projects]]
   branch = "master"
@@ -281,7 +287,7 @@
     "unix",
     "windows"
   ]
-  revision = "8ee9f3e146b708d082f4bab861e5759d1edf8c00"
+  revision = "8883426083c04a2627e6e59d84d5f6fb63d16c91"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -317,20 +323,14 @@
     ".",
     "translations/en"
   ]
-  revision = "1b8c8e19cd250435025214492d9a08411d760fdd"
-  version = "v9.12.0"
+  revision = "f28cb45dc0f0f406ba2015cdb59a5203ad220bc2"
+  version = "v9.17.1"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
   version = "v0.9.1"
-
-[[projects]]
-  name = "gopkg.in/resty.v1"
-  packages = ["."]
-  revision = "fc3ad735b5565cada42d34bc298573fd3fe5adc6"
-  version = "v1.6"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -353,6 +353,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "82e70593a453ca00ac1e20de2f47bef95bfbf12dd717009f8dd96dbc3dfc9e15"
+  inputs-digest = "36fac13535abcb9218c6b9eb8689dbc092c5d60adb79e942fe1753c5d7a9b4d9"
   solver-name = "gps-cdcl"
   solver-version = 1

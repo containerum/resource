@@ -34,7 +34,7 @@ type DomainHandlers struct {
 //  '200':
 //    description: domains list
 //    schema:
-//      $ref: '#/definitions/DomainsList'
+//      $ref: '#/definitions/DomainsResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {

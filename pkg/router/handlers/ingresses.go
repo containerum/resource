@@ -33,7 +33,7 @@ type IngressHandlers struct {
 //  '200':
 //    description: ingresses list
 //    schema:
-//      $ref: '#/definitions/IngressList'
+//      $ref: '#/definitions/IngressesResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
