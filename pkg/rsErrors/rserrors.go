@@ -192,7 +192,7 @@ func ErrQuotaExceeded(params ...func(*cherry.Err)) *cherry.Err {
 }
 
 func ErrNoContainer(params ...func(*cherry.Err)) *cherry.Err {
-	err := &cherry.Err{Message: "Container with this name is not found in deployment or image wasn't changed", StatusHTTP: 404, ID: cherry.ErrID{SID: "resource-service", Kind: 0x11}, Details: []string(nil), Fields: cherry.Fields(nil)}
+	err := &cherry.Err{Message: "Container with this name is not found in deployment", StatusHTTP: 404, ID: cherry.ErrID{SID: "resource-service", Kind: 0x11}, Details: []string(nil), Fields: cherry.Fields(nil)}
 	for _, param := range params {
 		param(err)
 	}
