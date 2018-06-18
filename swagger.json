@@ -1623,7 +1623,6 @@
       "description": "ContainerVolume -- volume (or config map) mounted in container",
       "type": "object",
       "required": [
-        "name",
         "mount_path"
       ],
       "properties": {
@@ -1638,10 +1637,6 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
-        },
-        "pvc_name": {
-          "type": "string",
-          "x-go-name": "PersistentVolumeClaimName"
         },
         "sub_path": {
           "type": "string",
@@ -2325,10 +2320,6 @@
         "deploy": {
           "type": "string",
           "x-go-name": "Deploy"
-        },
-        "hostname": {
-          "type": "string",
-          "x-go-name": "Hostname"
         },
         "image_pull_secret": {
           "type": "object",
@@ -3023,6 +3014,10 @@
         "template": {
           "type": "string",
           "x-go-name": "Template"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
