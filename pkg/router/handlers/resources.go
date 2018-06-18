@@ -24,6 +24,10 @@ type ResourceHandlers struct {
 //    type: string
 //    required: true
 // responses:
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+// responses:
 //  '200':
 //    description: resources count
 //    schema:

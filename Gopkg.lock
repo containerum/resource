@@ -36,8 +36,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "5d432d681aeb15d2c39e37778a37d85f584a526a"
-  version = "v0.23.0"
+  revision = "dbfd7cb7735022ac3e819a199a4e07a44772bb45"
+  version = "v0.23.2"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -98,7 +98,6 @@
   version = "v1.2"
 
 [[projects]]
-  branch = "master"
   name = "github.com/globalsign/mgo"
   packages = [
     ".",
@@ -108,6 +107,7 @@
     "internal/scram"
   ]
   revision = "efe0945164a7e582241f37ae8983c075f8f2e870"
+  version = "r2018.04.23"
 
 [[projects]]
   branch = "master"
@@ -266,7 +266,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "a8fb68e7206f8c78be19b432c58eb52a6aa34462"
+  revision = "027cca12c2d63e3d62b670d901e8a2c95854feec"
 
 [[projects]]
   branch = "master"
@@ -287,7 +287,7 @@
     "unix",
     "windows"
   ]
-  revision = "8014b7b116a67fea23fbb82cd834c9ad656ea44b"
+  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -353,6 +353,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "264c6997eb660b9d47ae5f911ed0bed57ccfbe9e48e8aaa961a980877e9ca04a"
+  inputs-digest = "efe5f5c023e6bea8c2e2e6abb21325864c46d297843dd95fb4fd6f30c1f0e391"
   solver-name = "gps-cdcl"
   solver-version = 1

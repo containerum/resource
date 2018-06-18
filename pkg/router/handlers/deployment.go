@@ -59,7 +59,7 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 //    in: path
 //    type: string
 //    required: true
-//  - name: deployments
+//  - name: deployment
 //    in: path
 //    type: string
 //    required: true
@@ -205,7 +205,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //    in: path
 //    type: string
 //    required: true
-//  - name: deployments
+//  - name: deployment
 //    in: path
 //    type: string
 //    required: true
@@ -243,7 +243,7 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 //    in: path
 //    type: string
 //    required: true
-//  - name: deployments
+//  - name: deployment
 //    in: path
 //    type: string
 //    required: true
