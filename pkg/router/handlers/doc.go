@@ -2,6 +2,7 @@
 //
 // Resource-Service is service for storing kubernetes resources in Mongo DB.
 //
+//  Version: 0.0.1
 //	Consumes:
 //	- application/json
 //
