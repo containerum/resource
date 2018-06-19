@@ -27,6 +27,8 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 		// some containers have been deleted
 		var newVersion = oldDepl.Version
 		newVersion.Major++
+		newVersion.Minor = 0
+		newVersion.Patch = 0
 		return newVersion
 	}
 
@@ -40,6 +42,8 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 		// if some containers now use not semver
 		var newVersion = oldDepl.Version
 		newVersion.Major++
+		newVersion.Minor = 0
+		newVersion.Patch = 0
 		return newVersion
 	}
 
@@ -50,6 +54,8 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 		// some images have major updates, so
 		var newVersion = oldDepl.Version
 		newVersion.Major++
+		newVersion.Minor = 0
+		newVersion.Patch = 0
 		return newVersion
 	}
 
@@ -59,6 +65,7 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 		// some images have minor updates, so
 		var newVersion = oldDepl.Version
 		newVersion.Minor++
+		newVersion.Patch = 0
 		return newVersion
 	}
 
@@ -75,6 +82,8 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 		// only new containers have been added
 		var newVersion = oldDepl.Version
 		newVersion.Major++
+		newVersion.Minor = 0
+		newVersion.Patch = 0
 		return newVersion
 	}
 	// nothing ever changes

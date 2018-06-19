@@ -36,8 +36,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "dbfd7cb7735022ac3e819a199a4e07a44772bb45"
-  version = "v0.23.2"
+  revision = "3e925fd46049bfdd2d39feab146d37ba47c47eea"
+  version = "v0.23.3"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -211,8 +211,8 @@
 [[projects]]
   name = "github.com/ninedraft/boxofstuff"
   packages = ["strset"]
-  revision = "a57c6ea397e253eec08da7ff4305febfd0db5f7e"
-  version = "v0.1.1"
+  revision = "55d5ed8ca33a5833adafd0b96faa50bcb5f62db1"
+  version = "v0.2.3"
 
 [[projects]]
   name = "github.com/oleiade/reflections"
@@ -353,6 +353,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "efe5f5c023e6bea8c2e2e6abb21325864c46d297843dd95fb4fd6f30c1f0e391"
+  inputs-digest = "7557018a6c052f41f0ab2651da9feac32b0bef3b250e9ae5a9ffb51aaeea9b8b"
   solver-name = "gps-cdcl"
   solver-version = 1
