@@ -5,6 +5,7 @@ import (
 
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"github.com/containerum/cherry"
+	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/universal-translator"
@@ -16,17 +17,19 @@ type TranslateValidate struct {
 	*validator.Validate
 }
 
-func (tv *TranslateValidate) HandleError(err error) (int, *cherry.Err) {
+func (tv *TranslateValidate) HandleError(ctx *gin.Context, err error) {
+	ctx.Error(err)
 	switch err.(type) {
 	case *cherry.Err:
 		e := err.(*cherry.Err)
-		return e.StatusHTTP, e
+		gonic.Gonic(e, ctx)
 	default:
-		return rserrors.ErrInternal().StatusHTTP, rserrors.ErrInternal().AddDetailsErr(err)
+		gonic.Gonic(rserrors.ErrInternal().AddDetailsErr(err), ctx)
 	}
 }
 
-func (tv *TranslateValidate) BadRequest(ctx *gin.Context, err error) (int, *cherry.Err) {
+func (tv *TranslateValidate) BadRequest(ctx *gin.Context, err error) {
+	ctx.Error(err)
 	if validationErr, ok := err.(validator.ValidationErrors); ok {
 		ret := rserrors.ErrValidation()
 		for _, fieldErr := range validationErr {
@@ -36,9 +39,9 @@ func (tv *TranslateValidate) BadRequest(ctx *gin.Context, err error) (int, *cher
 			t, _ := tv.FindTranslator(httputil.GetAcceptedLanguages(ctx.Request.Context())...)
 			ret.AddDetailF("Field %s: %s", fieldErr.Namespace(), fieldErr.Translate(t))
 		}
-		return ret.StatusHTTP, ret
+		gonic.Gonic(ret, ctx)
 	}
-	return rserrors.ErrValidation().StatusHTTP, rserrors.ErrValidation().AddDetailsErr(err)
+	gonic.Gonic(rserrors.ErrValidation().AddDetailsErr(err), ctx)
 }
 
 func (tv *TranslateValidate) ValidateHeaders(headerTagMap map[string]string) gin.HandlerFunc {
@@ -61,7 +64,7 @@ func (tv *TranslateValidate) ValidateHeaders(headerTagMap map[string]string) gin
 					ret.AddDetailF("Header %s: %s", header, fieldErr.Translate(t))
 				}
 			}
-			ctx.AbortWithStatusJSON(ret.StatusHTTP, ret)
+			gonic.Gonic(ret, ctx)
 			return
 		}
 	}

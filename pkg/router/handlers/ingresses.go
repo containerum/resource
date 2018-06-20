@@ -39,7 +39,7 @@ type IngressHandlers struct {
 func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 	resp, err := h.GetIngressesList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 	resp, err := h.GetIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -107,13 +107,13 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 	var req kubtypes.Ingress
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	createdIngress, err := h.CreateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -151,14 +151,14 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 	var req kubtypes.Ingress
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	req.Name = ctx.Param("ingress")
 	updatedIngress, err := h.UpdateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -213,7 +213,7 @@ func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) DeleteAllIngressesHandler(ctx *gin.Context) {
 	if err := h.DeleteAllIngresses(ctx.Request.Context(), ctx.Param("namespace")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 

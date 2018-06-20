@@ -37,7 +37,7 @@ type ResourceHandlers struct {
 func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 	resp, err := h.GetResourcesCount(ctx.Request.Context())
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, resp)
@@ -60,7 +60,7 @@ func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *ResourceHandlers) DeleteAllResourcesInNamespaceHandler(ctx *gin.Context) {
 	if err := h.DeleteAllResourcesInNamespace(ctx.Request.Context(), ctx.Param("namespace")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *ResourceHandlers) DeleteAllResourcesInNamespaceHandler(ctx *gin.Context
 //    $ref: '#/responses/error'
 func (h *ResourceHandlers) DeleteAllResourcesHandler(ctx *gin.Context) {
 	if err := h.DeleteAllUserResources(ctx.Request.Context()); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 

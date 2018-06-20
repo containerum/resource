@@ -38,7 +38,7 @@ type ServiceHandlers struct {
 func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 	resp, err := h.GetServicesList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 	resp, err := h.GetService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -107,13 +107,13 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -151,14 +151,14 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	req.Name = ctx.Param("service")
 	updatedService, err := h.UpdateService(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -190,7 +190,7 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 	err := h.DeleteService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 	err := h.DeleteAllServices(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -243,7 +243,7 @@ func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) DeleteAllSolutionServicesHandler(ctx *gin.Context) {
 	if err := h.DeleteAllSolutionServices(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("solution")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
