@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/router"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
@@ -48,7 +49,8 @@ func initServer(c *cli.Context) error {
 
 	permissions := setupPermissions(c)
 
-	app := router.CreateRouter(mongo, permissions, kube, tv, c.Bool("cors"))
+	access := clients.NewPermissionsAccessHTTPClient(c.String("permissions_addr"))
+	app := router.CreateRouter(mongo, permissions, kube, tv, access, c.Bool("cors"))
 
 	srv := &http.Server{
 		Addr:    ":" + c.String("port"),
