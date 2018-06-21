@@ -50,7 +50,7 @@ func ingressValidate(structLevel validator.StructLevel) {
 		structLevel.ReportValidationErrors("Rules[0].TLSSecret", "", err.(validator.ValidationErrors))
 	}
 
-	if err := v.Var(req.Rules[0].Host, "required"); err != nil {
+	if err := v.Var(req.Rules[0].Host, "required,dns"); err != nil {
 		structLevel.ReportValidationErrors("Rules[0].Host", "", err.(validator.ValidationErrors))
 	}
 
