@@ -16,6 +16,7 @@ import (
 	"git.containerum.net/ch/resource-service/static"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
+	"github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/ginrus"
@@ -24,13 +25,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, access httputil.AccessChecker, enableCORS bool) http.Handler {
 	e := gin.New()
 	initMiddlewares(e, tv, enableCORS)
-	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, permissions, kube))
+	deployHandlersSetup(e, tv, access, impl.NewDeployActionsImpl(mongo, permissions, kube))
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
-	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
-	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
+	ingressHandlersSetup(e, tv, access, impl.NewIngressActionsImpl(mongo, kube))
+	serviceHandlersSetup(e, tv, access, impl.NewServiceActionsImpl(mongo, permissions, kube))
 	resourceCountHandlersSetup(e, tv, impl.NewResourcesActionsImpl(mongo))
 
 	return e
@@ -42,7 +43,7 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		cfg := cors.DefaultConfig()
 		cfg.AllowAllOrigins = true
 		cfg.AddAllowMethods(http.MethodDelete)
-		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader)
+		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader)
 		e.Use(cors.New(cfg))
 	}
 	e.Group("/static").
@@ -59,34 +60,33 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 		httputil.UserRoleXHeader: "eq=admin|eq=user",
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
-	e.Use(m.RequiredUserHeaders())
 }
 
-func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DeployActions) {
+func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, access httputil.AccessChecker, backend server.DeployActions) {
 	deployHandlers := h.DeployHandlers{DeployActions: backend, TranslateValidate: tv}
 
-	deployment := router.Group("/namespaces/:namespace/deployments")
+	deployment := router.Group("/projects/:project/namespaces/:namespace/deployments")
 	{
-		deployment.GET("", m.ReadAccess, deployHandlers.GetDeploymentsListHandler)
-		deployment.GET("/:deployment", m.ReadAccess, deployHandlers.GetActiveDeploymentHandler)
-		deployment.GET("/:deployment/versions", m.ReadAccess, deployHandlers.GetDeploymentVersionsListHandler)
-		deployment.GET("/:deployment/versions/:version", m.ReadAccess, deployHandlers.GetDeploymentVersionHandler)
-		deployment.GET("/:deployment/versions/:version/diff", m.ReadAccess, deployHandlers.DiffDeploymentPreviousVersionsHandler)
-		deployment.GET("/:deployment/versions/:version/diff/:version2", m.ReadAccess, deployHandlers.DiffDeploymentVersionsHandler)
+		deployment.GET("", access.CheckAccess(model.AccessGuest), deployHandlers.GetDeploymentsListHandler)
+		deployment.GET("/:deployment", access.CheckAccess(model.AccessGuest), deployHandlers.GetActiveDeploymentHandler)
+		deployment.GET("/:deployment/versions", access.CheckAccess(model.AccessGuest), deployHandlers.GetDeploymentVersionsListHandler)
+		deployment.GET("/:deployment/versions/:version", access.CheckAccess(model.AccessGuest), deployHandlers.GetDeploymentVersionHandler)
+		deployment.GET("/:deployment/versions/:version/diff", access.CheckAccess(model.AccessGuest), deployHandlers.DiffDeploymentPreviousVersionsHandler)
+		deployment.GET("/:deployment/versions/:version/diff/:version2", access.CheckAccess(model.AccessGuest), deployHandlers.DiffDeploymentVersionsHandler)
 
-		deployment.POST("", m.WriteAccess, deployHandlers.CreateDeploymentHandler)
-		deployment.POST("/:deployment/versions/:version", m.WriteAccess, deployHandlers.ChangeActiveDeploymentHandler)
+		deployment.POST("", access.CheckAccess(model.AccessMaster), deployHandlers.CreateDeploymentHandler)
+		deployment.POST("/:deployment/versions/:version", access.CheckAccess(model.AccessMaster), deployHandlers.ChangeActiveDeploymentHandler)
 
-		deployment.PUT("/:deployment", m.WriteAccess, deployHandlers.UpdateDeploymentHandler)
-		deployment.PUT("/:deployment/image", m.WriteAccess, deployHandlers.SetContainerImageHandler)
-		deployment.PUT("/:deployment/replicas", m.WriteAccess, deployHandlers.SetReplicasHandler)
-		deployment.PUT("/:deployment/versions/:version", m.WriteAccess, deployHandlers.RenameVersionHandler)
+		deployment.PUT("/:deployment", access.CheckAccess(model.AccessMaster), deployHandlers.UpdateDeploymentHandler)
+		deployment.PUT("/:deployment/image", access.CheckAccess(model.AccessMaster), deployHandlers.SetContainerImageHandler)
+		deployment.PUT("/:deployment/replicas", access.CheckAccess(model.AccessMaster), deployHandlers.SetReplicasHandler)
+		deployment.PUT("/:deployment/versions/:version", access.CheckAccess(model.AccessMaster), deployHandlers.RenameVersionHandler)
 
-		deployment.DELETE("/:deployment", m.WriteAccess, deployHandlers.DeleteDeploymentHandler)
-		deployment.DELETE("/:deployment/versions/:version", m.WriteAccess, deployHandlers.DeleteDeploymentVersionHandler)
+		deployment.DELETE("/:deployment", access.CheckAccess(model.AccessMaster), deployHandlers.DeleteDeploymentHandler)
+		deployment.DELETE("/:deployment/versions/:version", access.CheckAccess(model.AccessMaster), deployHandlers.DeleteDeploymentVersionHandler)
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 	}
-	router.DELETE("/namespaces/:namespace/solutions/:solution/deployments", m.WriteAccess, deployHandlers.DeleteAllSolutionDeploymentsHandler)
+	router.DELETE("/projects/:project/namespaces/:namespace/solutions/:solution/deployments", access.CheckAccess(model.AccessMaster), deployHandlers.DeleteAllSolutionDeploymentsHandler)
 }
 
 func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DomainActions) {
@@ -103,44 +103,44 @@ func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 	}
 }
 
-func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.IngressActions) {
+func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, access httputil.AccessChecker, backend server.IngressActions) {
 	ingressHandlers := h.IngressHandlers{IngressActions: backend, TranslateValidate: tv}
 
-	ingress := router.Group("/namespaces/:namespace/ingresses")
+	ingress := router.Group("/projects/:project/namespaces/:namespace/ingresses")
 	{
-		ingress.GET("", m.ReadAccess, ingressHandlers.GetIngressesListHandler)
-		ingress.GET("/:ingress", m.ReadAccess, ingressHandlers.GetIngressHandler)
+		ingress.GET("", access.CheckAccess(model.AccessGuest), ingressHandlers.GetIngressesListHandler)
+		ingress.GET("/:ingress", access.CheckAccess(model.AccessGuest), ingressHandlers.GetIngressHandler)
 
-		ingress.POST("", m.WriteAccess, ingressHandlers.CreateIngressHandler)
+		ingress.POST("", access.CheckAccess(model.AccessMaster), ingressHandlers.CreateIngressHandler)
 
-		ingress.PUT("/:ingress", m.WriteAccess, ingressHandlers.UpdateIngressHandler)
+		ingress.PUT("/:ingress", access.CheckAccess(model.AccessMaster), ingressHandlers.UpdateIngressHandler)
 
-		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
+		ingress.DELETE("/:ingress", access.CheckAccess(model.AccessMaster), ingressHandlers.DeleteIngressHandler)
 		ingress.DELETE("", ingressHandlers.DeleteAllIngressesHandler)
 	}
 }
 
-func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
+func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, access httputil.AccessChecker, backend server.ServiceActions) {
 	serviceHandlers := h.ServiceHandlers{ServiceActions: backend, TranslateValidate: tv}
 
-	service := router.Group("/namespaces/:namespace/services")
+	service := router.Group("/projects/:project/namespaces/:namespace/services")
 	{
-		service.GET("", m.ReadAccess, serviceHandlers.GetServicesListHandler)
-		service.GET("/:service", m.ReadAccess, serviceHandlers.GetServiceHandler)
+		service.GET("", access.CheckAccess(model.AccessGuest), serviceHandlers.GetServicesListHandler)
+		service.GET("/:service", access.CheckAccess(model.AccessGuest), serviceHandlers.GetServiceHandler)
 
-		service.POST("", m.WriteAccess, serviceHandlers.CreateServiceHandler)
+		service.POST("", access.CheckAccess(model.AccessMaster), serviceHandlers.CreateServiceHandler)
 
-		service.PUT("/:service", m.WriteAccess, serviceHandlers.UpdateServiceHandler)
+		service.PUT("/:service", access.CheckAccess(model.AccessMaster), serviceHandlers.UpdateServiceHandler)
 
-		service.DELETE("/:service", m.WriteAccess, serviceHandlers.DeleteServiceHandler)
+		service.DELETE("/:service", access.CheckAccess(model.AccessMaster), serviceHandlers.DeleteServiceHandler)
 		service.DELETE("", serviceHandlers.DeleteAllServicesHandler)
 	}
-	router.DELETE("/namespaces/:namespace/solutions/:solution/services", m.WriteAccess, serviceHandlers.DeleteAllSolutionServicesHandler)
+	router.DELETE("/projects/:project/namespaces/:namespace/solutions/:solution/services", access.CheckAccess(model.AccessMaster), serviceHandlers.DeleteAllSolutionServicesHandler)
 }
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {
 	resourceHandlers := h.ResourceHandlers{ResourcesActions: backend, TranslateValidate: tv}
-	router.DELETE("/namespaces/:namespace", resourceHandlers.DeleteAllResourcesInNamespaceHandler)
-	router.DELETE("/namespaces", resourceHandlers.DeleteAllResourcesHandler)
+	router.DELETE("/projects/:project/namespaces/:namespace", resourceHandlers.DeleteAllResourcesInNamespaceHandler)
+	router.DELETE("/projects/:project/namespaces", resourceHandlers.DeleteAllResourcesHandler)
 	router.GET("/resources", resourceHandlers.GetResourcesCountHandler)
 }

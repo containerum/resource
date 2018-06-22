@@ -40,7 +40,7 @@ type DomainHandlers struct {
 func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
 	resp, err := h.GetDomainsList(ctx.Request.Context(), ctx.Query("page"), ctx.Query("per_page"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
 func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 	resp, err := h.GetDomain(ctx.Request.Context(), ctx.Param("domain"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -96,13 +96,13 @@ func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 	var req domain.Domain
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	domain, err := h.AddDomain(ctx.Request.Context(), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *DomainHandlers) DeleteDomainHandler(ctx *gin.Context) {
 	if err := h.DeleteDomain(ctx.Request.Context(), ctx.Param("domain")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 

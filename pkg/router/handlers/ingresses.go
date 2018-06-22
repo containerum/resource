@@ -16,7 +16,7 @@ type IngressHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/ingresses Ingress GetIngressesListHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/ingresses Ingress GetIngressesListHandler
 // Get ingresses list.
 //
 // ---
@@ -24,7 +24,10 @@ type IngressHandlers struct {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -39,14 +42,14 @@ type IngressHandlers struct {
 func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 	resp, err := h.GetIngressesList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/ingresses/{ingress} Ingress GetIngressHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/ingresses/{ingress} Ingress GetIngressHandler
 // Get ingresses list.
 //
 // ---
@@ -54,7 +57,10 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -73,14 +79,14 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 	resp, err := h.GetIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/ingresses Ingress CreateIngressHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/ingresses Ingress CreateIngressHandler
 // Create ingress.
 //
 // ---
@@ -88,7 +94,10 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -107,20 +116,20 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 	var req kubtypes.Ingress
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	createdIngress, err := h.CreateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, createdIngress)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngressHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngressHandler
 // Update ingress.
 //
 // ---
@@ -128,7 +137,10 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -151,21 +163,21 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 	var req kubtypes.Ingress
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	req.Name = ctx.Param("ingress")
 	updatedIngress, err := h.UpdateIngress(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusAccepted, updatedIngress)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngressHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngressHandler
 // Delete ingress.
 //
 // ---
@@ -173,7 +185,10 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -189,19 +204,23 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 	if err := h.DeleteIngress(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("ingress")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/ingresses Ingress DeleteAllIngressesHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/ingresses Ingress DeleteAllIngressesHandler
 // Delete all ingresses.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -213,7 +232,7 @@ func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) DeleteAllIngressesHandler(ctx *gin.Context) {
 	if err := h.DeleteAllIngresses(ctx.Request.Context(), ctx.Param("namespace")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 

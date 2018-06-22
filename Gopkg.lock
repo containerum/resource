@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "git.containerum.net/ch/kube-api"
+  packages = ["pkg/kubeErrors"]
+  revision = "bb4ec38ff060c55d3e7983f4919088e6fe88922d"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -36,14 +42,14 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "3e925fd46049bfdd2d39feab146d37ba47c47eea"
-  version = "v0.23.3"
+  revision = "f2a038b8d89980f642671645b07eda421bd03e12"
+  version = "v0.25.0"
 
 [[projects]]
   name = "github.com/containerum/utils"
   packages = ["httputil"]
-  revision = "0d81250fc88af062d5836ecd83db9867eb6ee34c"
-  version = "v1.0.3"
+  revision = "f396ca4039012a63f7025cba99a5d514d2824421"
+  version = "v1.0.6"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -211,8 +217,8 @@
 [[projects]]
   name = "github.com/ninedraft/boxofstuff"
   packages = ["strset"]
-  revision = "55d5ed8ca33a5833adafd0b96faa50bcb5f62db1"
-  version = "v0.2.3"
+  revision = "75df6f072a79f718d681614a3a9e27b9b8ba66d7"
+  version = "v0.3.1"
 
 [[projects]]
   name = "github.com/oleiade/reflections"
@@ -266,7 +272,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "027cca12c2d63e3d62b670d901e8a2c95854feec"
+  revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
 
 [[projects]]
   branch = "master"
@@ -287,7 +293,7 @@
     "unix",
     "windows"
   ]
-  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
+  revision = "ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -348,11 +354,11 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "bf40560368791a7dddfeea9b3cfcf89b34139f44"
+  revision = "91cfa479c814065e420cee7ed227db0f63a5854e"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7557018a6c052f41f0ab2651da9feac32b0bef3b250e9ae5a9ffb51aaeea9b8b"
+  inputs-digest = "a9b93b9491e6ff9eeeed34422096aae03228a9a791af699d431e3e9dda530df9"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -61,7 +61,7 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName 
 	return &ret, err
 }
 
-func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error) {
+func (sa *ServiceActionsImpl) CreateService(ctx context.Context, projectID, nsID string, req kubtypes.Service) (*service.ServiceResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -97,7 +97,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	nsLimits, err := sa.permissions.GetNamespaceLimits(ctx, nsID)
+	nsLimits, err := sa.permissions.GetNamespaceLimits(ctx, projectID, nsID)
 	if err != nil {
 		return nil, err
 	}

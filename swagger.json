@@ -218,7 +218,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}": {
+    "/projects/{project}/namespaces/{namespace}": {
       "delete": {
         "tags": [
           "Resources"
@@ -226,6 +226,12 @@
         "summary": "Delete all resources in namespace.",
         "operationId": "DeleteAllResourcesInNamespaceHandler",
         "parameters": [
+          {
+            "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "name": "namespace",
@@ -247,7 +253,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/deployments": {
+    "/projects/{project}/namespaces/{namespace}/deployments": {
       "get": {
         "tags": [
           "Deployment"
@@ -274,8 +280,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -327,8 +333,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -370,6 +376,12 @@
         "parameters": [
           {
             "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
             "name": "namespace",
             "in": "path",
             "required": true
@@ -389,7 +401,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}": {
       "get": {
         "tags": [
           "Deployment"
@@ -416,8 +428,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -475,8 +487,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -541,8 +553,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -572,7 +584,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/image": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}/image": {
       "put": {
         "tags": [
           "Deployment"
@@ -595,6 +607,12 @@
             "type": "string",
             "name": "X-User-Role",
             "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -634,7 +652,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/replicas": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}/replicas": {
       "put": {
         "tags": [
           "Deployment"
@@ -661,8 +679,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -702,7 +720,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/versions": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions": {
       "get": {
         "tags": [
           "Deployment"
@@ -729,8 +747,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -763,7 +781,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/versions/{version}": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version}": {
       "get": {
         "tags": [
           "Deployment"
@@ -790,8 +808,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -855,8 +873,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -927,8 +945,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -992,8 +1010,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1029,7 +1047,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff": {
       "post": {
         "tags": [
           "Deployment"
@@ -1037,6 +1055,12 @@
         "summary": "Compare deployment versions with previous version.",
         "operationId": "DiffDeploymentPreviousVersionsHandler",
         "parameters": [
+          {
+            "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "name": "namespace",
@@ -1070,7 +1094,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2}": {
+    "/projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2}": {
       "post": {
         "tags": [
           "Deployment"
@@ -1078,6 +1102,12 @@
         "summary": "Compare two deployment versions.",
         "operationId": "DiffDeploymentVersionsHandler",
         "parameters": [
+          {
+            "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "name": "namespace",
@@ -1117,7 +1147,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/ingresses": {
+    "/projects/{project}/namespaces/{namespace}/ingresses": {
       "get": {
         "tags": [
           "Ingress"
@@ -1144,8 +1174,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1197,8 +1227,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1240,6 +1270,12 @@
         "parameters": [
           {
             "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
             "name": "namespace",
             "in": "path",
             "required": true
@@ -1259,7 +1295,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/ingresses/{ingress}": {
+    "/projects/{project}/namespaces/{namespace}/ingresses/{ingress}": {
       "get": {
         "tags": [
           "Ingress"
@@ -1286,8 +1322,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1345,8 +1381,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1411,8 +1447,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1442,7 +1478,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/services": {
+    "/projects/{project}/namespaces/{namespace}/services": {
       "get": {
         "tags": [
           "Service"
@@ -1469,8 +1505,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1522,8 +1558,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1565,6 +1601,12 @@
         "parameters": [
           {
             "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
             "name": "namespace",
             "in": "path",
             "required": true
@@ -1584,7 +1626,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/services/{service}": {
+    "/projects/{project}/namespaces/{namespace}/services/{service}": {
       "get": {
         "tags": [
           "Service"
@@ -1611,8 +1653,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1670,8 +1712,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1736,8 +1778,8 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
+            "name": "project",
+            "in": "path",
             "required": true
           },
           {
@@ -1767,7 +1809,7 @@
         "x-method-visibility": "public"
       }
     },
-    "/namespaces/{namespace}/solutions/{solution}/deployments": {
+    "/projects/{project}/namespaces/{namespace}/solutions/{solution}/deployments": {
       "delete": {
         "tags": [
           "Service"
@@ -1775,6 +1817,12 @@
         "summary": "Delete all solution deployments.",
         "operationId": "DeleteAllSolutionDeploymentsHandler",
         "parameters": [
+          {
+            "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "name": "namespace",
@@ -1802,7 +1850,7 @@
         "x-method-visibility": "private"
       }
     },
-    "/namespaces/{namespace}/solutions/{solution}/services": {
+    "/projects/{project}/namespaces/{namespace}/solutions/{solution}/services": {
       "delete": {
         "tags": [
           "Service"
@@ -1810,6 +1858,12 @@
         "summary": "Delete all solution services.",
         "operationId": "DeleteAllSolutionServicesHandler",
         "parameters": [
+          {
+            "type": "string",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "name": "namespace",
@@ -1882,10 +1936,6 @@
     }
   },
   "definitions": {
-    "AccessLevel": {
-      "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
     "AvailableSolution": {
       "description": "AvailableSolution -- solution which user can run",
       "type": "object",
@@ -2649,7 +2699,7 @@
       ],
       "properties": {
         "access": {
-          "$ref": "#/definitions/AccessLevel"
+          "$ref": "#/definitions/UserGroupAccess"
         },
         "created_at": {
           "description": "creation date in RFC3339 format",
@@ -2897,7 +2947,7 @@
       "type": "object",
       "properties": {
         "access": {
-          "$ref": "#/definitions/AccessLevel"
+          "$ref": "#/definitions/UserGroupAccess"
         },
         "username": {
           "type": "string",
@@ -3327,7 +3377,7 @@
       "type": "object",
       "properties": {
         "access_level": {
-          "$ref": "#/definitions/AccessLevel"
+          "$ref": "#/definitions/UserGroupAccess"
         },
         "username": {
           "type": "string",
@@ -3380,7 +3430,8 @@
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "UserGroupAccess": {
-      "type": "string",
+      "type": "integer",
+      "format": "uint64",
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "UserGroupMember": {
@@ -3439,10 +3490,7 @@
       ],
       "properties": {
         "access": {
-          "description": "one of: \"owner\", \"read\", \"write\", \"read-delete\", \"none\"",
-          "type": "string",
-          "x-go-name": "Access",
-          "$ref": "#/definitions/AccessLevel"
+          "$ref": "#/definitions/UserGroupAccess"
         },
         "id": {
           "description": "hosting-internal name",
@@ -3550,7 +3598,7 @@
       "type": "object",
       "properties": {
         "access": {
-          "$ref": "#/definitions/AccessLevel"
+          "$ref": "#/definitions/UserGroupAccess"
         },
         "access_mode": {
           "$ref": "#/definitions/PersistentVolumeAccessMode"
@@ -3677,12 +3725,6 @@
       "type": "string",
       "format": "uuid",
       "name": "X-User-ID",
-      "in": "header",
-      "required": true
-    },
-    "UserNamespaceHeader": {
-      "type": "string",
-      "name": "X-User-Namespace",
       "in": "header",
       "required": true
     },

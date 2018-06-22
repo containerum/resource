@@ -13,7 +13,7 @@ import (
 )
 
 type Permissions interface {
-	GetNamespaceLimits(ctx context.Context, namespaceID string) (kubtypes.Namespace, error)
+	GetNamespaceLimits(ctx context.Context, projectID, namespaceID string) (kubtypes.Namespace, error)
 }
 
 type permissions struct {
@@ -37,7 +37,7 @@ func NewPermissionsHTTP(permissionsHost string) Permissions {
 	}
 }
 
-func (client permissions) GetNamespaceLimits(ctx context.Context, namespaceID string) (kubtypes.Namespace, error) {
+func (client permissions) GetNamespaceLimits(ctx context.Context, projectID, namespaceID string) (kubtypes.Namespace, error) {
 	client.logger.
 		WithField("namespace_id", namespaceID).
 		Debugf("getting namespace limits")
@@ -49,8 +49,9 @@ func (client permissions) GetNamespaceLimits(ctx context.Context, namespaceID st
 		SetError(&errResult).
 		SetPathParams(map[string]string{
 			"namespace": namespaceID,
+			"project":   projectID,
 		}).SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Get("/namespaces/{namespace}")
+		Get("/projects/{project}/namespaces/{namespace}")
 
 	return ret, func() error {
 		if err != nil {

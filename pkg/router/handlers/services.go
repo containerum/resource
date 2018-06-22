@@ -15,7 +15,7 @@ type ServiceHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/services Service GetServicesListHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/services Service GetServicesListHandler
 // Get services list.
 //
 // ---
@@ -23,7 +23,10 @@ type ServiceHandlers struct {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -38,14 +41,14 @@ type ServiceHandlers struct {
 func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 	resp, err := h.GetServicesList(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/services/{service} Service GetServiceHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/services/{service} Service GetServiceHandler
 // Get services list.
 //
 // ---
@@ -53,7 +56,10 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -73,14 +79,14 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 	resp, err := h.GetService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/services Service CreateServiceHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/services Service CreateServiceHandler
 // Create service.
 //
 // ---
@@ -88,7 +94,10 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -107,20 +116,20 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
-	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("namespace"), req)
+	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("project"), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, createdService)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateServiceHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/services/{service} Service UpdateServiceHandler
 // Update service.
 //
 // ---
@@ -128,7 +137,10 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -151,21 +163,21 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 	var req kubtypes.Service
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		h.BadRequest(ctx, err)
 		return
 	}
 
 	req.Name = ctx.Param("service")
 	updatedService, err := h.UpdateService(ctx.Request.Context(), ctx.Param("namespace"), req)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusAccepted, updatedService)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/services/{service} Service DeleteServiceHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/services/{service} Service DeleteServiceHandler
 // Delete service.
 //
 // ---
@@ -173,7 +185,10 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -190,19 +205,23 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 	err := h.DeleteService(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("service"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/services Service DeleteAllServicesHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/services Service DeleteAllServicesHandler
 // Delete service.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -215,19 +234,23 @@ func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 	err := h.DeleteAllServices(ctx.Request.Context(), ctx.Param("namespace"))
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServicesHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServicesHandler
 // Delete all solution services.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -243,7 +266,7 @@ func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) DeleteAllSolutionServicesHandler(ctx *gin.Context) {
 	if err := h.DeleteAllSolutionServices(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("solution")); err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
+		h.HandleError(ctx, err)
 		return
 	}
 
