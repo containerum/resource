@@ -62,7 +62,7 @@ func (client permissionsClient) GetNamespaceAccess(ctx context.Context, projectI
 			"project":   projectID,
 			"namespace": namespaceID,
 		}).
-		Get("/accesses/project/{project}/namespace/{namespace}")
+		Get("/projects/{project}/namespaces/{namespace}/access")
 	if err != nil {
 		return access, err
 	}
