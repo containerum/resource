@@ -19,6 +19,10 @@ type ResourceHandlers struct {
 // ---
 // x-method-visibility: public
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -43,12 +47,16 @@ func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation DELETE /namespaces/{namespace} Resources DeleteAllResourcesInNamespaceHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace} Resources DeleteAllResourcesInNamespaceHandler
 // Delete all resources in namespace.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string

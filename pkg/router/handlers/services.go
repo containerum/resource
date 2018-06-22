@@ -15,7 +15,7 @@ type ServiceHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/services Service GetServicesListHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/services Service GetServicesListHandler
 // Get services list.
 //
 // ---
@@ -24,6 +24,10 @@ type ServiceHandlers struct {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -45,7 +49,7 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/services/{service} Service GetServiceHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/services/{service} Service GetServiceHandler
 // Get services list.
 //
 // ---
@@ -54,6 +58,10 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -80,7 +88,7 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/services Service CreateServiceHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/services Service CreateServiceHandler
 // Create service.
 //
 // ---
@@ -89,6 +97,10 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -111,7 +123,7 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 		return
 	}
 
-	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("namespace"), req)
+	createdService, err := h.CreateService(ctx.Request.Context(), ctx.Param("project"), ctx.Param("namespace"), req)
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -120,7 +132,7 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, createdService)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateServiceHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/services/{service} Service UpdateServiceHandler
 // Update service.
 //
 // ---
@@ -129,6 +141,10 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -165,7 +181,7 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedService)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/services/{service} Service DeleteServiceHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/services/{service} Service DeleteServiceHandler
 // Delete service.
 //
 // ---
@@ -174,6 +190,10 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -197,12 +217,16 @@ func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/services Service DeleteAllServicesHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/services Service DeleteAllServicesHandler
 // Delete service.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -222,12 +246,16 @@ func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServicesHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServicesHandler
 // Delete all solution services.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string

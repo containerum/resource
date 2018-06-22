@@ -16,7 +16,7 @@ type IngressHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/ingresses Ingress GetIngressesListHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/ingresses Ingress GetIngressesListHandler
 // Get ingresses list.
 //
 // ---
@@ -25,6 +25,10 @@ type IngressHandlers struct {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -46,7 +50,7 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/ingresses/{ingress} Ingress GetIngressHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/ingresses/{ingress} Ingress GetIngressHandler
 // Get ingresses list.
 //
 // ---
@@ -55,6 +59,10 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -80,7 +88,7 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/ingresses Ingress CreateIngressHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/ingresses Ingress CreateIngressHandler
 // Create ingress.
 //
 // ---
@@ -89,6 +97,10 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -120,7 +132,7 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, createdIngress)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngressHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngressHandler
 // Update ingress.
 //
 // ---
@@ -129,6 +141,10 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -165,7 +181,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedIngress)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngressHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngressHandler
 // Delete ingress.
 //
 // ---
@@ -174,6 +190,10 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -196,12 +216,16 @@ func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/ingresses Ingress DeleteAllIngressesHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/ingresses Ingress DeleteAllIngressesHandler
 // Delete all ingresses.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string

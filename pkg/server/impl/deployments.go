@@ -95,14 +95,14 @@ func (da *DeployActionsImpl) GetDeploymentVersionsList(ctx context.Context, nsID
 	return &deployment.DeploymentsResponse{Deployments: deployments}, nil
 }
 
-func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {
+func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, projectID, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id": userID,
 		"ns_id":   nsID,
 	}).Info("create deployment")
 
-	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, projectID, nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 	return &createdDeploy, nil
 }
 
-func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {
+func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, projectID, nsID string, deploy kubtypes.Deployment) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -148,7 +148,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 	coblog.Std.Struct(deploy)
 	server.CalculateDeployResources(&deploy)
 
-	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, projectID, nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, 
 	return &updatedDeploy, nil
 }
 
-func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.DeploymentResource, error) {
+func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, projectID, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -247,7 +247,7 @@ func (da *DeployActionsImpl) SetDeploymentReplicas(ctx context.Context, nsID, de
 	}).Info("set deployment replicas")
 	coblog.Std.Struct(req)
 
-	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, projectID, nsID)
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +431,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	return &updatedDeploy, nil
 }
 
-func (da *DeployActionsImpl) ChangeActiveDeployment(ctx context.Context, nsID, deplName, version string) (*deployment.DeploymentResource, error) {
+func (da *DeployActionsImpl) ChangeActiveDeployment(ctx context.Context, projectID, nsID, deplName, version string) (*deployment.DeploymentResource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	da.log.WithFields(logrus.Fields{
 		"user_id":     userID,
@@ -455,7 +455,7 @@ func (da *DeployActionsImpl) ChangeActiveDeployment(ctx context.Context, nsID, d
 	}
 	newDeploy.Active = true
 
-	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, nsID)
+	nsLimits, err := da.permissions.GetNamespaceLimits(ctx, projectID, nsID)
 	if err != nil {
 		return nil, err
 	}

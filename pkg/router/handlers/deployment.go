@@ -16,7 +16,7 @@ type DeployHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments Deployment GetDeploymentsListHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/deployments Deployment GetDeploymentsListHandler
 // Get deployments list.
 //
 // ---
@@ -25,6 +25,10 @@ type DeployHandlers struct {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -46,7 +50,7 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsListHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsListHandler
 // Get deployments list.
 //
 // ---
@@ -55,6 +59,10 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -80,7 +88,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeploymentHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeploymentHandler
 // Get deployment active version.
 //
 // ---
@@ -89,6 +97,10 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -114,7 +126,7 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersionHandler
+// swagger:operation GET /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersionHandler
 // Get deployment version.
 //
 // ---
@@ -123,6 +135,10 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -152,7 +168,7 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments Deployment CreateDeploymentHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/deployments Deployment CreateDeploymentHandler
 // Create deployment.
 //
 // ---
@@ -161,6 +177,10 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -184,7 +204,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 
-	deploy, err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("namespace"), req)
+	deploy, err := h.CreateDeployment(ctx.Request.Context(), ctx.Param("project"), ctx.Param("namespace"), req)
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -192,7 +212,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, deploy)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeploymentHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeploymentHandler
 // Create active deployment version.
 //
 // ---
@@ -201,6 +221,10 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -221,7 +245,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
-	resp, err := h.ChangeActiveDeployment(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
+	resp, err := h.ChangeActiveDeployment(ctx.Request.Context(), ctx.Param("project"), ctx.Param("namespace"), ctx.Param("deployment"), ctx.Param("version"))
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -230,7 +254,7 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, resp)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersionHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersionHandler
 // Rename deployment version.
 //
 // ---
@@ -239,6 +263,10 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -284,7 +312,7 @@ func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, resp)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment} Deployment UpdateDeployment
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/deployments/{deployment} Deployment UpdateDeployment
 // Update deployment.
 //
 // ---
@@ -293,6 +321,10 @@ func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -320,7 +352,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 	}
 
 	req.Name = ctx.Param("deployment")
-	updDeploy, err := h.UpdateDeployment(ctx.Request.Context(), ctx.Param("namespace"), req)
+	updDeploy, err := h.UpdateDeployment(ctx.Request.Context(), ctx.Param("project"), ctx.Param("namespace"), req)
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -329,7 +361,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImageHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImageHandler
 // Update image in deployments container.
 //
 // ---
@@ -338,6 +370,10 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -373,7 +409,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicasHandler
+// swagger:operation PUT /projects/{project}/namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicasHandler
 // Update deployments replicas count.
 //
 // ---
@@ -382,6 +418,10 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -407,7 +447,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 		h.BadRequest(ctx, err)
 		return
 	}
-	updatedDeploy, err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("namespace"), ctx.Param("deployment"), req)
+	updatedDeploy, err := h.SetDeploymentReplicas(ctx.Request.Context(), ctx.Param("project"), ctx.Param("namespace"), ctx.Param("deployment"), req)
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -416,7 +456,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeploymentHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeploymentHandler
 // Delete deployment.
 //
 // ---
@@ -425,6 +465,10 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -448,7 +492,7 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersionHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersionHandler
 // Delete deployment version (not active).
 //
 // ---
@@ -457,6 +501,10 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
 //  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -484,12 +532,16 @@ func (h *DeployHandlers) DeleteDeploymentVersionHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments Deployment DeleteAllDeploymentsHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/deployments Deployment DeleteAllDeploymentsHandler
 // Delete all deployments in namespace.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -509,12 +561,16 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeploymentsHandler
+// swagger:operation DELETE /projects/{project}/namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeploymentsHandler
 // Delete all solution deployments.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -537,12 +593,16 @@ func (h *DeployHandlers) DeleteAllSolutionDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
 // Compare two deployment versions.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
@@ -574,12 +634,16 @@ func (h *DeployHandlers) DiffDeploymentVersionsHandler(ctx *gin.Context) {
 	ctx.String(http.StatusOK, *resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersionsHandler
+// swagger:operation POST /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersionsHandler
 // Compare deployment versions with previous version.
 //
 // ---
 // x-method-visibility: private
 // parameters:
+//  - name: project
+//    in: path
+//    type: string
+//    required: true
 //  - name: namespace
 //    in: path
 //    type: string
