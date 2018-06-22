@@ -23,7 +23,6 @@ type ServiceHandlers struct {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -57,7 +56,6 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -96,7 +94,6 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -140,7 +137,6 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -189,7 +185,6 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string

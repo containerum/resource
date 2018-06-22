@@ -24,7 +24,6 @@ type IngressHandlers struct {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -58,7 +57,6 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -96,7 +94,6 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -140,7 +137,6 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -189,7 +185,6 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string

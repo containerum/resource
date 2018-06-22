@@ -24,7 +24,6 @@ type DeployHandlers struct {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -58,7 +57,6 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -96,7 +94,6 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -134,7 +131,6 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -176,7 +172,6 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -220,7 +215,6 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -262,7 +256,6 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -320,7 +313,6 @@ func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -417,7 +409,6 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -464,7 +455,6 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string
@@ -500,7 +490,6 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 // parameters:
 //  - $ref: '#/parameters/UserIDHeader'
 //  - $ref: '#/parameters/UserRoleHeader'
-//  - $ref: '#/parameters/UserNamespaceHeader'
 //  - name: project
 //    in: path
 //    type: string

@@ -280,12 +280,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -334,12 +328,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -440,12 +428,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -500,12 +482,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -572,12 +548,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -709,12 +679,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -783,12 +747,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -845,12 +803,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -916,12 +868,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -999,12 +945,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -1065,12 +1005,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -1240,12 +1174,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -1294,12 +1222,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -1400,12 +1322,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -1460,12 +1376,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -1537,12 +1447,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -1601,12 +1505,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -1655,12 +1553,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -1761,12 +1653,6 @@
           },
           {
             "type": "string",
-            "name": "X-User-Namespace",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
             "name": "project",
             "in": "path",
             "required": true
@@ -1821,12 +1707,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -1893,12 +1773,6 @@
             ],
             "type": "string",
             "name": "X-User-Role",
-            "in": "header",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "X-User-Namespace",
             "in": "header",
             "required": true
           },
@@ -3851,12 +3725,6 @@
       "type": "string",
       "format": "uuid",
       "name": "X-User-ID",
-      "in": "header",
-      "required": true
-    },
-    "UserNamespaceHeader": {
-      "type": "string",
-      "name": "X-User-Namespace",
       "in": "header",
       "required": true
     },
