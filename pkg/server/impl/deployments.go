@@ -392,7 +392,7 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 	}
 
 	newDeploy.Version = diff.NewVersion(oldLatestDeploy.Deployment, newDeploy.Deployment)
-	if newDeploy.Version.EQ(oldLatestDeploy.Deployment.Version) && oldDeploy.Version.NE(oldLatestDeploy.Version) {
+	if newDeploy.Version.EQ(oldLatestDeploy.Deployment.Version) {
 		newDeploy.Version.Patch++
 	}
 
