@@ -3076,7 +3076,7 @@
       "description": "SelectedConfigMapsList -- model for config maps list from all namespaces",
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/definitions/ConfigMapsList"
+        "$ref": "#/definitions/selectedConfigMapsListAdditionalProperties"
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
@@ -3084,7 +3084,7 @@
       "description": "SelectedIngressesList -- model for ingresses list from all namespaces",
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/definitions/IngressesList"
+        "$ref": "#/definitions/selectedIngressesListAdditionalProperties"
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
@@ -3718,6 +3718,20 @@
       },
       "x-go-gen-location": "models",
       "x-go-package": "github.com/containerum/cherry"
+    },
+    "selectedConfigMapsListAdditionalProperties": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ConfigMapsList"
+      },
+      "x-go-gen-location": "models"
+    },
+    "selectedIngressesListAdditionalProperties": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/IngressesList"
+      },
+      "x-go-gen-location": "models"
     }
   },
   "parameters": {
