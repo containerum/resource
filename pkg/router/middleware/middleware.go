@@ -40,6 +40,7 @@ func (tv *TranslateValidate) BadRequest(ctx *gin.Context, err error) {
 			ret.AddDetailF("Field %s: %s", fieldErr.Namespace(), fieldErr.Translate(t))
 		}
 		gonic.Gonic(ret, ctx)
+		return
 	}
 	gonic.Gonic(rserrors.ErrValidation().AddDetailsErr(err), ctx)
 }
