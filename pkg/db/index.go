@@ -112,7 +112,7 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			var collection = mongo.db.C(CollectionIngress)
 			if err := collection.EnsureIndex(mgo.Index{
 				Name: "alive_" + CollectionIngress,
-				Key:  []string{CollectionIngress + ".name", "namespaceid"},
+				Key:  []string{CollectionIngress + ".name"},
 				PartialFilter: bson.M{
 					"deleted": false,
 				},
