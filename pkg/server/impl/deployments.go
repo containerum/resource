@@ -578,7 +578,7 @@ func (da *DeployActionsImpl) DeleteAllSolutionDeployments(ctx context.Context, n
 	return nil
 }
 
-func (da *DeployActionsImpl) DiffDeployments(ctx context.Context, nsID, deplName, version1, version2 string) (*string, error) {
+func (da *DeployActionsImpl) DiffDeployments(ctx context.Context, nsID, deplName, version1, version2 string) (*kubtypes.DeploymentDiff, error) {
 	da.log.WithFields(logrus.Fields{
 		"ns_id":      nsID,
 		"deployment": deplName,
@@ -607,10 +607,10 @@ func (da *DeployActionsImpl) DiffDeployments(ctx context.Context, nsID, deplName
 	}
 
 	deplDiff := diff.Diff(depl1.Deployment, depl2.Deployment)
-	return &deplDiff, nil
+	return &kubtypes.DeploymentDiff{Diff: deplDiff}, nil
 }
 
-func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, deplName, version string) (*string, error) {
+func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, deplName, version string) (*kubtypes.DeploymentDiff, error) {
 	da.log.WithFields(logrus.Fields{
 		"ns_id":      nsID,
 		"deployment": deplName,
@@ -664,5 +664,6 @@ func (da *DeployActionsImpl) DiffDeploymentsPrevious(ctx context.Context, nsID, 
 	}
 
 	deplDiff := diff.Diff(depl1.Deployment, depl2.Deployment)
-	return &deplDiff, nil
+
+	return &kubtypes.DeploymentDiff{Diff: deplDiff}, nil
 }

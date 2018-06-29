@@ -36,14 +36,14 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "3e925fd46049bfdd2d39feab146d37ba47c47eea"
-  version = "v0.23.3"
+  revision = "89056d12e35a09733b34a028d65bacc34ede2147"
+  version = "v0.23.9"
 
 [[projects]]
   name = "github.com/containerum/utils"
   packages = ["httputil"]
-  revision = "0d81250fc88af062d5836ecd83db9867eb6ee34c"
-  version = "v1.0.3"
+  revision = "f396ca4039012a63f7025cba99a5d514d2824421"
+  version = "v1.0.6"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -211,8 +211,8 @@
 [[projects]]
   name = "github.com/ninedraft/boxofstuff"
   packages = ["strset"]
-  revision = "55d5ed8ca33a5833adafd0b96faa50bcb5f62db1"
-  version = "v0.2.3"
+  revision = "e7b8cb45609e14397d0158ee082fad5aad745fbf"
+  version = "v0.3.6"
 
 [[projects]]
   name = "github.com/oleiade/reflections"
@@ -266,7 +266,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "027cca12c2d63e3d62b670d901e8a2c95854feec"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
@@ -278,7 +278,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "4cb1c02c05b0e749b0365f61ae859a8e0cfceed9"
 
 [[projects]]
   branch = "master"
@@ -287,7 +287,7 @@
     "unix",
     "windows"
   ]
-  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
+  revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -348,11 +348,11 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "bf40560368791a7dddfeea9b3cfcf89b34139f44"
+  revision = "d83b052f768a50a309c692a9c271da3f3276ff88"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7557018a6c052f41f0ab2651da9feac32b0bef3b250e9ae5a9ffb51aaeea9b8b"
+  inputs-digest = "a68617ed32fd760529f1178c31fd7a7e8c663bb966a68375c491509cc56975fa"
   solver-name = "gps-cdcl"
   solver-version = 1
