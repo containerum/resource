@@ -118,7 +118,10 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, projectID, ns
 
 	server.CalculateDeployResources(&deploy)
 
-	deploy.Version = semver.MustParse("1.0.0")
+	if deploy.Version.String() == "0.0.0" {
+		deploy.Version = semver.MustParse("1.0.0")
+	}
+
 	deploy.Active = true
 
 	createdDeploy, err := da.mongo.CreateDeployment(deployment.DeploymentFromKube(nsID, userID, deploy))
