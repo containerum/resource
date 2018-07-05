@@ -124,8 +124,6 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	req.Rules[0].Path[0].ServiceName = oldIngress.Rules[0].Path[0].ServiceName
-
 	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
 	req.Name = req.Rules[0].Host
 
