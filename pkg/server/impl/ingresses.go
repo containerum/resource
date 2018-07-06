@@ -73,7 +73,6 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	}
 
 	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
-	req.Name = req.Rules[0].Host
 
 	if req.Rules[0].Path[0].Path == "" {
 		req.Rules[0].Path[0].Path = "/"
@@ -120,7 +119,7 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 	}
 
 	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
-	req.Name = req.Rules[0].Host
+	req.Name = oldIngress.Name
 
 	if req.Rules[0].Path[0].Path == "" {
 		req.Rules[0].Path[0].Path = "/"
