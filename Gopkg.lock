@@ -42,8 +42,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "f2a038b8d89980f642671645b07eda421bd03e12"
-  version = "v0.25.0"
+  revision = "afbe95bf7727864f2e5f146787f231ad3a82e8af"
+  version = "v0.26.2"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -72,8 +72,8 @@
     ".",
     "log"
   ]
-  revision = "3658237ded108b4134956c1b3050349d93e7b895"
-  version = "v2.7.1"
+  revision = "3eb9738c1697594ea6e71a7156a9bb32ed216cf0"
+  version = "v2.8.0"
 
 [[projects]]
   name = "github.com/gin-contrib/cors"
@@ -183,8 +183,8 @@
 [[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
-  version = "1.1.3"
+  revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
+  version = "1.1.4"
 
 [[projects]]
   branch = "master"
@@ -211,14 +211,14 @@
 [[projects]]
   name = "github.com/modern-go/reflect2"
   packages = ["."]
-  revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
-  version = "1.0.0"
+  revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
+  version = "1.0.1"
 
 [[projects]]
   name = "github.com/ninedraft/boxofstuff"
   packages = ["strset"]
-  revision = "75df6f072a79f718d681614a3a9e27b9b8ba66d7"
-  version = "v0.3.1"
+  revision = "2b74bc874f1a8ee6911d655378be9025aeaf6021"
+  version = "v0.3.7"
 
 [[projects]]
   name = "github.com/oleiade/reflections"
@@ -272,7 +272,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
@@ -284,7 +284,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "4cb1c02c05b0e749b0365f61ae859a8e0cfceed9"
 
 [[projects]]
   branch = "master"
@@ -293,7 +293,7 @@
     "unix",
     "windows"
   ]
-  revision = "ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1"
+  revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -354,11 +354,11 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "91cfa479c814065e420cee7ed227db0f63a5854e"
+  revision = "d83b052f768a50a309c692a9c271da3f3276ff88"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a9b93b9491e6ff9eeeed34422096aae03228a9a791af699d431e3e9dda530df9"
+  inputs-digest = "17b2fa87b4cd493acc3822f307e4aeaefb3d366500f4c5a2019f1eb8ffb1db8f"
   solver-name = "gps-cdcl"
   solver-version = 1

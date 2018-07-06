@@ -620,7 +620,7 @@ func (h *DeployHandlers) DiffDeploymentVersionsHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, *resp)
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // swagger:operation POST /projects/{project}/namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersionsHandler
@@ -656,5 +656,5 @@ func (h *DeployHandlers) DiffDeploymentPreviousVersionsHandler(ctx *gin.Context)
 		h.HandleError(ctx, err)
 		return
 	}
-	ctx.String(http.StatusOK, *resp)
+	ctx.JSON(http.StatusOK, resp)
 }
