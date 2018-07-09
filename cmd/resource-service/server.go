@@ -19,7 +19,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const dbversion = "1.2.2"
+const dbversion = "1.2.3"
 
 func initServer(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent|tabwriter.Debug)

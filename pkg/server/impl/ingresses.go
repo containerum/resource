@@ -6,7 +6,6 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
-	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/rsErrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
@@ -74,7 +73,6 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	}
 
 	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
-	req.Name = req.Rules[0].Host
 
 	if req.Rules[0].Path[0].Path == "" {
 		req.Rules[0].Path[0].Path = "/"
@@ -89,10 +87,6 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	req.Rules[0].Path, err = server.IngressPaths(svc.Service, req.Rules[0].Path[0].Path, req.Rules[0].Path[0].ServicePort)
 	if err != nil {
 		return nil, err
-	}
-
-	if server.DetermineServiceType(svc.Service) != service.ServiceExternal {
-		return nil, rserrors.ErrServiceNotExternal()
 	}
 
 	createdIngress, err := ia.mongo.CreateIngress(ingress.IngressFromKube(nsID, userID, req))
@@ -124,10 +118,8 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	req.Rules[0].Path[0].ServiceName = oldIngress.Rules[0].Path[0].ServiceName
-
 	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
-	req.Name = req.Rules[0].Host
+	req.Name = oldIngress.Name
 
 	if req.Rules[0].Path[0].Path == "" {
 		req.Rules[0].Path[0].Path = "/"
