@@ -37,8 +37,7 @@ func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
 	var changedContainers = addedOrChangedContainers.Filter(func(container ComparableContainer) bool {
 		return oldContainersNames.Have(container.Name)
 	})
-
-	if changedContainers.OnlyLatest().Len() > 0 {
+	if changedContainers.OnlyLatest().Len() != changedContainers.Len() {
 		// if some containers now use not semver
 		var newVersion = oldDepl.Version
 		newVersion.Major++
@@ -109,12 +108,11 @@ type ComparableContainer struct {
 }
 
 func (c ComparableContainer) String() string {
-	return fmt.Sprintf("%s [%s:%s]", c.Name, c.Image, func() string {
-		if c.IsLatest() {
-			return "latest"
-		}
-		return c.Version.String()
-	}())
+	var img = c.Image
+	if c.Version.String() != "" {
+		img += ":" + c.Version.String()
+	}
+	return fmt.Sprintf("%s [%s]", c.Name, img)
 }
 
 func (c ComparableContainer) IsLatest() bool {
@@ -129,7 +127,13 @@ func FromContainer(container model.Container) ComparableContainer {
 	} else {
 		imageName = namedImage.Name()
 	}
-	var version, _ = ContainerSemver(container)
+	var version, ok = ContainerSemver(container)
+	if !ok {
+		var tagged, isTagged = namedImage.(reference.NamedTagged)
+		if isTagged {
+			version.Build = append(version.Build, tagged.Tag())
+		}
+	}
 	return ComparableContainer{
 		Name:    container.Name,
 		Image:   imageName,
