@@ -6,85 +6,48 @@ import (
 	"github.com/blang/semver"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/docker/distribution/reference"
-	"github.com/ninedraft/boxofstuff/strset"
 )
 
 func NewVersion(oldDepl, newDepl model.Deployment) semver.Version {
-	var oldContainersNames = strset.NewSet(oldDepl.ContainersNames())
-	var newContainersNames = strset.NewSet(newDepl.ContainersNames())
-	var oldContainers = NewContainerSet(oldDepl.Containers)
-	var newContainers = NewContainerSet(newDepl.Containers)
-	var oldContainersVersions = func() map[string]ComparableContainer {
-		var versions = make(map[string]ComparableContainer, len(oldDepl.Containers))
-		for _, container := range oldDepl.Containers {
-			var cmpCont = FromContainer(container)
-			versions[container.Name] = cmpCont
-		}
-		return versions
-	}()
+	var version = oldDepl.Version
+	var containers = diff(oldDepl.Containers, newDepl.Containers)
+	var stats = containers.Stats()
 
-	if len(oldContainersNames.Sub(newContainersNames)) > 0 {
-		// some containers have been deleted
-		var newVersion = oldDepl.Version
-		newVersion.Major++
-		newVersion.Minor = 0
-		newVersion.Patch = 0
-		return newVersion
+	if stats.Deleted > 0 {
+		version.Major++
+		return version
 	}
 
-	var addedOrChangedContainers = newContainers.Sub(oldContainers)
-	//var addedOrChangedContainersNames = addedOrChangedContainers.NamesSet()
-	var changedContainers = addedOrChangedContainers.Filter(func(container ComparableContainer) bool {
-		return oldContainersNames.Have(container.Name)
+	if containers.Filter(func(change versionChange) bool {
+		return (!change.New.IsSemver() || !change.Old.IsSemver()) && change.Type == Change
+	}).Len() > 0 {
+		version.Major++
+		return version
+	}
+
+	var onlySemver = containers.Filter(func(change versionChange) bool {
+		return change.New.IsSemver() && change.Old.IsSemver()
 	})
-	if changedContainers.OnlyLatest().Len() != changedContainers.Len() {
-		// if some containers now use not semver
-		var newVersion = oldDepl.Version
-		newVersion.Major++
-		newVersion.Minor = 0
-		newVersion.Patch = 0
-		return newVersion
+	for _, v := range onlySemver {
+		var semverChange = v.Diff()
+		switch {
+		case semverChange.Major() != 0:
+			version.Major++
+			return version
+		case semverChange.Minor() != 0:
+			version.Minor++
+			return version
+		case semverChange.Patch() != 0:
+			version.Patch++
+			return version
+		}
 	}
 
-	var changedContainersWithSemvers = changedContainers.Sub(changedContainers.OnlyLatest())
-	if changedContainersWithSemvers.Filter(func(container ComparableContainer) bool {
-		return container.Version.Major() != oldContainersVersions[container.Name].Version.Major()
-	}).Len() > 0 {
-		// some images have major updates, so
-		var newVersion = oldDepl.Version
-		newVersion.Major++
-		newVersion.Minor = 0
-		newVersion.Patch = 0
-		return newVersion
+	if stats.Created > 0 {
+		version.Minor++
+		return version
 	}
 
-	if changedContainersWithSemvers.Filter(func(container ComparableContainer) bool {
-		return container.Version.Minor() != oldContainersVersions[container.Name].Version.Minor()
-	}).Len() > 0 {
-		// some images have minor updates, so
-		var newVersion = oldDepl.Version
-		newVersion.Minor++
-		newVersion.Patch = 0
-		return newVersion
-	}
-
-	if changedContainersWithSemvers.Filter(func(container ComparableContainer) bool {
-		return container.Version.Patch() != oldContainersVersions[container.Name].Version.Patch()
-	}).Len() > 0 {
-		// some images have minor updates, so
-		var newVersion = oldDepl.Version
-		newVersion.Patch++
-		return newVersion
-	}
-
-	if len(newContainersNames.Sub(oldContainersNames)) > 0 {
-		// only new containers have been added
-		var newVersion = oldDepl.Version
-		newVersion.Major++
-		newVersion.Minor = 0
-		newVersion.Patch = 0
-		return newVersion
-	}
 	// nothing ever changes
 	return oldDepl.Version
 }
@@ -139,12 +102,4 @@ func FromContainer(container model.Container) ComparableContainer {
 		Image:   imageName,
 		Version: FromVersion(version),
 	}
-}
-
-func ComparableContainers(depl model.Deployment) []ComparableContainer {
-	var containers = make([]ComparableContainer, 0, len(depl.Containers))
-	for _, container := range depl.Containers {
-		containers = append(containers, FromContainer(container))
-	}
-	return containers
 }

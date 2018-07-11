@@ -36,6 +36,7 @@ func FromVersion(v semver.Version) TriVersion {
 	var tags = make([]string, 0, len(v.Build))
 	for _, tag := range v.Build {
 		if tag != "latest" {
+			tag = strings.TrimSpace(tag)
 			tags = append(tags, tag)
 		}
 	}
@@ -85,4 +86,8 @@ func (v TriVersion) LessEqual(x TriVersion) bool {
 func (v TriVersion) CompatibleWith(x TriVersion) bool {
 	return v.Major() == x.Major() &&
 		v.Minor() <= x.Minor()
+}
+
+func (v TriVersion) IsSemver() bool {
+	return v.TagString == ""
 }
