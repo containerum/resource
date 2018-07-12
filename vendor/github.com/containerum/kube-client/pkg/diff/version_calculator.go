@@ -12,6 +12,11 @@ const (
 	Create
 )
 
+type Container struct {
+	Name  string
+	Image string
+}
+
 type versionChange struct {
 	Type ChangeType
 	Old  TriVersion
@@ -28,7 +33,7 @@ func (change versionChange) Diff() TriVersion {
 	}
 }
 
-type Set map[string]versionChange
+type Set map[Container]versionChange
 
 func diff(old, new []model.Container) Set {
 	var set = make(Set, len(old)+len(new))
@@ -37,10 +42,16 @@ func diff(old, new []model.Container) Set {
 			Type: Delete,
 		}
 		change.Old = FromContainer(cont).Version
-		set[cont.Name] = change
+		set[Container{
+			Name:  cont.Name,
+			Image: FromContainer(cont).Image,
+		}] = change
 	}
 	for _, cont := range new {
-		var change, ok = set[cont.Name]
+		var change, ok = set[Container{
+			Name:  cont.Name,
+			Image: FromContainer(cont).Image,
+		}]
 		if !ok {
 			change.Type = Create
 			change.New = FromContainer(cont).Version
@@ -48,7 +59,10 @@ func diff(old, new []model.Container) Set {
 			change.Type = Change
 			change.New = FromContainer(cont).Version
 		}
-		set[cont.Name] = change
+		set[Container{
+			Name:  cont.Name,
+			Image: FromContainer(cont).Image,
+		}] = change
 	}
 	return set
 }
