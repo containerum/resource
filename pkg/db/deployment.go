@@ -66,7 +66,7 @@ func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentNam
 	return depl, err
 }
 
-func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID string, deploymentName string) (deployment.DeploymentList, error) {
+func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID, deploymentName string) (deployment.DeploymentList, error) {
 	mongo.logger.Debugf("getting deployment versions list")
 	var collection = mongo.db.C(CollectionDeployment)
 	depl := make(deployment.DeploymentList, 0)

@@ -36,8 +36,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "44e59ad728328c31f22f4b5c1a9a7b6df6cf1638"
-  version = "v0.23.16"
+  revision = "84994c3603435e72e840178917f0ee88b0da0bf8"
+  version = "v0.23.17"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -110,28 +110,28 @@
   version = "r2018.04.23"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/jsonreference"
   packages = ["."]
   revision = "3fb327e6747da3043567ee86abd02bb6376b6be2"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
   revision = "bce47c9386f9ecd6b86f450478a80103c3fe1402"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/swag"
   packages = ["."]
   revision = "2b0bd4f193d011c203529df626a65d63cb8a79e8"
+  version = "0.15.0"
 
 [[projects]]
   name = "github.com/go-playground/locales"
@@ -278,7 +278,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "039a4258aec0ad3c79b905677cceeab13b296a77"
+  revision = "cffdcf672aee934982473246bc7e9a8ba446aa9b"
 
 [[projects]]
   branch = "master"
@@ -353,6 +353,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6aded9e094c23dc4b292e1d80849a97fd96abb7bd86468c7a9c2bbcf0ba0eacb"
+  inputs-digest = "7efa63a4b957ea4d2c1245a142447c89fba9ec2677d160edad1f7766d74d44c8"
   solver-name = "gps-cdcl"
   solver-version = 1
