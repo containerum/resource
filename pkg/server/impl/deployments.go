@@ -426,7 +426,6 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 			} else {
 				return nil, err
 			}
-			return nil, acterr
 		}
 		return nil, err
 	}

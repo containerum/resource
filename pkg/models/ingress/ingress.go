@@ -41,9 +41,7 @@ func (ingr IngressResource) Copy() IngressResource {
 func (ingr IngressResource) Paths() []model.Path {
 	var paths = make([]model.Path, 0, len(ingr.Rules))
 	for _, rule := range ingr.Rules {
-		for _, path := range rule.Path {
-			paths = append(paths, path)
-		}
+		paths = append(paths, rule.Path...)
 	}
 	return paths
 }

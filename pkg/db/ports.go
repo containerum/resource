@@ -35,5 +35,4 @@ func (mongo *MongoStorage) GetFreePort(domain string, protocol model.Protocol) (
 			return port, nil
 		}
 	}
-	return -1, nil
 }

@@ -5,7 +5,6 @@ import (
 
 	"strconv"
 
-	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
@@ -14,7 +13,6 @@ import (
 )
 
 type DomainActionsImpl struct {
-	kube  *clients.Kube
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }

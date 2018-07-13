@@ -55,7 +55,6 @@ func ReadAccess(c *gin.Context) {
 		gonic.Gonic(rserrors.ErrResourceNotExists(), c)
 		return
 	}
-	return
 }
 
 func WriteAccess(c *gin.Context) {
@@ -79,7 +78,6 @@ func WriteAccess(c *gin.Context) {
 		gonic.Gonic(rserrors.ErrResourceNotExists(), c)
 		return
 	}
-	return
 }
 
 func containsAccess(access string, in ...AccessLevel) bool {
