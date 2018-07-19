@@ -227,7 +227,7 @@ func (mongo *MongoStorage) CreateIndex(indexName string, options ...func(mongo *
 			Unique: true,
 		}
 		if collection.EnsureIndex(index); err != nil {
-			return PipErr{err}.ToMongerr().Extract()
+			return PipErr{error: err}.ToMongerr().Extract()
 		}
 	}
 	return nil

@@ -87,7 +87,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) erro
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete services")
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -163,7 +163,7 @@ func (mongo *MongoStorage) DeleteAllServicesBySolutionName(nsID, solution string
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete solution services")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
