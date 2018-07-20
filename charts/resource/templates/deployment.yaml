@@ -46,7 +46,7 @@ spec:
               value: "{{ .Values.env.local.CH_RESOURCE_KUBE_API_ADDR }}"
             {{- else }}
             - name: CH_RESOURCE_KUBE_API_ADDR
-              value: "{{ .Release.Name }}-kube:1214"
+              value: "http://{{ .Release.Name }}-kube:1214"
             {{- end }}
 
             {{- if .Values.env.local.CH_RESOURCE_PERMISSIONS_ADDR }}
@@ -54,7 +54,7 @@ spec:
               value: "{{ .Values.env.local.CH_RESOURCE_PERMISSIONS_ADDR }}"
             {{- else }}
             - name: CH_RESOURCE_PERMISSIONS_ADDR
-              value: "{{ .Release.Name }}-permissions:4242"
+              value: "http://{{ .Release.Name }}-permissions:4242"
             {{- end }}
 
             {{- if .Values.env.local.CH_RESOURCE_MONGO_PASSWORD }}
