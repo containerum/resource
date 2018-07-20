@@ -25,6 +25,7 @@ env:
     CH_RESOURCE_MONGO_ADDR: "mongo-mongodb.mongo.svc.cluster.local:27017"
     CH_RESOURCE_KUBE_API_ADDR: "kube-api:1214"
     CH_RESOURCE_MONGO_PASSWORD:
+    CH_RESOURCE_PERMISSIONS_ADDR: "permissions:4242"
 
 mongodb:
   persistence:
