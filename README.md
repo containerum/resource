@@ -15,7 +15,7 @@ Resource is a service that manages Kubernetes namespace objects (deployments, in
 ```
 
 ## Contributions
-Please submit all contributions concerning Resource component to this repository.
+Please submit all contributions concerning Resource component to this repository. Contributing guidelines are available [here](https://github.com/containerum/containerum/blob/master/CONTRIBUTING.md).
 
 ## License
 Resource project is licensed under the terms of the Apache License Version 2.0. Please see LICENSE in this repository for more details.
