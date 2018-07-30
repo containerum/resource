@@ -62,7 +62,9 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 
 		mongo.logger.Infoln("updating db indexes")
 		for _, collectionName := range CollectionsNames() {
-			mongo.db.C(collectionName).DropAllIndexes()
+			if err := mongo.db.C(collectionName).DropAllIndexes(); err != nil {
+				return err
+			}
 		}
 		for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
 			var collection = mongo.db.C(collectionName)
@@ -177,10 +179,8 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			if err != nil {
 				errs = append(errs, err)
 			} else {
-				var names []string
 				var width int
 				for _, index := range indexes {
-					names = append(names, index.Name)
 					if width < len(index.Name) {
 						width = len(index.Name)
 					}
@@ -227,7 +227,7 @@ func (mongo *MongoStorage) CreateIndex(indexName string, options ...func(mongo *
 			Unique: true,
 		}
 		if collection.EnsureIndex(index); err != nil {
-			return PipErr{err}.ToMongerr().Extract()
+			return PipErr{error: err}.ToMongerr().Extract()
 		}
 	}
 	return nil

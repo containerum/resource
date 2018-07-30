@@ -421,12 +421,11 @@ func (da *DeployActionsImpl) SetDeploymentContainerImage(ctx context.Context, ns
 		if acterr := da.mongo.ActivateDeployment(nsID, newDeploy.Name, oldDeploy.Version); acterr != nil {
 			//TODO
 			//Temporary solution for deployments w/o version
-			if acterr := da.mongo.ActivateDeploymentWOVersion(nsID, newDeploy.Name); acterr != nil {
-				return nil, acterr
-			} else {
-				return nil, err
+			acterrwo := da.mongo.ActivateDeploymentWOVersion(nsID, newDeploy.Name)
+			if acterrwo != nil {
+				return nil, acterrwo
 			}
-			return nil, acterr
+			return nil, err
 		}
 		return nil, err
 	}

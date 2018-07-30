@@ -70,7 +70,7 @@ func (mongo *MongoStorage) DeleteDomain(domainName string) error {
 	colQuerier := bson.M{"domain": domainName}
 	if err := collection.Remove(colQuerier); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete domain")
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }

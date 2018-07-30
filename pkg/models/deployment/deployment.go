@@ -156,20 +156,10 @@ func (list DeploymentList) Filter(pred func(deployment DeploymentResource) bool)
 
 func copyContainer(container model.Container) model.Container {
 	var cp = container
-	for i, env := range cp.Env {
-		cp.Env[i] = env
-	}
-	for i, command := range cp.Commands {
-		cp.Commands[i] = command
-	}
-	for i, port := range cp.Ports {
-		cp.Ports[i] = port
-	}
-	for i, volume := range cp.VolumeMounts {
-		cp.VolumeMounts[i] = volume
-	}
-	for i, config := range cp.ConfigMaps {
-		cp.ConfigMaps[i] = config
-	}
+	copy(cp.Env, cp.Env)
+	copy(cp.Commands, cp.Commands)
+	copy(cp.Ports, cp.Ports)
+	copy(cp.VolumeMounts, cp.VolumeMounts)
+	copy(cp.ConfigMaps, cp.ConfigMaps)
 	return cp
 }
