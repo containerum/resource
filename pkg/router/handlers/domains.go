@@ -3,6 +3,8 @@ package handlers
 import (
 	"net/http"
 
+	"errors"
+
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
@@ -98,6 +100,15 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
 		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
 		return
+	}
+
+	if len(req.IP) == 0 {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, errors.New("at least 1 IP is required")))
+		return
+	}
+
+	if req.Domain == "" {
+		req.Domain = req.IP[0]
 	}
 
 	domain, err := h.AddDomain(ctx.Request.Context(), req)
