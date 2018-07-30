@@ -199,6 +199,38 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 	return serviceStats, nil
 }
 
+func (mongo *MongoStorage) CountAllServices() (stats.Service, error) {
+	mongo.logger.Debugf("counting services")
+	var collection = mongo.db.C(CollectionService)
+	var statData []struct {
+		NoDomain bool `bson:"_id"`
+		Count    int  `bson:"count"`
+	}
+	if err := collection.Pipe([]bson.M{
+		{"$match": bson.M{
+			"deleted": false,
+		}},
+		{"$project": bson.M{
+			"domain": "$service.domain",
+		}},
+		{"$group": bson.M{
+			"_id":   bson.M{"$eq": []interface{}{"$domain", ""}},
+			"count": bson.M{"$sum": 1},
+		}},
+	}).All(&statData); err != nil {
+		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+	}
+	var serviceStats stats.Service
+	for _, serv := range statData {
+		if serv.NoDomain {
+			serviceStats.External += serv.Count
+		} else {
+			serviceStats.Internal += serv.Count
+		}
+	}
+	return serviceStats, nil
+}
+
 func (mongo *MongoStorage) CountServicesInNamespace(namespaceID string) (stats.Service, error) {
 	mongo.logger.Debugf("counting services in namespace")
 	var collection = mongo.db.C(CollectionService)

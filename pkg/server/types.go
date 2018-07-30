@@ -58,6 +58,7 @@ type ServiceActions interface {
 
 type ResourcesActions interface {
 	GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error)
+	GetAllResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error)
 	DeleteAllResourcesInNamespace(ctx context.Context, nsID string) error
 	DeleteAllUserResources(ctx context.Context) error
 }
