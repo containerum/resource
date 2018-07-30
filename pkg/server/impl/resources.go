@@ -59,6 +59,39 @@ func (rs *ResourcesActionsImpl) GetResourcesCount(ctx context.Context) (*resourc
 	return &ret, nil
 }
 
+func (rs *ResourcesActionsImpl) GetAllResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error) {
+	ingresses, err := rs.mongo.CountAllIngresses()
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+	deploys, err := rs.mongo.CountAllDeployments()
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+	services, err := rs.mongo.CountAllServices()
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+	pods, err := rs.mongo.CountAllReplicas()
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
+
+	ret := resources.GetResourcesCountResponse{
+		Ingresses:   ingresses,
+		Deployments: deploys,
+		ExtServices: services.External,
+		IntServices: services.Internal,
+		Pods:        pods,
+	}
+
+	return &ret, nil
+}
+
 func (rs *ResourcesActionsImpl) DeleteAllResourcesInNamespace(ctx context.Context, nsID string) error {
 	rs.log.WithField("namespace_id", nsID).Info("deleting all resources")
 	if err := rs.mongo.DeleteAllIngressesInNamespace(nsID); err != nil {

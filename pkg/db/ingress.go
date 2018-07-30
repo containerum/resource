@@ -171,3 +171,15 @@ func (mongo *MongoStorage) CountIngresses(owner string) (int, error) {
 	}
 	return n, nil
 }
+
+func (mongo *MongoStorage) CountAllIngresses() (int, error) {
+	mongo.logger.Debugf("counting all ingresses")
+	var collection = mongo.db.C(CollectionIngress)
+	n, err := collection.Find(bson.M{
+		"deleted": false,
+	}).Count()
+	if err != nil {
+		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+	}
+	return n, nil
+}

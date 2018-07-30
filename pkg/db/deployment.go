@@ -348,6 +348,19 @@ func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	return n, nil
 }
 
+func (mongo *MongoStorage) CountAllDeployments() (int, error) {
+	mongo.logger.Debugf("counting user deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	n, err := collection.Find(bson.M{
+		"deployment.active": true,
+		"deleted":           false,
+	}).Count()
+	if err != nil {
+		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+	}
+	return n, nil
+}
+
 func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 	mongo.logger.Debugf("counting deployments replicas")
 	var collection = mongo.db.C(CollectionDeployment)
@@ -358,6 +371,34 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 		{
 			"$match": bson.M{
 				"deployment.owner":  owner,
+				"deleted":           false,
+				"deployment.active": true,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": "",
+				"count": bson.M{
+					"$sum": "$deployment.replicas",
+				},
+			},
+		},
+	}).One(&count)
+	if err != nil {
+		return 0, PipErr{err}.NotFoundToNil().ToMongerr().Extract()
+	}
+	return count.Count, nil
+}
+
+func (mongo *MongoStorage) CountAllReplicas() (int, error) {
+	mongo.logger.Debugf("counting deployments replicas")
+	var collection = mongo.db.C(CollectionDeployment)
+	var count struct {
+		Count int `json:"count"`
+	}
+	err := collection.Pipe([]bson.M{
+		{
+			"$match": bson.M{
 				"deleted":           false,
 				"deployment.active": true,
 			},
