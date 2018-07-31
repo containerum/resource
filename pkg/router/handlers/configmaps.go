@@ -129,7 +129,7 @@ func (h *ConfigMapHandlers) ImportConfigMapsHandler(ctx *gin.Context) {
 	}
 
 	for _, cm := range req.ConfigMaps {
-		if err := h.ImportConfigMap(ctx.Request.Context(), ctx.Param("namespace"), cm); err != nil {
+		if err := h.ImportConfigMap(ctx.Request.Context(), cm.Namespace, cm); err != nil {
 			logrus.Warn(err)
 		}
 	}
