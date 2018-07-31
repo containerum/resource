@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"git.containerum.net/ch/resource-service/pkg/models/configmap"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
@@ -54,6 +55,15 @@ type ServiceActions interface {
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 	DeleteAllServices(ctx context.Context, nsID string) error
 	DeleteAllSolutionServices(ctx context.Context, nsID, solutionName string) error
+}
+
+type ConfigMapActions interface {
+	CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.ConfigMapResource, error)
+	ImportConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) error
+	GetConfigMapsList(ctx context.Context, nsID string) (*configmap.ConfigMapsResponse, error)
+	GetConfigMap(ctx context.Context, nsID, ingressName string) (*configmap.ConfigMapResource, error)
+	DeleteConfigMap(ctx context.Context, nsID, cmName string) error
+	DeleteAllConfigMaps(ctx context.Context, nsID string) error
 }
 
 type ResourcesActions interface {

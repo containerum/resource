@@ -18,6 +18,7 @@ const (
 	CollectionService    = "service"
 	CollectionDomain     = "domain"
 	CollectionIngress    = "ingress"
+	CollectionCM         = "configmap"
 	CollectionDB         = "db"
 )
 

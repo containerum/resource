@@ -247,6 +247,265 @@
         "x-method-visibility": "private"
       }
     },
+    "/namespaces/{namespace}/configmaps": {
+      "get": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Get configmaps list.",
+        "operationId": "GetConfigMapsListHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "configmaps list",
+            "schema": {
+              "$ref": "#/definitions/ConfigMapsResponse"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      },
+      "post": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Create configmap.",
+        "operationId": "CreateConfigMapHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ConfigMap"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "configmap created",
+            "schema": {
+              "$ref": "#/definitions/ConfigMapResource"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      },
+      "delete": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Delete configmap.",
+        "operationId": "DeleteAllConfigMapsHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "all configmaps in namespace deleted"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
+    "/namespaces/{namespace}/configmaps/{configmap}": {
+      "get": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Get configmaps list.",
+        "operationId": "GetConfigMapHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "configmap",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "configmap",
+            "schema": {
+              "$ref": "#/definitions/ConfigMapResource"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      },
+      "delete": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Delete configmap.",
+        "operationId": "DeleteConfigMapHandler",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "configmap",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "configmap deleted"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
     "/namespaces/{namespace}/deployments": {
       "get": {
         "tags": [
@@ -1987,6 +2246,58 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
+    "ConfigMapList": {
+      "description": "ConfigMapList -- ConfigMaps list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ConfigMapResource"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/configmap"
+    },
+    "ConfigMapResource": {
+      "description": "ConfigMapResource --  model for ConfigMap for resource-service db",
+      "type": "object",
+      "required": [
+        "name",
+        "data"
+      ],
+      "properties": {
+        "_id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "data": {
+          "$ref": "#/definitions/ConfigMapData"
+        },
+        "deleted": {
+          "type": "boolean",
+          "x-go-name": "Deleted"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespaceid": {
+          "type": "string",
+          "x-go-name": "NamespaceID"
+        },
+        "owner": {
+          "type": "string",
+          "x-go-name": "Owner"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/configmap"
+    },
     "ConfigMapsList": {
       "description": "ConfigMapsList -- model for config maps list",
       "type": "object",
@@ -2000,6 +2311,16 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ConfigMapsResponse": {
+      "description": "ConfigMapsResponse -- configmap response",
+      "type": "object",
+      "properties": {
+        "ConfigMaps": {
+          "$ref": "#/definitions/ConfigMapList"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/configmap"
     },
     "Container": {
       "description": "Container -- model for container in deployment",
@@ -2485,6 +2806,11 @@
       "description": "GetResourcesCountResponse --  model for users resources count",
       "type": "object",
       "properties": {
+        "configmaps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ConfigMaps"
+        },
         "deployments": {
           "type": "integer",
           "format": "int64",
@@ -3205,7 +3531,7 @@
     "ServiceType": {
       "description": "represents service type",
       "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
     "ServicesList": {
       "description": "ServicesList -- model for services list",

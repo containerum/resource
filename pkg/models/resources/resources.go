@@ -9,4 +9,5 @@ type GetResourcesCountResponse struct {
 	IntServices int `json:"internal_services"`
 	Ingresses   int `json:"ingresses"`
 	Pods        int `json:"pods"`
+	ConfigMaps  int `json:"configmaps"`
 }

@@ -67,7 +67,7 @@ func (mongo *MongoStorage) UpdateDomain(domain domain.Domain) (*domain.Domain, e
 func (mongo *MongoStorage) DeleteDomain(domainName string) error {
 	mongo.logger.Debugf("deleting domain")
 	var collection = mongo.db.C(CollectionDomain)
-	colQuerier := bson.M{"domain": domainName}
+	colQuerier := bson.M{"_id": domainName}
 	if err := collection.Remove(colQuerier); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete domain")
 		return PipErr{error: err}.ToMongerr().Extract()
