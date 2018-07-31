@@ -40,6 +40,25 @@ func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.Confi
 	return result, nil
 }
 
+func (mongo *MongoStorage) GetSelectedConfigMaps(namespaceID []string) (configmap.ConfigMapList, error) {
+	mongo.logger.Debugf("getting selected configmaps")
+	var collection = mongo.db.C(CollectionCM)
+	list := make(configmap.ConfigMapList, 0)
+	if err := collection.Find(bson.M{
+		"namespaceid": bson.M{
+			"$in": namespaceID,
+		},
+		"deleted": false,
+	}).All(&list); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get configmaps")
+		if err == mgo.ErrNotFound {
+			return list, rserrors.ErrResourceNotExists()
+		}
+		return list, PipErr{err}.ToMongerr().Extract()
+	}
+	return list, nil
+}
+
 // If ID is empty, then generates UUID4 and uses it
 func (mongo *MongoStorage) CreateConfigMap(cm configmap.ConfigMapResource) (configmap.ConfigMapResource, error) {
 	mongo.logger.Debugf("creating configmap")

@@ -60,6 +60,25 @@ func (mongo *MongoStorage) GetIngressByService(namespaceID, serviceName string) 
 	return ingr, nil
 }
 
+func (mongo *MongoStorage) GetSelectedIngresses(namespaceID []string) (ingress.IngressList, error) {
+	mongo.logger.Debugf("getting selected ingresses")
+	var collection = mongo.db.C(CollectionIngress)
+	list := make(ingress.IngressList, 0)
+	if err := collection.Find(bson.M{
+		"namespaceid": bson.M{
+			"$in": namespaceID,
+		},
+		"deleted": false,
+	}).All(&list); err != nil {
+		mongo.logger.WithError(err).Errorf("unable to get ingress")
+		if err == mgo.ErrNotFound {
+			return list, rserrors.ErrResourceNotExists()
+		}
+		return list, PipErr{err}.ToMongerr().Extract()
+	}
+	return list, nil
+}
+
 func (mongo *MongoStorage) GetIngressList(namespaceID string) (ingress.IngressList, error) {
 	mongo.logger.Debugf("getting ingress")
 	var collection = mongo.db.C(CollectionIngress)
