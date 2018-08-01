@@ -16,16 +16,16 @@ type ResourceConfigMap struct {
 	NamespaceID string `json:"namespaceid"`
 }
 
-// ListCM -- ConfigMaps list
+// ListConfigMaps -- ConfigMaps list
 //
 // swagger:model
-type ListCM []ResourceConfigMap
+type ListConfigMaps []ResourceConfigMap
 
 //  ConfigMapsResponse -- configmap response
 //
 // swagger:model
 type ConfigMapsResponse struct {
-	ConfigMaps ListCM `json:"config_maps"`
+	ConfigMaps ListConfigMaps `json:"config_maps"`
 }
 
 func FromKube(nsID, owner string, ConfigMap model.ConfigMap) ResourceConfigMap {
@@ -89,11 +89,11 @@ func OneSelectQuery(namespaceID, name string) interface{} {
 	}.OneSelectQuery()
 }
 
-func (list ListCM) Len() int {
+func (list ListConfigMaps) Len() int {
 	return len(list)
 }
 
-func (list ListCM) Names() []string {
+func (list ListConfigMaps) Names() []string {
 	var names = make([]string, 0, len(list))
 	for _, cm := range list {
 		names = append(names, cm.Name)
@@ -101,16 +101,16 @@ func (list ListCM) Names() []string {
 	return names
 }
 
-func (list ListCM) Copy() ListCM {
-	var cp = make(ListCM, 0, list.Len())
+func (list ListConfigMaps) Copy() ListConfigMaps {
+	var cp = make(ListConfigMaps, 0, list.Len())
 	for _, serv := range list {
 		cp = append(cp, serv.Copy())
 	}
 	return cp
 }
 
-func (list ListCM) Filter(pred func(ResourceConfigMap) bool) ListCM {
-	var filtered = make(ListCM, 0, list.Len())
+func (list ListConfigMaps) Filter(pred func(ResourceConfigMap) bool) ListConfigMaps {
+	var filtered = make(ListConfigMaps, 0, list.Len())
 	for _, serv := range list {
 		if pred(serv.Copy()) {
 			filtered = append(filtered, serv.Copy())

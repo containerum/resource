@@ -26,10 +26,10 @@ func (mongo *MongoStorage) GetConfigMap(namespaceID, cmName string) (configmap.R
 	return result, nil
 }
 
-func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.ListCM, error) {
+func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.ListConfigMaps, error) {
 	mongo.logger.Debugf("getting configmaps list")
 	var collection = mongo.db.C(CollectionCM)
-	result := make(configmap.ListCM, 0)
+	result := make(configmap.ListConfigMaps, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": namespaceID,
 		"deleted":     false,
@@ -40,10 +40,10 @@ func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.ListC
 	return result, nil
 }
 
-func (mongo *MongoStorage) GetSelectedConfigMaps(namespaceID []string) (configmap.ListCM, error) {
+func (mongo *MongoStorage) GetSelectedConfigMaps(namespaceID []string) (configmap.ListConfigMaps, error) {
 	mongo.logger.Debugf("getting selected configmaps")
 	var collection = mongo.db.C(CollectionCM)
-	list := make(configmap.ListCM, 0)
+	list := make(configmap.ListConfigMaps, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": bson.M{
 			"$in": namespaceID,
