@@ -10,7 +10,7 @@ func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.
 	mongo.logger.Debugf("getting domain")
 	var collection = mongo.db.C(CollectionDomain)
 	var result = domain.Domain{}
-	if err := collection.Find(bson.M{"domain": domainName}).One(&result); err != nil {
+	if err := collection.Find(bson.M{"_id": domainName}).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain")
 		return nil, PipErr{error: err}.ToMongerr().Extract()
 	}
