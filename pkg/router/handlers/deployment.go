@@ -101,7 +101,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 //  '200':
 //    description: deployment
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
@@ -139,7 +139,7 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 //  '200':
 //    description: deployment
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
@@ -173,7 +173,7 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 //  '201':
 //    description: deployment created
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
@@ -217,7 +217,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: active deployment version changed
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
@@ -259,7 +259,7 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment version renamed
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
@@ -309,7 +309,7 @@ func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
@@ -354,7 +354,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
@@ -398,7 +398,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {

@@ -49,7 +49,7 @@ func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string)
 	return &ingress.IngressesResponse{Ingresses: ingresses}, nil
 }
 
-func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Resource, error) {
+func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.ResourceIngress, error) {
 	ia.log.Info("get all ingresses")
 
 	resp, err := ia.mongo.GetIngress(nsID, ingressName)
@@ -57,7 +57,7 @@ func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName 
 	return &resp, err
 }
 
-func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Resource, error) {
+func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -105,7 +105,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	return &createdIngress, nil
 }
 
-func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Resource, error) {
+func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,

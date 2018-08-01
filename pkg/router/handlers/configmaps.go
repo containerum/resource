@@ -67,7 +67,7 @@ func (h *ConfigMapHandlers) GetConfigMapsListHandler(ctx *gin.Context) {
 //  '200':
 //    description: configmap
 //    schema:
-//     $ref: '#/definitions/ConfigMapResource'
+//     $ref: '#/definitions/ResourceConfigMap'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ConfigMapHandlers) GetConfigMapHandler(ctx *gin.Context) {
@@ -102,7 +102,7 @@ func (h *ConfigMapHandlers) GetConfigMapHandler(ctx *gin.Context) {
 //  '201':
 //    description: configmap created
 //    schema:
-//     $ref: '#/definitions/ConfigMapResource'
+//     $ref: '#/definitions/ResourceConfigMap'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ConfigMapHandlers) CreateConfigMapHandler(ctx *gin.Context) {

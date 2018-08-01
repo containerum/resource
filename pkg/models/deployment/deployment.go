@@ -6,10 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Resource -- model for deployments for resource-service db
+// ResourceDeploy -- model for deployments for resource-service db
 //
 // swagger:model
-type Resource struct {
+type ResourceDeploy struct {
 	model.Deployment
 	ID          string `json:"_id,omitempty" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
@@ -19,16 +19,16 @@ type Resource struct {
 // Deployment -- deployments list
 //
 // swagger:model
-type List []Resource
+type ListDeploy []ResourceDeploy
 
 // DeploymentsResponse -- deployments response
 //
 // swagger:model
 type DeploymentsResponse struct {
-	Deployments List `json:"deployments"`
+	Deployments ListDeploy `json:"deployments"`
 }
 
-func (depl Resource) UpdateQuery() interface{} {
+func (depl ResourceDeploy) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
 			"deployment": depl.Deployment,
@@ -36,7 +36,7 @@ func (depl Resource) UpdateQuery() interface{} {
 	}
 }
 
-func (depl Resource) OneSelectQuery() interface{} {
+func (depl ResourceDeploy) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":       depl.NamespaceID,
 		"deleted":           false,
@@ -45,7 +45,7 @@ func (depl Resource) OneSelectQuery() interface{} {
 	}
 }
 
-func (depl Resource) OneInactiveSelectQuery() interface{} {
+func (depl ResourceDeploy) OneInactiveSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":        depl.NamespaceID,
 		"deleted":            false,
@@ -55,7 +55,7 @@ func (depl Resource) OneInactiveSelectQuery() interface{} {
 	}
 }
 
-func (depl Resource) OneAnyVersionSelectQuery() interface{} {
+func (depl ResourceDeploy) OneAnyVersionSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":        depl.NamespaceID,
 		"deleted":            false,
@@ -64,7 +64,7 @@ func (depl Resource) OneAnyVersionSelectQuery() interface{} {
 	}
 }
 
-func (depl Resource) OneSelectDeletedQuery() interface{} {
+func (depl ResourceDeploy) OneSelectDeletedQuery() interface{} {
 	return bson.M{
 		"namespaceid":     depl.NamespaceID,
 		"deleted":         true,
@@ -72,30 +72,30 @@ func (depl Resource) OneSelectDeletedQuery() interface{} {
 	}
 }
 
-func (depl Resource) AllSelectQuery() interface{} {
+func (depl ResourceDeploy) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": depl.NamespaceID,
 		"deleted":     false,
 	}
 }
 
-func (depl Resource) AllSelectOwnerQuery() interface{} {
+func (depl ResourceDeploy) AllSelectOwnerQuery() interface{} {
 	return bson.M{
 		"deployment.owner": depl.Owner,
 		"deleted":          false,
 	}
 }
 
-func FromKube(nsID, owner string, deployment model.Deployment) Resource {
+func FromKube(nsID, owner string, deployment model.Deployment) ResourceDeploy {
 	deployment.Owner = owner
-	return Resource{
+	return ResourceDeploy{
 		Deployment:  deployment,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
 	}
 }
 
-func (depl Resource) Copy() Resource {
+func (depl ResourceDeploy) Copy() ResourceDeploy {
 	var cp = depl
 	if cp.Status != nil {
 		var status = *cp.Status
@@ -108,7 +108,7 @@ func (depl Resource) Copy() Resource {
 }
 
 func OneSelectQuery(namespaceID, name string) interface{} {
-	return Resource{
+	return ResourceDeploy{
 		NamespaceID: namespaceID,
 		Deployment: model.Deployment{
 			Name: name,
@@ -116,19 +116,19 @@ func OneSelectQuery(namespaceID, name string) interface{} {
 	}.OneSelectQuery()
 }
 
-func (list List) Copy() List {
-	var cp = make(List, 0, list.Len())
+func (list ListDeploy) Copy() ListDeploy {
+	var cp = make(ListDeploy, 0, list.Len())
 	for _, depl := range list {
 		cp = append(cp, depl.Copy())
 	}
 	return cp
 }
 
-func (list List) Len() int {
+func (list ListDeploy) Len() int {
 	return len(list)
 }
 
-func (list List) Names() []string {
+func (list ListDeploy) Names() []string {
 	var names = make([]string, 0, len(list))
 	for _, depl := range list {
 		names = append(names, depl.Name)
@@ -136,7 +136,7 @@ func (list List) Names() []string {
 	return names
 }
 
-func (list List) IDs() []string {
+func (list ListDeploy) IDs() []string {
 	var IDs = make([]string, 0, len(list))
 	for _, depl := range list {
 		IDs = append(IDs, depl.ID)
@@ -144,8 +144,8 @@ func (list List) IDs() []string {
 	return IDs
 }
 
-func (list List) Filter(pred func(deployment Resource) bool) List {
-	var filtered = make(List, 0, list.Len())
+func (list ListDeploy) Filter(pred func(deployment ResourceDeploy) bool) ListDeploy {
+	var filtered = make(ListDeploy, 0, list.Len())
 	for _, depl := range list {
 		if pred(depl.Copy()) {
 			filtered = append(filtered, depl.Copy())

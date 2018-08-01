@@ -42,7 +42,7 @@ func (ia *ConfigMapsActionsImpl) GetConfigMapsList(ctx context.Context, nsID str
 	return &configmap.ConfigMapsResponse{ConfigMaps: cms}, nil
 }
 
-func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName string) (*configmap.Resource, error) {
+func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName string) (*configmap.ResourceConfigMap, error) {
 	ia.log.Info("get configmap")
 
 	resp, err := ia.mongo.GetConfigMap(nsID, cmName)
@@ -50,7 +50,7 @@ func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName 
 	return &resp, err
 }
 
-func (ia *ConfigMapsActionsImpl) CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.Resource, error) {
+func (ia *ConfigMapsActionsImpl) CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.ResourceConfigMap, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,

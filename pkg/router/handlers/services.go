@@ -66,7 +66,7 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 //  '200':
 //    description: service
 //    schema:
-//     $ref: '#/definitions/ServiceResource'
+//     $ref: '#/definitions/ResourceService'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
@@ -101,7 +101,7 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 //  '201':
 //    description: service created
 //    schema:
-//     $ref: '#/definitions/ServiceResource'
+//     $ref: '#/definitions/ResourceService'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
@@ -145,7 +145,7 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 //  '202':
 //    description: service updated
 //    schema:
-//     $ref: '#/definitions/ServiceResource'
+//     $ref: '#/definitions/ResourceService'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {

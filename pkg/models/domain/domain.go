@@ -16,14 +16,14 @@ type Domain struct {
 	IP []string `json:"ip"`
 }
 
-// List -- domains list
+// ListDomain -- domains list
 //
 // swagger:model
-type List []Domain
+type ListDomain []Domain
 
 // DomainsList -- domains response
 //
 // swagger:model
 type DomainsResponse struct {
-	Domains List `json:"domains"`
+	Domains ListDomain `json:"domains"`
 }

@@ -6,10 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Resource --  model for service for resource-service db
+// ResourceService --  model for service for resource-service db
 //
 // swagger:model
-type Resource struct {
+type ResourceService struct {
 	model.Service
 	ID          string `json:"_id" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
@@ -17,16 +17,16 @@ type Resource struct {
 	Type        Type   `json:"type" bson:"type"`
 }
 
-// List -- services list
+// ListService -- services list
 //
 // swagger:model
-type List []Resource
+type ListService []ResourceService
 
 //  ServicesResponse -- ingresses response
 //
 // swagger:model
 type ServicesResponse struct {
-	Services List `json:"services"`
+	Services ListService `json:"services"`
 }
 
 type Type string
@@ -36,9 +36,9 @@ const (
 	External Type = "external"
 )
 
-func FromKube(nsID, owner string, stype Type, service model.Service) Resource {
+func FromKube(nsID, owner string, stype Type, service model.Service) ResourceService {
 	service.Owner = owner
-	return Resource{
+	return ResourceService{
 		Service:     service,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
@@ -46,14 +46,14 @@ func FromKube(nsID, owner string, stype Type, service model.Service) Resource {
 	}
 }
 
-func (serv Resource) Copy() Resource {
+func (serv ResourceService) Copy() ResourceService {
 	var cp = serv
 	cp.IPs = append(make([]string, 0, len(cp.IPs)), cp.IPs...)
 	cp.Ports = append(make([]model.ServicePort, 0, len(cp.Ports)), cp.Ports...)
 	return cp
 }
 
-func (serv Resource) OneSelectQuery() interface{} {
+func (serv ResourceService) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":  serv.NamespaceID,
 		"deleted":      false,
@@ -61,7 +61,7 @@ func (serv Resource) OneSelectQuery() interface{} {
 	}
 }
 
-func (serv Resource) OneSelectDeletedQuery() interface{} {
+func (serv ResourceService) OneSelectDeletedQuery() interface{} {
 	return bson.M{
 		"namespaceid":  serv.NamespaceID,
 		"deleted":      true,
@@ -69,21 +69,21 @@ func (serv Resource) OneSelectDeletedQuery() interface{} {
 	}
 }
 
-func (serv Resource) AllSelectQuery() interface{} {
+func (serv ResourceService) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": serv.NamespaceID,
 		"deleted":     false,
 	}
 }
 
-func (serv Resource) AllSelectOwnerQuery() interface{} {
+func (serv ResourceService) AllSelectOwnerQuery() interface{} {
 	return bson.M{
 		"service.owner": serv.Owner,
 		"deleted":       false,
 	}
 }
 
-func (serv Resource) UpdateQuery() interface{} {
+func (serv ResourceService) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
 			"service": serv.Service,
@@ -92,7 +92,7 @@ func (serv Resource) UpdateQuery() interface{} {
 }
 
 func OneSelectQuery(namespaceID, name string) interface{} {
-	return Resource{
+	return ResourceService{
 		NamespaceID: namespaceID,
 		Service: model.Service{
 			Name: name,
@@ -100,11 +100,11 @@ func OneSelectQuery(namespaceID, name string) interface{} {
 	}.OneSelectQuery()
 }
 
-func (list List) Len() int {
+func (list ListService) Len() int {
 	return len(list)
 }
 
-func (list List) Names() []string {
+func (list ListService) Names() []string {
 	var names = make([]string, 0, len(list))
 	for _, serv := range list {
 		names = append(names, serv.Name)
@@ -112,7 +112,7 @@ func (list List) Names() []string {
 	return names
 }
 
-func (list List) Domains() []string {
+func (list ListService) Domains() []string {
 	var domains = make([]string, 0, len(list))
 	for _, serv := range list {
 		if serv.Domain != "" {
@@ -122,16 +122,16 @@ func (list List) Domains() []string {
 	return domains
 }
 
-func (list List) Copy() List {
-	var cp = make(List, 0, list.Len())
+func (list ListService) Copy() ListService {
+	var cp = make(ListService, 0, list.Len())
 	for _, serv := range list {
 		cp = append(cp, serv.Copy())
 	}
 	return cp
 }
 
-func (list List) Filter(pred func(Resource) bool) List {
-	var filtered = make(List, 0, list.Len())
+func (list ListService) Filter(pred func(ResourceService) bool) ListService {
+	var filtered = make(ListService, 0, list.Len())
 	for _, serv := range list {
 		if pred(serv.Copy()) {
 			filtered = append(filtered, serv.Copy())

@@ -32,7 +32,7 @@ func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 func (mongo *MongoStorage) GetDomainsList(pages *PageInfo) ([]domain.Domain, error) {
 	mongo.logger.Debugf("getting domain list")
 	var collection = mongo.db.C(CollectionDomain)
-	result := make(domain.List, 0)
+	result := make(domain.ListDomain, 0)
 	if err := Paginate(collection.Find(nil), pages).All(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain list")
 		return nil, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()

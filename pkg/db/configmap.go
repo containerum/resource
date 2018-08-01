@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
-func (mongo *MongoStorage) GetConfigMap(namespaceID, cmName string) (configmap.Resource, error) {
+func (mongo *MongoStorage) GetConfigMap(namespaceID, cmName string) (configmap.ResourceConfigMap, error) {
 	mongo.logger.Debugf("getting configmap")
 	var collection = mongo.db.C(CollectionCM)
-	var result configmap.Resource
+	var result configmap.ResourceConfigMap
 	var err error
 	if err = collection.Find(configmap.OneSelectQuery(namespaceID, cmName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get configmap")
@@ -26,10 +26,10 @@ func (mongo *MongoStorage) GetConfigMap(namespaceID, cmName string) (configmap.R
 	return result, nil
 }
 
-func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.List, error) {
+func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.ListCM, error) {
 	mongo.logger.Debugf("getting configmaps list")
 	var collection = mongo.db.C(CollectionCM)
-	result := make(configmap.List, 0)
+	result := make(configmap.ListCM, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": namespaceID,
 		"deleted":     false,
@@ -40,10 +40,10 @@ func (mongo *MongoStorage) GetConfigMapList(namespaceID string) (configmap.List,
 	return result, nil
 }
 
-func (mongo *MongoStorage) GetSelectedConfigMaps(namespaceID []string) (configmap.List, error) {
+func (mongo *MongoStorage) GetSelectedConfigMaps(namespaceID []string) (configmap.ListCM, error) {
 	mongo.logger.Debugf("getting selected configmaps")
 	var collection = mongo.db.C(CollectionCM)
-	list := make(configmap.List, 0)
+	list := make(configmap.ListCM, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": bson.M{
 			"$in": namespaceID,
@@ -60,7 +60,7 @@ func (mongo *MongoStorage) GetSelectedConfigMaps(namespaceID []string) (configma
 }
 
 // If ID is empty, then generates UUID4 and uses it
-func (mongo *MongoStorage) CreateConfigMap(cm configmap.Resource) (configmap.Resource, error) {
+func (mongo *MongoStorage) CreateConfigMap(cm configmap.ResourceConfigMap) (configmap.ResourceConfigMap, error) {
 	mongo.logger.Debugf("creating configmap")
 	var collection = mongo.db.C(CollectionCM)
 	if cm.ID == "" {
@@ -81,7 +81,7 @@ func (mongo *MongoStorage) CreateConfigMap(cm configmap.Resource) (configmap.Res
 func (mongo *MongoStorage) DeleteConfigMap(namespaceID, name string) error {
 	mongo.logger.Debugf("deleting configmap")
 	var collection = mongo.db.C(CollectionCM)
-	err := collection.Update(configmap.Resource{
+	err := collection.Update(configmap.ResourceConfigMap{
 		ConfigMap: model.ConfigMap{
 			Name: name,
 		},
@@ -104,7 +104,7 @@ func (mongo *MongoStorage) DeleteConfigMap(namespaceID, name string) error {
 func (mongo *MongoStorage) DeleteAllConfigMapsInNamespace(namespaceID string) error {
 	mongo.logger.Debugf("deleting all configmaps in namespace")
 	var collection = mongo.db.C(CollectionCM)
-	_, err := collection.UpdateAll(configmap.Resource{
+	_, err := collection.UpdateAll(configmap.ResourceConfigMap{
 		NamespaceID: namespaceID,
 	}.AllSelectQuery(),
 		bson.M{
@@ -121,7 +121,7 @@ func (mongo *MongoStorage) DeleteAllConfigMapsInNamespace(namespaceID string) er
 func (mongo *MongoStorage) DeleteAllConfigMapsByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all configmaps in namespace")
 	var collection = mongo.db.C(CollectionCM)
-	_, err := collection.UpdateAll(configmap.Resource{
+	_, err := collection.UpdateAll(configmap.ResourceConfigMap{
 		ConfigMap: model.ConfigMap{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
@@ -138,7 +138,7 @@ func (mongo *MongoStorage) DeleteAllConfigMapsByOwner(owner string) error {
 func (mongo *MongoStorage) RestoreConfigMap(namespaceID, name string) error {
 	mongo.logger.Debugf("restoring configmap")
 	var collection = mongo.db.C(CollectionCM)
-	err := collection.Update(configmap.Resource{
+	err := collection.Update(configmap.ResourceConfigMap{
 		ConfigMap: model.ConfigMap{
 			Name: name,
 		},

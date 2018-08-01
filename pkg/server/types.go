@@ -14,17 +14,17 @@ import (
 
 type DeployActions interface {
 	GetDeploymentsList(ctx context.Context, nsID string) (*deployment.DeploymentsResponse, error)
-	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.Resource, error)
+	GetDeployment(ctx context.Context, nsID, deplName string) (*deployment.ResourceDeploy, error)
 	GetDeploymentVersionsList(ctx context.Context, nsID, deployName string) (*deployment.DeploymentsResponse, error)
-	GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.Resource, error)
+	GetDeploymentVersion(ctx context.Context, nsID, deplName, version string) (*deployment.ResourceDeploy, error)
 	DiffDeployments(ctx context.Context, nsID, deplName, version1, version2 string) (*kubtypes.DeploymentDiff, error)
 	DiffDeploymentsPrevious(ctx context.Context, nsID, deplName, version string) (*kubtypes.DeploymentDiff, error)
-	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Resource, error)
-	ChangeActiveDeployment(ctx context.Context, nsID, deplName, version string) (*deployment.Resource, error)
-	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.Resource, error)
-	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.Resource, error)
-	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.Resource, error)
-	RenameDeploymentVersion(ctx context.Context, nsID, deplName, oldversion, newversion string) (*deployment.Resource, error)
+	CreateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.ResourceDeploy, error)
+	ChangeActiveDeployment(ctx context.Context, nsID, deplName, version string) (*deployment.ResourceDeploy, error)
+	UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.ResourceDeploy, error)
+	SetDeploymentReplicas(ctx context.Context, nsID, deplName string, req kubtypes.UpdateReplicas) (*deployment.ResourceDeploy, error)
+	SetDeploymentContainerImage(ctx context.Context, nsID, deplName string, req kubtypes.UpdateImage) (*deployment.ResourceDeploy, error)
+	RenameDeploymentVersion(ctx context.Context, nsID, deplName, oldversion, newversion string) (*deployment.ResourceDeploy, error)
 	DeleteDeployment(ctx context.Context, nsID, deplName string) error
 	DeleteDeploymentVersion(ctx context.Context, nsID, deplName, version string) error
 	DeleteAllDeployments(ctx context.Context, nsID string) error
@@ -39,29 +39,29 @@ type DomainActions interface {
 }
 
 type IngressActions interface {
-	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Resource, error)
+	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error)
 	GetIngressesList(ctx context.Context, nsID string) (*ingress.IngressesResponse, error)
-	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.Resource, error)
-	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.Resource, error)
+	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.ResourceIngress, error)
+	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error)
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 	DeleteAllIngresses(ctx context.Context, nsID string) error
 }
 
 type ServiceActions interface {
-	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Resource, error)
+	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error)
 	GetServicesList(ctx context.Context, nsID string) (*service.ServicesResponse, error)
-	GetService(ctx context.Context, nsID, serviceName string) (*service.Resource, error)
-	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Resource, error)
+	GetService(ctx context.Context, nsID, serviceName string) (*service.ResourceService, error)
+	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 	DeleteAllServices(ctx context.Context, nsID string) error
 	DeleteAllSolutionServices(ctx context.Context, nsID, solutionName string) error
 }
 
 type ConfigMapActions interface {
-	CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.Resource, error)
+	CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.ResourceConfigMap, error)
 	ImportConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) error
 	GetConfigMapsList(ctx context.Context, nsID string) (*configmap.ConfigMapsResponse, error)
-	GetConfigMap(ctx context.Context, nsID, ingressName string) (*configmap.Resource, error)
+	GetConfigMap(ctx context.Context, nsID, ingressName string) (*configmap.ResourceConfigMap, error)
 	DeleteConfigMap(ctx context.Context, nsID, cmName string) error
 	DeleteAllConfigMaps(ctx context.Context, nsID string) error
 }

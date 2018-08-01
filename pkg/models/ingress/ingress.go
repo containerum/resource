@@ -6,29 +6,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// Resource --  model for ingress for resource-service db
+// ResourceIngress --  model for ingress for resource-service db
 //
 // swagger:model
-type Resource struct {
+type ResourceIngress struct {
 	model.Ingress
 	ID          string `json:"_id" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
 
-// List -- ingresses list
+// ListIngress -- ingresses list
 //
 // swagger:model
-type List []Resource
+type ListIngress []ResourceIngress
 
 //  IngressesResponse -- ingresses response
 //
 // swagger:model
 type IngressesResponse struct {
-	Ingresses List `json:"ingresses"`
+	Ingresses ListIngress `json:"ingresses"`
 }
 
-func (ingr Resource) Copy() Resource {
+func (ingr ResourceIngress) Copy() ResourceIngress {
 	var cp = ingr
 	cp.Rules = append(make([]model.Rule, 0, len(cp.Rules)), cp.Rules...)
 	for i, rule := range cp.Rules {
@@ -38,7 +38,7 @@ func (ingr Resource) Copy() Resource {
 	return cp
 }
 
-func (ingr Resource) Paths() []model.Path {
+func (ingr ResourceIngress) Paths() []model.Path {
 	var paths = make([]model.Path, 0, len(ingr.Rules))
 	for _, rule := range ingr.Rules {
 		paths = append(paths, rule.Path...)
@@ -46,7 +46,7 @@ func (ingr Resource) Paths() []model.Path {
 	return paths
 }
 
-func (ingr Resource) OneSelectQuery() interface{} {
+func (ingr ResourceIngress) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":  ingr.NamespaceID,
 		"deleted":      false,
@@ -54,7 +54,7 @@ func (ingr Resource) OneSelectQuery() interface{} {
 	}
 }
 
-func (ingr Resource) OneSelectDeletedQuery() interface{} {
+func (ingr ResourceIngress) OneSelectDeletedQuery() interface{} {
 	return bson.M{
 		"namespaceid":  ingr.NamespaceID,
 		"deleted":      true,
@@ -62,23 +62,23 @@ func (ingr Resource) OneSelectDeletedQuery() interface{} {
 	}
 }
 
-func (ingr Resource) AllSelectQuery() interface{} {
+func (ingr ResourceIngress) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": ingr.NamespaceID,
 		"deleted":     false,
 	}
 }
 
-func (ingr Resource) AllSelectOwnerQuery() interface{} {
+func (ingr ResourceIngress) AllSelectOwnerQuery() interface{} {
 	return bson.M{
 		"ingress.owner": ingr.Owner,
 		"deleted":       false,
 	}
 }
 
-func FromKube(nsID, owner string, ingress model.Ingress) Resource {
+func FromKube(nsID, owner string, ingress model.Ingress) ResourceIngress {
 	ingress.Owner = owner
-	return Resource{
+	return ResourceIngress{
 		Ingress:     ingress,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
@@ -93,7 +93,7 @@ func ListSelectQuery(namespaceID string) interface{} {
 }
 
 func OneSelectQuery(namespaceID, name string) interface{} {
-	return Resource{
+	return ResourceIngress{
 		NamespaceID: namespaceID,
 		Ingress: model.Ingress{
 			Name: name,
@@ -101,7 +101,7 @@ func OneSelectQuery(namespaceID, name string) interface{} {
 	}.OneSelectQuery()
 }
 
-func (ingr Resource) UpdateQuery() interface{} {
+func (ingr ResourceIngress) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
 			"ingress": ingr.Ingress,

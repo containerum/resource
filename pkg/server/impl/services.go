@@ -48,7 +48,7 @@ func (sa *ServiceActionsImpl) GetServicesList(ctx context.Context, nsID string) 
 	return &service.ServicesResponse{Services: services}, nil
 }
 
-func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.Resource, error) {
+func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
@@ -61,7 +61,7 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName 
 	return &ret, err
 }
 
-func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Resource, error) {
+func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -127,7 +127,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	return &createdService, nil
 }
 
-func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.Resource, error) {
+func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,

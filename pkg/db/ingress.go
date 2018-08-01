@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (mongo *MongoStorage) CreateIngress(ingress ingress.Resource) (ingress.Resource, error) {
+func (mongo *MongoStorage) CreateIngress(ingress ingress.ResourceIngress) (ingress.ResourceIngress, error) {
 	mongo.logger.Debugf("creating ingress")
 	var collection = mongo.db.C(CollectionIngress)
 	if ingress.ID == "" {
@@ -28,10 +28,10 @@ func (mongo *MongoStorage) CreateIngress(ingress ingress.Resource) (ingress.Reso
 	return ingress, nil
 }
 
-func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Resource, error) {
+func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.ResourceIngress, error) {
 	mongo.logger.Debugf("getting ingress")
 	var collection = mongo.db.C(CollectionIngress)
-	var ingr ingress.Resource
+	var ingr ingress.ResourceIngress
 	if err := collection.Find(ingress.OneSelectQuery(namespaceID, name)).One(&ingr); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress")
 		if err == mgo.ErrNotFound {
@@ -42,10 +42,10 @@ func (mongo *MongoStorage) GetIngress(namespaceID, name string) (ingress.Resourc
 	return ingr, nil
 }
 
-func (mongo *MongoStorage) GetIngressByService(namespaceID, serviceName string) (ingress.Resource, error) {
+func (mongo *MongoStorage) GetIngressByService(namespaceID, serviceName string) (ingress.ResourceIngress, error) {
 	mongo.logger.Debugf("getting ingress by service")
 	var collection = mongo.db.C(CollectionIngress)
-	var ingr ingress.Resource
+	var ingr ingress.ResourceIngress
 	if err := collection.Find(bson.M{
 		"namespaceid":                    namespaceID,
 		"deleted":                        false,
@@ -60,10 +60,10 @@ func (mongo *MongoStorage) GetIngressByService(namespaceID, serviceName string) 
 	return ingr, nil
 }
 
-func (mongo *MongoStorage) GetSelectedIngresses(namespaceID []string) (ingress.List, error) {
+func (mongo *MongoStorage) GetSelectedIngresses(namespaceID []string) (ingress.ListIngress, error) {
 	mongo.logger.Debugf("getting selected ingresses")
 	var collection = mongo.db.C(CollectionIngress)
-	list := make(ingress.List, 0)
+	list := make(ingress.ListIngress, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": bson.M{
 			"$in": namespaceID,
@@ -79,10 +79,10 @@ func (mongo *MongoStorage) GetSelectedIngresses(namespaceID []string) (ingress.L
 	return list, nil
 }
 
-func (mongo *MongoStorage) GetIngressList(namespaceID string) (ingress.List, error) {
+func (mongo *MongoStorage) GetIngressList(namespaceID string) (ingress.ListIngress, error) {
 	mongo.logger.Debugf("getting ingress")
 	var collection = mongo.db.C(CollectionIngress)
-	list := make(ingress.List, 0)
+	list := make(ingress.ListIngress, 0)
 	if err := collection.Find(ingress.ListSelectQuery(namespaceID)).All(&list); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get ingress list")
 		return list, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()
@@ -90,7 +90,7 @@ func (mongo *MongoStorage) GetIngressList(namespaceID string) (ingress.List, err
 	return list, nil
 }
 
-func (mongo *MongoStorage) UpdateIngress(upd ingress.Resource) (ingress.Resource, error) {
+func (mongo *MongoStorage) UpdateIngress(upd ingress.ResourceIngress) (ingress.ResourceIngress, error) {
 	mongo.logger.Debugf("updating ingress")
 	var collection = mongo.db.C(CollectionIngress)
 	if err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery()); err != nil {
@@ -103,7 +103,7 @@ func (mongo *MongoStorage) UpdateIngress(upd ingress.Resource) (ingress.Resource
 func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 	mongo.logger.Debugf("deleting ingress")
 	var collection = mongo.db.C(CollectionIngress)
-	err := collection.Update(ingress.Resource{
+	err := collection.Update(ingress.ResourceIngress{
 		Ingress: model.Ingress{
 			Name: name,
 		},
@@ -126,7 +126,7 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
 	mongo.logger.Debugf("restoring ingress")
 	var collection = mongo.db.C(CollectionIngress)
-	err := collection.Update(ingress.Resource{
+	err := collection.Update(ingress.ResourceIngress{
 		Ingress: model.Ingress{
 			Name: name,
 		},
@@ -149,7 +149,7 @@ func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
 func (mongo *MongoStorage) DeleteAllIngressesInNamespace(namespace string) error {
 	mongo.logger.Debugf("deleting all ingresses in namespace")
 	var collection = mongo.db.C(CollectionIngress)
-	_, err := collection.UpdateAll(ingress.Resource{
+	_, err := collection.UpdateAll(ingress.ResourceIngress{
 		NamespaceID: namespace,
 	}.AllSelectQuery(),
 		bson.M{
@@ -165,7 +165,7 @@ func (mongo *MongoStorage) DeleteAllIngressesInNamespace(namespace string) error
 func (mongo *MongoStorage) DeleteAllIngressesByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all user ingresses")
 	var collection = mongo.db.C(CollectionIngress)
-	_, err := collection.UpdateAll(ingress.Resource{
+	_, err := collection.UpdateAll(ingress.ResourceIngress{
 		Ingress: model.Ingress{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
