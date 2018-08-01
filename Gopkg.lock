@@ -36,8 +36,8 @@
     "pkg/diff",
     "pkg/model"
   ]
-  revision = "1525ee6470ca2b45df6143cefb90d9e42a3352cc"
-  version = "v0.23.19"
+  revision = "90bd8c0759be7f3cedd93e56e264fab8e8b5139f"
+  version = "v0.23.20"
 
 [[projects]]
   name = "github.com/containerum/utils"
@@ -278,7 +278,7 @@
     "webdav",
     "webdav/internal/xml"
   ]
-  revision = "a0f8a16cb08c06df97cbdf9c47f4731ba548c33c"
+  revision = "49c15d80dfbc983ea25246ee959d970efe09ec09"
 
 [[projects]]
   branch = "master"
@@ -348,7 +348,7 @@
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/common"]
-  revision = "d8ea2fe547a448256204cfc68dfee7b26c720acb"
+  revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
 [solve-meta]
   analyzer-name = "dep"
