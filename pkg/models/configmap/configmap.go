@@ -6,43 +6,43 @@ import (
 	"github.com/google/uuid"
 )
 
-// ConfigMapResource --  model for ConfigMap for resource-service db
+// Resource --  model for ConfigMap for resource-service db
 //
 // swagger:model
-type ConfigMapResource struct {
+type Resource struct {
 	model.ConfigMap
 	ID          string `json:"_id" bson:"_id,omitempty"`
 	Deleted     bool   `json:"deleted"`
 	NamespaceID string `json:"namespaceid"`
 }
 
-// ConfigMapList -- ConfigMaps list
+// List -- ConfigMaps list
 //
 // swagger:model
-type ConfigMapList []ConfigMapResource
+type List []Resource
 
 //  ConfigMapsResponse -- configmap response
 //
 // swagger:model
 type ConfigMapsResponse struct {
-	ConfigMaps ConfigMapList `json:"ConfigMaps"`
+	ConfigMaps List `json:"ConfigMaps"`
 }
 
-func ConfigMapFromKube(nsID, owner string, ConfigMap model.ConfigMap) ConfigMapResource {
+func FromKube(nsID, owner string, ConfigMap model.ConfigMap) Resource {
 	ConfigMap.Owner = owner
-	return ConfigMapResource{
+	return Resource{
 		ConfigMap:   ConfigMap,
 		NamespaceID: nsID,
 		ID:          uuid.New().String(),
 	}
 }
 
-func (cm ConfigMapResource) Copy() ConfigMapResource {
+func (cm Resource) Copy() Resource {
 	var cp = cm
 	return cp
 }
 
-func (cm ConfigMapResource) OneSelectQuery() interface{} {
+func (cm Resource) OneSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid":    cm.NamespaceID,
 		"deleted":        false,
@@ -50,7 +50,7 @@ func (cm ConfigMapResource) OneSelectQuery() interface{} {
 	}
 }
 
-func (cm ConfigMapResource) OneSelectDeletedQuery() interface{} {
+func (cm Resource) OneSelectDeletedQuery() interface{} {
 	return bson.M{
 		"namespaceid":    cm.NamespaceID,
 		"deleted":        true,
@@ -58,21 +58,21 @@ func (cm ConfigMapResource) OneSelectDeletedQuery() interface{} {
 	}
 }
 
-func (cm ConfigMapResource) AllSelectQuery() interface{} {
+func (cm Resource) AllSelectQuery() interface{} {
 	return bson.M{
 		"namespaceid": cm.NamespaceID,
 		"deleted":     false,
 	}
 }
 
-func (cm ConfigMapResource) AllSelectOwnerQuery() interface{} {
+func (cm Resource) AllSelectOwnerQuery() interface{} {
 	return bson.M{
 		"ConfigMap.owner": cm.Owner,
 		"deleted":         false,
 	}
 }
 
-func (cm ConfigMapResource) UpdateQuery() interface{} {
+func (cm Resource) UpdateQuery() interface{} {
 	return bson.M{
 		"$set": bson.M{
 			"configmap": cm.ConfigMap,
@@ -81,7 +81,7 @@ func (cm ConfigMapResource) UpdateQuery() interface{} {
 }
 
 func OneSelectQuery(namespaceID, name string) interface{} {
-	return ConfigMapResource{
+	return Resource{
 		NamespaceID: namespaceID,
 		ConfigMap: model.ConfigMap{
 			Name: name,
@@ -89,11 +89,11 @@ func OneSelectQuery(namespaceID, name string) interface{} {
 	}.OneSelectQuery()
 }
 
-func (list ConfigMapList) Len() int {
+func (list List) Len() int {
 	return len(list)
 }
 
-func (list ConfigMapList) Names() []string {
+func (list List) Names() []string {
 	var names = make([]string, 0, len(list))
 	for _, cm := range list {
 		names = append(names, cm.Name)
@@ -101,16 +101,16 @@ func (list ConfigMapList) Names() []string {
 	return names
 }
 
-func (list ConfigMapList) Copy() ConfigMapList {
-	var cp = make(ConfigMapList, 0, list.Len())
+func (list List) Copy() List {
+	var cp = make(List, 0, list.Len())
 	for _, serv := range list {
 		cp = append(cp, serv.Copy())
 	}
 	return cp
 }
 
-func (list ConfigMapList) Filter(pred func(ConfigMapResource) bool) ConfigMapList {
-	var filtered = make(ConfigMapList, 0, list.Len())
+func (list List) Filter(pred func(Resource) bool) List {
+	var filtered = make(List, 0, list.Len())
 	for _, serv := range list {
 		if pred(serv.Copy()) {
 			filtered = append(filtered, serv.Copy())

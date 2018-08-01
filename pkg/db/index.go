@@ -258,7 +258,7 @@ func DropIndexIfExists(mongo *MongoStorage, cName, indexName string) (bool, erro
 	var collection = mongo.db.C(cName)
 	if strset.FromSlice(indexNames).In(indexName) {
 		if err := collection.DropIndexName(indexName); err != nil {
-			return false, PipErr{err}.ToMongerr().Extract()
+			return false, PipErr{error: err}.ToMongerr().Extract()
 		}
 	}
 	return true, nil

@@ -12,7 +12,7 @@ func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.
 	var result = domain.Domain{}
 	if err := collection.Find(bson.M{"domain": domainName}).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain")
-		return nil, PipErr{err}.ToMongerr().Extract()
+		return nil, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return &result, nil
 }
@@ -23,7 +23,7 @@ func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 	result := domain.Domain{}
 	if err := collection.Pipe([]bson.M{{"$sample": bson.M{"size": 1}}}).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get random domain")
-		return nil, PipErr{err}.ToMongerr().Extract()
+		return nil, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return &result, nil
 }
@@ -32,10 +32,10 @@ func (mongo *MongoStorage) GetRandomDomain() (*domain.Domain, error) {
 func (mongo *MongoStorage) GetDomainsList(pages *PageInfo) ([]domain.Domain, error) {
 	mongo.logger.Debugf("getting domain list")
 	var collection = mongo.db.C(CollectionDomain)
-	result := make(domain.DomainList, 0)
+	result := make(domain.List, 0)
 	if err := Paginate(collection.Find(nil), pages).All(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain list")
-		return nil, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+		return nil, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()
 	}
 	return result, nil
 }
@@ -48,7 +48,7 @@ func (mongo *MongoStorage) CreateDomain(domain domain.Domain) (*domain.Domain, e
 	var collection = mongo.db.C(CollectionDomain)
 	if err := collection.Insert(domain); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create domain")
-		return nil, PipErr{err}.ToMongerr().Extract()
+		return nil, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return &domain, nil
 }
@@ -59,7 +59,7 @@ func (mongo *MongoStorage) UpdateDomain(domain domain.Domain) (*domain.Domain, e
 	colQuerier := bson.M{"domain": domain.Domain}
 	if err := collection.Update(colQuerier, domain); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update domain")
-		return nil, PipErr{err}.ToMongerr().Extract()
+		return nil, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return &domain, nil
 }

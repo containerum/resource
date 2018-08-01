@@ -42,7 +42,7 @@ func (ia *ConfigMapsActionsImpl) GetConfigMapsList(ctx context.Context, nsID str
 	return &configmap.ConfigMapsResponse{ConfigMaps: cms}, nil
 }
 
-func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName string) (*configmap.ConfigMapResource, error) {
+func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName string) (*configmap.Resource, error) {
 	ia.log.Info("get configmap")
 
 	resp, err := ia.mongo.GetConfigMap(nsID, cmName)
@@ -50,7 +50,7 @@ func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName 
 	return &resp, err
 }
 
-func (ia *ConfigMapsActionsImpl) CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.ConfigMapResource, error) {
+func (ia *ConfigMapsActionsImpl) CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.Resource, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -58,7 +58,7 @@ func (ia *ConfigMapsActionsImpl) CreateConfigMap(ctx context.Context, nsID strin
 	}).Info("create configmap")
 	coblog.Std.Struct(req)
 
-	createdCM, err := ia.mongo.CreateConfigMap(configmap.ConfigMapFromKube(nsID, userID, req))
+	createdCM, err := ia.mongo.CreateConfigMap(configmap.FromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (ia *ConfigMapsActionsImpl) ImportConfigMap(ctx context.Context, nsID strin
 	}).Info("import configmap")
 	coblog.Std.Struct(req)
 
-	_, err := ia.mongo.CreateConfigMap(configmap.ConfigMapFromKube(nsID, userID, req))
+	_, err := ia.mongo.CreateConfigMap(configmap.FromKube(nsID, userID, req))
 	if err != nil {
 		return err
 	}
