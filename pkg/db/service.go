@@ -87,7 +87,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) erro
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete service")
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 		})
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete services")
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -163,7 +163,7 @@ func (mongo *MongoStorage) DeleteAllServicesBySolutionName(nsID, solution string
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete solution services")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
@@ -177,6 +177,38 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 		{"$match": bson.M{
 			"service.owner": owner,
 			"deleted":       false,
+		}},
+		{"$project": bson.M{
+			"domain": "$service.domain",
+		}},
+		{"$group": bson.M{
+			"_id":   bson.M{"$eq": []interface{}{"$domain", ""}},
+			"count": bson.M{"$sum": 1},
+		}},
+	}).All(&statData); err != nil {
+		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+	}
+	var serviceStats stats.Service
+	for _, serv := range statData {
+		if serv.NoDomain {
+			serviceStats.External += serv.Count
+		} else {
+			serviceStats.Internal += serv.Count
+		}
+	}
+	return serviceStats, nil
+}
+
+func (mongo *MongoStorage) CountAllServices() (stats.Service, error) {
+	mongo.logger.Debugf("counting services")
+	var collection = mongo.db.C(CollectionService)
+	var statData []struct {
+		NoDomain bool `bson:"_id"`
+		Count    int  `bson:"count"`
+	}
+	if err := collection.Pipe([]bson.M{
+		{"$match": bson.M{
+			"deleted": false,
 		}},
 		{"$project": bson.M{
 			"domain": "$service.domain",

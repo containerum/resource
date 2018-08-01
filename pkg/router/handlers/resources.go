@@ -3,8 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"git.containerum.net/ch/resource-service/pkg/models/resources"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,7 +37,13 @@ type ResourceHandlers struct {
 //  default:
 //    $ref: '#/responses/error'
 func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
-	resp, err := h.GetResourcesCount(ctx.Request.Context())
+	var resp *resources.GetResourcesCountResponse
+	var err error
+	if httputil.MustGetUserRole(ctx.Request.Context()) == "admin" {
+		resp, err = h.GetAllResourcesCount(ctx.Request.Context())
+	} else {
+		resp, err = h.GetResourcesCount(ctx.Request.Context())
+	}
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return

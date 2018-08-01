@@ -31,7 +31,7 @@ type DeployActions interface {
 }
 
 type DomainActions interface {
-	GetDomainsList(ctx context.Context, page, per_page string) (*domain.DomainsResponse, error)
+	GetDomainsList(ctx context.Context, page, perPage string) (*domain.DomainsResponse, error)
 	GetDomain(ctx context.Context, domain string) (*domain.Domain, error)
 	AddDomain(ctx context.Context, req domain.Domain) (*domain.Domain, error)
 	DeleteDomain(ctx context.Context, domain string) error
@@ -58,6 +58,7 @@ type ServiceActions interface {
 
 type ResourcesActions interface {
 	GetResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error)
+	GetAllResourcesCount(ctx context.Context) (*resources.GetResourcesCountResponse, error)
 	DeleteAllResourcesInNamespace(ctx context.Context, nsID string) error
 	DeleteAllUserResources(ctx context.Context) error
 }

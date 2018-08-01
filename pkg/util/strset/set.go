@@ -30,7 +30,7 @@ func (set Set) Delete(item string) Set {
 
 func (set Set) Copy() Set {
 	var cp = make(map[string]struct{}, len(set))
-	for item, _ := range set {
+	for item := range set {
 		cp[item] = struct{}{}
 	}
 	return set

@@ -22,7 +22,7 @@ func (mongo *MongoStorage) GetDeployment(namespaceID, deploymentName string) (de
 		if err == mgo.ErrNotFound {
 			return depl, rserrors.ErrResourceNotExists().AddDetails(deploymentName)
 		}
-		return depl, PipErr{err}.ToMongerr().Extract()
+		return depl, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
@@ -42,7 +42,7 @@ func (mongo *MongoStorage) GetDeploymentVersion(namespaceID, deploymentName stri
 		if err == mgo.ErrNotFound {
 			return depl, rserrors.ErrResourceNotExists().AddDetailF("%v %v", deploymentName, version.String())
 		}
-		return depl, PipErr{err}.ToMongerr().Extract()
+		return depl, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
@@ -61,7 +61,7 @@ func (mongo *MongoStorage) GetDeploymentLatestVersion(namespaceID, deploymentNam
 		if err == mgo.ErrNotFound {
 			return depl, rserrors.ErrResourceNotExists().AddDetails(deploymentName)
 		}
-		return depl, PipErr{err}.ToMongerr().Extract()
+		return depl, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return depl, err
 }
@@ -78,7 +78,7 @@ func (mongo *MongoStorage) GetDeploymentVersionsList(namespaceID, deploymentName
 	}).Sort("-deployment.version").All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment %v", deploymentName)
 	}
-	return depl, PipErr{err}.ToMongerr().Extract()
+	return depl, PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.DeploymentList, error) {
@@ -93,7 +93,7 @@ func (mongo *MongoStorage) GetDeploymentList(namespaceID string) (deployment.Dep
 	}).All(&depl); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get deployment")
 	}
-	return depl, PipErr{err}.ToMongerr().Extract()
+	return depl, PipErr{error: err}.ToMongerr().Extract()
 }
 
 // If ID is empty when use UUID4 to generate one
@@ -121,7 +121,7 @@ func (mongo *MongoStorage) UpdateActiveDeployment(upd deployment.DeploymentResou
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update deployment")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) UpdateDeploymentVersion(namespace, name string, oldversion, newversion semver.Version) error {
@@ -141,7 +141,7 @@ func (mongo *MongoStorage) UpdateDeploymentVersion(namespace, name string, oldve
 			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, oldversion.String())
 		}
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
@@ -161,7 +161,7 @@ func (mongo *MongoStorage) DeleteDeployment(namespace, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -185,7 +185,7 @@ func (mongo *MongoStorage) ActivateDeployment(namespace, name string, version se
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -208,7 +208,7 @@ func (mongo *MongoStorage) ActivateDeploymentWOVersion(namespace, name string) e
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetailF("%v", name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -231,7 +231,7 @@ func (mongo *MongoStorage) DeactivateDeployment(namespace, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -257,7 +257,7 @@ func (mongo *MongoStorage) DeleteDeploymentVersion(namespace, name string, versi
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetailF("%v %v", name, version.String())
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -280,7 +280,7 @@ func (mongo *MongoStorage) RestoreDeployment(namespace, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -298,7 +298,7 @@ func (mongo *MongoStorage) DeleteAllDeploymentsInNamespace(namespace string) err
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployments")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
@@ -314,7 +314,7 @@ func (mongo *MongoStorage) DeleteAllDeploymentsByOwner(owner string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployments")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) DeleteAllDeploymentsBySolutionName(nsID, solution string) error {
@@ -331,21 +331,34 @@ func (mongo *MongoStorage) DeleteAllDeploymentsBySolutionName(nsID, solution str
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete solution deployments")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) CountDeployments(owner string) (int, error) {
 	mongo.logger.Debugf("counting user deployment")
 	var collection = mongo.db.C(CollectionDeployment)
-	if n, err := collection.Find(bson.M{
+	n, err := collection.Find(bson.M{
 		"deployment.owner":  owner,
 		"deployment.active": true,
 		"deleted":           false,
-	}).Count(); err != nil {
+	}).Count()
+	if err != nil {
 		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
-	} else {
-		return n, nil
 	}
+	return n, nil
+}
+
+func (mongo *MongoStorage) CountAllDeployments() (int, error) {
+	mongo.logger.Debugf("counting user deployment")
+	var collection = mongo.db.C(CollectionDeployment)
+	n, err := collection.Find(bson.M{
+		"deployment.active": true,
+		"deleted":           false,
+	}).Count()
+	if err != nil {
+		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+	}
+	return n, nil
 }
 
 func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
@@ -354,7 +367,7 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 	var count struct {
 		Count int `json:"count"`
 	}
-	if err := collection.Pipe([]bson.M{
+	err := collection.Pipe([]bson.M{
 		{
 			"$match": bson.M{
 				"deployment.owner":  owner,
@@ -370,9 +383,37 @@ func (mongo *MongoStorage) CountReplicas(owner string) (int, error) {
 				},
 			},
 		},
-	}).One(&count); err != nil {
+	}).One(&count)
+	if err != nil {
 		return 0, PipErr{err}.NotFoundToNil().ToMongerr().Extract()
-	} else {
-		return count.Count, nil
 	}
+	return count.Count, nil
+}
+
+func (mongo *MongoStorage) CountAllReplicas() (int, error) {
+	mongo.logger.Debugf("counting deployments replicas")
+	var collection = mongo.db.C(CollectionDeployment)
+	var count struct {
+		Count int `json:"count"`
+	}
+	err := collection.Pipe([]bson.M{
+		{
+			"$match": bson.M{
+				"deleted":           false,
+				"deployment.active": true,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": "",
+				"count": bson.M{
+					"$sum": "$deployment.replicas",
+				},
+			},
+		},
+	}).One(&count)
+	if err != nil {
+		return 0, PipErr{err}.NotFoundToNil().ToMongerr().Extract()
+	}
+	return count.Count, nil
 }

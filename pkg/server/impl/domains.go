@@ -5,7 +5,6 @@ import (
 
 	"strconv"
 
-	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
@@ -14,7 +13,6 @@ import (
 )
 
 type DomainActionsImpl struct {
-	kube  *clients.Kube
 	mongo *db.MongoStorage
 	log   *cherrylog.LogrusAdapter
 }
@@ -26,11 +24,11 @@ func NewDomainActionsImpl(mongo *db.MongoStorage) *DomainActionsImpl {
 	}
 }
 
-func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, per_page string) (*domain.DomainsResponse, error) {
-	da.log.Infof("get all domains page %q per_page %q", page, per_page)
+func (da *DomainActionsImpl) GetDomainsList(ctx context.Context, page, perPage string) (*domain.DomainsResponse, error) {
+	da.log.Infof("get all domains page %q per_page %q", page, perPage)
 
 	pagei, pageerr := strconv.Atoi(page)
-	perpagei, perpageerr := strconv.Atoi(per_page)
+	perpagei, perpageerr := strconv.Atoi(perPage)
 
 	if pageerr == nil && perpageerr == nil {
 		if pagei > 0 && perpagei > 0 {

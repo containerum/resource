@@ -12,7 +12,7 @@ import (
 var (
 	_ logrus.FieldLogger = Log{}
 
-	Std = Log{logrus.StandardLogger().WithField("", "")}
+	Std = Log{FieldLogger: logrus.StandardLogger().WithField("", "")}
 )
 
 type Log struct {
@@ -26,7 +26,7 @@ func Component(component string, optionalLogger ...logrus.FieldLogger) Log {
 	} else {
 		logger = logrus.StandardLogger()
 	}
-	return Log{logger.WithField("component", component)}
+	return Log{FieldLogger: logger.WithField("component", component)}
 }
 
 func (log Log) Command(command string) Log {

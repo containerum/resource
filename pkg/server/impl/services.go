@@ -150,7 +150,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		oldService.IPs = kubeSvc.IPs
 	}
 
-	serviceType := server.DetermineServiceType(kubtypes.Service(req))
+	serviceType := server.DetermineServiceType(req)
 
 	if serviceType == service.ServiceExternal {
 		domain, err := sa.mongo.GetRandomDomain()

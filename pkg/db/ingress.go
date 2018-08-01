@@ -99,7 +99,7 @@ func (mongo *MongoStorage) DeleteIngress(namespaceID, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -122,7 +122,7 @@ func (mongo *MongoStorage) RestoreIngress(namespaceID, name string) error {
 		if err == mgo.ErrNotFound {
 			return rserrors.ErrResourceNotExists().AddDetails(name)
 		}
-		return PipErr{err}.ToMongerr().Extract()
+		return PipErr{error: err}.ToMongerr().Extract()
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ func (mongo *MongoStorage) DeleteAllIngressesInNamespace(namespace string) error
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployment")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) DeleteAllIngressesByOwner(owner string) error {
@@ -156,18 +156,30 @@ func (mongo *MongoStorage) DeleteAllIngressesByOwner(owner string) error {
 	if err != nil {
 		mongo.logger.WithError(err).Errorf("unable to delete deployments")
 	}
-	return PipErr{err}.ToMongerr().Extract()
+	return PipErr{error: err}.ToMongerr().Extract()
 }
 
 func (mongo *MongoStorage) CountIngresses(owner string) (int, error) {
 	mongo.logger.Debugf("counting ingresses")
 	var collection = mongo.db.C(CollectionIngress)
-	if n, err := collection.Find(bson.M{
+	n, err := collection.Find(bson.M{
 		"ingress.owner": owner,
 		"deleted":       false,
-	}).Count(); err != nil {
+	}).Count()
+	if err != nil {
 		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
-	} else {
-		return n, nil
 	}
+	return n, nil
+}
+
+func (mongo *MongoStorage) CountAllIngresses() (int, error) {
+	mongo.logger.Debugf("counting all ingresses")
+	var collection = mongo.db.C(CollectionIngress)
+	n, err := collection.Find(bson.M{
+		"deleted": false,
+	}).Count()
+	if err != nil {
+		return 0, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+	}
+	return n, nil
 }
