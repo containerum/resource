@@ -25,7 +25,7 @@ type List []Resource
 //
 // swagger:model
 type ConfigMapsResponse struct {
-	ConfigMaps List `json:"ConfigMaps"`
+	ConfigMaps List `json:"config_maps"`
 }
 
 func FromKube(nsID, owner string, ConfigMap model.ConfigMap) Resource {
