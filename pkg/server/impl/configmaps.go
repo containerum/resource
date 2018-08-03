@@ -42,6 +42,21 @@ func (ia *ConfigMapsActionsImpl) GetConfigMapsList(ctx context.Context, nsID str
 	return &configmap.ConfigMapsResponse{ConfigMaps: cms}, nil
 }
 
+func (ia *ConfigMapsActionsImpl) GetSelectedConfigMapsList(ctx context.Context, namespaces []string) (*configmap.ConfigMapsResponse, error) {
+	userID := httputil.MustGetUserID(ctx)
+	ia.log.WithFields(logrus.Fields{
+		"user_id":    userID,
+		"namespaces": namespaces,
+	}).Info("get selected configmaps")
+
+	cms, err := ia.mongo.GetSelectedConfigMaps(namespaces)
+	if err != nil {
+		return nil, err
+	}
+
+	return &configmap.ConfigMapsResponse{ConfigMaps: cms}, nil
+}
+
 func (ia *ConfigMapsActionsImpl) GetConfigMap(ctx context.Context, nsID, cmName string) (*configmap.ResourceConfigMap, error) {
 	ia.log.Info("get configmap")
 

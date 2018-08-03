@@ -15,7 +15,7 @@ type ResourceHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /resources Resources GetResourcesCountHandler
+// swagger:operation GET /resources Resources GetResourcesCount
 // Get resources count.
 //
 // ---
@@ -51,7 +51,7 @@ func (h *ResourceHandlers) GetResourcesCountHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation DELETE /namespaces/{namespace} Resources DeleteAllResourcesInNamespaceHandler
+// swagger:operation DELETE /namespaces/{namespace} Resources DeleteAllResourcesInNamespace
 // Delete all resources in namespace.
 //
 // ---
@@ -75,7 +75,7 @@ func (h *ResourceHandlers) DeleteAllResourcesInNamespaceHandler(ctx *gin.Context
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces Resources DeleteAllResourcesHandler
+// swagger:operation DELETE /namespaces Resources DeleteAllResources
 // Delete all user resources.
 //
 // ---

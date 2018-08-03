@@ -3,9 +3,11 @@ package handlers
 import (
 	"net/http"
 
+	"git.containerum.net/ch/resource-service/pkg/models/configmap"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
+	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
@@ -16,7 +18,7 @@ type ConfigMapHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/configmaps ConfigMap GetConfigMapsListHandler
+// swagger:operation GET /namespaces/{namespace}/configmaps ConfigMap GetConfigMapsList
 // Get configmaps list.
 //
 // ---
@@ -46,7 +48,43 @@ func (h *ConfigMapHandlers) GetConfigMapsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/configmaps/{configmap} ConfigMap GetConfigMapHandler
+// swagger:operation GET /configmaps ConfigMap GetSelectedConfigMapsList
+// Get user configmaps list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+// responses:
+//  '200':
+//    description: configmaps list
+//    schema:
+//      $ref: '#/definitions/ConfigMapsResponse'
+//  default:
+//    $ref: '#/responses/error'
+func (h *ConfigMapHandlers) GetSelectedConfigMapsListHandler(ctx *gin.Context) {
+	resp := configmap.ConfigMapsResponse{ConfigMaps: configmap.ListConfigMaps{}}
+	role := m.GetHeader(ctx, httputil.UserRoleXHeader)
+	if role == m.RoleUser {
+		nsList := ctx.MustGet(m.UserNamespaces).(*m.UserHeaderDataMap)
+		var nss []string
+		for k := range *nsList {
+			nss = append(nss, k)
+		}
+		ret, err := h.GetSelectedConfigMapsList(ctx.Request.Context(), nss)
+		if err != nil {
+			ctx.AbortWithStatusJSON(h.HandleError(err))
+			return
+		}
+		resp = *ret
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// swagger:operation GET /namespaces/{namespace}/configmaps/{configmap} ConfigMap GetConfigMap
 // Get configmaps list.
 //
 // ---
@@ -81,7 +119,7 @@ func (h *ConfigMapHandlers) GetConfigMapHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/configmaps ConfigMap CreateConfigMapHandler
+// swagger:operation POST /namespaces/{namespace}/configmaps ConfigMap CreateConfigMap
 // Create configmap.
 //
 // ---
@@ -137,7 +175,7 @@ func (h *ConfigMapHandlers) ImportConfigMapsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/configmaps/{configmap} ConfigMap DeleteConfigMapHandler
+// swagger:operation DELETE /namespaces/{namespace}/configmaps/{configmap} ConfigMap DeleteConfigMap
 // Delete configmap.
 //
 // ---
@@ -169,7 +207,7 @@ func (h *ConfigMapHandlers) DeleteConfigMapHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/configmaps ConfigMap DeleteAllConfigMapsHandler
+// swagger:operation DELETE /namespaces/{namespace}/configmaps ConfigMap DeleteAllConfigMaps
 // Delete configmap.
 //
 // ---

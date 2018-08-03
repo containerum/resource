@@ -39,18 +39,19 @@ type DomainActions interface {
 }
 
 type IngressActions interface {
-	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error)
 	GetIngressesList(ctx context.Context, nsID string) (*ingress.IngressesResponse, error)
+	GetSelectedIngressesList(ctx context.Context, namespaces []string) (*ingress.IngressesResponse, error)
 	GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.ResourceIngress, error)
+	CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error)
 	UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error)
 	DeleteIngress(ctx context.Context, nsID, ingressName string) error
 	DeleteAllIngresses(ctx context.Context, nsID string) error
 }
 
 type ServiceActions interface {
-	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error)
 	GetServicesList(ctx context.Context, nsID string) (*service.ServicesResponse, error)
 	GetService(ctx context.Context, nsID, serviceName string) (*service.ResourceService, error)
+	CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error)
 	UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error)
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 	DeleteAllServices(ctx context.Context, nsID string) error
@@ -58,10 +59,11 @@ type ServiceActions interface {
 }
 
 type ConfigMapActions interface {
+	GetConfigMapsList(ctx context.Context, nsID string) (*configmap.ConfigMapsResponse, error)
+	GetSelectedConfigMapsList(ctx context.Context, namespaces []string) (*configmap.ConfigMapsResponse, error)
+	GetConfigMap(ctx context.Context, nsID, ingressName string) (*configmap.ResourceConfigMap, error)
 	CreateConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) (*configmap.ResourceConfigMap, error)
 	ImportConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) error
-	GetConfigMapsList(ctx context.Context, nsID string) (*configmap.ConfigMapsResponse, error)
-	GetConfigMap(ctx context.Context, nsID, ingressName string) (*configmap.ResourceConfigMap, error)
 	DeleteConfigMap(ctx context.Context, nsID, cmName string) error
 	DeleteAllConfigMaps(ctx context.Context, nsID string) error
 }

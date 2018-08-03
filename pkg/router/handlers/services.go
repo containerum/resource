@@ -15,7 +15,7 @@ type ServiceHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/services Service GetServicesListHandler
+// swagger:operation GET /namespaces/{namespace}/services Service GetServicesList
 // Get services list.
 //
 // ---
@@ -45,7 +45,7 @@ func (h *ServiceHandlers) GetServicesListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/services/{service} Service GetServiceHandler
+// swagger:operation GET /namespaces/{namespace}/services/{service} Service GetService
 // Get services list.
 //
 // ---
@@ -80,7 +80,7 @@ func (h *ServiceHandlers) GetServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/services Service CreateServiceHandler
+// swagger:operation POST /namespaces/{namespace}/services Service CreateService
 // Create service.
 //
 // ---
@@ -120,7 +120,7 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, createdService)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateServiceHandler
+// swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateService
 // Update service.
 //
 // ---
@@ -165,7 +165,7 @@ func (h *ServiceHandlers) UpdateServiceHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedService)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/services/{service} Service DeleteServiceHandler
+// swagger:operation DELETE /namespaces/{namespace}/services/{service} Service DeleteService
 // Delete service.
 //
 // ---
@@ -197,8 +197,8 @@ func (h *ServiceHandlers) DeleteServiceHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/services Service DeleteAllServicesHandler
-// Delete service.
+// swagger:operation DELETE /namespaces/{namespace}/services Service DeleteAllServices
+// Delete all services.
 //
 // ---
 // x-method-visibility: private
@@ -222,7 +222,7 @@ func (h *ServiceHandlers) DeleteAllServicesHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServicesHandler
+// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/services Service DeleteAllSolutionServices
 // Delete all solution services.
 //
 // ---

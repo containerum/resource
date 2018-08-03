@@ -49,6 +49,21 @@ func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string)
 	return &ingress.IngressesResponse{Ingresses: ingresses}, nil
 }
 
+func (ia *IngressActionsImpl) GetSelectedIngressesList(ctx context.Context, namespaces []string) (*ingress.IngressesResponse, error) {
+	userID := httputil.MustGetUserID(ctx)
+	ia.log.WithFields(logrus.Fields{
+		"user_id":    userID,
+		"namespaces": namespaces,
+	}).Info("get selected ingresses")
+
+	ingresses, err := ia.mongo.GetSelectedIngresses(namespaces)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ingress.IngressesResponse{Ingresses: ingresses}, nil
+}
+
 func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.ResourceIngress, error) {
 	ia.log.Info("get all ingresses")
 

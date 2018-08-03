@@ -16,7 +16,7 @@ type DeployHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments Deployment GetDeploymentsListHandler
+// swagger:operation GET /namespaces/{namespace}/deployments Deployment GetDeploymentsList
 // Get deployments list.
 //
 // ---
@@ -46,7 +46,7 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsListHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsList
 // Get deployments list.
 //
 // ---
@@ -80,7 +80,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeploymentHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeployment
 // Get deployment active version.
 //
 // ---
@@ -114,7 +114,7 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersionHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersion
 // Get deployment version.
 //
 // ---
@@ -152,7 +152,7 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments Deployment CreateDeploymentHandler
+// swagger:operation POST /namespaces/{namespace}/deployments Deployment CreateDeployment
 // Create deployment.
 //
 // ---
@@ -192,7 +192,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, deploy)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeploymentHandler
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeployment
 // Create active deployment version.
 //
 // ---
@@ -230,7 +230,7 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, resp)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersionHandler
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersion
 // Rename deployment version.
 //
 // ---
@@ -329,7 +329,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImageHandler
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImage
 // Update image in deployments container.
 //
 // ---
@@ -373,7 +373,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicasHandler
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicas
 // Update deployments replicas count.
 //
 // ---
@@ -416,7 +416,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeploymentHandler
+// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeployment
 // Delete deployment.
 //
 // ---
@@ -448,7 +448,7 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersionHandler
+// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersion
 // Delete deployment version (not active).
 //
 // ---
@@ -484,7 +484,7 @@ func (h *DeployHandlers) DeleteDeploymentVersionHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments Deployment DeleteAllDeploymentsHandler
+// swagger:operation DELETE /namespaces/{namespace}/deployments Deployment DeleteAllDeployments
 // Delete all deployments in namespace.
 //
 // ---
@@ -509,7 +509,7 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeploymentsHandler
+// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeployments
 // Delete all solution deployments.
 //
 // ---
@@ -537,7 +537,7 @@ func (h *DeployHandlers) DeleteAllSolutionDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersions
 // Compare two deployment versions.
 //
 // ---
@@ -574,7 +574,7 @@ func (h *DeployHandlers) DiffDeploymentVersionsHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersionsHandler
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersions
 // Compare deployment versions with previous version.
 //
 // ---

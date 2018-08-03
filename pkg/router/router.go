@@ -119,6 +119,7 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
 		ingress.DELETE("", ingressHandlers.DeleteAllIngressesHandler)
 	}
+	router.GET("/ingresses", ingressHandlers.GetSelectedIngressesListHandler)
 }
 
 func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
@@ -152,7 +153,8 @@ func confgimapHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend
 		service.DELETE("/:configmap", m.WriteAccess, cmHandlers.DeleteConfigMapHandler)
 		service.DELETE("", cmHandlers.DeleteAllConfigMapsHandler)
 	}
-	router.POST("/configmaps", m.WriteAccess, cmHandlers.ImportConfigMapsHandler)
+	router.GET("/configmaps", cmHandlers.GetSelectedConfigMapsListHandler)
+	router.POST("/configmaps", cmHandlers.ImportConfigMapsHandler)
 }
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {
