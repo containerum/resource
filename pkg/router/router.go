@@ -31,6 +31,7 @@ func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
 	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
 	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
+	confgimapHandlersSetup(e, tv, impl.NewConfigMapsActionsImpl(mongo, kube))
 	resourceCountHandlersSetup(e, tv, impl.NewResourcesActionsImpl(mongo))
 
 	return e
@@ -118,6 +119,7 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
 		ingress.DELETE("", ingressHandlers.DeleteAllIngressesHandler)
 	}
+	router.GET("/ingresses", ingressHandlers.GetSelectedIngressesListHandler)
 }
 
 func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
@@ -136,6 +138,23 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		service.DELETE("", serviceHandlers.DeleteAllServicesHandler)
 	}
 	router.DELETE("/namespaces/:namespace/solutions/:solution/services", m.WriteAccess, serviceHandlers.DeleteAllSolutionServicesHandler)
+}
+
+func confgimapHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ConfigMapActions) {
+	cmHandlers := h.ConfigMapHandlers{ConfigMapActions: backend, TranslateValidate: tv}
+
+	service := router.Group("/namespaces/:namespace/configmaps")
+	{
+		service.GET("", m.ReadAccess, cmHandlers.GetConfigMapsListHandler)
+		service.GET("/:configmap", m.ReadAccess, cmHandlers.GetConfigMapHandler)
+
+		service.POST("", m.WriteAccess, cmHandlers.CreateConfigMapHandler)
+
+		service.DELETE("/:configmap", m.WriteAccess, cmHandlers.DeleteConfigMapHandler)
+		service.DELETE("", cmHandlers.DeleteAllConfigMapsHandler)
+	}
+	router.GET("/configmaps", cmHandlers.GetSelectedConfigMapsListHandler)
+	router.POST("/configmaps", cmHandlers.ImportConfigMapsHandler)
 }
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {

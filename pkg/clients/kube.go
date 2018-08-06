@@ -38,6 +38,9 @@ type Kube interface {
 	UpdateService(ctx context.Context, nsID string, service kubtypes.Service) error
 	DeleteService(ctx context.Context, nsID, serviceName string) error
 	DeleteSolutionServices(ctx context.Context, nsID, solutionName string) error
+
+	CreateConfigMap(ctx context.Context, nsID string, cm kubtypes.ConfigMap) error
+	DeleteConfigMap(ctx context.Context, nsID, cmName string) error
 }
 
 type kube struct {
@@ -405,6 +408,46 @@ func (kub kube) DeleteSolutionServices(ctx context.Context, nsID, solutionName s
 	return nil
 }
 
+func (kub kube) CreateConfigMap(ctx context.Context, nsID string, cm kubtypes.ConfigMap) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("create configmap %v", cm.Name)
+	coblog.Std.Struct(cm)
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		SetBody(cm).
+		Post(fmt.Sprintf("/namespaces/%s/configmaps", nsID))
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+	return nil
+}
+
+func (kub kube) DeleteConfigMap(ctx context.Context, nsID, cmName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":   nsID,
+		"cm_name": cmName,
+	}).Debug("delete configmap")
+
+	resp, err := kub.client.R().
+		SetContext(ctx).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		Delete(fmt.Sprintf("/namespaces/%s/configmaps/%s", nsID, cmName))
+	if err != nil {
+		return rserrors.ErrInternal().Log(err, kub.log)
+	}
+	if resp.Error() != nil {
+		return resp.Error().(*cherry.Err)
+	}
+
+	return nil
+}
+
 func (kub kube) String() string {
 	return fmt.Sprintf("kube api http client: url=%v", kub.client.HostURL)
 }
@@ -570,6 +613,23 @@ func (kub kubeDummy) DeleteSolutionServices(ctx context.Context, nsID, solutionN
 		"ns_id":    nsID,
 		"solution": solutionName,
 	}).Debug("delete solution services")
+
+	return nil
+}
+
+func (kub kubeDummy) CreateConfigMap(ctx context.Context, nsID string, cm kubtypes.ConfigMap) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Debugf("create configmap %v", cm.Name)
+
+	return nil
+}
+
+func (kub kubeDummy) DeleteConfigMap(ctx context.Context, nsID, cmName string) error {
+	kub.log.WithFields(logrus.Fields{
+		"ns_id":   nsID,
+		"cm_name": cmName,
+	}).Debug("delete configmap")
 
 	return nil
 }

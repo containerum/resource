@@ -47,6 +47,11 @@ func (rs *ResourcesActionsImpl) GetResourcesCount(ctx context.Context) (*resourc
 		rs.log.Debug(err)
 		return nil, rserrors.ErrUnableCountResources()
 	}
+	cms, err := rs.mongo.CountConfigMaps(userID)
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
 
 	ret := resources.GetResourcesCountResponse{
 		Ingresses:   ingresses,
@@ -54,6 +59,7 @@ func (rs *ResourcesActionsImpl) GetResourcesCount(ctx context.Context) (*resourc
 		ExtServices: services.External,
 		IntServices: services.Internal,
 		Pods:        pods,
+		ConfigMaps:  cms,
 	}
 
 	return &ret, nil
@@ -80,6 +86,11 @@ func (rs *ResourcesActionsImpl) GetAllResourcesCount(ctx context.Context) (*reso
 		rs.log.Debug(err)
 		return nil, rserrors.ErrUnableCountResources()
 	}
+	cms, err := rs.mongo.CountAllConfigMaps()
+	if err != nil {
+		rs.log.Debug(err)
+		return nil, rserrors.ErrUnableCountResources()
+	}
 
 	ret := resources.GetResourcesCountResponse{
 		Ingresses:   ingresses,
@@ -87,6 +98,7 @@ func (rs *ResourcesActionsImpl) GetAllResourcesCount(ctx context.Context) (*reso
 		ExtServices: services.External,
 		IntServices: services.Internal,
 		Pods:        pods,
+		ConfigMaps:  cms,
 	}
 
 	return &ret, nil
@@ -103,6 +115,9 @@ func (rs *ResourcesActionsImpl) DeleteAllResourcesInNamespace(ctx context.Contex
 	if err := rs.mongo.DeleteAllDeploymentsInNamespace(nsID); err != nil {
 		return err
 	}
+	if err := rs.mongo.DeleteAllConfigMapsInNamespace(nsID); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -116,6 +131,9 @@ func (rs *ResourcesActionsImpl) DeleteAllUserResources(ctx context.Context) erro
 		return err
 	}
 	if err := rs.mongo.DeleteAllDeploymentsByOwner(userID); err != nil {
+		return err
+	}
+	if err := rs.mongo.DeleteAllConfigMapsByOwner(userID); err != nil {
 		return err
 	}
 	return nil

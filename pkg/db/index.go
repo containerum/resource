@@ -124,6 +124,19 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			}
 		}
 		{
+			var collection = mongo.db.C(CollectionCM)
+			if err := collection.EnsureIndex(mgo.Index{
+				Name: "alive_" + CollectionCM,
+				Key:  []string{CollectionCM + ".name"},
+				PartialFilter: bson.M{
+					"deleted": false,
+				},
+				Unique: true,
+			}); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		{
 			var collection = mongo.db.C(CollectionService)
 			if err := collection.EnsureIndexKey(CollectionService + "_deployment"); err != nil {
 				errs = append(errs, err)
@@ -245,7 +258,7 @@ func DropIndexIfExists(mongo *MongoStorage, cName, indexName string) (bool, erro
 	var collection = mongo.db.C(cName)
 	if strset.FromSlice(indexNames).In(indexName) {
 		if err := collection.DropIndexName(indexName); err != nil {
-			return false, PipErr{err}.ToMongerr().Extract()
+			return false, PipErr{error: err}.ToMongerr().Extract()
 		}
 	}
 	return true, nil

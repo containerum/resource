@@ -12,13 +12,62 @@
     "version": "0.0.1"
   },
   "paths": {
+    "/configmaps": {
+      "get": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Get user configmaps list.",
+        "operationId": "GetSelectedConfigMapsList",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "configmaps list",
+            "schema": {
+              "$ref": "#/definitions/ConfigMapsResponse"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
     "/domains": {
       "get": {
         "tags": [
           "Domain"
         ],
         "summary": "Get domains list.",
-        "operationId": "GetDomainsListHandler",
+        "operationId": "GetDomainsList",
         "parameters": [
           {
             "enum": [
@@ -62,7 +111,7 @@
           "Domain"
         ],
         "summary": "Add domain.",
-        "operationId": "AddDomainHandler",
+        "operationId": "AddDomain",
         "parameters": [
           {
             "enum": [
@@ -105,7 +154,7 @@
           "Domain"
         ],
         "summary": "Get domain.",
-        "operationId": "GetDomainHandler",
+        "operationId": "GetDomain",
         "parameters": [
           {
             "enum": [
@@ -178,13 +227,62 @@
         "x-method-visibility": "public"
       }
     },
+    "/ingresses": {
+      "get": {
+        "tags": [
+          "Ingress"
+        ],
+        "summary": "Get user ingresses list.",
+        "operationId": "GetSelectedIngressesList",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ingresses list",
+            "schema": {
+              "$ref": "#/definitions/IngressesResponse"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
     "/namespaces": {
       "delete": {
         "tags": [
           "Resources"
         ],
         "summary": "Delete all user resources.",
-        "operationId": "DeleteAllResourcesHandler",
+        "operationId": "DeleteAllResources",
         "parameters": [
           {
             "type": "string",
@@ -224,7 +322,7 @@
           "Resources"
         ],
         "summary": "Delete all resources in namespace.",
-        "operationId": "DeleteAllResourcesInNamespaceHandler",
+        "operationId": "DeleteAllResourcesInNamespace",
         "parameters": [
           {
             "type": "string",
@@ -247,13 +345,272 @@
         "x-method-visibility": "private"
       }
     },
+    "/namespaces/{namespace}/configmaps": {
+      "get": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Get configmaps list.",
+        "operationId": "GetConfigMapsList",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "configmaps list",
+            "schema": {
+              "$ref": "#/definitions/ConfigMapsResponse"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      },
+      "post": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Create configmap.",
+        "operationId": "CreateConfigMap",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ConfigMap"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "configmap created",
+            "schema": {
+              "$ref": "#/definitions/ResourceConfigMap"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      },
+      "delete": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Delete configmap.",
+        "operationId": "DeleteAllConfigMaps",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "all configmaps in namespace deleted"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "private"
+      }
+    },
+    "/namespaces/{namespace}/configmaps/{configmap}": {
+      "get": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Get configmaps list.",
+        "operationId": "GetConfigMap",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "configmap",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "configmap",
+            "schema": {
+              "$ref": "#/definitions/ResourceConfigMap"
+            }
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      },
+      "delete": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Delete configmap.",
+        "operationId": "DeleteConfigMap",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "configmap",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "configmap deleted"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/errOAIGen"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
     "/namespaces/{namespace}/deployments": {
       "get": {
         "tags": [
           "Deployment"
         ],
         "summary": "Get deployments list.",
-        "operationId": "GetDeploymentsListHandler",
+        "operationId": "GetDeploymentsList",
         "parameters": [
           {
             "type": "string",
@@ -306,7 +663,7 @@
           "Deployment"
         ],
         "summary": "Create deployment.",
-        "operationId": "CreateDeploymentHandler",
+        "operationId": "CreateDeployment",
         "parameters": [
           {
             "type": "string",
@@ -349,7 +706,7 @@
           "201": {
             "description": "deployment created",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -366,7 +723,7 @@
           "Deployment"
         ],
         "summary": "Delete all deployments in namespace.",
-        "operationId": "DeleteAllDeploymentsHandler",
+        "operationId": "DeleteAllDeployments",
         "parameters": [
           {
             "type": "string",
@@ -395,7 +752,7 @@
           "Deployment"
         ],
         "summary": "Get deployment active version.",
-        "operationId": "GetActiveDeploymentHandler",
+        "operationId": "GetActiveDeployment",
         "parameters": [
           {
             "type": "string",
@@ -437,7 +794,7 @@
           "200": {
             "description": "deployment",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -503,7 +860,7 @@
           "202": {
             "description": "deployment updated",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -520,7 +877,7 @@
           "Deployment"
         ],
         "summary": "Delete deployment.",
-        "operationId": "DeleteDeploymentHandler",
+        "operationId": "DeleteDeployment",
         "parameters": [
           {
             "type": "string",
@@ -578,7 +935,7 @@
           "Deployment"
         ],
         "summary": "Update image in deployments container.",
-        "operationId": "SetContainerImageHandler",
+        "operationId": "SetContainerImage",
         "parameters": [
           {
             "type": "string",
@@ -621,7 +978,7 @@
           "202": {
             "description": "deployment updated",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -640,7 +997,7 @@
           "Deployment"
         ],
         "summary": "Update deployments replicas count.",
-        "operationId": "SetReplicasHandler",
+        "operationId": "SetReplicas",
         "parameters": [
           {
             "type": "string",
@@ -689,7 +1046,7 @@
           "202": {
             "description": "deployment updated",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -708,7 +1065,7 @@
           "Deployment"
         ],
         "summary": "Get deployments list.",
-        "operationId": "GetDeploymentVersionsListHandler",
+        "operationId": "GetDeploymentVersionsList",
         "parameters": [
           {
             "type": "string",
@@ -769,7 +1126,7 @@
           "Deployment"
         ],
         "summary": "Get deployment version.",
-        "operationId": "GetDeploymentVersionHandler",
+        "operationId": "GetDeploymentVersion",
         "parameters": [
           {
             "type": "string",
@@ -817,7 +1174,7 @@
           "200": {
             "description": "deployment",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -834,7 +1191,7 @@
           "Deployment"
         ],
         "summary": "Rename deployment version.",
-        "operationId": "RenameVersionHandler",
+        "operationId": "RenameVersion",
         "parameters": [
           {
             "type": "string",
@@ -889,7 +1246,7 @@
           "202": {
             "description": "deployment version renamed",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -906,7 +1263,7 @@
           "Deployment"
         ],
         "summary": "Create active deployment version.",
-        "operationId": "ChangeActiveDeploymentHandler",
+        "operationId": "ChangeActiveDeployment",
         "parameters": [
           {
             "type": "string",
@@ -954,7 +1311,7 @@
           "202": {
             "description": "active deployment version changed",
             "schema": {
-              "$ref": "#/definitions/DeploymentResource"
+              "$ref": "#/definitions/ResourceDeploy"
             }
           },
           "default": {
@@ -971,7 +1328,7 @@
           "Deployment"
         ],
         "summary": "Delete deployment version (not active).",
-        "operationId": "DeleteDeploymentVersionHandler",
+        "operationId": "DeleteDeploymentVersion",
         "parameters": [
           {
             "type": "string",
@@ -1035,7 +1392,7 @@
           "Deployment"
         ],
         "summary": "Compare deployment versions with previous version.",
-        "operationId": "DiffDeploymentPreviousVersionsHandler",
+        "operationId": "DiffDeploymentPreviousVersions",
         "parameters": [
           {
             "type": "string",
@@ -1076,7 +1433,7 @@
           "Deployment"
         ],
         "summary": "Compare two deployment versions.",
-        "operationId": "DiffDeploymentVersionsHandler",
+        "operationId": "DiffDeploymentVersions",
         "parameters": [
           {
             "type": "string",
@@ -1176,7 +1533,7 @@
           "Ingress"
         ],
         "summary": "Create ingress.",
-        "operationId": "CreateIngressHandler",
+        "operationId": "CreateIngress",
         "parameters": [
           {
             "type": "string",
@@ -1219,7 +1576,7 @@
           "201": {
             "description": "ingress created",
             "schema": {
-              "$ref": "#/definitions/IngressResource"
+              "$ref": "#/definitions/ResourceIngress"
             }
           },
           "default": {
@@ -1236,7 +1593,7 @@
           "Ingress"
         ],
         "summary": "Delete all ingresses.",
-        "operationId": "DeleteAllIngressesHandler",
+        "operationId": "DeleteAllIngresses",
         "parameters": [
           {
             "type": "string",
@@ -1265,7 +1622,7 @@
           "Ingress"
         ],
         "summary": "Get ingresses list.",
-        "operationId": "GetIngressHandler",
+        "operationId": "GetIngress",
         "parameters": [
           {
             "type": "string",
@@ -1307,7 +1664,7 @@
           "200": {
             "description": "ingresses",
             "schema": {
-              "$ref": "#/definitions/IngressResource"
+              "$ref": "#/definitions/ResourceIngress"
             }
           },
           "default": {
@@ -1324,7 +1681,7 @@
           "Ingress"
         ],
         "summary": "Update ingress.",
-        "operationId": "UpdateIngressHandler",
+        "operationId": "UpdateIngress",
         "parameters": [
           {
             "type": "string",
@@ -1373,7 +1730,7 @@
           "202": {
             "description": "ingress updated",
             "schema": {
-              "$ref": "#/definitions/IngressResource"
+              "$ref": "#/definitions/ResourceIngress"
             }
           },
           "default": {
@@ -1390,7 +1747,7 @@
           "Ingress"
         ],
         "summary": "Delete ingress.",
-        "operationId": "DeleteIngressHandler",
+        "operationId": "DeleteIngress",
         "parameters": [
           {
             "type": "string",
@@ -1448,7 +1805,7 @@
           "Service"
         ],
         "summary": "Get services list.",
-        "operationId": "GetServicesListHandler",
+        "operationId": "GetServicesList",
         "parameters": [
           {
             "type": "string",
@@ -1501,7 +1858,7 @@
           "Service"
         ],
         "summary": "Create service.",
-        "operationId": "CreateServiceHandler",
+        "operationId": "CreateService",
         "parameters": [
           {
             "type": "string",
@@ -1544,7 +1901,7 @@
           "201": {
             "description": "service created",
             "schema": {
-              "$ref": "#/definitions/ServiceResource"
+              "$ref": "#/definitions/ResourceService"
             }
           },
           "default": {
@@ -1560,8 +1917,8 @@
         "tags": [
           "Service"
         ],
-        "summary": "Delete service.",
-        "operationId": "DeleteAllServicesHandler",
+        "summary": "Delete all services.",
+        "operationId": "DeleteAllServices",
         "parameters": [
           {
             "type": "string",
@@ -1590,7 +1947,7 @@
           "Service"
         ],
         "summary": "Get services list.",
-        "operationId": "GetServiceHandler",
+        "operationId": "GetService",
         "parameters": [
           {
             "type": "string",
@@ -1632,7 +1989,7 @@
           "200": {
             "description": "service",
             "schema": {
-              "$ref": "#/definitions/ServiceResource"
+              "$ref": "#/definitions/ResourceService"
             }
           },
           "default": {
@@ -1649,7 +2006,7 @@
           "Service"
         ],
         "summary": "Update service.",
-        "operationId": "UpdateServiceHandler",
+        "operationId": "UpdateService",
         "parameters": [
           {
             "type": "string",
@@ -1698,7 +2055,7 @@
           "202": {
             "description": "service updated",
             "schema": {
-              "$ref": "#/definitions/ServiceResource"
+              "$ref": "#/definitions/ResourceService"
             }
           },
           "default": {
@@ -1715,7 +2072,7 @@
           "Service"
         ],
         "summary": "Delete service.",
-        "operationId": "DeleteServiceHandler",
+        "operationId": "DeleteService",
         "parameters": [
           {
             "type": "string",
@@ -1773,7 +2130,7 @@
           "Service"
         ],
         "summary": "Delete all solution deployments.",
-        "operationId": "DeleteAllSolutionDeploymentsHandler",
+        "operationId": "DeleteAllSolutionDeployments",
         "parameters": [
           {
             "type": "string",
@@ -1808,7 +2165,7 @@
           "Service"
         ],
         "summary": "Delete all solution services.",
-        "operationId": "DeleteAllSolutionServicesHandler",
+        "operationId": "DeleteAllSolutionServices",
         "parameters": [
           {
             "type": "string",
@@ -1843,7 +2200,7 @@
           "Resources"
         ],
         "summary": "Get resources count.",
-        "operationId": "GetResourcesCountHandler",
+        "operationId": "GetResourcesCount",
         "parameters": [
           {
             "type": "string",
@@ -1972,6 +2329,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
         "owner": {
           "type": "string",
           "x-go-name": "Owner"
@@ -2000,6 +2361,16 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ConfigMapsResponse": {
+      "description": "ConfigMapsResponse -- configmap response",
+      "type": "object",
+      "properties": {
+        "config_maps": {
+          "$ref": "#/definitions/ListConfigMaps"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/configmap"
     },
     "Container": {
       "description": "Container -- model for container in deployment",
@@ -2154,6 +2525,13 @@
           "type": "string",
           "x-go-name": "DeletedAt"
         },
+        "image_pull_secret": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ImagePullSecrets"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -2192,95 +2570,6 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
-    "DeploymentList": {
-      "description": "Deployment -- deployments list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/DeploymentResource"
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
-    },
-    "DeploymentResource": {
-      "description": "DeploymentResource -- model for deployments for resource-service db",
-      "type": "object",
-      "required": [
-        "containers",
-        "name",
-        "replicas"
-      ],
-      "properties": {
-        "_id": {
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "active": {
-          "type": "boolean",
-          "x-go-name": "Active"
-        },
-        "containers": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Container"
-          },
-          "x-go-name": "Containers"
-        },
-        "created_at": {
-          "description": "creation date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "CreatedAt"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "deleted_at": {
-          "description": "delete date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "DeletedAt"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "namespaceid": {
-          "type": "string",
-          "x-go-name": "NamespaceID"
-        },
-        "owner": {
-          "type": "string",
-          "x-go-name": "Owner"
-        },
-        "replicas": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Replicas"
-        },
-        "solution_id": {
-          "description": "Solution ID (only if deployment is part of solution)",
-          "type": "string",
-          "x-go-name": "SolutionID"
-        },
-        "status": {
-          "$ref": "#/definitions/DeploymentStatus"
-        },
-        "total_cpu": {
-          "description": "total CPU usage by all containers in this deployment",
-          "type": "integer",
-          "format": "uint64",
-          "x-go-name": "TotalCPU"
-        },
-        "total_memory": {
-          "description": "total RAM usage by all containers in this deployment",
-          "type": "integer",
-          "format": "uint64",
-          "x-go-name": "TotalMemory"
-        },
-        "version": {
-          "$ref": "#/definitions/Version"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
     },
     "DeploymentStatus": {
       "description": "DeploymentStatus -- kubernetes status of deployment",
@@ -2344,7 +2633,7 @@
       "type": "object",
       "properties": {
         "deployments": {
-          "$ref": "#/definitions/DeploymentList"
+          "$ref": "#/definitions/ListDeploy"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
@@ -2383,20 +2672,12 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/domain"
     },
-    "DomainList": {
-      "description": "DomainList -- domains list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Domain"
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/domain"
-    },
     "DomainsResponse": {
       "description": "DomainsList -- domains response",
       "type": "object",
       "properties": {
         "domains": {
-          "$ref": "#/definitions/DomainList"
+          "$ref": "#/definitions/ListDomain"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/domain"
@@ -2485,6 +2766,11 @@
       "description": "GetResourcesCountResponse --  model for users resources count",
       "type": "object",
       "properties": {
+        "configmaps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ConfigMaps"
+        },
         "deployments": {
           "type": "integer",
           "format": "int64",
@@ -2547,6 +2833,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
         "owner": {
           "type": "string",
           "x-go-name": "Owner"
@@ -2560,62 +2850,6 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
-    "IngressList": {
-      "description": "IngressList -- ingresses list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/IngressResource"
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
-    },
-    "IngressResource": {
-      "description": "IngressResource --  model for ingress for resource-service db",
-      "type": "object",
-      "required": [
-        "name",
-        "rules"
-      ],
-      "properties": {
-        "_id": {
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "created_at": {
-          "description": "creation date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "CreatedAt"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "deleted_at": {
-          "description": "delete date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "DeletedAt"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "namespaceid": {
-          "type": "string",
-          "x-go-name": "NamespaceID"
-        },
-        "owner": {
-          "type": "string",
-          "x-go-name": "Owner"
-        },
-        "rules": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Rule"
-          },
-          "x-go-name": "Rules"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
     },
     "IngressesList": {
       "description": "IngressesList -- model for ingresses list",
@@ -2636,10 +2870,50 @@
       "type": "object",
       "properties": {
         "ingresses": {
-          "$ref": "#/definitions/IngressList"
+          "$ref": "#/definitions/ListIngress"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
+    },
+    "ListConfigMaps": {
+      "description": "ListConfigMaps -- ConfigMaps list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceConfigMap"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/configmap"
+    },
+    "ListDeploy": {
+      "description": "Deployment -- deployments list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceDeploy"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
+    },
+    "ListDomain": {
+      "description": "ListDomain -- domains list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Domain"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/domain"
+    },
+    "ListIngress": {
+      "description": "ListIngress -- ingresses list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceIngress"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
+    },
+    "ListService": {
+      "description": "ListService -- services list",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceService"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
     "Namespace": {
       "description": "Namespace -- namespace representation",
@@ -2786,11 +3060,11 @@
           "x-go-name": "Deploy"
         },
         "image_pull_secret": {
-          "type": "object",
-          "additionalProperties": {
+          "type": "array",
+          "items": {
             "type": "string"
           },
-          "x-go-name": "ImagePullSecret"
+          "x-go-name": "ImagePullSecrets"
         },
         "name": {
           "type": "string",
@@ -2880,6 +3154,265 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ResourceConfigMap": {
+      "description": "ResourceConfigMap --  model for ConfigMap for resource-service db",
+      "type": "object",
+      "required": [
+        "name",
+        "data"
+      ],
+      "properties": {
+        "_id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "data": {
+          "$ref": "#/definitions/ConfigMapData"
+        },
+        "deleted": {
+          "type": "boolean",
+          "x-go-name": "Deleted"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "namespaceid": {
+          "type": "string",
+          "x-go-name": "NamespaceID"
+        },
+        "owner": {
+          "type": "string",
+          "x-go-name": "Owner"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/configmap"
+    },
+    "ResourceDeploy": {
+      "description": "ResourceDeploy -- model for deployments for resource-service db",
+      "type": "object",
+      "required": [
+        "containers",
+        "name",
+        "replicas"
+      ],
+      "properties": {
+        "_id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "active": {
+          "type": "boolean",
+          "x-go-name": "Active"
+        },
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Container"
+          },
+          "x-go-name": "Containers"
+        },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "deleted": {
+          "type": "boolean",
+          "x-go-name": "Deleted"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
+        "image_pull_secret": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ImagePullSecrets"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespaceid": {
+          "type": "string",
+          "x-go-name": "NamespaceID"
+        },
+        "owner": {
+          "type": "string",
+          "x-go-name": "Owner"
+        },
+        "replicas": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Replicas"
+        },
+        "solution_id": {
+          "description": "Solution ID (only if deployment is part of solution)",
+          "type": "string",
+          "x-go-name": "SolutionID"
+        },
+        "status": {
+          "$ref": "#/definitions/DeploymentStatus"
+        },
+        "total_cpu": {
+          "description": "total CPU usage by all containers in this deployment",
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "TotalCPU"
+        },
+        "total_memory": {
+          "description": "total RAM usage by all containers in this deployment",
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "TotalMemory"
+        },
+        "version": {
+          "$ref": "#/definitions/Version"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/deployment"
+    },
+    "ResourceIngress": {
+      "description": "ResourceIngress --  model for ingress for resource-service db",
+      "type": "object",
+      "required": [
+        "name",
+        "rules"
+      ],
+      "properties": {
+        "_id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "deleted": {
+          "type": "boolean",
+          "x-go-name": "Deleted"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "namespaceid": {
+          "type": "string",
+          "x-go-name": "NamespaceID"
+        },
+        "owner": {
+          "type": "string",
+          "x-go-name": "Owner"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Rule"
+          },
+          "x-go-name": "Rules"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/ingress"
+    },
+    "ResourceService": {
+      "description": "ResourceService --  model for service for resource-service db",
+      "type": "object",
+      "required": [
+        "name",
+        "ports"
+      ],
+      "properties": {
+        "_id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "created_at": {
+          "description": "creation date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "deleted": {
+          "type": "boolean",
+          "x-go-name": "Deleted"
+        },
+        "deleted_at": {
+          "description": "delete date in RFC3339 format",
+          "type": "string",
+          "x-go-name": "DeletedAt"
+        },
+        "deploy": {
+          "type": "string",
+          "x-go-name": "Deploy"
+        },
+        "domain": {
+          "type": "string",
+          "x-go-name": "Domain"
+        },
+        "ips": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "IPs"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespaceid": {
+          "type": "string",
+          "x-go-name": "NamespaceID"
+        },
+        "owner": {
+          "type": "string",
+          "x-go-name": "Owner"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServicePort"
+          },
+          "x-go-name": "Ports"
+        },
+        "solution_id": {
+          "description": "Solution ID (only if service is part of solution)",
+          "type": "string",
+          "x-go-name": "SolutionID"
+        },
+        "type": {
+          "$ref": "#/definitions/Type"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
     "ResourceUpdateName": {
       "description": "ResourceUpdateName -- contains new resource name",
@@ -3094,14 +3627,6 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
-    "ServiceList": {
-      "description": "ServiceList -- services list",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/ServiceResource"
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
-    },
     "ServicePort": {
       "description": "represent service port",
       "type": "object",
@@ -3131,77 +3656,6 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
-    "ServiceResource": {
-      "description": "ServiceResource --  model for service for resource-service db",
-      "type": "object",
-      "required": [
-        "name",
-        "ports"
-      ],
-      "properties": {
-        "_id": {
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "created_at": {
-          "description": "creation date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "CreatedAt"
-        },
-        "deleted": {
-          "type": "boolean",
-          "x-go-name": "Deleted"
-        },
-        "deleted_at": {
-          "description": "delete date in RFC3339 format",
-          "type": "string",
-          "x-go-name": "DeletedAt"
-        },
-        "deploy": {
-          "type": "string",
-          "x-go-name": "Deploy"
-        },
-        "domain": {
-          "type": "string",
-          "x-go-name": "Domain"
-        },
-        "ips": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "IPs"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "namespaceid": {
-          "type": "string",
-          "x-go-name": "NamespaceID"
-        },
-        "owner": {
-          "type": "string",
-          "x-go-name": "Owner"
-        },
-        "ports": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ServicePort"
-          },
-          "x-go-name": "Ports"
-        },
-        "solution_id": {
-          "description": "Solution ID (only if service is part of solution)",
-          "type": "string",
-          "x-go-name": "SolutionID"
-        },
-        "type": {
-          "$ref": "#/definitions/ServiceType"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
-    },
     "ServiceType": {
       "description": "represents service type",
       "type": "string",
@@ -3226,7 +3680,7 @@
       "type": "object",
       "properties": {
         "services": {
-          "$ref": "#/definitions/ServiceList"
+          "$ref": "#/definitions/ListService"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
@@ -3274,6 +3728,10 @@
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "Type": {
+      "type": "string",
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
     "UpdateImage": {
       "description": "UpdateImage -- model for update container image request",
@@ -3341,7 +3799,7 @@
       "type": "object",
       "properties": {
         "access": {
-          "$ref": "#/definitions/UserGroupAccess"
+          "$ref": "#/definitions/AccessLevel"
         },
         "created_at": {
           "description": "creation date in RFC3339 format",
@@ -3388,7 +3846,7 @@
       "type": "object",
       "properties": {
         "access": {
-          "$ref": "#/definitions/UserGroupAccess"
+          "$ref": "#/definitions/AccessLevel"
         },
         "id": {
           "type": "string",

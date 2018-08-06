@@ -8,12 +8,12 @@ import (
 )
 
 // DetermineServiceType deduces service type from service ports. If we have one or more "Port" set it is internal.
-func DetermineServiceType(svc kubtypes.Service) service.ServiceType {
-	serviceType := service.ServiceExternal
+func DetermineServiceType(svc kubtypes.Service) service.Type {
+	serviceType := service.External
 	if svc.Domain == "" || len(svc.IPs) == 0 {
 		for _, port := range svc.Ports {
 			if port.Port != nil {
-				serviceType = service.ServiceInternal
+				serviceType = service.Internal
 				break
 			}
 		}
@@ -100,13 +100,13 @@ func CheckDeploymentReplicasChangeQuotas(ns kubtypes.Namespace, nsUsage kubtypes
 	return nil
 }
 
-func CheckServiceCreateQuotas(ns kubtypes.Namespace, nsUsage stats.Service, serviceType service.ServiceType) error {
+func CheckServiceCreateQuotas(ns kubtypes.Namespace, nsUsage stats.Service, serviceType service.Type) error {
 	switch serviceType {
-	case service.ServiceExternal:
+	case service.External:
 		if int(ns.MaxExtService) <= nsUsage.External {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of external services reached")
 		}
-	case service.ServiceInternal:
+	case service.Internal:
 		if int(ns.MaxIntService) <= nsUsage.Internal {
 			return rserrors.ErrQuotaExceeded().AddDetailF("Maximum of internal services reached")
 		}

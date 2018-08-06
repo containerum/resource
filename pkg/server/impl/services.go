@@ -48,7 +48,7 @@ func (sa *ServiceActionsImpl) GetServicesList(ctx context.Context, nsID string) 
 	return &service.ServicesResponse{Services: services}, nil
 }
 
-func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.ServiceResource, error) {
+func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName string) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
@@ -61,7 +61,7 @@ func (sa *ServiceActionsImpl) GetService(ctx context.Context, nsID, serviceName 
 	return &ret, err
 }
 
-func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error) {
+func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -77,7 +77,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 
 	serviceType := server.DetermineServiceType(req)
 
-	if serviceType == service.ServiceExternal {
+	if serviceType == service.External {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
 			if err == mgo.ErrNotFound {
@@ -111,7 +111,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	createdService, err := sa.mongo.CreateService(service.ServiceFromKube(nsID, userID, serviceType, req))
+	createdService, err := sa.mongo.CreateService(service.FromKube(nsID, userID, serviceType, req))
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	return &createdService, nil
 }
 
-func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ServiceResource, error) {
+func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{
 		"user_id":      userID,
@@ -152,7 +152,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 
 	serviceType := server.DetermineServiceType(req)
 
-	if serviceType == service.ServiceExternal {
+	if serviceType == service.External {
 		domain, err := sa.mongo.GetRandomDomain()
 		if err != nil {
 			if err == mgo.ErrNotFound {
@@ -180,7 +180,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 		}
 	}
 
-	createdService, err := sa.mongo.UpdateService(service.ServiceFromKube(nsID, userID, serviceType, req))
+	createdService, err := sa.mongo.UpdateService(service.FromKube(nsID, userID, serviceType, req))
 	if err != nil {
 		return nil, err
 	}
