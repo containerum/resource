@@ -76,7 +76,11 @@ func (kub kube) GetDeployment(ctx context.Context, nsID, deployName string) (*ku
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetResult(&ret).
-		Get(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deployName))
+		SetPathParams(map[string]string{
+			"namespace":  nsID,
+			"deployment": deployName,
+		}).
+		Get("/namespaces/{namespace}/deployments/{deployment}")
 	if err != nil {
 		return nil, rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -94,7 +98,10 @@ func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtyp
 		SetBody(deploy).
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Post(fmt.Sprintf("/namespaces/%s/deployments", nsID))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+		}).
+		Post("/namespaces/{namespace}/deployments")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -104,16 +111,20 @@ func (kub kube) CreateDeployment(ctx context.Context, nsID string, deploy kubtyp
 	return nil
 }
 
-func (kub kube) DeleteDeployment(ctx context.Context, nsID, deplName string) error {
+func (kub kube) DeleteDeployment(ctx context.Context, nsID, deployName string) error {
 	kub.log.WithFields(logrus.Fields{
 		"ns_id":       nsID,
-		"deploy_name": deplName,
+		"deploy_name": deployName,
 	}).Debug("delete deployment")
 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deplName))
+		SetPathParams(map[string]string{
+			"namespace":  nsID,
+			"deployment": deployName,
+		}).
+		Delete("/namespaces/{namespace}/deployments/{deployment}")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -132,7 +143,11 @@ func (kub kube) DeleteSolutionDeployments(ctx context.Context, nsID, solutionNam
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/solutions/%s/deployments", nsID, solutionName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"solution":  solutionName,
+		}).
+		Delete("/namespaces/{namespace}/solutions/{solution}/deployments")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -152,7 +167,11 @@ func (kub kube) UpdateDeployment(ctx context.Context, nsID string, deploy kubtyp
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(deploy).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s", nsID, deploy.Name))
+		SetPathParams(map[string]string{
+			"namespace":  nsID,
+			"deployment": deploy.Name,
+		}).
+		Put("/namespaces/{namespace}/deployments/{deployment}")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -173,7 +192,11 @@ func (kub kube) SetDeploymentReplicas(ctx context.Context, nsID, deplName string
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(kubtypes.UpdateReplicas{Replicas: replicas}).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/replicas", nsID, deplName))
+		SetPathParams(map[string]string{
+			"namespace":  nsID,
+			"deployment": deplName,
+		}).
+		Put("/namespaces/{namespace}/deployments/{deployment}/replicas")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -195,7 +218,11 @@ func (kub kube) SetContainerImage(ctx context.Context, nsID, deplName string, co
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(container).
-		Put(fmt.Sprintf("/namespaces/%s/deployments/%s/image", nsID, deplName))
+		SetPathParams(map[string]string{
+			"namespace":  nsID,
+			"deployment": deplName,
+		}).
+		Put("/namespaces/{namespace}/deployments/{deployment}/image")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -215,7 +242,10 @@ func (kub kube) CreateIngress(ctx context.Context, nsID string, ingress kubtypes
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(ingress).
-		Post(fmt.Sprintf("/namespaces/%s/ingresses", nsID))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+		}).
+		Post("/namespaces/{namespace}/ingresses")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -236,7 +266,11 @@ func (kub kube) UpdateIngress(ctx context.Context, nsID string, ingress kubtypes
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(ingress).
-		Put(fmt.Sprintf("/namespaces/%s/ingresses/%s", nsID, ingress.Name))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"ingress":   ingress.Name,
+		}).
+		Put("/namespaces/{namespace}/ingresses/{ingress}")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -255,7 +289,11 @@ func (kub kube) DeleteIngress(ctx context.Context, nsID, ingressName string) err
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/ingresses/%s", nsID, ingressName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"ingress":   ingressName,
+		}).
+		Delete("/namespaces/{namespace}/ingresses/{ingress}")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -275,7 +313,10 @@ func (kub kube) CreateSecret(ctx context.Context, nsID string, secret kubtypes.S
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(secret).
-		Post(fmt.Sprintf("/namespaces/%s/secrets", nsID))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+		}).
+		Post("/namespaces/{namespace}/secrets")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -294,7 +335,11 @@ func (kub kube) DeleteSecret(ctx context.Context, nsID, secretName string) error
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/secrets/%s", nsID, secretName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"secret":    secretName,
+		}).
+		Delete("/namespaces/{namespace}/secrets/{secret}")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -315,7 +360,11 @@ func (kub kube) GetService(ctx context.Context, nsID, svcName string) (*kubtypes
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetResult(&ret).
-		Get(fmt.Sprintf("/namespaces/%s/services/%s", nsID, svcName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"service":   svcName,
+		}).
+		Get("/namespaces/{namespace}/services/{service}")
 	if err != nil {
 		return nil, rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -333,7 +382,10 @@ func (kub kube) CreateService(ctx context.Context, nsID string, service kubtypes
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(service).
-		Post(fmt.Sprintf("/namespaces/%s/services", nsID))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+		}).
+		Post("/namespaces/{namespace}/services")
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -356,7 +408,11 @@ func (kub kube) UpdateService(ctx context.Context, nsID string, service kubtypes
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(service).
-		Put(fmt.Sprintf("/namespaces/%s/services/%s", nsID, service.Name))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"service":   service.Name,
+		}).
+		Put("/namespaces/{namespace}/services/{service}")
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -377,7 +433,11 @@ func (kub kube) DeleteService(ctx context.Context, nsID, serviceName string) err
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/services/%s", nsID, serviceName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"service":   serviceName,
+		}).
+		Delete("/namespaces/{namespace}/services/{service}")
 
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
@@ -398,7 +458,11 @@ func (kub kube) DeleteSolutionServices(ctx context.Context, nsID, solutionName s
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/solutions/%s/services", nsID, solutionName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"solution":  solutionName,
+		}).
+		Delete("/namespaces/{namespace}/solutions/{solution}/services")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -418,7 +482,10 @@ func (kub kube) CreateConfigMap(ctx context.Context, nsID string, cm kubtypes.Co
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		SetBody(cm).
-		Post(fmt.Sprintf("/namespaces/%s/configmaps", nsID))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+		}).
+		Post("/namespaces/{namespace}/configmaps")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
@@ -437,7 +504,15 @@ func (kub kube) DeleteConfigMap(ctx context.Context, nsID, cmName string) error 
 	resp, err := kub.client.R().
 		SetContext(ctx).
 		SetHeaders(httputil.RequestXHeadersMap(ctx)).
-		Delete(fmt.Sprintf("/namespaces/%s/configmaps/%s", nsID, cmName))
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"configmap": cmName,
+		}).
+		SetPathParams(map[string]string{
+			"namespace": nsID,
+			"configmap": cmName,
+		}).
+		Delete("/namespaces/{namespace}/configmaps/{configmap}")
 	if err != nil {
 		return rserrors.ErrInternal().Log(err, kub.log)
 	}
