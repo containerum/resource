@@ -15,7 +15,6 @@ const (
 	levelWrite      AccessLevel = "write"
 	levelReadDelete AccessLevel = "read-delete"
 	levelRead       AccessLevel = "read"
-	levelNone       AccessLevel = ""
 )
 
 var (

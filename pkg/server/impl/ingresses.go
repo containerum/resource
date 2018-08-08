@@ -16,21 +16,19 @@ import (
 	"golang.org/x/net/idna"
 )
 
-const (
-	ingressHostSuffix = ".hub.containerum.io"
-)
-
 type IngressActionsImpl struct {
-	kube  clients.Kube
-	mongo *db.MongoStorage
-	log   *cherrylog.LogrusAdapter
+	kube   clients.Kube
+	mongo  *db.MongoStorage
+	log    *cherrylog.LogrusAdapter
+	suffix string
 }
 
-func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *IngressActionsImpl {
+func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube, ingressSuffix string) *IngressActionsImpl {
 	return &IngressActionsImpl{
-		kube:  *kube,
-		mongo: mongo,
-		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+		kube:   *kube,
+		mongo:  mongo,
+		log:    cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+		suffix: ingressSuffix,
 	}
 }
 
@@ -80,14 +78,14 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	}).Info("create ingress")
 	coblog.Std.Struct(req)
 
-	//Convert host to dns-label, validate it and append ".hub.containerum.io"
+	//Convert host to dns-label, validate it and append suffix
 	var err error
 	req.Rules[0].Host, err = idna.Lookup.ToASCII(req.Rules[0].Host)
 	if err != nil {
 		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
-	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
+	req.Rules[0].Host = req.Rules[0].Host + ia.suffix
 
 	if req.Rules[0].Path[0].Path == "" {
 		req.Rules[0].Path[0].Path = "/"
@@ -133,7 +131,7 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
+	req.Rules[0].Host = req.Rules[0].Host + ia.suffix
 	req.Name = oldIngress.Name
 
 	if req.Rules[0].Path[0].Path == "" {
