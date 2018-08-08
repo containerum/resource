@@ -48,7 +48,7 @@ func initServer(c *cli.Context) error {
 
 	permissions := setupPermissions(c)
 
-	app := router.CreateRouter(mongo, permissions, kube, tv, c.Bool("cors"))
+	app := router.CreateRouter(mongo, permissions, kube, tv, c.Bool("cors"), c.String("ingress_suffix"))
 
 	srv := &http.Server{
 		Addr:    ":" + c.String("port"),
