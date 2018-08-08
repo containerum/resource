@@ -49,7 +49,8 @@ func (client permissions) GetNamespaceLimits(ctx context.Context, namespaceID st
 		SetError(&errResult).
 		SetPathParams(map[string]string{
 			"namespace": namespaceID,
-		}).SetHeaders(httputil.RequestXHeadersMap(ctx)).
+		}).
+		SetHeaders(httputil.RequestXHeadersMap(ctx)).
 		Get("/namespaces/{namespace}")
 
 	return ret, func() error {

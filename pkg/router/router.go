@@ -143,15 +143,15 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 func confgimapHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ConfigMapActions) {
 	cmHandlers := h.ConfigMapHandlers{ConfigMapActions: backend, TranslateValidate: tv}
 
-	service := router.Group("/namespaces/:namespace/configmaps")
+	configmap := router.Group("/namespaces/:namespace/configmaps")
 	{
-		service.GET("", m.ReadAccess, cmHandlers.GetConfigMapsListHandler)
-		service.GET("/:configmap", m.ReadAccess, cmHandlers.GetConfigMapHandler)
+		configmap.GET("", m.ReadAccess, cmHandlers.GetConfigMapsListHandler)
+		configmap.GET("/:configmap", m.ReadAccess, cmHandlers.GetConfigMapHandler)
 
-		service.POST("", m.WriteAccess, cmHandlers.CreateConfigMapHandler)
+		configmap.POST("", m.WriteAccess, cmHandlers.CreateConfigMapHandler)
 
-		service.DELETE("/:configmap", m.WriteAccess, cmHandlers.DeleteConfigMapHandler)
-		service.DELETE("", cmHandlers.DeleteAllConfigMapsHandler)
+		configmap.DELETE("/:configmap", m.WriteAccess, cmHandlers.DeleteConfigMapHandler)
+		configmap.DELETE("", cmHandlers.DeleteAllConfigMapsHandler)
 	}
 	router.GET("/configmaps", cmHandlers.GetSelectedConfigMapsListHandler)
 	router.POST("/configmaps", cmHandlers.ImportConfigMapsHandler)
