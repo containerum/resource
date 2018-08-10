@@ -5,7 +5,7 @@ import (
 
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"

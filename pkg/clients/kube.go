@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/cherrylog"

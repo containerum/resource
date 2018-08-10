@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/blang/semver"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo"

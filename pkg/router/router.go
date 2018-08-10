@@ -9,7 +9,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/db"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"

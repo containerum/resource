@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/headers"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"

@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/textproto"
 
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/containerum/cherry"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-gonic/gin"

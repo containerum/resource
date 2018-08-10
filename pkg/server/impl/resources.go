@@ -5,7 +5,7 @@ import (
 
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/resources"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/utils/httputil"
 	"github.com/sirupsen/logrus"

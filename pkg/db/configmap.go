@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"git.containerum.net/ch/resource-service/pkg/models/configmap"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"

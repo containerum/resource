@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
