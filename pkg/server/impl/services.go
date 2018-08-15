@@ -133,15 +133,9 @@ func (sa *ServiceActionsImpl) ImportService(ctx context.Context, nsID string, sv
 	}).Info("importing service")
 	coblog.Std.Struct(svc)
 
-	_, err := sa.mongo.GetDeployment(nsID, svc.Deploy)
-	if err != nil {
-		return rserrors.ErrResourceNotExists().AddDetailF("deployment '%s' not exists", svc.Deploy)
-	}
-
 	serviceType := server.DetermineServiceType(svc)
 
-	_, err = sa.mongo.CreateService(service.FromKube(nsID, svc.Owner, serviceType, svc))
-	if err != nil {
+	if _, err := sa.mongo.CreateService(service.FromKube(nsID, svc.Owner, serviceType, svc)); err != nil {
 		return err
 	}
 

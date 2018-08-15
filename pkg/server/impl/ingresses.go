@@ -124,24 +124,7 @@ func (ia *IngressActionsImpl) ImportIngress(ctx context.Context, nsID string, in
 	}).Info("create ingress")
 	coblog.Std.Struct(ingr)
 
-	var err error
-	ingr.Rules[0].Host, err = idna.Lookup.ToASCII(ingr.Rules[0].Host)
-	if err != nil {
-		return rserrors.ErrValidation().AddDetailsErr(err)
-	}
-
-	svc, err := ia.mongo.GetService(nsID, ingr.Rules[0].Path[0].ServiceName)
-	if err != nil {
-		return rserrors.ErrResourceNotExists().AddDetailF("service '%v' not exists", ingr.Rules[0].Path[0].ServiceName)
-	}
-
-	ingr.Rules[0].Path, err = server.IngressPaths(svc.Service, ingr.Rules[0].Path[0].Path, ingr.Rules[0].Path[0].ServicePort)
-	if err != nil {
-		return err
-	}
-
-	_, err = ia.mongo.CreateIngress(ingress.FromKube(nsID, ingr.Owner, ingr))
-	if err != nil {
+	if _, err := ia.mongo.CreateIngress(ingress.FromKube(nsID, ingr.Owner, ingr)); err != nil {
 		return err
 	}
 
