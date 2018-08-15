@@ -6,7 +6,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/service"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry"
@@ -125,6 +125,21 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	}
 
 	return &createdService, nil
+}
+
+func (sa *ServiceActionsImpl) ImportService(ctx context.Context, nsID string, svc kubtypes.Service) error {
+	sa.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("importing service")
+	coblog.Std.Struct(svc)
+
+	serviceType := server.DetermineServiceType(svc)
+
+	if _, err := sa.mongo.CreateService(service.FromKube(nsID, svc.Owner, serviceType, svc)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error) {

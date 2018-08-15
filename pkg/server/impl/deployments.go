@@ -6,7 +6,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/deployment"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/blang/semver"
@@ -138,6 +138,25 @@ func (da *DeployActionsImpl) CreateDeployment(ctx context.Context, nsID string, 
 	}
 
 	return &createdDeploy, nil
+}
+
+func (da *DeployActionsImpl) ImportDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) error {
+	da.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("importing deployment")
+	coblog.Std.Struct(deploy)
+
+	server.CalculateDeployResources(&deploy)
+
+	deploy.Version = semver.MustParse("1.0.0")
+	deploy.Active = true
+
+	_, err := da.mongo.CreateDeployment(deployment.FromKube(nsID, deploy.Owner, deploy))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (da *DeployActionsImpl) UpdateDeployment(ctx context.Context, nsID string, deploy kubtypes.Deployment) (*deployment.ResourceDeploy, error) {

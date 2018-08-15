@@ -77,6 +77,9 @@ func (ingr ResourceIngress) AllSelectOwnerQuery() interface{} {
 }
 
 func FromKube(nsID, owner string, ingress model.Ingress) ResourceIngress {
+	if owner == "" {
+		owner = "00000000-0000-0000-0000-000000000000"
+	}
 	ingress.Owner = owner
 	return ResourceIngress{
 		Ingress:     ingress,

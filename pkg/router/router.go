@@ -9,7 +9,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/db"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
@@ -88,6 +88,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 	}
 	router.DELETE("/namespaces/:namespace/solutions/:solution/deployments", m.WriteAccess, deployHandlers.DeleteAllSolutionDeploymentsHandler)
+	router.POST("/import/deployments", deployHandlers.ImportDeploymentsHandler)
 }
 
 func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DomainActions) {
@@ -120,6 +121,7 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		ingress.DELETE("", ingressHandlers.DeleteAllIngressesHandler)
 	}
 	router.GET("/ingresses", ingressHandlers.GetSelectedIngressesListHandler)
+	router.POST("/import/ingresses", ingressHandlers.ImportIngressesHandler)
 }
 
 func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
@@ -138,6 +140,7 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		service.DELETE("", serviceHandlers.DeleteAllServicesHandler)
 	}
 	router.DELETE("/namespaces/:namespace/solutions/:solution/services", m.WriteAccess, serviceHandlers.DeleteAllSolutionServicesHandler)
+	router.POST("/import/services", serviceHandlers.ImportServicesHandler)
 }
 
 func confgimapHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ConfigMapActions) {
@@ -154,7 +157,7 @@ func confgimapHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend
 		configmap.DELETE("", cmHandlers.DeleteAllConfigMapsHandler)
 	}
 	router.GET("/configmaps", cmHandlers.GetSelectedConfigMapsListHandler)
-	router.POST("/configmaps", cmHandlers.ImportConfigMapsHandler)
+	router.POST("/import/configmaps", cmHandlers.ImportConfigMapsHandler)
 }
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {

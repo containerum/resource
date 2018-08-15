@@ -8,6 +8,7 @@ import (
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/sirupsen/logrus"
 )
 
 type ServiceHandlers struct {
@@ -118,6 +119,39 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, createdService)
+}
+
+// swagger:operation POST /import/services Service ImportServices
+// Import services.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: body
+//    in: body
+//    schema:
+//     $ref: '#/definitions/ServicesList'
+// responses:
+//  '202':
+//    description: services imported
+//  default:
+//    $ref: '#/responses/error'
+func (h *ServiceHandlers) ImportServicesHandler(ctx *gin.Context) {
+	var req kubtypes.ServicesList
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	for _, svc := range req.Services {
+		if err := h.ImportService(ctx.Request.Context(), svc.Namespace, svc); err != nil {
+			logrus.Warn(err)
+		}
+	}
+
+	ctx.Status(http.StatusAccepted)
 }
 
 // swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateService

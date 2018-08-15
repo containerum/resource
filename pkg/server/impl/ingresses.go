@@ -6,7 +6,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -116,6 +116,19 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	}
 
 	return &createdIngress, nil
+}
+
+func (ia *IngressActionsImpl) ImportIngress(ctx context.Context, nsID string, ingr kubtypes.Ingress) error {
+	ia.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("create ingress")
+	coblog.Std.Struct(ingr)
+
+	if _, err := ia.mongo.CreateIngress(ingress.FromKube(nsID, ingr.Owner, ingr)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error) {

@@ -37,6 +37,9 @@ const (
 )
 
 func FromKube(nsID, owner string, stype Type, service model.Service) ResourceService {
+	if owner == "" {
+		owner = "00000000-0000-0000-0000-000000000000"
+	}
 	service.Owner = owner
 	return ResourceService{
 		Service:     service,

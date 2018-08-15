@@ -6,7 +6,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
 	"github.com/blang/semver"
 	"github.com/globalsign/mgo"

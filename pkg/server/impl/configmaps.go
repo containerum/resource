@@ -89,15 +89,13 @@ func (ia *ConfigMapsActionsImpl) CreateConfigMap(ctx context.Context, nsID strin
 	return &createdCM, nil
 }
 
-func (ia *ConfigMapsActionsImpl) ImportConfigMap(ctx context.Context, nsID string, req kubtypes.ConfigMap) error {
-	userID := httputil.MustGetUserID(ctx)
+func (ia *ConfigMapsActionsImpl) ImportConfigMap(ctx context.Context, nsID string, cm kubtypes.ConfigMap) error {
 	ia.log.WithFields(logrus.Fields{
-		"user_id": userID,
-		"ns_id":   nsID,
+		"ns_id": nsID,
 	}).Info("import configmap")
-	coblog.Std.Struct(req)
+	coblog.Std.Struct(cm)
 
-	_, err := ia.mongo.CreateConfigMap(configmap.FromKube(nsID, userID, req))
+	_, err := ia.mongo.CreateConfigMap(configmap.FromKube(nsID, cm.Owner, cm))
 	if err != nil {
 		return err
 	}
