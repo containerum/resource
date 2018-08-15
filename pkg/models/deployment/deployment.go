@@ -87,6 +87,9 @@ func (depl ResourceDeploy) AllSelectOwnerQuery() interface{} {
 }
 
 func FromKube(nsID, owner string, deployment model.Deployment) ResourceDeploy {
+	if owner == "" {
+		owner = "00000000-0000-0000-0000-000000000000"
+	}
 	deployment.Owner = owner
 	return ResourceDeploy{
 		Deployment:  deployment,

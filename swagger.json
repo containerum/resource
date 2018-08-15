@@ -54,7 +54,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -100,7 +100,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -141,7 +141,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -183,7 +183,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -220,7 +220,201 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
+    "/import/configmaps": {
+      "post": {
+        "tags": [
+          "ConfigMap"
+        ],
+        "summary": "Import configmaps.",
+        "operationId": "ImportConfigMaps",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "X-User-Namespace",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ConfigMapsList"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "configmaps imported"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
+    "/import/deployments": {
+      "post": {
+        "tags": [
+          "Deployment"
+        ],
+        "summary": "Import deployments.",
+        "operationId": "ImportDeployments",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/DeploymentsList"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "deployments imported"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
+    "/import/ingresses": {
+      "post": {
+        "tags": [
+          "Ingress"
+        ],
+        "summary": "Import ingresses.",
+        "operationId": "ImportIngresses",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/IngressesList"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "ingresses imported"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
+            }
+          }
+        },
+        "x-method-visibility": "public"
+      }
+    },
+    "/import/services": {
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "summary": "Import services.",
+        "operationId": "ImportServices",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "X-User-ID",
+            "in": "header",
+            "required": true
+          },
+          {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string",
+            "name": "X-User-Role",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ServicesList"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "services imported"
+          },
+          "default": {
+            "description": "cherry error",
+            "schema": {
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -269,7 +463,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -309,7 +503,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -338,7 +532,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -393,7 +587,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -453,7 +647,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -480,7 +674,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -541,7 +735,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -597,7 +791,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -652,7 +846,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -712,7 +906,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -739,7 +933,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -800,7 +994,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -866,7 +1060,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -922,7 +1116,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -984,7 +1178,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1052,7 +1246,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1113,7 +1307,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1180,7 +1374,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1252,7 +1446,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1317,7 +1511,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1379,7 +1573,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1420,7 +1614,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1467,7 +1661,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1522,7 +1716,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1582,7 +1776,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1609,7 +1803,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1670,7 +1864,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1736,7 +1930,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1792,7 +1986,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1847,7 +2041,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1907,7 +2101,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1934,7 +2128,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -1995,7 +2189,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -2061,7 +2255,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -2117,7 +2311,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -2152,7 +2346,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -2187,7 +2381,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -2230,7 +2424,7 @@
           "default": {
             "description": "cherry error",
             "schema": {
-              "$ref": "#/definitions/errOAIGen"
+              "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
             }
           }
         },
@@ -2241,53 +2435,6 @@
   "definitions": {
     "AccessLevel": {
       "type": "string",
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
-    "AvailableSolution": {
-      "description": "AvailableSolution -- solution which user can run",
-      "type": "object",
-      "properties": {
-        "active": {
-          "type": "boolean",
-          "x-go-name": "Active"
-        },
-        "id": {
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "images": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Images"
-        },
-        "limits": {
-          "$ref": "#/definitions/SolutionLimits"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
-    "AvailableSolutionsList": {
-      "description": "AvailableSolutionsList -- list of available solutions",
-      "type": "object",
-      "properties": {
-        "solutions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/AvailableSolution"
-          },
-          "x-go-name": "Solutions"
-        }
-      },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
     "ConfigFile": {
@@ -2488,6 +2635,10 @@
           "type": "string",
           "x-go-name": "Label"
         },
+        "storage": {
+          "type": "string",
+          "x-go-name": "Storage"
+        },
         "tariff_id": {
           "type": "string",
           "x-go-name": "TariffID"
@@ -2535,6 +2686,10 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
         },
         "owner": {
           "type": "string",
@@ -3252,6 +3407,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
         "namespaceid": {
           "type": "string",
           "x-go-name": "NamespaceID"
@@ -3387,6 +3546,10 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
         },
         "namespaceid": {
           "type": "string",
@@ -3534,6 +3697,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
         "owner": {
           "type": "string",
           "x-go-name": "Owner"
@@ -3607,6 +3774,10 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
         },
         "owner": {
           "type": "string",
@@ -3685,6 +3856,49 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/service"
     },
+    "Solution": {
+      "description": "Solution -- running solution",
+      "type": "object",
+      "required": [
+        "template",
+        "name",
+        "namespace"
+      ],
+      "properties": {
+        "branch": {
+          "type": "string",
+          "x-go-name": "Branch"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Env"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "template": {
+          "type": "string",
+          "x-go-name": "Template"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
     "SolutionEnv": {
       "description": "SolutionEnv -- solution environment variables",
       "type": "object",
@@ -3704,11 +3918,13 @@
       "type": "object",
       "properties": {
         "cpu": {
-          "type": "string",
+          "type": "integer",
+          "format": "uint64",
           "x-go-name": "CPU"
         },
         "ram": {
-          "type": "string",
+          "type": "integer",
+          "format": "uint64",
           "x-go-name": "RAM"
         }
       },
@@ -3725,6 +3941,67 @@
             "format": "int64"
           },
           "x-go-name": "Resources"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "SolutionTemplate": {
+      "description": "SolutionTemplate -- solution which user can run",
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "x-go-name": "Active"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Images"
+        },
+        "limits": {
+          "$ref": "#/definitions/SolutionLimits"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "SolutionsList": {
+      "description": "SolutionsList -- list of running solution",
+      "type": "object",
+      "properties": {
+        "solutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Solution"
+          },
+          "x-go-name": "Solutions"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "SolutionsTemplatesList": {
+      "description": "SolutionsTemplatesList -- list of available solutions",
+      "type": "object",
+      "properties": {
+        "solutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SolutionTemplate"
+          },
+          "x-go-name": "Solutions"
         }
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
@@ -3915,63 +4192,6 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
-    "UserSolution": {
-      "description": "UserSolution -- running solution",
-      "type": "object",
-      "required": [
-        "template",
-        "name",
-        "namespace"
-      ],
-      "properties": {
-        "branch": {
-          "type": "string",
-          "x-go-name": "Branch"
-        },
-        "env": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "x-go-name": "Env"
-        },
-        "id": {
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "namespace": {
-          "type": "string",
-          "x-go-name": "Namespace"
-        },
-        "template": {
-          "type": "string",
-          "x-go-name": "Template"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
-    "UserSolutionsList": {
-      "description": "UserSolutionsList -- list of running solution",
-      "type": "object",
-      "properties": {
-        "solutions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UserSolution"
-          },
-          "x-go-name": "Solutions"
-        }
-      },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
-    },
     "Version": {
       "description": "Version represents a semver compatible version",
       "type": "object",
@@ -4031,6 +4251,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
         "owner": {
           "type": "string",
           "x-go-name": "Owner"
@@ -4076,7 +4300,7 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
-    "errOAIGen": {
+    "getSelectedConfigMapsListDefaultBody": {
       "description": "Err -- standard serializable API error\nMessage -- constant error message:\n+ \"invalid username\"\n+ \"quota exceeded\"\n+ \"validation error\"\n...etc...\nID -- unique error identification code\nDetails -- optional context error messages kinda\n+ \"field 'Replicas' must be non-zero value\"\n+ \"not enough tights to feed gopher\"\n+ \"resource 'God' does't exist\"\nFields -- optional set of key-value pairs",
       "type": "object",
       "properties": {
@@ -4096,7 +4320,22 @@
           "x-go-package": "github.com/containerum/cherry"
         },
         "id": {
-          "$ref": "#/definitions/errOaiGenId"
+          "description": "ErrID -- represents unique error ID",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "description": "ErrKind -- represents kind of error",
+              "type": "integer",
+              "format": "uint64",
+              "x-go-package": "github.com/containerum/cherry"
+            },
+            "sid": {
+              "description": "ErrSID -- represents service ID of error",
+              "type": "string",
+              "x-go-package": "github.com/containerum/cherry"
+            }
+          },
+          "x-go-package": "github.com/containerum/cherry"
         },
         "message": {
           "type": "string",
@@ -4108,25 +4347,7 @@
           "x-go-name": "StatusHTTP"
         }
       },
-      "x-go-package": "github.com/containerum/cherry"
-    },
-    "errOaiGenId": {
-      "description": "ErrID -- represents unique error ID",
-      "type": "object",
-      "properties": {
-        "kind": {
-          "description": "ErrKind -- represents kind of error",
-          "type": "integer",
-          "format": "uint64",
-          "x-go-package": "github.com/containerum/cherry"
-        },
-        "sid": {
-          "description": "ErrSID -- represents service ID of error",
-          "type": "string",
-          "x-go-package": "github.com/containerum/cherry"
-        }
-      },
-      "x-go-gen-location": "models",
+      "x-go-gen-location": "operations",
       "x-go-package": "github.com/containerum/cherry"
     }
   },
@@ -4159,7 +4380,7 @@
     "error": {
       "description": "cherry error",
       "schema": {
-        "$ref": "#/definitions/errOAIGen"
+        "$ref": "#/definitions/getSelectedConfigMapsListDefaultBody"
       }
     }
   }

@@ -9,6 +9,7 @@ import (
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/sirupsen/logrus"
 )
 
 type DeployHandlers struct {
@@ -190,6 +191,39 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, deploy)
+}
+
+// swagger:operation POST /import/deployments Deployment ImportDeployments
+// Import deployments.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/DeploymentsList'
+// responses:
+//  '202':
+//    description: deployments imported
+//  default:
+//    $ref: '#/responses/error'
+func (h *DeployHandlers) ImportDeploymentsHandler(ctx *gin.Context) {
+	var req kubtypes.DeploymentsList
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	for _, depl := range req.Deployments {
+		if err := h.ImportDeployment(ctx.Request.Context(), depl.Namespace, depl); err != nil {
+			logrus.Warn(err)
+		}
+	}
+
+	ctx.Status(http.StatusAccepted)
 }
 
 // swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeployment

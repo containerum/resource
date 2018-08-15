@@ -29,6 +29,10 @@ type ConfigMapsResponse struct {
 }
 
 func FromKube(nsID, owner string, ConfigMap model.ConfigMap) ResourceConfigMap {
+	if owner == "" {
+		owner = "00000000-0000-0000-0000-000000000000"
+	}
+
 	ConfigMap.Owner = owner
 	return ResourceConfigMap{
 		ConfigMap:   ConfigMap,

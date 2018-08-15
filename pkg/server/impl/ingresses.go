@@ -118,6 +118,36 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	return &createdIngress, nil
 }
 
+func (ia *IngressActionsImpl) ImportIngress(ctx context.Context, nsID string, ingr kubtypes.Ingress) error {
+	ia.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("create ingress")
+	coblog.Std.Struct(ingr)
+
+	var err error
+	ingr.Rules[0].Host, err = idna.Lookup.ToASCII(ingr.Rules[0].Host)
+	if err != nil {
+		return rserrors.ErrValidation().AddDetailsErr(err)
+	}
+
+	svc, err := ia.mongo.GetService(nsID, ingr.Rules[0].Path[0].ServiceName)
+	if err != nil {
+		return rserrors.ErrResourceNotExists().AddDetailF("service '%v' not exists", ingr.Rules[0].Path[0].ServiceName)
+	}
+
+	ingr.Rules[0].Path, err = server.IngressPaths(svc.Service, ingr.Rules[0].Path[0].Path, ingr.Rules[0].Path[0].ServicePort)
+	if err != nil {
+		return err
+	}
+
+	_, err = ia.mongo.CreateIngress(ingress.FromKube(nsID, ingr.Owner, ingr))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{

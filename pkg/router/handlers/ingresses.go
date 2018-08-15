@@ -11,6 +11,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
+	"github.com/sirupsen/logrus"
 )
 
 type IngressHandlers struct {
@@ -156,6 +157,39 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, createdIngress)
+}
+
+// swagger:operation POST /import/ingresses Ingress ImportIngresses
+// Import ingresses.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: body
+//    in: body
+//    schema:
+//     $ref: '#/definitions/IngressesList'
+// responses:
+//  '202':
+//    description: ingresses imported
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) ImportIngressesHandler(ctx *gin.Context) {
+	var req kubtypes.IngressesList
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	for _, ingr := range req.Ingress {
+		if err := h.ImportIngress(ctx.Request.Context(), ingr.Namespace, ingr); err != nil {
+			logrus.Warn(err)
+		}
+	}
+
+	ctx.Status(http.StatusAccepted)
 }
 
 // swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngress

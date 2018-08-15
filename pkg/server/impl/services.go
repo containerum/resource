@@ -127,6 +127,27 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 	return &createdService, nil
 }
 
+func (sa *ServiceActionsImpl) ImportService(ctx context.Context, nsID string, svc kubtypes.Service) error {
+	sa.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("importing service")
+	coblog.Std.Struct(svc)
+
+	_, err := sa.mongo.GetDeployment(nsID, svc.Deploy)
+	if err != nil {
+		return rserrors.ErrResourceNotExists().AddDetailF("deployment '%s' not exists", svc.Deploy)
+	}
+
+	serviceType := server.DetermineServiceType(svc)
+
+	_, err = sa.mongo.CreateService(service.FromKube(nsID, svc.Owner, serviceType, svc))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, req kubtypes.Service) (*service.ResourceService, error) {
 	userID := httputil.MustGetUserID(ctx)
 	sa.log.WithFields(logrus.Fields{

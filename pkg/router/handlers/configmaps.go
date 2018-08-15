@@ -159,6 +159,24 @@ func (h *ConfigMapHandlers) CreateConfigMapHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, createdCM)
 }
 
+// swagger:operation POST /import/configmaps ConfigMap ImportConfigMaps
+// Import configmaps.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+//  - name: body
+//    in: body
+//    schema:
+//     $ref: '#/definitions/ConfigMapsList'
+// responses:
+//  '202':
+//    description: configmaps imported
+//  default:
+//    $ref: '#/responses/error'
 func (h *ConfigMapHandlers) ImportConfigMapsHandler(ctx *gin.Context) {
 	var req kubtypes.ConfigMapsList
 	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
@@ -172,7 +190,7 @@ func (h *ConfigMapHandlers) ImportConfigMapsHandler(ctx *gin.Context) {
 		}
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusAccepted)
 }
 
 // swagger:operation DELETE /namespaces/{namespace}/configmaps/{configmap} ConfigMap DeleteConfigMap
