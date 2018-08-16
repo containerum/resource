@@ -268,7 +268,10 @@
         ],
         "responses": {
           "202": {
-            "description": "configmaps imported"
+            "description": "configmaps imported",
+            "schema": {
+              "$ref": "#/definitions/ImportResponse"
+            }
           },
           "default": {
             "description": "cherry error",
@@ -315,7 +318,10 @@
         ],
         "responses": {
           "202": {
-            "description": "deployments imported"
+            "description": "deployments imported",
+            "schema": {
+              "$ref": "#/definitions/ImportResponse"
+            }
           },
           "default": {
             "description": "cherry error",
@@ -362,7 +368,10 @@
         ],
         "responses": {
           "202": {
-            "description": "ingresses imported"
+            "description": "ingresses imported",
+            "schema": {
+              "$ref": "#/definitions/ImportResponse"
+            }
           },
           "default": {
             "description": "cherry error",
@@ -409,7 +418,10 @@
         ],
         "responses": {
           "202": {
-            "description": "services imported"
+            "description": "services imported",
+            "schema": {
+              "$ref": "#/definitions/ImportResponse"
+            }
           },
           "default": {
             "description": "cherry error",
@@ -2966,6 +2978,54 @@
       },
       "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
     },
+    "ImportResponse": {
+      "description": "ImportResponse -- response after resources import",
+      "type": "object",
+      "properties": {
+        "failed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportResult"
+          },
+          "x-go-name": "Failed"
+        },
+        "imported": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportResult"
+          },
+          "x-go-name": "Imported"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ImportResponseTotal": {
+      "description": "ImportResponseTotal -- import response for all services",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ImportResponse"
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
+    "ImportResult": {
+      "description": "ImportResult -- import result for one resource",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        }
+      },
+      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+    },
     "Ingress": {
       "description": "Ingress -- model for ingress",
       "type": "object",
@@ -4174,9 +4234,7 @@
       ],
       "properties": {
         "access": {
-          "description": "one of: \"owner\", \"read\", \"write\", \"read-delete\", \"none\"",
           "type": "string",
-          "x-go-name": "Access",
           "$ref": "#/definitions/AccessLevel"
         },
         "id": {
@@ -4190,7 +4248,7 @@
           "x-go-name": "Label"
         }
       },
-      "x-go-package": "git.containerum.net/ch/resource-service/vendor/github.com/containerum/kube-client/pkg/model"
+      "x-go-package": "git.containerum.net/ch/resource-service/pkg/models/headers"
     },
     "Version": {
       "description": "Version represents a semver compatible version",

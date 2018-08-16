@@ -174,6 +174,8 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 // responses:
 //  '202':
 //    description: ingresses imported
+//    schema:
+//      $ref: '#/definitions/ImportResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) ImportIngressesHandler(ctx *gin.Context) {
@@ -183,13 +185,21 @@ func (h *IngressHandlers) ImportIngressesHandler(ctx *gin.Context) {
 		return
 	}
 
+	resp := kubtypes.ImportResponse{
+		Imported: []kubtypes.ImportResult{},
+		Failed:   []kubtypes.ImportResult{},
+	}
+
 	for _, ingr := range req.Ingress {
 		if err := h.ImportIngress(ctx.Request.Context(), ingr.Namespace, ingr); err != nil {
 			logrus.Warn(err)
+			resp.ImportFailed(ingr.Name, ingr.Namespace, err.Error())
+		} else {
+			resp.ImportSuccessful(ingr.Name, ingr.Namespace)
 		}
 	}
 
-	ctx.Status(http.StatusAccepted)
+	ctx.JSON(http.StatusAccepted, resp)
 }
 
 // swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngress

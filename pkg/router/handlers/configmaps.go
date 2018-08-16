@@ -175,6 +175,8 @@ func (h *ConfigMapHandlers) CreateConfigMapHandler(ctx *gin.Context) {
 // responses:
 //  '202':
 //    description: configmaps imported
+//    schema:
+//      $ref: '#/definitions/ImportResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ConfigMapHandlers) ImportConfigMapsHandler(ctx *gin.Context) {
@@ -184,13 +186,21 @@ func (h *ConfigMapHandlers) ImportConfigMapsHandler(ctx *gin.Context) {
 		return
 	}
 
+	resp := kubtypes.ImportResponse{
+		Imported: []kubtypes.ImportResult{},
+		Failed:   []kubtypes.ImportResult{},
+	}
+
 	for _, cm := range req.ConfigMaps {
 		if err := h.ImportConfigMap(ctx.Request.Context(), cm.Namespace, cm); err != nil {
 			logrus.Warn(err)
+			resp.ImportFailed(cm.Name, cm.Namespace, err.Error())
+		} else {
+			resp.ImportSuccessful(cm.Name, cm.Namespace)
 		}
 	}
 
-	ctx.Status(http.StatusAccepted)
+	ctx.JSON(http.StatusAccepted, resp)
 }
 
 // swagger:operation DELETE /namespaces/{namespace}/configmaps/{configmap} ConfigMap DeleteConfigMap

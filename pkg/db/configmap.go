@@ -71,7 +71,7 @@ func (mongo *MongoStorage) CreateConfigMap(cm configmap.ResourceConfigMap) (conf
 	if err := collection.Insert(cm); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create configmap")
 		if mgo.IsDup(err) {
-			return cm, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+			return cm, rserrors.ErrResourceAlreadyExists()
 		}
 		return cm, PipErr{error: err}.ToMongerr().Extract()
 	}
