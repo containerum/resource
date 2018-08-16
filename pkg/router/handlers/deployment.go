@@ -208,6 +208,8 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 // responses:
 //  '202':
 //    description: deployments imported
+//    schema:
+//      $ref: '#/definitions/ImportResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) ImportDeploymentsHandler(ctx *gin.Context) {
@@ -217,13 +219,21 @@ func (h *DeployHandlers) ImportDeploymentsHandler(ctx *gin.Context) {
 		return
 	}
 
+	resp := kubtypes.ImportResponse{
+		Imported: []kubtypes.ImportResult{},
+		Failed:   []kubtypes.ImportResult{},
+	}
+
 	for _, depl := range req.Deployments {
 		if err := h.ImportDeployment(ctx.Request.Context(), depl.Namespace, depl); err != nil {
 			logrus.Warn(err)
+			resp.ImportFailed(depl.Name, depl.Namespace, err.Error())
+		} else {
+			resp.ImportSuccessful(depl.Name, depl.Namespace)
 		}
 	}
 
-	ctx.Status(http.StatusAccepted)
+	ctx.JSON(http.StatusAccepted, resp)
 }
 
 // swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeployment

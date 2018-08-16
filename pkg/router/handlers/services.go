@@ -136,6 +136,8 @@ func (h *ServiceHandlers) CreateServiceHandler(ctx *gin.Context) {
 // responses:
 //  '202':
 //    description: services imported
+//    schema:
+//      $ref: '#/definitions/ImportResponse'
 //  default:
 //    $ref: '#/responses/error'
 func (h *ServiceHandlers) ImportServicesHandler(ctx *gin.Context) {
@@ -145,13 +147,21 @@ func (h *ServiceHandlers) ImportServicesHandler(ctx *gin.Context) {
 		return
 	}
 
+	resp := kubtypes.ImportResponse{
+		Imported: []kubtypes.ImportResult{},
+		Failed:   []kubtypes.ImportResult{},
+	}
+
 	for _, svc := range req.Services {
 		if err := h.ImportService(ctx.Request.Context(), svc.Namespace, svc); err != nil {
 			logrus.Warn(err)
+			resp.ImportFailed(svc.Name, svc.Namespace, err.Error())
+		} else {
+			resp.ImportSuccessful(svc.Name, svc.Namespace)
 		}
 	}
 
-	ctx.Status(http.StatusAccepted)
+	ctx.JSON(http.StatusAccepted, resp)
 }
 
 // swagger:operation PUT /namespaces/{namespace}/services/{service} Service UpdateService
