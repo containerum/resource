@@ -107,7 +107,7 @@ func (mongo *MongoStorage) CreateDeployment(deployment deployment.ResourceDeploy
 	if err := collection.Insert(deployment); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create deployment")
 		if mgo.IsDup(err) {
-			return deployment, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+			return deployment, rserrors.ErrResourceAlreadyExists()
 		}
 		return deployment, err
 	}

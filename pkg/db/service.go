@@ -52,7 +52,7 @@ func (mongo *MongoStorage) CreateService(service service.ResourceService) (servi
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
 		if mgo.IsDup(err) {
-			return service, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+			return service, rserrors.ErrResourceAlreadyExists()
 		}
 		return service, PipErr{error: err}.ToMongerr().Extract()
 	}
