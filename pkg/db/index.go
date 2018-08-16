@@ -66,14 +66,11 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 				return err
 			}
 		}
-		for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
+		for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress, CollectionCM} {
 			var collection = mongo.db.C(collectionName)
 			if err := collection.EnsureIndex(mgo.Index{
 				Key: []string{collectionName + ".owner"},
 			}); err != nil {
-				errs = append(errs, err)
-			}
-			if err := collection.EnsureIndexKey(collectionName + ".name"); err != nil {
 				errs = append(errs, err)
 			}
 			if err := collection.EnsureIndexKey("namespaceid"); err != nil {
