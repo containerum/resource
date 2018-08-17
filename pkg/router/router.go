@@ -9,7 +9,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/db"
 	h "git.containerum.net/ch/resource-service/pkg/router/handlers"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/server/impl"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
@@ -24,13 +24,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool, ingressSuffix string) http.Handler {
 	e := gin.New()
 	initMiddlewares(e, tv, enableCORS)
 	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, permissions, kube))
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
-	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube))
+	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube, ingressSuffix))
 	serviceHandlersSetup(e, tv, impl.NewServiceActionsImpl(mongo, permissions, kube))
+	confgimapHandlersSetup(e, tv, impl.NewConfigMapsActionsImpl(mongo, kube))
 	resourceCountHandlersSetup(e, tv, impl.NewResourcesActionsImpl(mongo))
 
 	return e
@@ -87,6 +88,7 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 		deployment.DELETE("", deployHandlers.DeleteAllDeploymentsHandler)
 	}
 	router.DELETE("/namespaces/:namespace/solutions/:solution/deployments", m.WriteAccess, deployHandlers.DeleteAllSolutionDeploymentsHandler)
+	router.POST("/import/deployments", deployHandlers.ImportDeploymentsHandler)
 }
 
 func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DomainActions) {
@@ -118,6 +120,8 @@ func ingressHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		ingress.DELETE("/:ingress", m.WriteAccess, ingressHandlers.DeleteIngressHandler)
 		ingress.DELETE("", ingressHandlers.DeleteAllIngressesHandler)
 	}
+	router.GET("/ingresses", ingressHandlers.GetSelectedIngressesListHandler)
+	router.POST("/import/ingresses", ingressHandlers.ImportIngressesHandler)
 }
 
 func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ServiceActions) {
@@ -136,6 +140,24 @@ func serviceHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend s
 		service.DELETE("", serviceHandlers.DeleteAllServicesHandler)
 	}
 	router.DELETE("/namespaces/:namespace/solutions/:solution/services", m.WriteAccess, serviceHandlers.DeleteAllSolutionServicesHandler)
+	router.POST("/import/services", serviceHandlers.ImportServicesHandler)
+}
+
+func confgimapHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ConfigMapActions) {
+	cmHandlers := h.ConfigMapHandlers{ConfigMapActions: backend, TranslateValidate: tv}
+
+	configmap := router.Group("/namespaces/:namespace/configmaps")
+	{
+		configmap.GET("", m.ReadAccess, cmHandlers.GetConfigMapsListHandler)
+		configmap.GET("/:configmap", m.ReadAccess, cmHandlers.GetConfigMapHandler)
+
+		configmap.POST("", m.WriteAccess, cmHandlers.CreateConfigMapHandler)
+
+		configmap.DELETE("/:configmap", m.WriteAccess, cmHandlers.DeleteConfigMapHandler)
+		configmap.DELETE("", cmHandlers.DeleteAllConfigMapsHandler)
+	}
+	router.GET("/configmaps", cmHandlers.GetSelectedConfigMapsListHandler)
+	router.POST("/import/configmaps", cmHandlers.ImportConfigMapsHandler)
 }
 
 func resourceCountHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.ResourcesActions) {

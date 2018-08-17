@@ -80,6 +80,11 @@ var flags = []cli.Flag{
 		Name:   "force",
 		Usage:  "Force update db version",
 	},
+	cli.StringFlag{
+		EnvVar: "CH_RESOURCE_INGRESS_SUFFIX",
+		Name:   "ingress_suffix",
+		Usage:  "suffix to add to all ingress hostnames",
+	},
 }
 
 func setupLogs(c *cli.Context) {

@@ -5,44 +5,44 @@ import (
 
 	"git.containerum.net/ch/resource-service/pkg/models/service"
 	"git.containerum.net/ch/resource-service/pkg/models/stats"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"github.com/containerum/kube-client/pkg/model"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
 
-func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.ServiceResource, error) {
+func (mongo *MongoStorage) GetService(namespaceID, serviceName string) (service.ResourceService, error) {
 	mongo.logger.Debugf("getting service")
 	var collection = mongo.db.C(CollectionService)
-	var result service.ServiceResource
+	var result service.ResourceService
 	var err error
 	if err = collection.Find(service.OneSelectQuery(namespaceID, serviceName)).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service")
 		if err == mgo.ErrNotFound {
 			return result, rserrors.ErrResourceNotExists().AddDetails(serviceName)
 		}
-		return result, PipErr{err}.ToMongerr().Extract()
+		return result, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return result, nil
 }
 
-func (mongo *MongoStorage) GetServiceList(namespaceID string) (service.ServiceList, error) {
+func (mongo *MongoStorage) GetServiceList(namespaceID string) (service.ListService, error) {
 	mongo.logger.Debugf("getting services list")
 	var collection = mongo.db.C(CollectionService)
-	result := make(service.ServiceList, 0)
+	result := make(service.ListService, 0)
 	if err := collection.Find(bson.M{
 		"namespaceid": namespaceID,
 		"deleted":     false,
 	}).All(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get service list")
-		return result, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+		return result, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()
 	}
 	return result, nil
 }
 
 // If ID is empty, then generates UUID4 and uses it
-func (mongo *MongoStorage) CreateService(service service.ServiceResource) (service.ServiceResource, error) {
+func (mongo *MongoStorage) CreateService(service service.ResourceService) (service.ResourceService, error) {
 	mongo.logger.Debugf("creating service")
 	var collection = mongo.db.C(CollectionService)
 	if service.ID == "" {
@@ -52,19 +52,19 @@ func (mongo *MongoStorage) CreateService(service service.ServiceResource) (servi
 	if err := collection.Insert(service); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to create service")
 		if mgo.IsDup(err) {
-			return service, rserrors.ErrResourceAlreadyExists().AddDetailsErr(err)
+			return service, rserrors.ErrResourceAlreadyExists()
 		}
-		return service, PipErr{err}.ToMongerr().Extract()
+		return service, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return service, nil
 }
 
-func (mongo *MongoStorage) UpdateService(upd service.ServiceResource) (service.ServiceResource, error) {
+func (mongo *MongoStorage) UpdateService(upd service.ResourceService) (service.ResourceService, error) {
 	mongo.logger.Debugf("updating service")
 	var collection = mongo.db.C(CollectionService)
 	if err := collection.Update(upd.OneSelectQuery(), upd.UpdateQuery()); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to update service")
-		return upd, PipErr{err}.ToMongerr().Extract()
+		return upd, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return upd, nil
 }
@@ -72,7 +72,7 @@ func (mongo *MongoStorage) UpdateService(upd service.ServiceResource) (service.S
 func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 	mongo.logger.Debugf("deleting service")
 	var collection = mongo.db.C(CollectionService)
-	err := collection.Update(service.ServiceResource{
+	err := collection.Update(service.ResourceService{
 		Service: model.Service{
 			Name: name,
 		},
@@ -95,7 +95,7 @@ func (mongo *MongoStorage) DeleteService(namespaceID, name string) error {
 func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 	mongo.logger.Debugf("restoring service")
 	var collection = mongo.db.C(CollectionService)
-	err := collection.Update(service.ServiceResource{
+	err := collection.Update(service.ResourceService{
 		Service: model.Service{
 			Name: name,
 		},
@@ -118,7 +118,7 @@ func (mongo *MongoStorage) RestoreService(namespaceID, name string) error {
 func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
-	_, err := collection.UpdateAll(service.ServiceResource{
+	_, err := collection.UpdateAll(service.ResourceService{
 		NamespaceID: namespaceID,
 	}.AllSelectQuery(),
 		bson.M{
@@ -135,7 +135,7 @@ func (mongo *MongoStorage) DeleteAllServicesInNamespace(namespaceID string) erro
 func (mongo *MongoStorage) DeleteAllServicesByOwner(owner string) error {
 	mongo.logger.Debugf("deleting all services in namespace")
 	var collection = mongo.db.C(CollectionService)
-	_, err := collection.UpdateAll(service.ServiceResource{
+	_, err := collection.UpdateAll(service.ResourceService{
 		Service: model.Service{Owner: owner},
 	}.AllSelectOwnerQuery(),
 		bson.M{
@@ -186,7 +186,7 @@ func (mongo *MongoStorage) CountServices(owner string) (stats.Service, error) {
 			"count": bson.M{"$sum": 1},
 		}},
 	}).All(&statData); err != nil {
-		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+		return stats.Service{}, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()
 	}
 	var serviceStats stats.Service
 	for _, serv := range statData {
@@ -218,7 +218,7 @@ func (mongo *MongoStorage) CountAllServices() (stats.Service, error) {
 			"count": bson.M{"$sum": 1},
 		}},
 	}).All(&statData); err != nil {
-		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+		return stats.Service{}, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()
 	}
 	var serviceStats stats.Service
 	for _, serv := range statData {
@@ -251,7 +251,7 @@ func (mongo *MongoStorage) CountServicesInNamespace(namespaceID string) (stats.S
 			"count": bson.M{"$sum": 1},
 		}},
 	}).All(&statData); err != nil {
-		return stats.Service{}, PipErr{err}.ToMongerr().NotFoundToNil().Extract()
+		return stats.Service{}, PipErr{error: err}.ToMongerr().NotFoundToNil().Extract()
 	}
 	var serviceStats stats.Service
 	for _, serv := range statData {

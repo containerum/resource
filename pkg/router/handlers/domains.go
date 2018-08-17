@@ -17,7 +17,7 @@ type DomainHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /domains Domain GetDomainsListHandler
+// swagger:operation GET /domains Domain GetDomainsList
 // Get domains list.
 //
 // ---
@@ -49,7 +49,7 @@ func (h *DomainHandlers) GetDomainsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /domains/{domain} Domain GetDomainHandler
+// swagger:operation GET /domains/{domain} Domain GetDomain
 // Get domain.
 //
 // ---
@@ -77,7 +77,7 @@ func (h *DomainHandlers) GetDomainHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /domains Domain AddDomainHandler
+// swagger:operation POST /domains Domain AddDomain
 // Add domain.
 //
 // ---
@@ -111,13 +111,13 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 		req.Domain = req.IP[0]
 	}
 
-	domain, err := h.AddDomain(ctx.Request.Context(), req)
+	ret, err := h.AddDomain(ctx.Request.Context(), req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, domain)
+	ctx.JSON(http.StatusCreated, ret)
 }
 
 // swagger:operation DELETE /domains/{domain} Domain DeleteDomainHandler

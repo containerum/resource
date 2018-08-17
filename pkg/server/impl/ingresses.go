@@ -6,7 +6,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/clients"
 	"git.containerum.net/ch/resource-service/pkg/db"
 	"git.containerum.net/ch/resource-service/pkg/models/ingress"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	"git.containerum.net/ch/resource-service/pkg/util/coblog"
 	"github.com/containerum/cherry/adaptors/cherrylog"
@@ -16,21 +16,19 @@ import (
 	"golang.org/x/net/idna"
 )
 
-const (
-	ingressHostSuffix = ".hub.containerum.io"
-)
-
 type IngressActionsImpl struct {
-	kube  clients.Kube
-	mongo *db.MongoStorage
-	log   *cherrylog.LogrusAdapter
+	kube   clients.Kube
+	mongo  *db.MongoStorage
+	log    *cherrylog.LogrusAdapter
+	suffix string
 }
 
-func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube) *IngressActionsImpl {
+func NewIngressActionsImpl(mongo *db.MongoStorage, kube *clients.Kube, ingressSuffix string) *IngressActionsImpl {
 	return &IngressActionsImpl{
-		kube:  *kube,
-		mongo: mongo,
-		log:   cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+		kube:   *kube,
+		mongo:  mongo,
+		log:    cherrylog.NewLogrusAdapter(logrus.WithField("component", "ingress_actions")),
+		suffix: ingressSuffix,
 	}
 }
 
@@ -49,7 +47,22 @@ func (ia *IngressActionsImpl) GetIngressesList(ctx context.Context, nsID string)
 	return &ingress.IngressesResponse{Ingresses: ingresses}, nil
 }
 
-func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.IngressResource, error) {
+func (ia *IngressActionsImpl) GetSelectedIngressesList(ctx context.Context, namespaces []string) (*ingress.IngressesResponse, error) {
+	userID := httputil.MustGetUserID(ctx)
+	ia.log.WithFields(logrus.Fields{
+		"user_id":    userID,
+		"namespaces": namespaces,
+	}).Info("get selected ingresses")
+
+	ingresses, err := ia.mongo.GetSelectedIngresses(namespaces)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ingress.IngressesResponse{Ingresses: ingresses}, nil
+}
+
+func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName string) (*ingress.ResourceIngress, error) {
 	ia.log.Info("get all ingresses")
 
 	resp, err := ia.mongo.GetIngress(nsID, ingressName)
@@ -57,7 +70,7 @@ func (ia *IngressActionsImpl) GetIngress(ctx context.Context, nsID, ingressName 
 	return &resp, err
 }
 
-func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.IngressResource, error) {
+func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -65,14 +78,14 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	}).Info("create ingress")
 	coblog.Std.Struct(req)
 
-	//Convert host to dns-label, validate it and append ".hub.containerum.io"
+	//Convert host to dns-label, validate it and append suffix
 	var err error
 	req.Rules[0].Host, err = idna.Lookup.ToASCII(req.Rules[0].Host)
 	if err != nil {
 		return nil, rserrors.ErrValidation().AddDetailsErr(err)
 	}
 
-	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
+	req.Rules[0].Host = req.Rules[0].Host + ia.suffix
 
 	if req.Rules[0].Path[0].Path == "" {
 		req.Rules[0].Path[0].Path = "/"
@@ -89,7 +102,7 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	createdIngress, err := ia.mongo.CreateIngress(ingress.IngressFromKube(nsID, userID, req))
+	createdIngress, err := ia.mongo.CreateIngress(ingress.FromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +118,20 @@ func (ia *IngressActionsImpl) CreateIngress(ctx context.Context, nsID string, re
 	return &createdIngress, nil
 }
 
-func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.IngressResource, error) {
+func (ia *IngressActionsImpl) ImportIngress(ctx context.Context, nsID string, ingr kubtypes.Ingress) error {
+	ia.log.WithFields(logrus.Fields{
+		"ns_id": nsID,
+	}).Info("create ingress")
+	coblog.Std.Struct(ingr)
+
+	if _, err := ia.mongo.CreateIngress(ingress.FromKube(nsID, ingr.Owner, ingr)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, req kubtypes.Ingress) (*ingress.ResourceIngress, error) {
 	userID := httputil.MustGetUserID(ctx)
 	ia.log.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -118,7 +144,7 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	req.Rules[0].Host = req.Rules[0].Host + ingressHostSuffix
+	req.Rules[0].Host = req.Rules[0].Host + ia.suffix
 	req.Name = oldIngress.Name
 
 	if req.Rules[0].Path[0].Path == "" {
@@ -136,7 +162,7 @@ func (ia *IngressActionsImpl) UpdateIngress(ctx context.Context, nsID string, re
 		return nil, err
 	}
 
-	ingres, err := ia.mongo.UpdateIngress(ingress.IngressFromKube(nsID, userID, req))
+	ingres, err := ia.mongo.UpdateIngress(ingress.FromKube(nsID, userID, req))
 	if err != nil {
 		return nil, err
 	}

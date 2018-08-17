@@ -49,7 +49,7 @@ func (piperr PipErr) NotFoundToNil() PipErr {
 func (piperr PipErr) ToMongerr() PipErr {
 	switch err := piperr.error.(type) {
 	case *mgo.QueryError:
-		return PipErr{mongerr.FromMongoErr(err)}
+		return PipErr{error: mongerr.FromMongoErr(err)}
 	default:
 		return piperr
 	}
@@ -60,5 +60,5 @@ func (piperr PipErr) Extract() error {
 }
 
 func (piperr PipErr) Apply(op func(error) error) PipErr {
-	return PipErr{op(piperr.error)}
+	return PipErr{error: op(piperr.error)}
 }

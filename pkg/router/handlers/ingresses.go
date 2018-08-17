@@ -6,9 +6,12 @@ import (
 
 	"net/http"
 
+	"git.containerum.net/ch/resource-service/pkg/models/ingress"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
+	"github.com/containerum/utils/httputil"
+	"github.com/sirupsen/logrus"
 )
 
 type IngressHandlers struct {
@@ -46,7 +49,43 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/ingresses/{ingress} Ingress GetIngressHandler
+// swagger:operation GET /ingresses Ingress GetSelectedIngressesList
+// Get user ingresses list.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - $ref: '#/parameters/UserNamespaceHeader'
+// responses:
+//  '200':
+//    description: ingresses list
+//    schema:
+//      $ref: '#/definitions/IngressesResponse'
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) GetSelectedIngressesListHandler(ctx *gin.Context) {
+	resp := ingress.IngressesResponse{Ingresses: ingress.ListIngress{}}
+	role := m.GetHeader(ctx, httputil.UserRoleXHeader)
+	if role == m.RoleUser {
+		nsList := ctx.MustGet(m.UserNamespaces).(*m.UserHeaderDataMap)
+		var nss []string
+		for k := range *nsList {
+			nss = append(nss, k)
+		}
+		ret, err := h.GetSelectedIngressesList(ctx.Request.Context(), nss)
+		if err != nil {
+			ctx.AbortWithStatusJSON(h.HandleError(err))
+			return
+		}
+		resp = *ret
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// swagger:operation GET /namespaces/{namespace}/ingresses/{ingress} Ingress GetIngress
 // Get ingresses list.
 //
 // ---
@@ -67,7 +106,7 @@ func (h *IngressHandlers) GetIngressesListHandler(ctx *gin.Context) {
 //  '200':
 //    description: ingresses
 //    schema:
-//      $ref: '#/definitions/IngressResource'
+//      $ref: '#/definitions/ResourceIngress'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
@@ -80,7 +119,7 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/ingresses Ingress CreateIngressHandler
+// swagger:operation POST /namespaces/{namespace}/ingresses Ingress CreateIngress
 // Create ingress.
 //
 // ---
@@ -101,7 +140,7 @@ func (h *IngressHandlers) GetIngressHandler(ctx *gin.Context) {
 //  '201':
 //    description: ingress created
 //    schema:
-//      $ref: '#/definitions/IngressResource'
+//      $ref: '#/definitions/ResourceIngress'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
@@ -120,7 +159,50 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, createdIngress)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngressHandler
+// swagger:operation POST /import/ingresses Ingress ImportIngresses
+// Import ingresses.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: body
+//    in: body
+//    schema:
+//     $ref: '#/definitions/IngressesList'
+// responses:
+//  '202':
+//    description: ingresses imported
+//    schema:
+//      $ref: '#/definitions/ImportResponse'
+//  default:
+//    $ref: '#/responses/error'
+func (h *IngressHandlers) ImportIngressesHandler(ctx *gin.Context) {
+	var req kubtypes.IngressesList
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	resp := kubtypes.ImportResponse{
+		Imported: []kubtypes.ImportResult{},
+		Failed:   []kubtypes.ImportResult{},
+	}
+
+	for _, ingr := range req.Ingress {
+		if err := h.ImportIngress(ctx.Request.Context(), ingr.Namespace, ingr); err != nil {
+			logrus.Warn(err)
+			resp.ImportFailed(ingr.Name, ingr.Namespace, err.Error())
+		} else {
+			resp.ImportSuccessful(ingr.Name, ingr.Namespace)
+		}
+	}
+
+	ctx.JSON(http.StatusAccepted, resp)
+}
+
+// swagger:operation PUT /namespaces/{namespace}/ingresses/{ingress} Ingress UpdateIngress
 // Update ingress.
 //
 // ---
@@ -145,7 +227,7 @@ func (h *IngressHandlers) CreateIngressHandler(ctx *gin.Context) {
 //  '202':
 //    description: ingress updated
 //    schema:
-//      $ref: '#/definitions/IngressResource'
+//      $ref: '#/definitions/ResourceIngress'
 //  default:
 //    $ref: '#/responses/error'
 func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
@@ -165,7 +247,7 @@ func (h *IngressHandlers) UpdateIngressHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedIngress)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngressHandler
+// swagger:operation DELETE /namespaces/{namespace}/ingresses/{ingress} Ingress DeleteIngress
 // Delete ingress.
 //
 // ---
@@ -196,7 +278,7 @@ func (h *IngressHandlers) DeleteIngressHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/ingresses Ingress DeleteAllIngressesHandler
+// swagger:operation DELETE /namespaces/{namespace}/ingresses Ingress DeleteAllIngresses
 // Delete all ingresses.
 //
 // ---

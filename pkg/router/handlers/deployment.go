@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
 	kubtypes "github.com/containerum/kube-client/pkg/model"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/sirupsen/logrus"
 )
 
 type DeployHandlers struct {
@@ -16,7 +17,7 @@ type DeployHandlers struct {
 	*m.TranslateValidate
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments Deployment GetDeploymentsListHandler
+// swagger:operation GET /namespaces/{namespace}/deployments Deployment GetDeploymentsList
 // Get deployments list.
 //
 // ---
@@ -46,7 +47,7 @@ func (h *DeployHandlers) GetDeploymentsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsListHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions Deployment GetDeploymentVersionsList
 // Get deployments list.
 //
 // ---
@@ -80,7 +81,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeploymentHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment} Deployment GetActiveDeployment
 // Get deployment active version.
 //
 // ---
@@ -101,7 +102,7 @@ func (h *DeployHandlers) GetDeploymentVersionsListHandler(ctx *gin.Context) {
 //  '200':
 //    description: deployment
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
@@ -114,7 +115,7 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersionHandler
+// swagger:operation GET /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment GetDeploymentVersion
 // Get deployment version.
 //
 // ---
@@ -139,7 +140,7 @@ func (h *DeployHandlers) GetActiveDeploymentHandler(ctx *gin.Context) {
 //  '200':
 //    description: deployment
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
@@ -152,7 +153,7 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments Deployment CreateDeploymentHandler
+// swagger:operation POST /namespaces/{namespace}/deployments Deployment CreateDeployment
 // Create deployment.
 //
 // ---
@@ -173,7 +174,7 @@ func (h *DeployHandlers) GetDeploymentVersionHandler(ctx *gin.Context) {
 //  '201':
 //    description: deployment created
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
@@ -192,7 +193,50 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, deploy)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeploymentHandler
+// swagger:operation POST /import/deployments Deployment ImportDeployments
+// Import deployments.
+//
+// ---
+// x-method-visibility: public
+// parameters:
+//  - $ref: '#/parameters/UserIDHeader'
+//  - $ref: '#/parameters/UserRoleHeader'
+//  - name: body
+//    in: body
+//    schema:
+//      $ref: '#/definitions/DeploymentsList'
+// responses:
+//  '202':
+//    description: deployments imported
+//    schema:
+//      $ref: '#/definitions/ImportResponse'
+//  default:
+//    $ref: '#/responses/error'
+func (h *DeployHandlers) ImportDeploymentsHandler(ctx *gin.Context) {
+	var req kubtypes.DeploymentsList
+	if err := ctx.ShouldBindWith(&req, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(h.BadRequest(ctx, err))
+		return
+	}
+
+	resp := kubtypes.ImportResponse{
+		Imported: []kubtypes.ImportResult{},
+		Failed:   []kubtypes.ImportResult{},
+	}
+
+	for _, depl := range req.Deployments {
+		if err := h.ImportDeployment(ctx.Request.Context(), depl.Namespace, depl); err != nil {
+			logrus.Warn(err)
+			resp.ImportFailed(depl.Name, depl.Namespace, err.Error())
+		} else {
+			resp.ImportSuccessful(depl.Name, depl.Namespace)
+		}
+	}
+
+	ctx.JSON(http.StatusAccepted, resp)
+}
+
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment ChangeActiveDeployment
 // Create active deployment version.
 //
 // ---
@@ -217,7 +261,7 @@ func (h *DeployHandlers) CreateDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: active deployment version changed
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
@@ -230,7 +274,7 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, resp)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersionHandler
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment RenameVersion
 // Rename deployment version.
 //
 // ---
@@ -259,7 +303,7 @@ func (h *DeployHandlers) ChangeActiveDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment version renamed
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
@@ -309,7 +353,7 @@ func (h *DeployHandlers) RenameVersionHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
@@ -329,7 +373,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updDeploy)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImageHandler
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/image Deployment SetContainerImage
 // Update image in deployments container.
 //
 // ---
@@ -354,7 +398,7 @@ func (h *DeployHandlers) UpdateDeploymentHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
@@ -373,7 +417,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicasHandler
+// swagger:operation PUT /namespaces/{namespace}/deployments/{deployment}/replicas Deployment SetReplicas
 // Update deployments replicas count.
 //
 // ---
@@ -398,7 +442,7 @@ func (h *DeployHandlers) SetContainerImageHandler(ctx *gin.Context) {
 //  '202':
 //    description: deployment updated
 //    schema:
-//      $ref: '#/definitions/DeploymentResource'
+//      $ref: '#/definitions/ResourceDeploy'
 //  default:
 //    $ref: '#/responses/error'
 func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
@@ -416,7 +460,7 @@ func (h *DeployHandlers) SetReplicasHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, updatedDeploy)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeploymentHandler
+// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment} Deployment DeleteDeployment
 // Delete deployment.
 //
 // ---
@@ -448,7 +492,7 @@ func (h *DeployHandlers) DeleteDeploymentHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersionHandler
+// swagger:operation DELETE /namespaces/{namespace}/deployments/{deployment}/versions/{version} Deployment DeleteDeploymentVersion
 // Delete deployment version (not active).
 //
 // ---
@@ -484,7 +528,7 @@ func (h *DeployHandlers) DeleteDeploymentVersionHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/deployments Deployment DeleteAllDeploymentsHandler
+// swagger:operation DELETE /namespaces/{namespace}/deployments Deployment DeleteAllDeployments
 // Delete all deployments in namespace.
 //
 // ---
@@ -509,7 +553,7 @@ func (h *DeployHandlers) DeleteAllDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeploymentsHandler
+// swagger:operation DELETE /namespaces/{namespace}/solutions/{solution}/deployments Service DeleteAllSolutionDeployments
 // Delete all solution deployments.
 //
 // ---
@@ -537,7 +581,7 @@ func (h *DeployHandlers) DeleteAllSolutionDeploymentsHandler(ctx *gin.Context) {
 	ctx.Status(http.StatusAccepted)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersionsHandler
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff/{version2} Deployment DiffDeploymentVersions
 // Compare two deployment versions.
 //
 // ---
@@ -574,7 +618,7 @@ func (h *DeployHandlers) DiffDeploymentVersionsHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersionsHandler
+// swagger:operation POST /namespaces/{namespace}/deployments/{deployment}/versions/{version}/diff Deployment DiffDeploymentPreviousVersions
 // Compare deployment versions with previous version.
 //
 // ---

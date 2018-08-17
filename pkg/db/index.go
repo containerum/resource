@@ -6,7 +6,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"git.containerum.net/ch/resource-service/pkg/rsErrors"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/util/strset"
 	"github.com/blang/semver"
 	"github.com/globalsign/mgo"
@@ -66,14 +66,11 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 				return err
 			}
 		}
-		for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress} {
+		for _, collectionName := range []string{CollectionDeployment, CollectionService, CollectionIngress, CollectionCM} {
 			var collection = mongo.db.C(collectionName)
 			if err := collection.EnsureIndex(mgo.Index{
 				Key: []string{collectionName + ".owner"},
 			}); err != nil {
-				errs = append(errs, err)
-			}
-			if err := collection.EnsureIndexKey(collectionName + ".name"); err != nil {
 				errs = append(errs, err)
 			}
 			if err := collection.EnsureIndexKey("namespaceid"); err != nil {
@@ -115,6 +112,19 @@ func (mongo *MongoStorage) InitIndexes(dbversion string, forceupdate bool) error
 			if err := collection.EnsureIndex(mgo.Index{
 				Name: "alive_" + CollectionIngress,
 				Key:  []string{CollectionIngress + ".name"},
+				PartialFilter: bson.M{
+					"deleted": false,
+				},
+				Unique: true,
+			}); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		{
+			var collection = mongo.db.C(CollectionCM)
+			if err := collection.EnsureIndex(mgo.Index{
+				Name: "alive_" + CollectionCM,
+				Key:  []string{CollectionCM + ".name"},
 				PartialFilter: bson.M{
 					"deleted": false,
 				},
@@ -245,7 +255,7 @@ func DropIndexIfExists(mongo *MongoStorage, cName, indexName string) (bool, erro
 	var collection = mongo.db.C(cName)
 	if strset.FromSlice(indexNames).In(indexName) {
 		if err := collection.DropIndexName(indexName); err != nil {
-			return false, PipErr{err}.ToMongerr().Extract()
+			return false, PipErr{error: err}.ToMongerr().Extract()
 		}
 	}
 	return true, nil
