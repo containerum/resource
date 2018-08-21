@@ -11,9 +11,12 @@ import (
 //go:generate swagger flatten ../../swagger.json -o ../../swagger.json
 //go:generate swagger validate ../../swagger.json
 
+var version string
+
 func main() {
 	app := cli.NewApp()
-	app.Name = "ch-resourve-service-server"
+	app.Name = "resourve-service"
+	app.Version = version
 	app.Usage = "Resource-service for managing kubernetes resources"
 	app.Flags = flags
 
