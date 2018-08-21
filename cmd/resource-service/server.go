@@ -15,6 +15,7 @@ import (
 	"git.containerum.net/ch/resource-service/pkg/router"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/util/validation"
+	"github.com/containerum/kube-client/pkg/model"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -48,7 +49,13 @@ func initServer(c *cli.Context) error {
 
 	permissions := setupPermissions(c)
 
-	app := router.CreateRouter(mongo, permissions, kube, tv, c.Bool("cors"), c.String("ingress_suffix"))
+	status := model.ServiceStatus{
+		Name:     c.App.Name,
+		Version:  c.App.Version,
+		StatusOK: true,
+	}
+
+	app := router.CreateRouter(mongo, permissions, kube, &status, tv, c.Bool("cors"), c.String("ingress_suffix"))
 
 	srv := &http.Server{
 		Addr:    ":" + c.String("port"),
