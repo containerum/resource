@@ -6,9 +6,10 @@ import (
 
 	"errors"
 
-	"git.containerum.net/ch/resource-service/pkg/util/strset"
+	_ "git.containerum.net/ch/resource-service/pkg/db/migrations" // database migrations
 	"github.com/globalsign/mgo"
 	"github.com/sirupsen/logrus"
+	"github.com/xakep666/mongo-migrate"
 )
 
 const (
@@ -19,18 +20,7 @@ const (
 	CollectionDomain     = "domain"
 	CollectionIngress    = "ingress"
 	CollectionCM         = "configmap"
-	CollectionDB         = "db"
 )
-
-func CollectionsNames() []string {
-	return []string{
-		CollectionDeployment,
-		CollectionService,
-		CollectionDomain,
-		CollectionIngress,
-		CollectionDB,
-	}
-}
 
 type MongoStorage struct {
 	logger logrus.FieldLogger
@@ -64,19 +54,10 @@ func (mongo *MongoStorage) IsClosed() bool {
 	return mongo.closed
 }
 
-func (mongo *MongoStorage) Init(dbversion string, forceupdate bool) error {
-	dbCollections, err := mongo.db.CollectionNames()
-	if err != nil {
-		return err
-	}
-	for _, collection := range strset.FromSlice(CollectionsNames()).SubSlice(dbCollections).Items() {
-		if err := mongo.db.C(collection).Create(&mgo.CollectionInfo{
-			ForceIdIndex: true,
-		}); err != nil {
-			return err
-		}
-	}
-	if err := mongo.InitIndexes(dbversion, forceupdate); err != nil {
+func (mongo *MongoStorage) Init() error {
+	migrate.SetMigrationsCollection("migrations_resource")
+	migrate.SetDatabase(mongo.db)
+	if err := migrate.Up(migrate.AllAvailable); err != nil {
 		return err
 	}
 	return nil

@@ -20,8 +20,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-const dbversion = "1.2.5"
-
 func initServer(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent|tabwriter.Debug)
 	for _, f := range c.GlobalFlagNames() {
@@ -38,11 +36,10 @@ func initServer(c *cli.Context) error {
 
 	mongo, err := setupMongo(c)
 	exitOnError(err)
-
-	err = mongo.Init(dbversion, c.Bool("force"))
-	exitOnError(err)
-
 	defer mongo.Close()
+
+	err = mongo.Init()
+	exitOnError(err)
 
 	kube, err := setupKube(c)
 	exitOnError(err)
