@@ -99,14 +99,14 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DomainActions) {
 	domainHandlers := h.DomainHandlers{DomainActions: backend, TranslateValidate: tv}
 
-	domain := router.Group("/domains", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
+	domain := router.Group("/domains")
 	{
 		domain.GET("", domainHandlers.GetDomainsListHandler)
 		domain.GET("/:domain", domainHandlers.GetDomainHandler)
 
-		domain.POST("", domainHandlers.AddDomainHandler)
+		domain.POST("", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), domainHandlers.AddDomainHandler)
 
-		domain.DELETE("/:domain", domainHandlers.DeleteDomainHandler)
+		domain.DELETE("/:domain", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), domainHandlers.DeleteDomainHandler)
 	}
 }
 
