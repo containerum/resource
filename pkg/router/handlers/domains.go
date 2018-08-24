@@ -5,8 +5,6 @@ import (
 
 	"errors"
 
-	"fmt"
-
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/rserrors"
@@ -120,7 +118,6 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
-	fmt.Println("TEST1", resp, err)
 	if resp != nil {
 		gonic.Gonic(rserrors.ErrResourceAlreadyExists().AddDetails(resp.Domain), ctx)
 		return
