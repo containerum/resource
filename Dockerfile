@@ -1,13 +1,16 @@
-FROM golang:1.9-alpine as builder
+FROM golang:1.10-alpine as builder
+RUN apk add --update make git
 WORKDIR /go/src/git.containerum.net/ch/resource-service
 COPY . .
-RUN go build -v -ldflags="-w -s" -tags "jsoniter" -o /bin/resource-service ./cmd/resource-service
+RUN VERSION=$(git describe --abbrev=0 --tags) make build-for-docker
 
 FROM alpine:3.7
-RUN mkdir -p /app
-COPY --from=builder /bin/resource-service /app
+
+COPY --from=builder /tmp/resource-service /
 ENV CH_RESOURCE_DEBUG="true" \
     CH_RESOURCE_TEXTLOG="true" \
     CH_RESOURCE_MONGO_ADDR="http://mongo:27017"
+
 EXPOSE 1213
-CMD "/app/resource-service"
+
+CMD "/resource-service"
