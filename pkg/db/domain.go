@@ -2,16 +2,21 @@ package db
 
 import (
 	"git.containerum.net/ch/resource-service/pkg/models/domain"
+	"git.containerum.net/ch/resource-service/pkg/rserrors"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 )
 
-func (mongo *MongoStorage) GetDomain(domainName string, pages ...uint) (*domain.Domain, error) {
+func (mongo *MongoStorage) GetDomain(domainName string) (*domain.Domain, error) {
 	mongo.logger.Debugf("getting domain")
 	var collection = mongo.db.C(CollectionDomain)
 	var result = domain.Domain{}
-	if err := collection.Find(bson.M{"_id": domainName}).One(&result); err != nil {
+	if err := collection.Find(bson.M{"domain": domainName}).One(&result); err != nil {
 		mongo.logger.WithError(err).Errorf("unable to get domain")
+		if err == mgo.ErrNotFound {
+			return &result, rserrors.ErrResourceNotExists().AddDetails(domainName)
+		}
 		return nil, PipErr{error: err}.ToMongerr().Extract()
 	}
 	return &result, nil
