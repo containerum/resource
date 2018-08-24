@@ -114,7 +114,7 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 	}
 
 	resp, err := h.GetDomain(ctx.Request.Context(), req.Domain)
-	if err != nil && err.Error() != "not found" {
+	if err != nil {
 		ctx.AbortWithStatusJSON(h.HandleError(err))
 		return
 	}
