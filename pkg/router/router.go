@@ -27,8 +27,8 @@ import (
 
 func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, status *model.ServiceStatus, tv *m.TranslateValidate, enableCORS bool, ingressSuffix string) http.Handler {
 	e := gin.New()
-	initMiddlewares(e, tv)
 	systemHandlersSetup(e, status, enableCORS)
+	initMiddlewares(e, tv)
 	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, permissions, kube))
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
 	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube, ingressSuffix))
