@@ -9,6 +9,7 @@ import (
 	m "git.containerum.net/ch/resource-service/pkg/router/middleware"
 	"git.containerum.net/ch/resource-service/pkg/rserrors"
 	"git.containerum.net/ch/resource-service/pkg/server"
+	"github.com/containerum/cherry"
 	"github.com/containerum/cherry/adaptors/gonic"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -115,12 +116,16 @@ func (h *DomainHandlers) AddDomainHandler(ctx *gin.Context) {
 
 	resp, err := h.GetDomain(ctx.Request.Context(), req.Domain)
 	if err != nil {
-		ctx.AbortWithStatusJSON(h.HandleError(err))
-		return
+		if !cherry.Equals(err, rserrors.ErrResourceNotExists()) {
+			ctx.AbortWithStatusJSON(h.HandleError(err))
+			return
+		}
 	}
 	if resp != nil {
-		gonic.Gonic(rserrors.ErrResourceAlreadyExists().AddDetails(resp.Domain), ctx)
-		return
+		if resp.Domain != "" {
+			gonic.Gonic(rserrors.ErrResourceAlreadyExists().AddDetails(resp.Domain), ctx)
+			return
+		}
 	}
 
 	ret, err := h.AddDomain(ctx.Request.Context(), req)
