@@ -6,11 +6,11 @@ RUN VERSION=$(git describe --abbrev=0 --tags) make build-for-docker
 
 FROM alpine:3.7
 
-COPY --from=builder /tmp/resource-service /
+COPY --from=builder /tmp/resource /
 ENV CH_RESOURCE_DEBUG="true" \
     CH_RESOURCE_TEXTLOG="true" \
     CH_RESOURCE_MONGO_ADDR="http://mongo:27017"
 
 EXPOSE 1213
 
-CMD "/resource-service"
+CMD "/resource"
