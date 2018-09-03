@@ -16,6 +16,7 @@ import (
 	"git.containerum.net/ch/resource-service/static"
 	"github.com/containerum/cherry/adaptors/cherrylog"
 	"github.com/containerum/cherry/adaptors/gonic"
+	"github.com/containerum/kube-client/pkg/model"
 	"github.com/containerum/utils/httputil"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/ginrus"
@@ -24,9 +25,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, tv *m.TranslateValidate, enableCORS bool, ingressSuffix string) http.Handler {
+func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, status *model.ServiceStatus, tv *m.TranslateValidate, enableCORS bool, ingressSuffix string) http.Handler {
 	e := gin.New()
-	initMiddlewares(e, tv, enableCORS)
+	systemHandlersSetup(e, status, enableCORS)
+	initMiddlewares(e, tv)
 	deployHandlersSetup(e, tv, impl.NewDeployActionsImpl(mongo, permissions, kube))
 	domainHandlersSetup(e, tv, impl.NewDomainActionsImpl(mongo))
 	ingressHandlersSetup(e, tv, impl.NewIngressActionsImpl(mongo, kube, ingressSuffix))
@@ -37,21 +39,9 @@ func CreateRouter(mongo *db.MongoStorage, permissions *clients.Permissions, kube
 	return e
 }
 
-func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
-	/* CORS */
-	if enableCORS {
-		cfg := cors.DefaultConfig()
-		cfg.AllowAllOrigins = true
-		cfg.AddAllowMethods(http.MethodDelete)
-		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader)
-		e.Use(cors.New(cfg))
-	}
-	e.Group("/static").
-		StaticFS("/", static.HTTP)
-	e.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
+func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate) {
 	e.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, true))
 	binding.Validator = &validation.GinValidatorV9{Validate: tv.Validate} // gin has no local validator
-
 	e.Use(httputil.SaveHeaders)
 	e.Use(httputil.PrepareContext)
 	e.Use(httputil.RequireHeaders(rserrors.ErrValidation, httputil.UserIDXHeader, httputil.UserRoleXHeader))
@@ -61,6 +51,21 @@ func initMiddlewares(e gin.IRouter, tv *m.TranslateValidate, enableCORS bool) {
 	}))
 	e.Use(httputil.SubstituteUserMiddleware(tv.Validate, tv.UniversalTranslator, rserrors.ErrValidation))
 	e.Use(m.RequiredUserHeaders())
+}
+
+func systemHandlersSetup(router gin.IRouter, status *model.ServiceStatus, enableCORS bool) {
+	if enableCORS {
+		cfg := cors.DefaultConfig()
+		cfg.AllowAllOrigins = true
+		cfg.AddAllowMethods(http.MethodDelete)
+		cfg.AddAllowHeaders(httputil.UserRoleXHeader, httputil.UserIDXHeader, httputil.UserNamespacesXHeader)
+		router.Use(cors.New(cfg))
+	}
+	router.Group("/static").
+		StaticFS("/", static.HTTP)
+	router.Use(gonic.Recovery(rserrors.ErrInternal, cherrylog.NewLogrusAdapter(logrus.WithField("component", "gin_recovery"))))
+
+	router.GET("/status", httputil.ServiceStatus(status))
 }
 
 func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DeployActions) {
@@ -94,14 +99,14 @@ func deployHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend se
 func domainHandlersSetup(router gin.IRouter, tv *m.TranslateValidate, backend server.DomainActions) {
 	domainHandlers := h.DomainHandlers{DomainActions: backend, TranslateValidate: tv}
 
-	domain := router.Group("/domains", httputil.RequireAdminRole(rserrors.ErrPermissionDenied))
+	domain := router.Group("/domains")
 	{
 		domain.GET("", domainHandlers.GetDomainsListHandler)
 		domain.GET("/:domain", domainHandlers.GetDomainHandler)
 
-		domain.POST("", domainHandlers.AddDomainHandler)
+		domain.POST("", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), domainHandlers.AddDomainHandler)
 
-		domain.DELETE("/:domain", domainHandlers.DeleteDomainHandler)
+		domain.DELETE("/:domain", httputil.RequireAdminRole(rserrors.ErrPermissionDenied), domainHandlers.DeleteDomainHandler)
 	}
 }
 

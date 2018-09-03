@@ -38,7 +38,7 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:2a622415fbdcee3b09f192ee5676bf1d34a55342ed909083baff003e7865513e"
+  digest = "1:776ec135b0b930b1474caed90db9644a4af3888e996711ff308cd1bab62cf97f"
   name = "github.com/containerum/kube-client"
   packages = [
     ".",
@@ -46,24 +46,24 @@
     "pkg/model",
   ]
   pruneopts = "UT"
-  revision = "23dd0850d05cd21c41f0699fced4c5791dea2df6"
-  version = "v0.23.26"
+  revision = "d9a1865782bb10b027248a9770a42a53ed11a423"
+  version = "v0.23.27"
 
 [[projects]]
-  digest = "1:f332cfcc393a262145934ed77269e485c04987ca5ed836c6937e36147d3103d5"
+  digest = "1:30b68702657dd0cb860432e0ac74af43606fdbda7ca1a7171c34df8506f218e0"
   name = "github.com/containerum/utils"
   packages = ["httputil"]
   pruneopts = "UT"
-  revision = "f396ca4039012a63f7025cba99a5d514d2824421"
-  version = "v1.0.6"
+  revision = "d5ad116d65495380f8dba105acb9ffcb7ae935cc"
+  version = "v1.0.7"
 
 [[projects]]
-  digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "NUT"
-  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:3cabbabc9e0e4aa7e12b882bdc213f41cf8bd2b2ce2a7b5e0aceaf8a6a78049b"
@@ -208,12 +208,12 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:15042ad3498153684d09f393bbaec6b216c8eec6d61f63dff711de7d64ed8861"
+  digest = "1:97df918963298c287643883209a2c3f642e6593379f97ab400c2a2e219ab647d"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   pruneopts = "NUT"
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:1bb197a3b5db4e06e00b7560f8e89836c486627f2a0338332ed37daa003d259e"
@@ -340,12 +340,20 @@
   version = "v1.20.0"
 
 [[projects]]
+  digest = "1:12480bee2474129cb1681f9c2b1f54672517976004193034942f9861fa378725"
+  name = "github.com/xakep666/mongo-migrate"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "9eed51c1b7de3a530c90980209847a97c4f44032"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:3f3a05ae0b95893d90b9b3b5afdb79a9b3d96e4e36e099d841ae602e4aca0da8"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "NUT"
-  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
+  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
 
 [[projects]]
   branch = "master"
@@ -359,18 +367,18 @@
     "webdav/internal/xml",
   ]
   pruneopts = "NUT"
-  revision = "c39426892332e1bb5ec0a434a079bf82f5d30c54"
+  revision = "922f4815f713f213882e8ef45e0d315b164d705c"
 
 [[projects]]
   branch = "master"
-  digest = "1:51bfac9fe01b6a949bfed6db70b00bada281f0d64e5296ec644163aa977bfee0"
+  digest = "1:4d2c9a7bafb3f55ca1ad9d79557b66fda4b182f5bd1531c9595c770d2a28a321"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "NUT"
-  revision = "1c9583448a9c3aa0f9a6a5241bf73c0bd8aafded"
+  revision = "3b58ed4ad3395d483fc92d5d14123ce2c3581fec"
 
 [[projects]]
   digest = "1:e33513a825fcd765e97b5de639a2f7547542d1a8245df0cef18e1fd390b778a9"
@@ -476,6 +484,7 @@
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "github.com/urfave/cli",
+    "github.com/xakep666/mongo-migrate",
     "golang.org/x/net/idna",
     "golang.org/x/net/webdav",
     "gopkg.in/go-playground/validator.v9",
