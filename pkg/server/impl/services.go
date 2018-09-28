@@ -22,14 +22,18 @@ type ServiceActionsImpl struct {
 	permissions clients.Permissions
 	mongo       *db.MongoStorage
 	log         *cherrylog.LogrusAdapter
+	minPort     uint
+	maxPort     uint
 }
 
-func NewServiceActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube) *ServiceActionsImpl {
+func NewServiceActionsImpl(mongo *db.MongoStorage, permissions *clients.Permissions, kube *clients.Kube, minPort, maxPort uint) *ServiceActionsImpl {
 	return &ServiceActionsImpl{
 		mongo:       mongo,
 		kube:        *kube,
 		permissions: *permissions,
 		log:         cherrylog.NewLogrusAdapter(logrus.WithField("component", "service_actions")),
+		minPort:     minPort,
+		maxPort:     maxPort,
 	}
 }
 
@@ -89,7 +93,7 @@ func (sa *ServiceActionsImpl) CreateService(ctx context.Context, nsID string, re
 		req.Domain = domain.Domain
 		req.IPs = domain.IP
 		for i, port := range req.Ports {
-			externalPort, err := sa.mongo.GetFreePort(domain.Domain, port.Protocol)
+			externalPort, err := sa.mongo.GetFreePort(domain.Domain, port.Protocol, int(sa.minPort), int(sa.maxPort))
 			if err != nil {
 				return nil, err
 			}
@@ -186,7 +190,7 @@ func (sa *ServiceActionsImpl) UpdateService(ctx context.Context, nsID string, re
 				}
 			}
 			if externalPort == 0 {
-				externalPort, err = sa.mongo.GetFreePort(domain.Domain, port.Protocol)
+				externalPort, err = sa.mongo.GetFreePort(domain.Domain, port.Protocol, int(sa.minPort), int(sa.maxPort))
 				if err != nil {
 					return nil, err
 				}

@@ -70,6 +70,18 @@ var flags = []cli.Flag{
 		Name:   "mongo_password",
 		Usage:  "MongoDB password",
 	},
+	cli.UintFlag{
+		EnvVar: "CH_RESOURCE_MIN_SERVICE_PORT",
+		Name:   "min_port",
+		Value:  30000,
+		Usage:  "Minimal service external port",
+	},
+	cli.UintFlag{
+		EnvVar: "CH_RESOURCE_MAX_SERVICE_PORT",
+		Name:   "max_port",
+		Value:  32767,
+		Usage:  "Maximal service external port",
+	},
 	cli.StringSliceFlag{
 		EnvVar: "CH_RESOURCE_MONGO_ADDR",
 		Name:   "mongo_addr",
