@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	maxPort = 65536
-	minPort = 11000
+	maxPort = 32767
+	minPort = 30000
 )
 
 var (
