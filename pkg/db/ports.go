@@ -8,16 +8,11 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-const (
-	maxPort = 65536
-	minPort = 11000
-)
-
 var (
 	rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
-func (mongo *MongoStorage) GetFreePort(domain string, protocol model.Protocol) (int, error) {
+func (mongo *MongoStorage) GetFreePort(domain string, protocol model.Protocol, minPort, maxPort int) (int, error) {
 	var collection = mongo.db.C(CollectionService)
 	for {
 		var port = rnd.Intn(maxPort-minPort) + minPort
