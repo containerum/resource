@@ -15,7 +15,7 @@ var version string
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "resourсe-service"
+	app.Name = "resourсe"
 	app.Version = version
 	app.Usage = "Resource-service for managing kubernetes resources"
 	app.Flags = flags
